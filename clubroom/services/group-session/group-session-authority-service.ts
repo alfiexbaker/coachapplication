@@ -37,8 +37,14 @@ interface ApiGroupSessionRosterResponse {
   session: GroupSession;
   registrations: GroupRegistration[];
   total: number;
+  occurrenceDate: string | null;
   seedVersion?: string | null;
   requestId: string;
+}
+
+export interface GroupSessionCompletionRoster {
+  occurrenceDate: string | null;
+  registrations: GroupRegistration[];
 }
 
 interface ApiGroupSessionRegisterResponse {
@@ -59,6 +65,14 @@ interface ApiGroupSessionRegisterResponse {
 
 interface ApiGroupSessionRegistrationResponse {
   registration: GroupRegistration;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
+interface ApiGroupSessionCompletionResponse {
+  groupSession: GroupSession;
+  registrations: GroupRegistration[];
+  occurrenceDate: string;
   seedVersion?: string | null;
   requestId: string;
 }
@@ -102,6 +116,16 @@ interface CreateSessionInput {
   waitlistEnabled?: boolean;
   inviteType?: GroupSession['inviteType'];
   registrationDeadline?: string;
+}
+
+export interface CompleteGroupSessionInput {
+  occurrenceDate: string;
+  attendance: Array<{
+    registrationId: string;
+    status: 'ATTENDED' | 'NO_SHOW';
+    notes?: string;
+    effortRating?: number;
+  }>;
 }
 
 async function resolveAuthorityHeaders(
@@ -200,7 +224,29 @@ class GroupSessionAuthorityService {
       }),
     });
     if (!result.success) {
-      logger.error('Failed to create group session via API', { input, error: result.error });
+      logger.error('Failed to create group session via API', {
+        coachId: input.coachId,
+        clubId: input.clubId,
+        squadId: input.squadId,
+        sessionType: input.sessionType,
+        inviteType: input.inviteType,
+        maxParticipants: input.maxParticipants,
+        pricePerParticipant: input.pricePerParticipant,
+        currency: input.currency,
+        ageMin: input.ageMin,
+        ageMax: input.ageMax,
+        skillLevel: input.skillLevel,
+        isVirtual: input.isVirtual,
+        scheduleFields: Array.isArray(input.schedule)
+          ? input.schedule.flatMap((entry) => Object.keys(entry)).sort()
+          : Object.keys(input.schedule).sort(),
+        focusCount: input.focus?.length ?? 0,
+        equipmentCount: input.equipment?.length ?? 0,
+        hasDescription: input.description.trim().length > 0,
+        titleLength: input.title.trim().length,
+        locationLength: input.location.trim().length,
+        error: result.error,
+      });
       return err(result.error);
     }
     return ok(result.data.groupSession);
@@ -332,6 +378,35 @@ class GroupSessionAuthorityService {
     return ok(result.data.groupSession);
   }
 
+  async completeSession(
+    sessionId: string,
+    input: CompleteGroupSessionInput,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders('Sign in to complete group sessions.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionCompletionResponse>(
+      `/v1/group-sessions/${encodeURIComponent(sessionId)}/complete`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify(input),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to complete group session via API', {
+        sessionId,
+        occurrenceDate: input.occurrenceDate,
+        attendanceCount: input.attendance.length,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.groupSession);
+  }
+
   async listRoster(sessionId: string): Promise<Result<GroupRegistration[], ServiceError>> {
     const headersResult = await resolveAuthorityHeaders('Sign in to view this group session roster.');
     if (!headersResult.success) {
@@ -350,6 +425,36 @@ class GroupSessionAuthorityService {
       return err(result.error);
     }
     return ok(result.data.registrations);
+  }
+
+  async listCompletionRoster(
+    sessionId: string,
+  ): Promise<Result<GroupSessionCompletionRoster, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders(
+      'Sign in to complete group session attendance.',
+    );
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionRosterResponse>(
+      `/v1/group-sessions/${encodeURIComponent(sessionId)}/roster?forCompletion=true`,
+      {
+        method: 'GET',
+        headers: headersResult.data,
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load group session completion roster via API', {
+        sessionId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok({
+      occurrenceDate: result.data.occurrenceDate,
+      registrations: result.data.registrations,
+    });
   }
 
   async register(params: {
@@ -448,7 +553,7 @@ class GroupSessionAuthorityService {
   async markAttendance(params: {
     registrationId: string;
     date: string;
-    attended: boolean;
+    status: 'ATTENDED' | 'NO_SHOW' | null;
   }): Promise<Result<GroupRegistration, ServiceError>> {
     const headersResult = await resolveAuthorityHeaders('Sign in to record group session attendance.');
     if (!headersResult.success) {
@@ -462,7 +567,7 @@ class GroupSessionAuthorityService {
         headers: headersResult.data,
         body: JSON.stringify({
           date: params.date,
-          attended: params.attended,
+          status: params.status,
         }),
       },
     );

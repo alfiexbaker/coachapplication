@@ -193,17 +193,20 @@ export const InviteListCard = function InviteListCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard style={st.card} onPress={onPress}>
-        <Row
-          gap="sm"
-          align="center"
+      <SurfaceCard style={st.card}>
+        <Clickable
+          onPress={onPress}
+          accessibilityLabel="View invite details"
           style={[st.msgBanner, { backgroundColor: withAlpha(colors.tint, 0.03) }]}
         >
-          <Ionicons name="mail-outline" size={16} color={colors.tint} />
-          <ThemedText style={[st.msgText, { color: colors.text }]} numberOfLines={2}>
-            {msg}
-          </ThemedText>
-        </Row>
+          <Row gap="sm" align="center">
+            <Ionicons name="mail-outline" size={16} color={colors.tint} />
+            <ThemedText style={[st.msgText, { color: colors.text }]} numberOfLines={2}>
+              {msg}
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </Row>
+        </Clickable>
         <Row>
           <Row gap="xs" align="center">
             <Row gap="xxs" align="center" style={[st.typeBadge, { backgroundColor: tc.bg }]}>

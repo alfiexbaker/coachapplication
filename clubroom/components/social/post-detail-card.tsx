@@ -20,6 +20,7 @@ interface PostDetailCardProps {
   liked: boolean;
   likeCount: number;
   commentCount: number;
+  reactionPending?: boolean;
   onLike: () => void | Promise<void>;
 }
 
@@ -34,12 +35,13 @@ export const PostDetailCard = function PostDetailCard({
   liked,
   likeCount,
   commentCount,
+  reactionPending = false,
   onLike,
 }: PostDetailCardProps) {
   const { colors: palette } = useTheme();
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Row gap="xs" align="center">
         <View
           style={[
@@ -65,18 +67,22 @@ export const PostDetailCard = function PostDetailCard({
       </Row>
       {title && <ThemedText style={styles.postTitle}>{title}</ThemedText>}
       <ThemedText style={styles.postContent}>{content}</ThemedText>
-      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" /> : null}
-      {!imageUrl && videoUrl ? <VideoPlayer videoUrl={videoUrl} height={220} title={title || 'Video'} /> : null}
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" />
+      ) : null}
+      {!imageUrl && videoUrl ? (
+        <VideoPlayer videoUrl={videoUrl} height={220} title={title || 'Video'} />
+      ) : null}
       <Row gap="md" style={[styles.actions, { borderTopColor: palette.border }]}>
         <Clickable
           style={styles.actionButton}
           onPress={() => {
             void onLike();
           }}
-          hitSlop={8}
+          disabled={reactionPending}
           accessibilityLabel={liked ? 'Unlike post' : 'Like post'}
           accessibilityRole="button"
-          accessibilityState={{ selected: liked }}
+          accessibilityState={{ selected: liked, disabled: reactionPending, busy: reactionPending }}
         >
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
@@ -85,28 +91,27 @@ export const PostDetailCard = function PostDetailCard({
           />
           <ThemedText style={[styles.actionText, { color: palette.muted }]}>{likeCount}</ThemedText>
         </Clickable>
-        <View
-          style={[styles.actionButtonView, styles.commentCount]}
-          accessible
-          accessibilityLabel={`${commentCount} comments`}
-        >
-          <Ionicons name="chatbubble-outline" size={20} color={palette.muted} />
-          <ThemedText style={[styles.actionText, { color: palette.muted }]}>
-            {commentCount}
-          </ThemedText>
-        </View>
       </Row>
-      <ThemedText style={styles.commentsHeading}>Comments ({commentCount})</ThemedText>
+      <Row
+        justify="between"
+        align="center"
+        style={[styles.commentsHeader, { borderTopColor: palette.border }]}
+      >
+        <ThemedText style={styles.commentsHeading} accessibilityRole="header">
+          Comments
+        </ThemedText>
+        <ThemedText style={[styles.commentCountText, { color: palette.muted }]}>
+          {commentCount}
+        </ThemedText>
+      </Row>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    margin: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
+  container: {
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.sm,
     gap: Spacing.xs,
   },
   // postHeader replaced by Row primitive
@@ -129,10 +134,19 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: Radii.md,
   },
-  actions: { paddingTop: Spacing.xs, borderTopWidth: 1 },
-  actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minHeight: 44 },
-  actionButtonView: { minHeight: 44 },
-  commentCount: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  actions: { paddingTop: Spacing.xs, borderTopWidth: StyleSheet.hairlineWidth },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    minWidth: 44,
+    minHeight: 44,
+  },
   actionText: { ...Typography.bodySmall },
-  commentsHeading: { ...Typography.bodySemiBold, paddingTop: Spacing.xs },
+  commentsHeader: {
+    minHeight: 44,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  commentsHeading: { ...Typography.bodySemiBold },
+  commentCountText: { ...Typography.bodySmall },
 });

@@ -27,6 +27,7 @@ export interface ScreenHeaderProps {
   action?: {
     icon?: keyof typeof Ionicons.glyphMap;
     label?: string;
+    accessibilityLabel?: string;
     onPress: () => void;
   };
   /** Custom right element (overrides action) */
@@ -92,7 +93,9 @@ export function ScreenHeader({
                     { backgroundColor: palette.surface, borderColor: palette.border },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={action.label ?? 'Header action'}
+                  accessibilityLabel={
+                    action.accessibilityLabel ?? action.label ?? 'Header action'
+                  }
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
                   <Row align="center" gap="xxs">
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.caption },
   actionButton: {
     paddingHorizontal: Spacing.sm,
-    minHeight: 40,
+    minHeight: 44,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1,

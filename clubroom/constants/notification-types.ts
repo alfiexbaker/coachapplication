@@ -7,6 +7,7 @@
 
 export const NOTIFICATION_TYPES = {
   BOOKING_CONFIRMED: 'booking_confirmed',
+  BOOKING_COMPLETED: 'booking_completed',
   BOOKING_CANCELLED: 'booking_cancelled',
   INVITE_RECEIVED: 'invite_received',
   RSVP_REQUEST: 'rsvp_request',
@@ -57,6 +58,7 @@ export type NotificationTypeValue = (typeof NOTIFICATION_TYPES)[NotificationType
  */
 export const NOTIFICATION_CATEGORY_MAP: Record<NotificationTypeValue, string> = {
   [NOTIFICATION_TYPES.BOOKING_CONFIRMED]: 'booking',
+  [NOTIFICATION_TYPES.BOOKING_COMPLETED]: 'booking',
   [NOTIFICATION_TYPES.BOOKING_CANCELLED]: 'booking',
   [NOTIFICATION_TYPES.BOOKING_REQUEST]: 'booking',
   [NOTIFICATION_TYPES.INVITE_RECEIVED]: 'booking',
@@ -104,6 +106,7 @@ export const NOTIFICATION_CATEGORY_MAP: Record<NotificationTypeValue, string> = 
  */
 export const NOTIFICATION_DEEP_LINKS: Partial<Record<NotificationTypeValue, string>> = {
   [NOTIFICATION_TYPES.BOOKING_CONFIRMED]: '/booking/:id',
+  [NOTIFICATION_TYPES.BOOKING_COMPLETED]: '/booking/:id',
   [NOTIFICATION_TYPES.BOOKING_CANCELLED]: '/booking/:id',
   [NOTIFICATION_TYPES.BOOKING_REQUEST]: '/booking/:id',
   [NOTIFICATION_TYPES.INVITE_RECEIVED]: '/session/:id/rsvp',

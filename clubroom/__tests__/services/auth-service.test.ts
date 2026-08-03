@@ -344,14 +344,8 @@ describe('AuthService (mock mode)', () => {
   // ---------------------------------------------------------------------------
 
   describe('forgotPassword', () => {
-    test('does not throw for existing or non-existing email', async () => {
-      await assert.doesNotReject(authService.forgotPassword('someone@example.com'));
-    });
-  });
-
-  describe('requestPasswordReset', () => {
-    test('returns success', async () => {
-      const result = await authService.requestPasswordReset('someone@example.com');
+    test('returns success without revealing whether the email exists', async () => {
+      const result = await authService.forgotPassword('someone@example.com');
       assert.equal(result.success, true);
     });
   });

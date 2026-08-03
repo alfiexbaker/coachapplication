@@ -1,0 +1,70 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T11:23:35.581Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "club-post-audit"
+    ],
+    "role": "coach",
+    "chunkSize": 2,
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 400
+  },
+  "totals": {
+    "total": 2,
+    "ok": 2,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 2
+  },
+  "results": [
+    {
+      "id": "coach_create_club_post_ready",
+      "role": "coach",
+      "title": "Coach sees the clean club update composer",
+      "path": "/create-club-post?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/create-club-post",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/create-club-post-final/coach__coach_create_club_post_ready.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 2000
+    },
+    {
+      "id": "coach_create_club_post_interactions",
+      "role": "coach",
+      "title": "Coach composes a truthful club-wide update",
+      "path": "/create-club-post?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/create-club-post",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/create-club-post-final/coach__coach_create_club_post_interactions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [
+        "response:503:POST:http://localhost:4000/v1/posts",
+        "console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ],
+      "attempts": 1,
+      "durationMs": 4071
+    }
+  ]
+}

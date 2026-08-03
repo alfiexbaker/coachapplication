@@ -157,7 +157,7 @@ export function SchedulingRulesModal({
   const [allowSameDayBookings, setAllowSameDayBookings] = useState(true);
   const [cancellationPreset, setCancellationPreset] = useState<CancellationPreset>('standard');
   const [cancellationTiers, setCancellationTiers] = useState<RefundTier[]>(
-    schedulingRulesService.getDefaultCancellationPolicy().tiers,
+    () => schedulingRulesService.getDefaultCancellationPolicy().tiers,
   );
 
   const loadRules = async () =>

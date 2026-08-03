@@ -36,7 +36,6 @@ const checks = [
     pass: () => {
       const files = [
         'app/(tabs)/messages.tsx',
-        'components/coach/profile-quick-actions.tsx',
         'app/settings/index.tsx',
         'components/social/feed-filters-sections.tsx',
       ];

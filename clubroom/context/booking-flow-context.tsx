@@ -1,4 +1,4 @@
-import React, { createContext, useState, use } from 'react';
+import React, { createContext, useEffect, useState, use } from 'react';
 import { bookingService, BookingDraft } from '@/services/booking-service';
 
 interface BookingFlowContextValue {
@@ -11,7 +11,15 @@ interface BookingFlowContextValue {
 const BookingFlowContext = createContext<BookingFlowContextValue | undefined>(undefined);
 
 export function BookingFlowProvider({ children }: { children: React.ReactNode }) {
-  const [draft, setDraft] = useState<BookingDraft>(() => bookingService.getDraft());
+  const [draft, setDraft] = useState<BookingDraft>({});
+
+  useEffect(() => {
+    bookingService.resetDraft();
+
+    return () => {
+      bookingService.resetDraft();
+    };
+  }, []);
 
   const updateDraft = (patch: Partial<BookingDraft>) => {
     const currentDraft = bookingService.getDraft();
@@ -35,12 +43,12 @@ export function BookingFlowProvider({ children }: { children: React.ReactNode })
     setDraft(bookingService.getDraft());
   };
 
-  const value = ({
+  const value = {
     draft,
     updateDraft,
     reset,
     save,
-  });
+  };
 
   return <BookingFlowContext.Provider value={value}>{children}</BookingFlowContext.Provider>;
 }

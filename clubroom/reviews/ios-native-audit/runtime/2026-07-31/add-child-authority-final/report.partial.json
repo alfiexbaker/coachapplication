@@ -1,0 +1,123 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T18:00:33.530Z",
+  "meta": {
+    "roles": [
+      "parent",
+      "guardian",
+      "coach",
+      "athlete",
+      "admin"
+    ],
+    "profiles": [
+      "add-child-authority"
+    ],
+    "chunkIndex": null,
+    "retries": 1
+  },
+  "totals": {
+    "total": 5,
+    "ok": 5,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 5
+  },
+  "results": [
+    {
+      "id": "parent_add_child",
+      "role": "parent",
+      "title": "Family administrator opens add-child flow",
+      "path": "/add-child",
+      "finalPath": "/add-child",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/parent__parent_add_child.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4396
+    },
+    {
+      "id": "guardian_add_child_denied",
+      "role": "guardian",
+      "title": "guardian is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/guardian__guardian_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3224
+    },
+    {
+      "id": "coach_add_child_denied",
+      "role": "coach",
+      "title": "coach is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/coach__coach_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2607
+    },
+    {
+      "id": "athlete_add_child_denied",
+      "role": "athlete",
+      "title": "athlete is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/athlete__athlete_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3019
+    },
+    {
+      "id": "admin_add_child_denied",
+      "role": "admin",
+      "title": "admin is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/admin__admin_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2519
+    }
+  ]
+}

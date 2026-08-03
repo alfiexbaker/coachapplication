@@ -50,7 +50,7 @@ export interface LoadingStateProps {
 export interface ErrorStateProps {
   message: string;
   error?: ServiceError;
-  onRetry: () => void;
+  onRetry?: () => void;
   title?: string;
 }
 
@@ -154,19 +154,9 @@ export function SubmitProgressState({ label = 'Working...', style }: SubmitProgr
 // ERROR STATE
 // ============================================================================
 
-const USER_FACING_CODES: string[] = [
-  'NETWORK',
-  'UNAUTHORIZED',
-  'NOT_FOUND',
-  'CONFLICT',
-  'RATE_LIMITED',
-  'UNSUPPORTED',
-];
-
-export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) {
+export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
   const { colors } = useTheme();
   const ButtonStyles = createButtonStyles(colors);
-  const debugDetails = error?.details;
 
   return (
     <View style={errorStyles.container}>
@@ -176,34 +166,15 @@ export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) 
       </ThemedText>
       <ThemedText style={[errorStyles.message, { color: colors.muted }]}>{message}</ThemedText>
 
-      {error?.code && (__DEV__ || USER_FACING_CODES.includes(error.code)) && (
-        <ThemedText style={[errorStyles.code, { color: colors.muted }]}>
-          Error: {error.code}
-        </ThemedText>
-      )}
-
-      <Clickable
-        onPress={onRetry}
-        style={[ButtonStyles.primary, { marginTop: Spacing.xs }]}
-        accessibilityLabel="Try again"
-        accessibilityRole="button"
-      >
-        <ThemedText style={ButtonStyles.primaryText}>Try again</ThemedText>
-      </Clickable>
-
-      {__DEV__ && Boolean(debugDetails) ? (
-        <View style={{ marginTop: Spacing.md, width: '90%' }}>
-          <ThemedText style={[errorStyles.title, { color: colors.muted }]}>
-            Debug Info (Dev Only)
-          </ThemedText>
-          <ThemedText
-            style={[errorStyles.message, { color: colors.muted, fontFamily: 'monospace' }]}
-          >
-            {typeof debugDetails === 'string'
-              ? debugDetails
-              : JSON.stringify(debugDetails, null, 2)}
-          </ThemedText>
-        </View>
+      {onRetry ? (
+        <Clickable
+          onPress={onRetry}
+          style={[ButtonStyles.primary, { marginTop: Spacing.xs }]}
+          accessibilityLabel="Try again"
+          accessibilityRole="button"
+        >
+          <ThemedText style={ButtonStyles.primaryText}>Try again</ThemedText>
+        </Clickable>
       ) : null}
     </View>
   );
@@ -277,10 +248,6 @@ const errorStyles = StyleSheet.create({
   },
   message: {
     ...Typography.body,
-    textAlign: 'center',
-  },
-  code: {
-    ...Typography.caption,
     textAlign: 'center',
   },
 });

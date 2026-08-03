@@ -10,6 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { apiClient } from '@/services/api-client';
 import { badgeService } from '@/services/badge-service';
 import { childService, type ChildProfile } from '@/services/child-service';
+import { rosterService } from '@/services/roster-service';
 import {
   progressFeedbackService,
   type SessionFeedback,
@@ -17,8 +18,9 @@ import {
 import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import { isBrowserFetchFailure } from '@/utils/network-errors';
+import type { AccountType } from '@/services/auth-service';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -35,12 +37,6 @@ export interface ProgressionSummary {
     badgeCount: number;
     totalPoints: number;
   }[];
-}
-
-export interface LevelBadge {
-  name: string;
-  icon: 'trophy-outline' | 'medal-outline' | 'ribbon-outline';
-  color: string;
 }
 
 interface AthleteDevelopmentData {
@@ -116,6 +112,7 @@ function mapFeedbackToDevelopmentSession(feedback: SessionFeedback): Session {
 async function loadAthleteDevelopmentSessions(
   athleteId: string,
   coachUserId: string,
+  viewerRole: 'coach' | 'parent' | 'athlete',
 ): Promise<Session[]> {
   if (apiClient.isMockMode) {
     const allSessions = await ensureCoachSessionsSeeded();
@@ -124,8 +121,69 @@ async function loadAthleteDevelopmentSessions(
     );
   }
 
-  const feedback = await progressFeedbackService.getFeedbackForAthlete(athleteId, 'coach');
+  const feedback = await progressFeedbackService.getFeedbackForAthlete(athleteId, viewerRole);
   return feedback.map(mapFeedbackToDevelopmentSession);
+}
+
+export function resolveDevelopmentViewerRole(user: {
+  role: string;
+  accountType?: AccountType;
+  hasChildren?: boolean;
+  children?: readonly unknown[];
+}): 'coach' | 'parent' | 'athlete' {
+  if (user.accountType === 'COACH' || user.role === 'COACH') {
+    return 'coach';
+  }
+  if (
+    user.accountType === 'PARENT' ||
+    user.role === 'PARENT' ||
+    user.hasChildren ||
+    (user.children?.length ?? 0) > 0
+  ) {
+    return 'parent';
+  }
+  return 'athlete';
+}
+
+type AthleteDevelopmentReader = {
+  id: string;
+  role: string;
+  accountType?: AccountType;
+  hasChildren?: boolean;
+  children?: readonly { childId: string }[];
+};
+
+/**
+ * Development data includes health-adjacent player context. API mode leaves the
+ * decision to Fastify; the local audit fixture must make the equivalent decision
+ * before reading its unscoped demo records.
+ */
+export async function canReadAthleteDevelopment(
+  athleteId: string,
+  currentUser: AthleteDevelopmentReader,
+): Promise<Result<boolean, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    return ok(true);
+  }
+
+  if (currentUser.id === athleteId) {
+    return ok(true);
+  }
+
+  const viewerRole = resolveDevelopmentViewerRole(currentUser);
+  if (viewerRole === 'parent') {
+    return childService.canManageChildProfile(athleteId, currentUser);
+  }
+  if (viewerRole === 'coach') {
+    try {
+      return ok(Boolean(await rosterService.getRosterEntry(currentUser.id, athleteId)));
+    } catch (error) {
+      logger.warn('Could not verify coach athlete assignment', { athleteId, error });
+      return err(serviceError('UNKNOWN', 'Could not verify athlete access.'));
+    }
+  }
+
+  return ok(false);
 }
 
 export function useAthleteDevelopment(athleteId: string) {
@@ -144,6 +202,15 @@ export function useAthleteDevelopment(athleteId: string) {
     }
 
     try {
+      const accessResult = await canReadAthleteDevelopment(athleteId, currentUser);
+      if (!accessResult.success) {
+        return accessResult;
+      }
+      if (!accessResult.data) {
+        return err(serviceError('UNAUTHORIZED', 'You do not have permission to view this player.'));
+      }
+
+      const viewerRole = resolveDevelopmentViewerRole(currentUser);
       const childProfile = await childService.getChild(athleteId);
       const athleteResult = childProfile
         ? ok<User>(mapChildProfileToUser(childProfile))
@@ -163,7 +230,7 @@ export function useAthleteDevelopment(athleteId: string) {
       }
 
       const [athleteSessions, awardsData, progression] = await Promise.all([
-        loadAthleteDevelopmentSessions(athleteId, currentUser.id),
+        loadAthleteDevelopmentSessions(athleteId, currentUser.id, viewerRole),
         badgeService.listAwardsForAthlete(athleteId),
         badgeService.getProgressionSummary(athleteId),
       ]);
@@ -195,7 +262,13 @@ export function useAthleteDevelopment(athleteId: string) {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteDevelopmentData>({
     load: loadDevelopment,
-    deps: [athleteId, currentUser?.id],
+    deps: [
+      athleteId,
+      currentUser?.id,
+      currentUser?.role,
+      currentUser?.accountType,
+      currentUser?.children?.map((child) => child.childId).join(','),
+    ],
     isEmpty: (value) => !value.athlete,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
@@ -224,32 +297,6 @@ export function useAthleteDevelopment(athleteId: string) {
   })();
   const childProfile = data?.childProfile ?? null;
   const progressionSummary = data?.progressionSummary ?? null;
-
-  // Computed: progress trend
-  const trend = (() => {
-    if (sessions.length < 2) return 'steady' as const;
-    const sorted = Array.from(sessions).toSorted(
-      (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
-    );
-    const recentAvg =
-      sorted.slice(0, 3).reduce((sum, s) => sum + s.performanceRating, 0) /
-      Math.min(3, sorted.length);
-    const prevSlice = sorted.slice(3, 6);
-    if (sorted.length < 4 || prevSlice.length === 0) return 'steady' as const;
-    const previousAvg =
-      prevSlice.reduce((sum, s) => sum + s.performanceRating, 0) / prevSlice.length;
-    if (recentAvg > previousAvg + 0.3) return 'improving' as const;
-    if (recentAvg < previousAvg - 0.3) return 'declining' as const;
-    return 'steady' as const;
-  })();
-
-  // Computed: level badge
-  const level: LevelBadge = (() => {
-    const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
-    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
-  })();
 
   // Computed: sorted sessions
   const sortedSessions = Array.from(sessions).toSorted(
@@ -305,8 +352,6 @@ export function useAthleteDevelopment(athleteId: string) {
     showBadgeModal,
     childProfile,
     progressionSummary,
-    trend,
-    level,
     selectedSessionLabel,
     handleOpenBadgeModal,
     handleSelectSession,

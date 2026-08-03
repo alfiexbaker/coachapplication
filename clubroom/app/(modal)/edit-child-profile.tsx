@@ -1,15 +1,28 @@
-import { useRef } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 
+import { DateOfBirthField } from '@/components/family/add-child-basic-step-sections';
 import { PageHeader } from '@/components/primitives/page-header';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { POSITION_OPTIONS_WITH_ROTATE } from '@/constants/position-skills';
 import { useTheme } from '@/hooks/useTheme';
@@ -32,287 +45,328 @@ const RELATIONSHIP_LABEL: Record<string, string> = {
 };
 
 export default function EditChildProfileModal() {
-  const { colors: palette } = useTheme();
-  const c = useEditChildProfile();
+  const { colors, isDark } = useTheme();
+  const editor = useEditChildProfile();
   const modalRef = useRef<View>(null);
-  useFocusTrap(modalRef, 'Edit child profile modal');
-  const positionDisplayLabel = (key: (typeof POSITION_OPTIONS_WITH_ROTATE)[number]['key']) => {
-    if (key === null) {
-      return 'They rotate';
-    }
-    if (key === 'ATT') {
-      return 'Striker';
-    }
-    return key;
-  };
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  useFocusTrap(modalRef, 'Edit player profile modal');
 
-  const renderStateShell = (content: ReactNode) => (
-    <View
+  const renderShell = (content: ReactNode, title = 'Edit player') => (
+    <SafeAreaView
       ref={modalRef}
-      accessible
       accessibilityViewIsModal
-      accessibilityRole="none"
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
     >
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <PageHeader title="Edit Child Profile" showBack centerTitle />
-        {content}
-      </SafeAreaView>
-    </View>
+      <PageHeader title={title} showBack centerTitle />
+      {content}
+    </SafeAreaView>
   );
 
-  if (c.loading) {
-    return renderStateShell(<LoadingState variant="form" />);
+  if (editor.loading) {
+    return renderShell(
+      <LoadingState variant="form" accessibilityLabel="Loading player profile editor" />,
+    );
   }
 
-  if (c.status === 'error' || !c.child) {
-    return renderStateShell(
+  if (editor.status === 'error') {
+    return renderShell(
       <ErrorState
-        message={c.error?.message ?? 'Failed to load child profile.'}
-        onRetry={c.retry}
+        title="Could not load player"
+        message={editor.error?.message ?? 'Could not load this player profile.'}
+        onRetry={editor.retry}
       />,
     );
   }
 
-  const inputStyle = [styles.input, { borderColor: palette.border, color: palette.text }];
-  const textAreaStyle = [styles.textArea, { borderColor: palette.border, color: palette.text }];
+  if (editor.access === 'denied') {
+    return renderShell(
+      <View style={styles.stateContainer}>
+        <EmptyState
+          context="error"
+          title="Profile editing unavailable"
+          message="You do not have permission to edit this player."
+        />
+      </View>,
+    );
+  }
+
+  if (!editor.child) {
+    return renderShell(
+      <View style={styles.stateContainer}>
+        <EmptyState
+          icon="person-outline"
+          title="Player not found"
+          message="This player profile is no longer available."
+        />
+      </View>,
+    );
+  }
+
+  const inputStyle = [
+    styles.input,
+    { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+  ];
 
   return (
-    <View
+    <SafeAreaView
       ref={modalRef}
-      accessible
       accessibilityViewIsModal
-      accessibilityRole="none"
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
     >
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <PageHeader title={`Edit ${c.child.firstName}`} showBack centerTitle />
+      <PageHeader title="Edit player" showBack centerTitle />
 
+      {editor.saving ? (
+        <SubmitProgressState label="Saving player profile" style={styles.submitState} />
+      ) : null}
+
+      {editor.formError ? (
+        <Row
+          style={[
+            styles.errorBanner,
+            {
+              backgroundColor: withAlpha(colors.error, 0.08),
+              borderColor: withAlpha(colors.error, 0.24),
+            },
+          ]}
+          accessibilityRole="alert"
+        >
+          <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
+          <ThemedText style={[styles.errorText, { color: colors.error }]}>
+            {editor.formError}
+          </ThemedText>
+        </Row>
+      ) : null}
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="defaultSemiBold">Basic Information</ThemedText>
+          <View style={[styles.sectionHeader, { borderBottomColor: colors.border }]}>
+            <ThemedText type="subtitle">Player details</ThemedText>
+          </View>
 
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>First Name</ThemedText>
-              <TextInput
-                style={inputStyle}
-                value={c.firstName}
-                onChangeText={c.setFirstName}
-                maxLength={50}
-              />
-            </View>
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Last Name</ThemedText>
-              <TextInput
-                style={inputStyle}
-                value={c.lastName}
-                onChangeText={c.setLastName}
-                maxLength={50}
-              />
-            </View>
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Nickname</ThemedText>
-              <TextInput
-                style={inputStyle}
-                value={c.nickname}
-                onChangeText={c.setNickname}
-                placeholder="Optional"
-                placeholderTextColor={palette.muted}
-                maxLength={50}
-              />
-            </View>
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Date of Birth</ThemedText>
-              <TextInput
-                style={inputStyle}
-                value={c.dateOfBirth}
-                onChangeText={c.setDateOfBirth}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={palette.muted}
-                maxLength={100}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Gender</ThemedText>
-              <Row wrap gap="xs">
-                {c.genderOptions.map((option) => {
-                  const active = c.gender === option;
-                  return (
-                    <Clickable
-                      key={option}
-                      onPress={() => c.setGender(option)}
-                      accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      style={[
-                        styles.optionPill,
-                        {
-                          borderColor: active ? palette.tint : palette.border,
-                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
-                      >
-                        {GENDER_LABEL[option]}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                })}
-              </Row>
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Relationship</ThemedText>
-              <Row wrap gap="xs">
-                {c.relationshipOptions.map((option) => {
-                  const active = c.relationship === option;
-                  return (
-                    <Clickable
-                      key={option}
-                      onPress={() => c.setRelationship(option)}
-                      style={[
-                        styles.optionPill,
-                        {
-                          borderColor: active ? palette.tint : palette.border,
-                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
-                      >
-                        {RELATIONSHIP_LABEL[option]}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                })}
-              </Row>
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Primary Position</ThemedText>
-              <Row wrap gap="xs">
-                {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
-                  const active = c.primaryPosition === option.key;
-                  return (
-                    <Clickable
-                      key={option.key ?? 'rotate'}
-                      onPress={() => c.setPrimaryPosition(option.key)}
-                      style={[
-                        styles.optionPill,
-                        {
-                          borderColor: active ? palette.tint : palette.border,
-                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set primary position to ${option.label}`}
-                      accessibilityState={{ selected: active }}
-                    >
-                      <ThemedText
-                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
-                      >
-                        {positionDisplayLabel(option.key)}
-                      </ThemedText>
-                    </Clickable>
-                  );
-                })}
-              </Row>
-            </View>
-          </SurfaceCard>
-
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="defaultSemiBold">Health & Safety</ThemedText>
-            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-              Medical records, emergency contacts, and consent choices are managed in the protected
-              child health area.
-            </ThemedText>
-            <Button
-              onPress={c.openMedicalInfo}
-              variant="secondary"
-              label="Manage Medical Information"
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>First name</ThemedText>
+            <TextInput
+              style={inputStyle}
+              accessibilityLabel="First name"
+              value={editor.firstName}
+              onChangeText={editor.setFirstName}
+              autoComplete="name-given"
+              maxLength={50}
+              returnKeyType="next"
             />
-            <Button
-              onPress={c.openEmergencyContacts}
-              variant="secondary"
-              label="Manage Emergency Contacts"
+          </View>
+
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>Last name</ThemedText>
+            <TextInput
+              style={inputStyle}
+              accessibilityLabel="Last name"
+              value={editor.lastName}
+              onChangeText={editor.setLastName}
+              autoComplete="name-family"
+              maxLength={50}
+              returnKeyType="next"
             />
-          </SurfaceCard>
+          </View>
 
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="defaultSemiBold">Notes for Coaches</ThemedText>
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Communication Notes</ThemedText>
-              <TextInput
-                style={textAreaStyle}
-                value={c.communicationNotes}
-                onChangeText={c.setCommunicationNotes}
-                multiline
-                maxLength={500}
-              />
-            </View>
-            <View style={styles.field}>
-              <ThemedText style={styles.label}>Behavioral Notes</ThemedText>
-              <TextInput
-                style={textAreaStyle}
-                value={c.behavioralNotes}
-                onChangeText={c.setBehavioralNotes}
-                multiline
-                maxLength={500}
-              />
-            </View>
-          </SurfaceCard>
-        </ScrollView>
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>Nickname</ThemedText>
+            <TextInput
+              style={inputStyle}
+              accessibilityLabel="Nickname, optional"
+              value={editor.nickname}
+              onChangeText={editor.setNickname}
+              placeholder="Optional"
+              placeholderTextColor={colors.muted}
+              maxLength={50}
+              returnKeyType="done"
+            />
+          </View>
 
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <Button
-            onPress={c.handleSave}
-            disabled={c.saving}
-            style={{ flex: 1 }}
-            label={c.saving ? 'Saving...' : 'Save Profile'}
+          <DateOfBirthField
+            dateOfBirth={editor.dateOfBirth}
+            showDatePicker={showDatePicker}
+            onDateOfBirthChange={editor.setDateOfBirth}
+            onShowDatePicker={setShowDatePicker}
+            palette={colors}
+            isDark={isDark}
           />
-        </View>
-      </SafeAreaView>
-    </View>
+
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>Gender</ThemedText>
+            <Row wrap gap="xs">
+              {editor.genderOptions.map((option) => {
+                const selected = editor.gender === option;
+                const label = GENDER_LABEL[option] ?? option;
+                return (
+                  <Clickable
+                    key={option}
+                    onPress={() => editor.setGender(option)}
+                    accessibilityLabel={label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: selected ? colors.tint : colors.border,
+                        backgroundColor: selected ? colors.tint : colors.surface,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.optionText,
+                        { color: selected ? colors.onPrimary : colors.text },
+                      ]}
+                    >
+                      {label}
+                    </ThemedText>
+                  </Clickable>
+                );
+              })}
+            </Row>
+          </View>
+
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>Relationship</ThemedText>
+            <Row wrap gap="xs">
+              {editor.relationshipOptions.map((option) => {
+                const selected = editor.relationship === option;
+                const label = RELATIONSHIP_LABEL[option] ?? option;
+                return (
+                  <Clickable
+                    key={option}
+                    onPress={() => editor.setRelationship(option)}
+                    accessibilityLabel={label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: selected ? colors.tint : colors.border,
+                        backgroundColor: selected ? colors.tint : colors.surface,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.optionText,
+                        { color: selected ? colors.onPrimary : colors.text },
+                      ]}
+                    >
+                      {label}
+                    </ThemedText>
+                  </Clickable>
+                );
+              })}
+            </Row>
+          </View>
+
+          <View style={styles.field}>
+            <ThemedText style={styles.label}>Preferred position</ThemedText>
+            <Row wrap gap="xs">
+              {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
+                const selected = editor.primaryPosition === option.key;
+                return (
+                  <Clickable
+                    key={option.key ?? 'rotate'}
+                    onPress={() => editor.setPrimaryPosition(option.key)}
+                    accessibilityLabel={option.label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: selected ? colors.tint : colors.border,
+                        backgroundColor: selected ? colors.tint : colors.surface,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.optionText,
+                        { color: selected ? colors.onPrimary : colors.text },
+                      ]}
+                    >
+                      {option.label}
+                    </ThemedText>
+                  </Clickable>
+                );
+              })}
+            </Row>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        <Button
+          onPress={editor.handleSave}
+          disabled={!editor.canSave}
+          accessibilityLabel={editor.saving ? 'Saving player profile' : 'Save profile changes'}
+          label={editor.saving ? 'Saving…' : 'Save changes'}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
-  section: { gap: Spacing.sm },
+  stateContainer: { flex: 1 },
+  submitState: { marginHorizontal: Spacing.lg, marginTop: Spacing.sm },
+  errorBanner: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radii.md,
+  },
+  errorText: { flex: 1, ...Typography.small },
+  content: {
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+  },
+  sectionHeader: {
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   field: { gap: Spacing.xs },
   label: { ...Typography.bodySmallSemiBold },
-  input: { borderWidth: 1.5, borderRadius: Radii.md, padding: Spacing.sm, ...Typography.body },
-  textArea: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    ...Typography.body,
-    minHeight: 88,
-    textAlignVertical: 'top',
-  },
-  helperText: {
-    ...Typography.bodySmall,
-  },
-  optionPill: {
+  input: {
+    minHeight: 48,
     borderWidth: 1,
-    borderRadius: Radii.pill,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
   },
-  optionText: {
-    ...Typography.caption,
+  option: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
+  optionText: { ...Typography.smallSemiBold },
   footer: {
-    padding: Spacing.lg,
-    borderTopWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

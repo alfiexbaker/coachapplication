@@ -51,7 +51,7 @@ type SessionCardProps = {
   formatDate: (value: string) => string;
 };
 
-const renderAddToSessionCard = function renderAddToSessionCard({
+export const AddToSessionCard = function AddToSessionCard({
   colors,
   session,
   index,
@@ -137,7 +137,6 @@ const renderAddToSessionCard = function renderAddToSessionCard({
     </Animated.View>
   );
 };
-export const AddToSessionCard = renderAddToSessionCard;
 
 type AddToSessionActionCardProps = {
   colors: ThemeColors;
@@ -145,23 +144,18 @@ type AddToSessionActionCardProps = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-  ctaLabel: string;
-  variant: 'new' | 'existing';
   accentKey?: 'tint' | 'success' | 'warning' | 'info';
 };
 
-const renderAddToSessionActionCard = function renderAddToSessionActionCard({
+export const AddToSessionActionCard = function AddToSessionActionCard({
   colors,
   title,
   description,
   icon,
   onPress,
-  ctaLabel,
-  variant,
   accentKey,
 }: AddToSessionActionCardProps) {
-  const accent = accentKey ? colors[accentKey] : variant === 'new' ? colors.tint : colors.success;
-  const modeLabel = variant === 'new' ? 'New Flow' : 'Existing Flow';
+  const accent = accentKey ? colors[accentKey] : colors.tint;
 
   return (
     <SurfaceCard
@@ -177,20 +171,10 @@ const renderAddToSessionActionCard = function renderAddToSessionActionCard({
       ]}
     >
       <Row align="center" justify="space-between" style={styles.actionTopRow}>
-        <Row align="center" gap="sm">
-          <View style={[styles.typeIcon, { backgroundColor: withAlpha(accent, 0.12) }]}>
-            <Ionicons name={icon} size={20} color={accent} />
-          </View>
-          <View style={[styles.modeBadge, { backgroundColor: withAlpha(accent, 0.12) }]}>
-            <ThemedText style={[styles.modeBadgeText, { color: accent }]}>{modeLabel}</ThemedText>
-          </View>
-        </Row>
-        <View style={[styles.actionPill, { backgroundColor: withAlpha(accent, 0.1) }]}>
-          <Row align="center" gap="xxs">
-            <ThemedText style={[styles.actionText, { color: accent }]}>{ctaLabel}</ThemedText>
-            <Ionicons name="chevron-forward" size={16} color={accent} />
-          </Row>
+        <View style={[styles.typeIcon, { backgroundColor: withAlpha(accent, 0.12) }]}>
+          <Ionicons name={icon} size={20} color={accent} />
         </View>
+        <Ionicons name="chevron-forward" size={20} color={accent} />
       </Row>
       <View style={styles.actionBody}>
         <ThemedText type="defaultSemiBold" numberOfLines={1}>
@@ -203,7 +187,6 @@ const renderAddToSessionActionCard = function renderAddToSessionActionCard({
     </SurfaceCard>
   );
 };
-export const AddToSessionActionCard = renderAddToSessionActionCard;
 
 const styles = StyleSheet.create({
   header: {
@@ -265,22 +248,5 @@ const styles = StyleSheet.create({
   },
   actionBody: {
     gap: Spacing.xxs,
-  },
-  modeBadge: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
-  modeBadgeText: {
-    ...Typography.caption,
-  },
-  actionPill: {
-    minHeight: 40,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill,
-    justifyContent: 'center',
-  },
-  actionText: {
-    ...Typography.smallSemiBold,
   },
 });

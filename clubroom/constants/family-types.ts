@@ -404,6 +404,7 @@ export interface RecoveryNote {
   /** ID of the user who created the note */
   createdBy: string;
   /** Name of the user who created the note */
+  createdByName?: string;
   /** Optional recovery percentage at time of note */
   recoveryPercent?: number;
 }

@@ -103,8 +103,8 @@ export const ScheduleDayDetail = function ScheduleDayDetail({
           </Center>
         ) : (
           <Column gap="sm">
-            {day.sessions.map((session, index) => (
-              <ScheduleSessionItem key={`${session.id}_${index}`} session={session} onPress={onSessionPress} />
+            {day.sessions.map((session) => (
+              <ScheduleSessionItem key={session.id} session={session} onPress={onSessionPress} />
             ))}
           </Column>
         )}

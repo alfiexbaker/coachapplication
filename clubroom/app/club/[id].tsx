@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import type { ReactNode } from 'react';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -36,6 +37,7 @@ export default function ClubDetailScreen() {
   };
   const {
     loading,
+    error,
     club,
     membership,
     feed,
@@ -43,7 +45,6 @@ export default function ClubDetailScreen() {
     setFeedFilter,
     clubActivities,
     squads,
-    invites,
     refreshing,
     members,
     showMembersSection,
@@ -53,9 +54,12 @@ export default function ClubDetailScreen() {
     canManagePosts,
     canPinPosts,
     canCreatePosts,
+    canCreateEvents,
     canRemoveMembers,
+    canManageMember,
     filterCounts,
     onRefresh,
+    retry,
     handlePinToggle,
     handleLikePost,
     handleCommentPost,
@@ -69,7 +73,7 @@ export default function ClubDetailScreen() {
   } = useClubDetail(id);
   const renderTopBar = (title: string) => (
     <Row align="center" style={[styles.topBar, { borderBottomColor: colors.border }]}>
-      <Clickable onPress={handleBackPress} hitSlop={10} accessibilityLabel="Go back">
+      <Clickable onPress={handleBackPress} accessibilityLabel="Go back" style={styles.backButton}>
         <Ionicons name="arrow-back" size={22} color={colors.foreground} />
       </Clickable>
       <ThemedText
@@ -116,7 +120,7 @@ export default function ClubDetailScreen() {
             club={club!}
             membership={membership}
             onLeave={handleLeaveClub}
-            onUpdatePhotos={handleUpdatePhotos}
+            onUpdatePhotos={api.useMock ? handleUpdatePhotos : undefined}
           />
         </View>
       )}
@@ -125,27 +129,28 @@ export default function ClubDetailScreen() {
         memberCount={members.length || club!.memberCount}
         squadCount={squads.length || club!.squadCount}
         activityCount={clubActivities.length}
-        inviteCount={invites.length}
         canExpand={canRemoveMembers}
         isExpanded={showMembersSection}
         onToggleMembers={handleToggleMembersSection}
         colors={colors}
       />
 
-      {canCreatePosts && (
+      {(canCreatePosts || canCreateEvents) && (
         <Row gap="sm" style={styles.actionRow}>
-          <Clickable
-            style={[styles.actionBtn, { backgroundColor: colors.tint, flex: 1 }]}
-            onPress={() => router.push(Routes.modalCreateClubPost({ clubId: id }))}
-          >
-            <Row align="center" justify="center" gap="xs">
-              <Ionicons name="create-outline" size={18} color={colors.onPrimary} />
-              <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
-                New Post
-              </ThemedText>
-            </Row>
-          </Clickable>
-          {canManagePosts && (
+          {canCreatePosts && (
+            <Clickable
+              style={[styles.actionBtn, { backgroundColor: colors.tint, flex: 1 }]}
+              onPress={() => router.push(Routes.modalCreateClubPost({ clubId: id }))}
+            >
+              <Row align="center" justify="center" gap="xs">
+                <Ionicons name="create-outline" size={18} color={colors.onPrimary} />
+                <ThemedText style={[Typography.smallSemiBold, { color: colors.onPrimary }]}>
+                  New Post
+                </ThemedText>
+              </Row>
+            </Clickable>
+          )}
+          {canCreateEvents && (
             <Clickable
               style={[styles.actionBtn, { backgroundColor: colors.success, flex: 1 }]}
               onPress={() => router.push(Routes.eventCreate({ clubId: id, clubName: club?.name }))}
@@ -193,7 +198,7 @@ export default function ClubDetailScreen() {
       {showMembersSection && canRemoveMembers && (
         <MembersPanel
           members={members}
-          canRemoveMembers={canRemoveMembers}
+          canManageMember={canManageMember}
           onRemoveMember={handleRemoveMember}
           clubId={id}
         />
@@ -222,6 +227,16 @@ export default function ClubDetailScreen() {
       <>
         {renderTopBar('Club')}
         <LoadingState variant="detail" />
+      </>,
+    );
+  }
+
+  if (error) {
+    return renderShell(
+      'Club',
+      <>
+        {renderTopBar('Club')}
+        <ErrorState message={error} onRetry={retry} />
       </>,
     );
   }
@@ -366,8 +381,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: Spacing.sm,
   },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topBarSpacer: {
-    width: 22,
+    width: 44,
   },
   listContent: {
     paddingBottom: Spacing.xl * 2,
@@ -375,7 +396,12 @@ const styles = StyleSheet.create({
   headerSection: {
     padding: Spacing.md,
   },
-  actionBtn: { paddingVertical: Spacing.sm, borderRadius: Radii.md },
+  actionBtn: {
+    minHeight: 44,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    justifyContent: 'center',
+  },
   actionRow: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
@@ -396,10 +422,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   filterTab: {
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   filterCount: {
     paddingHorizontal: Spacing.xxs,

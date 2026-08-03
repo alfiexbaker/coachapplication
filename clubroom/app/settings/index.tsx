@@ -5,7 +5,12 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsFormScreen, SettingsRow, SettingsSection, SettingsToggleRow } from '@/components/settings';
+import {
+  SettingsFormScreen,
+  SettingsRow,
+  SettingsSection,
+  SettingsToggleRow,
+} from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -16,19 +21,9 @@ import { bookingSelfSettingService } from '@/services/booking-self-setting-servi
 import { createLogger } from '@/utils/logger';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import { uiFeedback } from '@/services/ui-feedback';
+import { getUsableProfilePhotoUrl } from '@/utils/profile-photo';
 
 const logger = createLogger('SettingsHub');
-const DEMO_IMAGE_HOST = 'cdn.clubroom.demo';
-
-function isUsableProfilePhoto(uri: string | undefined): uri is string {
-  if (!uri) return false;
-  try {
-    const parsed = new URL(uri);
-    return parsed.hostname !== DEMO_IMAGE_HOST;
-  } catch {
-    return !uri.startsWith('http');
-  }
-}
 
 function getInitials(name: string | undefined) {
   if (!name) return 'U';
@@ -43,9 +38,10 @@ function getInitials(name: string | undefined) {
 
 export default function SettingsHubScreen() {
   const { colors } = useTheme();
-  const { currentUser, isCoach, childCount, handleLogout } = useSettingsHub();
-  const canManageChildren = Boolean(currentUser && !isCoach && currentUser.role !== 'ADMIN');
+  const { currentUser, isCoach, isParent, childCount, handleLogout } = useSettingsHub();
+  const canManageChildren = Boolean(currentUser && isParent);
   const [allowBookSelf, setAllowBookSelf] = useState(false);
+  const profilePhotoUrl = getUsableProfilePhotoUrl(currentUser?.avatar);
   const accountHasChildren = hasAccountChildren({
     contextChildCount: childCount,
     accountChildRefCount: currentUser?.children?.length ?? 0,
@@ -106,8 +102,8 @@ export default function SettingsHubScreen() {
         }}
       >
         <Row align="center" gap="md">
-          {isUsableProfilePhoto(currentUser?.avatar) ? (
-            <Image source={{ uri: currentUser.avatar }} style={styles.profilePhoto} />
+          {profilePhotoUrl ? (
+            <Image source={{ uri: profilePhotoUrl }} style={styles.profilePhoto} />
           ) : (
             <View style={[styles.profilePhoto, { backgroundColor: colors.border }]}>
               <ThemedText style={[styles.profileInitials, { color: colors.muted }]}>
@@ -119,35 +115,30 @@ export default function SettingsHubScreen() {
             <ThemedText type="subtitle" style={styles.profileName}>
               {currentUser?.fullName || currentUser?.name || 'User'}
             </ThemedText>
-            <ThemedText style={[styles.profileEmail, { color: colors.muted }]}>
-              {currentUser?.email || 'Not set'}
-            </ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Row>
+        <ThemedText
+          style={[styles.profileEmail, { color: colors.muted }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          accessibilityLabel={`Email ${currentUser?.email || 'not set'}`}
+        >
+          {currentUser?.email || 'Not set'}
+        </ThemedText>
       </SurfaceCard>
 
       <SettingsSection title="Account">
         <SettingsRow
           icon="person"
           title="Account"
-          subtitle="Email, password, and account requests"
+          subtitle="Email and password"
           onPress={() => {
             logger.press('AccountSettings');
             router.push(Routes.SETTINGS_ACCOUNT);
           }}
         />
-        {isCoach && (
-          <SettingsRow
-            icon="briefcase"
-            title="Coach Profile"
-            subtitle="Services, rates, verification"
-            onPress={() => {
-              logger.press('CoachProfile');
-              router.push(Routes.COACH_PROFILE);
-            }}
-          />
-        )}
         {isCoach && (
           <SettingsRow
             icon="shield-checkmark"
@@ -163,10 +154,10 @@ export default function SettingsHubScreen() {
           <SettingsRow
             icon="calendar"
             title="Availability"
-            subtitle="Set your schedule and time slots"
+            subtitle="Schedule and time slots"
             onPress={() => {
               logger.press('Availability');
-              router.push(Routes.AVAILABILITY);
+              router.push(Routes.SCHEDULE_AVAILABILITY);
             }}
           />
         )}
@@ -174,11 +165,7 @@ export default function SettingsHubScreen() {
           <SettingsRow
             icon="people"
             title="Children"
-            subtitle={
-              accountHasChildren
-                ? "Manage your children's profiles"
-                : 'Add and manage child profiles'
-            }
+            subtitle={accountHasChildren ? 'Manage child profiles' : 'Add a child profile'}
             onPress={() => {
               logger.press('ChildrenManagement');
               router.push(Routes.CHILDREN);
@@ -191,7 +178,7 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="notifications"
           title="Notifications"
-          subtitle="Push, email, and session reminders"
+          subtitle="Push and email preferences"
           onPress={() => {
             logger.press('NotificationSettings');
             router.push(Routes.SETTINGS_NOTIFICATION_PREFERENCES);
@@ -199,36 +186,30 @@ export default function SettingsHubScreen() {
         />
         <SettingsRow
           icon="calendar"
-          title="Calendar Sync"
-          subtitle="Export sessions to Google/Apple Calendar"
+          title="Calendar Export"
+          subtitle="Export sessions and events"
           onPress={() => {
-            logger.press('CalendarSync');
+            logger.press('CalendarExport');
             router.push(Routes.SETTINGS_CALENDAR_SYNC);
           }}
         />
         {canConfigureBookSelf && (
           <SettingsToggleRow
             icon="person"
-            title="Allow Booking for Self"
-            subtitle="When enabled, you can choose yourself in booking target selection."
+            title="Book for yourself"
+            subtitle="Choose yourself when booking"
             value={allowBookSelf}
             onValueChange={handleAllowBookSelfChange}
           />
         )}
-        <SettingsRow
-          icon="language"
-          title="Language"
-          value="English (UK)"
-          subtitle="Additional languages are not available in this build"
-          showChevron={false}
-        />
+        <SettingsRow icon="language" title="Language" value="English (UK)" showChevron={false} />
       </SettingsSection>
 
       <SettingsSection title="Privacy & Security">
         <SettingsRow
           icon="shield-checkmark"
           title="Privacy"
-          subtitle="Profile visibility and data sharing"
+          subtitle="Profile and data sharing"
           onPress={() => {
             logger.press('PrivacySettings');
             router.push(Routes.SETTINGS_PRIVACY);
@@ -237,7 +218,7 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="lock-closed"
           title="Security"
-          subtitle="Password resets and lifecycle requests are handled from Account"
+          subtitle="Password and account access"
           onPress={() => {
             logger.press('Security');
             router.push(Routes.SETTINGS_ACCOUNT);
@@ -249,8 +230,8 @@ export default function SettingsHubScreen() {
         <SettingsSection title="Earnings">
           <SettingsRow
             icon="wallet"
-            title="Earnings Reconciler"
-            subtitle="Track owed, paid, and written-off session payments"
+            title="Payments"
+            subtitle="Outstanding and paid sessions"
             onPress={() => {
               logger.press('EarningsReconciler');
               router.push(Routes.EARNINGS);
@@ -263,7 +244,7 @@ export default function SettingsHubScreen() {
         <SettingsRow
           icon="help-circle"
           title="Help & Support"
-          subtitle="FAQ, contact us, report a problem"
+          subtitle="FAQs and contact"
           onPress={() => {
             logger.press('HelpSupport');
             router.push(Routes.SETTINGS_HELP);
@@ -305,9 +286,8 @@ export default function SettingsHubScreen() {
       </SettingsSection>
 
       <View style={styles.versionContainer}>
-        <ThemedText style={[styles.versionText, { color: colors.muted }]}>Clubroom v1.0.0</ThemedText>
         <ThemedText style={[styles.versionText, { color: colors.muted }]}>
-          {currentUser?.role ?? 'GUEST'} account
+          Clubroom v1.0.0
         </ThemedText>
       </View>
     </SettingsFormScreen>
@@ -315,17 +295,17 @@ export default function SettingsHubScreen() {
 }
 
 const styles = StyleSheet.create({
-  profileCard: { marginBottom: Spacing.xs },
+  profileCard: { marginBottom: Spacing.xs, gap: Spacing.xs },
   profilePhoto: {
-    width: Components.avatar.lg,
-    height: Components.avatar.lg,
-    borderRadius: Components.avatar.lg / 2,
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileInfo: { flex: 1, gap: Spacing.micro },
+  profileInfo: { flex: 1, minWidth: 0, gap: Spacing.micro },
   profileName: { ...Typography.heading },
-  profileEmail: { ...Typography.bodySmall },
+  profileEmail: { ...Typography.small },
   profileInitials: { ...Typography.heading },
   versionContainer: { alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.md },
   versionText: { ...Typography.small },

@@ -5,17 +5,13 @@
  * Returns 3-way split: unpaid (owed), paid, written-off with totals and action handlers.
  */
 
-import { useRef } from 'react';
-
 import { useAuth } from '@/hooks/use-auth';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/constants/config';
 import { bookingService } from '@/services/booking';
-import {
-  invoiceService,
-  type ManualReceiptMethod,
-} from '@/services/invoice-service';
+import { invoiceService, type ManualReceiptMethod } from '@/services/invoice-service';
 import { rosterService } from '@/services/roster-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -272,7 +268,7 @@ export function useSessionPayments() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const { showToast } = useToast();
-  const processingInvoiceIdsRef = useRef<Set<string>>(new Set());
+  const processingInvoiceIdsRef = useLazyRef(() => new Set<string>());
 
   const load = async () => {
     try {

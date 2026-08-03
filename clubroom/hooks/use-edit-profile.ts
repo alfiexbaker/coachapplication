@@ -10,6 +10,7 @@ import { useState, useEffect, useRef, type SetStateAction } from 'react';
 import { router } from 'expo-router';
 
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
+import { api } from '@/constants/config';
 import type {
   CoachCertification,
   CoachExperience,
@@ -22,25 +23,24 @@ import type { PositionRole } from '@/types/progress-types';
 import { useAuth } from '@/hooks/use-auth';
 import { authService, type UserProfile as AuthUserProfile } from '@/services/auth-service';
 import { childService } from '@/services/child-service';
-import { coachProfileService } from '@/services/coach-profile-service';
+import {
+  coachProfileService,
+  mapCoachSelfProfileResponse,
+  type CoachSelfProfileResponse,
+} from '@/services/coach-profile-service';
 import { discoverService } from '@/services/discover-service';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
+import {
+  firstSocialLinksError,
+  validateSocialLinkInput,
+} from '@/packages/shared-contracts/src/common/social-links';
 
 const logger = createLogger('EditProfile');
 
-const LANGUAGE_OPTIONS = [
-  'English',
-  'Spanish',
-  'French',
-  'Portuguese',
-  'German',
-  'Arabic',
-  'Italian',
-];
 const PROFICIENCY_OPTIONS: CoachLanguage['proficiency'][] = [
   'Native',
   'Fluent',
@@ -113,6 +113,22 @@ function formatQualification(certification: CoachCertification): string | null {
   return issuer ? `${name} - ${issuer}` : name;
 }
 
+function sanitizePriceInput(value: string): string {
+  return value.replace(/[^0-9]/g, '');
+}
+
+function parseOptionalInt(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function withoutLegacySocialWebsite(socialLinks: SocialLinks): SocialLinks {
+  const canonicalLinks = { ...socialLinks };
+  delete canonicalLinks.website;
+  return canonicalLinks;
+}
+
 function createEditableUserProfile(currentUser: AuthLikeUser): EditableUserProfile {
   return {
     id: currentUser.id,
@@ -124,7 +140,7 @@ function createEditableUserProfile(currentUser: AuthLikeUser): EditableUserProfi
   };
 }
 
-function createFallbackCoachProfile(currentUser: AuthLikeUser): CoachProfile {
+function createMockCoachProfile(currentUser: AuthLikeUser): CoachProfile {
   const displayName = currentUser.fullName || currentUser.name || currentUser.username || 'Coach';
   const nowIso = new Date().toISOString();
 
@@ -173,27 +189,42 @@ function createFallbackCoachProfile(currentUser: AuthLikeUser): CoachProfile {
   };
 }
 
-async function resolveCoachProfile(currentUser: AuthLikeUser): Promise<CoachProfile> {
-  const byIdResult = await discoverService.getCoachById(currentUser.id);
-  if (byIdResult.success && byIdResult.data) {
-    return byIdResult.data;
-  }
+type ResolvedCoachProfile = {
+  coach: CoachProfile;
+  authority: CoachSelfProfileResponse | null;
+};
 
-  const allCoachesResult = await discoverService.getAllCoaches();
-  if (allCoachesResult.success) {
-    const normalizedName = (currentUser.fullName || currentUser.name || '').trim().toLowerCase();
-    const matchedCoach = allCoachesResult.data.find((coach) => {
-      if (coach.id === currentUser.id) return true;
-      if (!normalizedName) return false;
-      return coach.fullName.trim().toLowerCase() === normalizedName;
-    });
-
-    if (matchedCoach) {
-      return matchedCoach;
+async function resolveCoachProfile(currentUser: AuthLikeUser): Promise<ResolvedCoachProfile> {
+  if (api.useMock) {
+    const byIdResult = await discoverService.getCoachById(currentUser.id);
+    if (byIdResult.success && byIdResult.data) {
+      return { coach: byIdResult.data, authority: null };
     }
+
+    const allCoachesResult = await discoverService.getAllCoaches();
+    if (allCoachesResult.success) {
+      const normalizedName = (currentUser.fullName || currentUser.name || '').trim().toLowerCase();
+      const matchedCoach = allCoachesResult.data.find((coach) => {
+        if (coach.id === currentUser.id) return true;
+        if (!normalizedName) return false;
+        return coach.fullName.trim().toLowerCase() === normalizedName;
+      });
+      if (matchedCoach) {
+        return { coach: matchedCoach, authority: null };
+      }
+    }
+
+    return { coach: createMockCoachProfile(currentUser), authority: null };
   }
 
-  return createFallbackCoachProfile(currentUser);
+  const result = await coachProfileService.getSelfProfile();
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return {
+    coach: mapCoachSelfProfileResponse(result.data, currentUser),
+    authority: result.data,
+  };
 }
 
 export interface EditProfileState {
@@ -211,6 +242,21 @@ export interface EditProfileState {
   languages: CoachLanguage[];
   certifications: CoachCertification[];
   socialLinks: SocialLinks;
+}
+
+type EditProfileFingerprintState = EditProfileState & {
+  primaryPosition: PositionRole | null;
+};
+
+function createEditProfileFingerprint(state: EditProfileFingerprintState): string {
+  return JSON.stringify({
+    ...state,
+    fullName: state.fullName.trim(),
+    bio: state.bio.trim(),
+    email: state.email.trim().toLowerCase(),
+    phone: state.phone.trim(),
+    website: state.website.trim(),
+  });
 }
 
 export interface EditProfileModals {
@@ -244,8 +290,8 @@ export function useEditProfile() {
 
   // ── Coach fields ───────────────────────────────────────────────
   const [website, setWebsite] = useState('');
-  const [priceMin, setPriceMinState] = useState('50');
-  const [priceMax, setPriceMaxState] = useState('80');
+  const [priceMin, setPriceMinState] = useState('');
+  const [priceMax, setPriceMaxState] = useState('');
   const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>([]);
   const [experiences, setExperiences] = useState<CoachExperience[]>([]);
   const [languages, setLanguages] = useState<CoachLanguage[]>([]);
@@ -253,23 +299,20 @@ export function useEditProfile() {
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
-  const sanitizePriceInput = (value: string) => value.replace(/[^0-9]/g, '');
-  const parseOptionalInt = (value: string) => {
-    if (!value.trim()) return null;
-    const parsed = Number.parseInt(value, 10);
-    return Number.isNaN(parsed) ? null : parsed;
-  };
   const priceRangeError = (() => {
     if (!userIsCoach) return null;
     const min = parseOptionalInt(priceMin);
     const max = parseOptionalInt(priceMax);
-    if (priceMin.trim() && min === null) return 'Enter whole pounds only (no pence)';
-    if (priceMax.trim() && max === null) return 'Enter whole pounds only (no pence)';
-    if (min !== null && min < 10) return 'Minimum price must be at least £10';
-    if (max !== null && max > 200) return 'Maximum price must be under £200';
-    if (min !== null && max !== null && min > max) return 'Minimum price must be less than maximum';
+    if (priceMin.trim() && min === null) return 'Use whole pounds';
+    if (priceMax.trim() && max === null) return 'Use whole pounds';
+    if (min !== null && min < 10) return 'Minimum price must be £10 or more';
+    if (max !== null && max > 200) return 'Maximum price must be £200 or less';
+    if (min !== null && max !== null && min > max) return 'Minimum must be lower than maximum';
     return null;
   })();
+  const socialLinksError = firstSocialLinksError(socialLinks);
+  const websiteError = validateSocialLinkInput('website', website);
+  const profileLinksError = socialLinksError ?? websiteError;
 
   const setPriceMin = (value: string) => {
     setPriceMinState(sanitizePriceInput(value));
@@ -279,18 +322,27 @@ export function useEditProfile() {
   };
 
   // ── Modal drafts ───────────────────────────────────────────────
-  const [experienceDraft, setExperienceDraftState] = useState<CoachExperience>(() => createBlankExperience());
+  const [experienceDraft, setExperienceDraftState] = useState<CoachExperience>(() =>
+    createBlankExperience(),
+  );
   const [isExperienceModalVisible, setExperienceModalVisibleState] = useState(false);
-  const [languageDraft, setLanguageDraftState] = useState<CoachLanguage>(() => createBlankLanguage());
+  const [languageDraft, setLanguageDraftState] = useState<CoachLanguage>(() =>
+    createBlankLanguage(),
+  );
   const [isLanguageModalVisible, setLanguageModalVisibleState] = useState(false);
   const [certificationDraft, setCertificationDraftState] = useState<CoachCertification>(() =>
     createBlankCertification(),
   );
   const [isCertificationModalVisible, setCertificationModalVisibleState] = useState(false);
-  const [experienceValidationMessage, setExperienceValidationMessage] = useState<string | null>(null);
+  const [experienceValidationMessage, setExperienceValidationMessage] = useState<string | null>(
+    null,
+  );
   const [languageValidationMessage, setLanguageValidationMessage] = useState<string | null>(null);
-  const [certificationValidationMessage, setCertificationValidationMessage] = useState<string | null>(null);
+  const [certificationValidationMessage, setCertificationValidationMessage] = useState<
+    string | null
+  >(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialFingerprint, setInitialFingerprint] = useState<string | null>(null);
   const isSavingRef = useRef(false);
   const clearFormMessage = () => {
     setFormMessage(null);
@@ -336,82 +388,139 @@ export function useEditProfile() {
     const initializeProfile = async () => {
       setLoadError(null);
       setInitializing(true);
+      setInitialFingerprint(null);
 
-      return await runAsyncTryCatchFinally(async () => {
-        if (!currentUser) {
-          setCoach(null);
-          setUser(null);
-          setFullName('');
-          setBio('');
-          setEmail('');
-          setPhone('');
-          setWebsite('');
-          setPriceMin('50');
-          setPriceMax('80');
-          setSelectedFocuses([]);
-          setExperiences([]);
-          setLanguages([]);
-          setCertifications([]);
-          setSocialLinks({});
-          return;
-        }
+      const applyFormValues = (values: EditProfileFingerprintState) => {
+        const canonicalValues = {
+          ...values,
+          socialLinks: withoutLegacySocialWebsite(values.socialLinks),
+        };
+        setFullName(values.fullName);
+        setBio(values.bio);
+        setEmail(values.email);
+        setPhone(values.phone);
+        setPrimaryPosition(values.primaryPosition);
+        setWebsite(values.website);
+        setPriceMin(values.priceMin);
+        setPriceMax(values.priceMax);
+        setSelectedFocuses(values.selectedFocuses);
+        setExperiences(values.experiences);
+        setLanguages(values.languages);
+        setCertifications(values.certifications);
+        setSocialLinks(canonicalValues.socialLinks);
+        setInitialFingerprint(createEditProfileFingerprint(canonicalValues));
+      };
 
-        const typedCurrentUser = currentUser as AuthLikeUser;
-        if (typedCurrentUser.role === 'COACH') {
-          const resolvedCoach = await resolveCoachProfile(typedCurrentUser);
+      return await runAsyncTryCatchFinally(
+        async () => {
+          if (!currentUser) {
+            setCoach(null);
+            setUser(null);
+            applyFormValues({
+              fullName: '',
+              bio: '',
+              email: '',
+              phone: '',
+              primaryPosition: null,
+              website: '',
+              priceMin: '',
+              priceMax: '',
+              selectedFocuses: [],
+              experiences: [],
+              languages: [],
+              certifications: [],
+              socialLinks: {},
+            });
+            return;
+          }
+
+          const typedCurrentUser = currentUser as AuthLikeUser;
+          if (typedCurrentUser.role === 'COACH') {
+            const resolved = await resolveCoachProfile(typedCurrentUser);
+            if (!active) return;
+
+            const resolvedCoach = resolved.coach;
+            const authorityProfile = resolved.authority?.profile;
+            setCoach(resolvedCoach);
+            setUser(null);
+            applyFormValues({
+              fullName: resolvedCoach.fullName,
+              bio: authorityProfile?.bio ?? resolvedCoach.bio ?? resolvedCoach.shortBio ?? '',
+              email: resolvedCoach.email || typedCurrentUser.email || '',
+              phone: resolvedCoach.phone || typedCurrentUser.phone || '',
+              primaryPosition: null,
+              website: authorityProfile?.website ?? resolvedCoach.website ?? '',
+              priceMin: authorityProfile
+                ? authorityProfile.sessionRateMinor == null
+                  ? ''
+                  : String(authorityProfile.sessionRateMinor / 100)
+                : resolvedCoach.priceRange.min.toString(),
+              priceMax: authorityProfile
+                ? authorityProfile.priceMaxMinor == null
+                  ? ''
+                  : String(authorityProfile.priceMaxMinor / 100)
+                : resolvedCoach.priceRange.max.toString(),
+              selectedFocuses: authorityProfile
+                ? (authorityProfile.specialties ?? []).filter((focus): focus is FootballObjective =>
+                    FOOTBALL_OBJECTIVES.includes(focus as FootballObjective),
+                  )
+                : resolvedCoach.footballFocuses || [],
+              experiences: authorityProfile?.experiencesJson ?? resolvedCoach.experiences ?? [],
+              languages: authorityProfile?.languagesJson ?? resolvedCoach.languages ?? [],
+              certifications: authorityProfile
+                ? (authorityProfile.qualifications ?? []).map((name, index) => ({
+                    id: `qualification_${authorityProfile.userId}_${index}`,
+                    name,
+                    issuer: '',
+                    issueDate: '',
+                    expiryDate: '',
+                    credentialUrl: '',
+                  }))
+                : resolvedCoach.certifications || [],
+              socialLinks: authorityProfile?.socialLinksJson ?? resolvedCoach.socialLinks ?? {},
+            });
+            return;
+          }
+
+          const resolvedUser = createEditableUserProfile(typedCurrentUser);
           if (!active) return;
 
-          setCoach(resolvedCoach);
-          setUser(null);
-          setFullName(resolvedCoach.fullName);
-          setBio(resolvedCoach.bio || resolvedCoach.shortBio || '');
-          setEmail(resolvedCoach.email || typedCurrentUser.email || '');
-          setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
-          setWebsite(resolvedCoach.website || '');
-          setPriceMin(resolvedCoach.priceRange.min.toString());
-          setPriceMax(resolvedCoach.priceRange.max.toString());
-          setSelectedFocuses(resolvedCoach.footballFocuses || []);
-          setExperiences(resolvedCoach.experiences || []);
-          setLanguages(resolvedCoach.languages || []);
-          setCertifications(resolvedCoach.certifications || []);
-          setSocialLinks(resolvedCoach.socialLinks || {});
-          return;
-        }
-
-        const resolvedUser = createEditableUserProfile(typedCurrentUser);
-        if (!active) return;
-
-        setUser(resolvedUser);
-        setCoach(null);
-        setFullName(resolvedUser.fullName);
-        setBio(resolvedUser.bio || '');
-        setEmail(resolvedUser.email);
-        setPhone(resolvedUser.phone || '');
-        setWebsite('');
-        setPriceMin('50');
-        setPriceMax('80');
-        setSelectedFocuses([]);
-        setExperiences([]);
-        setLanguages([]);
-        setCertifications([]);
-        setSocialLinks({});
-
-        // Hydrate athlete position from child profile
-        if (typedCurrentUser.role === 'ATHLETE') {
-          const childProfile = await childService.getChild(typedCurrentUser.id);
-          if (active && childProfile?.primaryPosition) {
-            setPrimaryPosition(childProfile.primaryPosition);
+          let resolvedPrimaryPosition: PositionRole | null = null;
+          if (typedCurrentUser.role === 'ATHLETE') {
+            const childProfile = await childService.getChild(typedCurrentUser.id);
+            if (!active) return;
+            resolvedPrimaryPosition = childProfile?.primaryPosition ?? null;
           }
-        }
-      }, async error => {
-        if (!active) return;
-        logger.error('Failed to initialize edit profile state', error);
-        setLoadError('Failed to load profile data. Pull down to retry.');
-      }, () => {
-        if (active) {
-          setInitializing(false);
-        }
-      });
+
+          setUser(resolvedUser);
+          setCoach(null);
+          applyFormValues({
+            fullName: resolvedUser.fullName,
+            bio: resolvedUser.bio || '',
+            email: resolvedUser.email,
+            phone: resolvedUser.phone || '',
+            primaryPosition: resolvedPrimaryPosition,
+            website: '',
+            priceMin: '',
+            priceMax: '',
+            selectedFocuses: [],
+            experiences: [],
+            languages: [],
+            certifications: [],
+            socialLinks: {},
+          });
+        },
+        async (error) => {
+          if (!active) return;
+          logger.error('Failed to initialize edit profile state', error);
+          setLoadError('Failed to load profile data. Pull down to retry.');
+        },
+        () => {
+          if (active) {
+            setInitializing(false);
+          }
+        },
+      );
     };
 
     void initializeProfile();
@@ -437,7 +546,7 @@ export function useEditProfile() {
 
   const saveExperience = () => {
     if (!experienceDraft.title || !experienceDraft.organization || !experienceDraft.startDate) {
-      setExperienceValidationMessage('Please add a role title, organisation, and start date.');
+      setExperienceValidationMessage('Role, club or organisation, and start date are required.');
       return;
     }
     setExperienceValidationMessage(null);
@@ -463,7 +572,7 @@ export function useEditProfile() {
 
   const saveLanguage = () => {
     if (!languageDraft.name) {
-      setLanguageValidationMessage('Please add a language name to continue.');
+      setLanguageValidationMessage('Language is required.');
       return;
     }
     setLanguageValidationMessage(null);
@@ -480,17 +589,6 @@ export function useEditProfile() {
     setLanguages((prev) => prev.filter((lang) => lang.id !== id));
   };
 
-  const quickAddLanguage = (name: string) => {
-    setLanguages((prev) => [
-      ...prev,
-      {
-        id: generateId('lang'),
-        name,
-        proficiency: 'Fluent',
-      },
-    ]);
-  };
-
   // ── Certification handlers ─────────────────────────────────────
   const openCertificationModal = (certification?: CoachCertification) => {
     setCertificationValidationMessage(null);
@@ -499,10 +597,13 @@ export function useEditProfile() {
   };
 
   const saveCertification = () => {
-    if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
-      setCertificationValidationMessage(
-        'Please add a certification name, issuer, and issue date.',
-      );
+    const qualification = formatQualification(certificationDraft);
+    if (!qualification) {
+      setCertificationValidationMessage('Qualification name is required.');
+      return;
+    }
+    if (qualification.length > 120) {
+      setCertificationValidationMessage('Name and issuer must be 120 characters or fewer.');
       return;
     }
     setCertificationValidationMessage(null);
@@ -520,109 +621,135 @@ export function useEditProfile() {
   };
 
   // ── Save handler ───────────────────────────────────────────────
+  const currentFingerprint = createEditProfileFingerprint({
+    fullName,
+    bio,
+    email,
+    phone,
+    primaryPosition,
+    website,
+    priceMin,
+    priceMax,
+    selectedFocuses,
+    experiences,
+    languages,
+    certifications,
+    socialLinks,
+  });
+  const hasChanges = initialFingerprint !== null && currentFingerprint !== initialFingerprint;
+  const profileReady = userIsCoach ? coach !== null : user !== null;
+  const canSave =
+    profileReady &&
+    hasChanges &&
+    (!userIsCoach || (priceRangeError === null && profileLinksError === null)) &&
+    !initializing &&
+    !isSaving;
+
   const handleSave = async () => {
-    if (isSavingRef.current) return;
+    if (!canSave || isSavingRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
     setFormMessage(null);
-    return runAsyncTryCatchFinally(async () => {
-      if (userIsCoach && priceRangeError) {
-        setFormMessage(priceRangeError);
-        return;
-      }
-
-      const typedCurrentUser = currentUser as AuthLikeUser | null;
-      const currentDisplayName =
-        typedCurrentUser?.fullName || typedCurrentUser?.name || typedCurrentUser?.username || '';
-      const identityUpdates: Partial<AuthUserProfile> = {};
-      if (fullName.trim() && fullName.trim() !== currentDisplayName.trim()) {
-        Object.assign(identityUpdates, splitFullNameForAuth(fullName));
-      }
-      if (
-        email.trim() &&
-        email.trim().toLowerCase() !== (typedCurrentUser?.email ?? '').trim().toLowerCase()
-      ) {
-        identityUpdates.email = email.trim();
-      }
-      if (phone.trim() !== (typedCurrentUser?.phone ?? '').trim()) {
-        identityUpdates.phone = phone.trim();
-      }
-
-      if (userIsCoach) {
-        if (!coach) {
-          setFormMessage('Coach profile is still loading. Please try again.');
+    return runAsyncTryCatchFinally(
+      async () => {
+        if (userIsCoach && priceRangeError) {
+          setFormMessage(priceRangeError);
           return;
         }
 
-        if (Object.keys(identityUpdates).length > 0) {
-          const identityResult = await authService.updateProfile(identityUpdates);
-          if (!identityResult.success) {
-            setFormMessage(identityResult.error.message);
+        const typedCurrentUser = currentUser as AuthLikeUser | null;
+        const currentDisplayName =
+          typedCurrentUser?.fullName || typedCurrentUser?.name || typedCurrentUser?.username || '';
+        const identityUpdates: Partial<AuthUserProfile> = {};
+        if (fullName.trim() && fullName.trim() !== currentDisplayName.trim()) {
+          Object.assign(identityUpdates, splitFullNameForAuth(fullName));
+        }
+        if (
+          email.trim() &&
+          email.trim().toLowerCase() !== (typedCurrentUser?.email ?? '').trim().toLowerCase()
+        ) {
+          identityUpdates.email = email.trim();
+        }
+        if (phone.trim() !== (typedCurrentUser?.phone ?? '').trim()) {
+          identityUpdates.phone = phone.trim();
+        }
+
+        if (userIsCoach) {
+          if (!coach) {
+            setFormMessage('Coach profile is still loading. Please try again.');
             return;
           }
-        }
 
-        const qualificationLabels = certifications
-          .map(formatQualification)
-          .filter((value): value is string => Boolean(value));
-        const maxPricePounds = parseOptionalInt(priceMax);
-        const profileResult = await coachProfileService.updateSelfProfile({
-          bio: bio.trim() || null,
-          sessionRateMinor: Math.round(Number(priceMin) * 100),
-          priceMaxMinor: maxPricePounds === null ? null : Math.round(maxPricePounds * 100),
-          currency: 'GBP',
-          website: website.trim() || null,
-          socialLinks,
-          experiences,
-          languages,
-          specialties: selectedFocuses,
-          qualifications: qualificationLabels,
-        });
-        if (!profileResult.success) {
-          setFormMessage(profileResult.error.message);
-          return;
-        }
-
-      } else {
-        if (!user) {
-          setFormMessage('User profile is still loading. Please try again.');
-          return;
-        }
-
-        if (bio.trim() !== (typedCurrentUser?.bio ?? '').trim()) {
-          identityUpdates.bio = bio.trim();
-        }
-        if (Object.keys(identityUpdates).length > 0) {
-          const identityResult = await authService.updateProfile(identityUpdates);
-          if (!identityResult.success) {
-            setFormMessage(identityResult.error.message);
-            return;
+          if (Object.keys(identityUpdates).length > 0) {
+            const identityResult = await authService.updateProfile(identityUpdates);
+            if (!identityResult.success) {
+              setFormMessage(identityResult.error.message);
+              return;
+            }
           }
-        }
 
-        if (userIsAthlete && primaryPosition) {
-          const childResult = await childService.updateChild(typedCurrentUser?.id ?? '', {
-            primaryPosition,
+          const qualificationLabels = certifications
+            .map(formatQualification)
+            .filter((value): value is string => Boolean(value));
+          const minPricePounds = parseOptionalInt(priceMin);
+          const maxPricePounds = parseOptionalInt(priceMax);
+          const profileResult = await coachProfileService.updateSelfProfile({
+            bio: bio.trim() || null,
+            sessionRateMinor: minPricePounds === null ? null : Math.round(minPricePounds * 100),
+            priceMaxMinor: maxPricePounds === null ? null : Math.round(maxPricePounds * 100),
+            currency: 'GBP',
+            website: website.trim() || null,
+            socialLinks,
+            experiences,
+            languages,
+            specialties: selectedFocuses,
+            qualifications: qualificationLabels,
           });
-          if (!childResult.success) {
-            setFormMessage(childResult.error.message);
+          if (!profileResult.success) {
+            setFormMessage(profileResult.error.message);
             return;
           }
+        } else {
+          if (!user) {
+            setFormMessage('User profile is still loading. Please try again.');
+            return;
+          }
+
+          if (bio.trim() !== (typedCurrentUser?.bio ?? '').trim()) {
+            identityUpdates.bio = bio.trim();
+          }
+          if (Object.keys(identityUpdates).length > 0) {
+            const identityResult = await authService.updateProfile(identityUpdates);
+            if (!identityResult.success) {
+              setFormMessage(identityResult.error.message);
+              return;
+            }
+          }
+
+          if (userIsAthlete && primaryPosition) {
+            const childResult = await childService.updateChild(typedCurrentUser?.id ?? '', {
+              primaryPosition,
+            });
+            if (!childResult.success) {
+              setFormMessage(childResult.error.message);
+              return;
+            }
+          }
         }
-      }
 
-      uiFeedback.showToast('Profile updated successfully', 'success');
-      router.back();
-    }, (error) => {
-      logger.error('Failed to save profile', error);
-      setFormMessage('Failed to save profile. Please try again.');
-    }, () => {
-      isSavingRef.current = false;
-      setIsSaving(false);
-    });
+        uiFeedback.showToast('Profile updated successfully', 'success');
+        router.back();
+      },
+      (error) => {
+        logger.error('Failed to save profile', error);
+        setFormMessage('Failed to save profile. Please try again.');
+      },
+      () => {
+        isSavingRef.current = false;
+        setIsSaving(false);
+      },
+    );
   };
-
-  const canSave = (!userIsCoach || priceRangeError === null) && !isSaving;
 
   return {
     // Identity
@@ -655,6 +782,7 @@ export function useEditProfile() {
     priceMax,
     setPriceMax,
     priceRangeError,
+    websiteError,
     // Focuses
     selectedFocuses,
     toggleFocus,
@@ -674,13 +802,11 @@ export function useEditProfile() {
     openLanguageModal,
     saveLanguage,
     removeLanguage,
-    quickAddLanguage,
     languageValidationMessage,
     languageDraft,
     setLanguageDraft,
     isLanguageModalVisible,
     setLanguageModalVisible,
-    languageOptions: LANGUAGE_OPTIONS,
     proficiencyOptions: PROFICIENCY_OPTIONS,
     // Certifications
     certifications,

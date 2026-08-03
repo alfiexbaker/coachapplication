@@ -17,7 +17,7 @@ import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
-import { clubService, type ClubMember } from '../club-service';
+import { loadMockClubMembers, type ClubMember } from '../club-member-mock-store';
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
@@ -107,6 +107,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     date: '2026-06-15',
     startTime: '14:00',
     endTime: '17:00',
+    timeZone: 'Europe/London',
     venue: 'Bradwell Community Centre',
     address: '45 High Street, Bradwell, CM77 8AB',
     isVirtual: false,
@@ -146,6 +147,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     date: '2026-07-20',
     startTime: '09:00',
     endTime: '16:00',
+    timeZone: 'Europe/London',
     venue: 'Bradwell Sports Ground',
     address: 'Recreation Way, Bradwell, CM77 8CD',
     isVirtual: false,
@@ -179,6 +181,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     date: '2026-02-05',
     startTime: '19:00',
     endTime: '20:00',
+    timeZone: 'Europe/London',
     venue: 'Online',
     isVirtual: true,
     meetingLink: 'https://zoom.us/j/123456789',
@@ -217,6 +220,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     date: '2026-08-25',
     startTime: '12:00',
     endTime: '16:00',
+    timeZone: 'Europe/London',
     venue: 'Bradwell Park',
     address: 'Park Lane, Bradwell, CM77 8EF',
     isVirtual: false,
@@ -267,7 +271,7 @@ async function getNotificationRecipientIds(
 ): Promise<string[]> {
   const scopedSquadIds = options?.squadIds ?? event.squadIds;
   try {
-    const members = await clubService.getMembers(event.clubId);
+    const members = await loadMockClubMembers(event.clubId);
     return members.flatMap((item) =>
       ((member) => isActiveMember(member))(item)
         ? ((item) =>
@@ -329,6 +333,10 @@ async function notifyEventCancelledRecipients(event: ClubEvent): Promise<void> {
 // ============================================================================
 
 export async function loadEvents(): Promise<ClubEvent[]> {
+  if (!USE_MOCK) {
+    return [];
+  }
+
   try {
     const stored = await apiClient.get<ClubEvent[] | null>(STORAGE_KEYS.CLUB_EVENTS, null);
     if (stored) return stored;
@@ -338,6 +346,10 @@ export async function loadEvents(): Promise<ClubEvent[]> {
   return USE_MOCK ? [...MOCK_EVENTS] : [];
 }
 export async function saveEvents(events: ClubEvent[]): Promise<void> {
+  if (!USE_MOCK) {
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.CLUB_EVENTS, events);
     eventsCache = events;
@@ -349,6 +361,10 @@ export function getEventsCache(): ClubEvent[] {
   return eventsCache;
 }
 export function setEventsCache(events: ClubEvent[]): void {
+  if (!USE_MOCK) {
+    return;
+  }
+
   eventsCache = events;
 }
 
@@ -401,6 +417,7 @@ export const eventCrudService = {
       date: input.date,
       startTime: input.startTime,
       endTime: input.endTime,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       venue: input.venue,
       address: input.address,
       isVirtual: input.isVirtual || false,

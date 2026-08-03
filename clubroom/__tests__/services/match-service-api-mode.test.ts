@@ -28,6 +28,7 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
     isHome: true,
     date: '2026-07-30',
     kickoffTime: '10:30',
+    timeZone: 'Europe/London',
     meetTime: '09:45',
     venue: 'Main Pitch',
     address: '1 Match Way',
@@ -145,6 +146,32 @@ describe('matchService API mode', () => {
         );
       }
 
+      if (url.pathname === '/v1/clubs/club_api_1/matches/import' && method === 'POST') {
+        return jsonResponse(
+          {
+            clubId: 'club_api_1',
+            imported: [
+              makeMatch({
+                id: 'match_api_imported',
+                title: 'Imported Fixture',
+                opponent: 'Imported FC',
+              }),
+            ],
+            skipped: [
+              {
+                source: 'league-fixtures',
+                externalId: 'fixture-existing',
+                matchId: 'match_api_existing',
+                reason: 'already_imported',
+              },
+            ],
+            total: 2,
+            requestId: 'req_match_import',
+          },
+          201,
+        );
+      }
+
       if (url.pathname === '/v1/matches/match_api_1/players/invite' && method === 'POST') {
         return jsonResponse({
           match: makeMatch({
@@ -249,6 +276,31 @@ describe('matchService API mode', () => {
       ).id,
       'match_api_created',
     );
+    const importResult = await matchService.importClubMatches({
+      clubId: 'club_api_1',
+      source: 'league-fixtures',
+      matches: [
+        {
+          externalId: 'fixture-new',
+          title: 'Imported Fixture',
+          matchType: 'LEAGUE',
+          opponent: 'Imported FC',
+          date: '2026-08-08',
+          kickoffTime: '11:00',
+          venue: 'Import Ground',
+          maxPlayers: 14,
+        },
+        {
+          externalId: 'fixture-existing',
+          opponent: 'Existing FC',
+          date: '2026-08-15',
+          kickoffTime: '12:00',
+          venue: 'Existing Ground',
+        },
+      ],
+    });
+    assert.equal(importResult.imported[0]?.id, 'match_api_imported');
+    assert.equal(importResult.skipped[0]?.reason, 'already_imported');
     assert.equal(
       (
         await matchService.invitePlayers({
@@ -312,6 +364,7 @@ describe('matchService API mode', () => {
         'GET /v1/clubs/club_api_1/matches',
         'GET /v1/matches/match_api_1',
         'POST /v1/clubs/club_api_1/matches',
+        'POST /v1/clubs/club_api_1/matches/import',
         'POST /v1/matches/match_api_1/players/invite',
         'POST /v1/matches/match_api_1/players/respond',
         'PATCH /v1/matches/match_api_1/lineup',
@@ -332,8 +385,30 @@ describe('matchService API mode', () => {
       maxPlayers: 12,
       notes: 'Cup game.',
     });
-    assert.deepEqual(calls[6]?.body, { result: { home: 2, away: 1 } });
-    assert.deepEqual(calls[7]?.body, { status: 'CANCELLED' });
+    assert.deepEqual(calls[3]?.body, {
+      source: 'league-fixtures',
+      matches: [
+        {
+          externalId: 'fixture-new',
+          title: 'Imported Fixture',
+          matchType: 'LEAGUE',
+          opponent: 'Imported FC',
+          date: '2026-08-08',
+          kickoffTime: '11:00',
+          venue: 'Import Ground',
+          maxPlayers: 14,
+        },
+        {
+          externalId: 'fixture-existing',
+          opponent: 'Existing FC',
+          date: '2026-08-15',
+          kickoffTime: '12:00',
+          venue: 'Existing Ground',
+        },
+      ],
+    });
+    assert.deepEqual(calls[7]?.body, { result: { home: 2, away: 1 } });
+    assert.deepEqual(calls[8]?.body, { status: 'CANCELLED' });
   });
 
   it('preserves match-detail not found but fails closed on API errors', async (t) => {

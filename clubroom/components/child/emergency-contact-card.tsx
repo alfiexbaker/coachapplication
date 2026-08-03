@@ -62,12 +62,22 @@ export const EmergencyContactCard = function EmergencyContactCard({
       <View style={styles.details}>
         <Row gap="sm" align="center">
           <Ionicons name="call" size={16} color={colors.muted} />
-          <ThemedText style={{ color: colors.text }}>{contact.phone}</ThemedText>
+          <ThemedText
+            style={[styles.detailValue, Typography.small, { color: colors.text }]}
+            selectable
+          >
+            {contact.phone}
+          </ThemedText>
         </Row>
         {contact.email && (
           <Row gap="sm" align="center">
             <Ionicons name="mail" size={16} color={colors.muted} />
-            <ThemedText style={{ color: colors.text }}>{contact.email}</ThemedText>
+            <ThemedText
+              style={[styles.detailValue, Typography.caption, { color: colors.text }]}
+              selectable
+            >
+              {contact.email}
+            </ThemedText>
           </Row>
         )}
       </View>
@@ -112,7 +122,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  details: { gap: Spacing.xs, marginLeft: 56 },
+  details: { gap: Spacing.xs },
+  detailValue: { flex: 1, minWidth: 0 },
   flags: { gap: Spacing.xs, marginLeft: 56 },
   flagBadge: {
     alignItems: 'center',

@@ -1,31 +1,33 @@
-import { useState, useEffect, startTransition } from "react";
-import { router } from "expo-router";
-import { useAuth } from "@/hooks/use-auth";
-import { useChildContext } from "@/hooks/use-child-context";
-import { useScreen } from "@/hooks/use-screen";
-import { groupSessionService } from "@/services/group-session-service";
-import { rsvpService } from "@/services/rsvp-service";
-import { cancellationService } from "@/services/cancellation-service";
-import { ServiceEvents } from "@/services/event-bus";
-import { createLogger } from "@/utils/logger";
-import { useRequiredParam } from "@/hooks/use-required-param";
-import { err, ok, serviceError } from "@/types/result";
+import { useState, useEffect, startTransition } from 'react';
+import { router } from 'expo-router';
+import { api } from '@/constants/config';
+import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
+import { useScreen } from '@/hooks/use-screen';
+import { groupSessionService } from '@/services/group-session-service';
+import { rsvpService } from '@/services/rsvp-service';
+import { cancellationService } from '@/services/cancellation-service';
+import { ServiceEvents } from '@/services/event-bus';
+import { createLogger } from '@/utils/logger';
+import { useRequiredParam } from '@/hooks/use-required-param';
+import { err, ok, serviceError } from '@/types/result';
 import type {
   GroupSession,
   GroupRegistration,
   SessionRsvp,
   CancellationPolicy,
-} from "@/constants/types";
-import { uiFeedback } from "@/services/ui-feedback";
-import { runAsyncTryCatchFinally } from "@/utils/async-control";
-const logger = createLogger("GroupSessionDetailScreen");
+} from '@/constants/types';
+import { uiFeedback } from '@/services/ui-feedback';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+import { resolveSelfAthleteId, resolveSelfAthleteName } from '@/utils/athlete-identity';
+const logger = createLogger('GroupSessionDetailScreen');
 export const SESSION_TYPE_COLORS = {
-  CAMP: "#FF6B35",
-  CLINIC: "#7B68EE",
-  TEAM_TRAINING: "#2E8B57",
-  TRAINING: "#2E8B57",
-  OPEN_SESSION: "#4169E1",
-  TRIAL: "#20B2AA",
+  CAMP: '#FF6B35',
+  CLINIC: '#7B68EE',
+  TEAM_TRAINING: '#2E8B57',
+  TRAINING: '#2E8B57',
+  OPEN_SESSION: '#4169E1',
+  TRIAL: '#20B2AA',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -63,15 +65,15 @@ interface GroupSessionData {
 // ---------------------------------------------------------------------------
 
 // Map RsvpButtonGroup's 'cant_go' → rsvpService's 'not_going'
-type ButtonGroupStatus = "going" | "maybe" | "cant_go";
-type ServiceRsvpStatus = "going" | "maybe" | "not_going";
+type ButtonGroupStatus = 'going' | 'maybe' | 'cant_go';
+type ServiceRsvpStatus = 'going' | 'maybe' | 'not_going';
 function toServiceStatus(s: ButtonGroupStatus): ServiceRsvpStatus {
-  return s === "cant_go" ? "not_going" : s;
+  return s === 'cant_go' ? 'not_going' : s;
 }
 function toButtonStatus(s: string): ButtonGroupStatus | null {
-  if (s === "going") return "going";
-  if (s === "maybe") return "maybe";
-  if (s === "not_going") return "cant_go";
+  if (s === 'going') return 'going';
+  if (s === 'maybe') return 'maybe';
+  if (s === 'not_going') return 'cant_go';
   return null;
 }
 
@@ -80,8 +82,8 @@ function toButtonStatus(s: string): ButtonGroupStatus | null {
 // ---------------------------------------------------------------------------
 
 export function useGroupSession() {
-  const idParam = useRequiredParam("id");
-  const id = idParam.valid ? idParam.value : "";
+  const idParam = useRequiredParam('id');
+  const id = idParam.valid ? idParam.value : '';
   const { currentUser } = useAuth();
   const { children: contextChildren, activeChildId } = useChildContext();
   const [registering, setRegistering] = useState(false);
@@ -128,14 +130,14 @@ export function useGroupSession() {
         rsvpService.getForSession(id),
       ]);
 
-      // Load cancellation policy for the coach (non-blocking — default to null if fails)
+      // Mock mode may omit this display-only policy; API mode must not hide live policy failures.
       let cancellationPolicy: CancellationPolicy | null = null;
       if (sessionData?.coachId) {
-        const policyResult = await cancellationService.getCancellationPolicy(
-          sessionData.coachId,
-        );
+        const policyResult = await cancellationService.getCancellationPolicy(sessionData.coachId);
         if (policyResult.success) {
           cancellationPolicy = policyResult.data;
+        } else if (!api.useMock) {
+          throw new Error(policyResult.error.message);
         }
       }
       return ok<GroupSessionData>({
@@ -145,31 +147,26 @@ export function useGroupSession() {
         cancellationPolicy,
       });
     } catch (loadError) {
-      logger.error("Failed to load session:", loadError);
+      logger.error('Failed to load session:', loadError);
       return err(
-        serviceError(
-          "UNKNOWN",
-          "Failed to load group session. Pull down to refresh.",
-          loadError,
-        ),
+        serviceError('UNKNOWN', 'Failed to load group session. Pull down to refresh.', loadError),
       );
     }
   };
-  const { data, status, error, refreshing, onRefresh, retry } =
-    useScreen<GroupSessionData>({
-      load: loadData,
-      deps: [id],
-      events: [
-        ServiceEvents.RSVP_RESPONDED,
-        ServiceEvents.WAITLIST_JOINED,
-        ServiceEvents.WAITLIST_LEFT,
-        ServiceEvents.WAITLIST_PROMOTED,
-      ],
-      isEmpty: (value) => value.session === null,
-      refetchOnFocus: true,
-      loadingStrategy: "section-skeleton",
-      dataKey: id ? `group-session:${id}` : "group-session:missing",
-    });
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionData>({
+    load: loadData,
+    deps: [id],
+    events: [
+      ServiceEvents.RSVP_RESPONDED,
+      ServiceEvents.WAITLIST_JOINED,
+      ServiceEvents.WAITLIST_LEFT,
+      ServiceEvents.WAITLIST_PROMOTED,
+    ],
+    isEmpty: (value) => value.session === null,
+    refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `group-session:${id}` : 'group-session:missing',
+  });
   const session = data?.session ?? null;
   const roster = data?.roster;
   const rsvps = data?.rsvps;
@@ -179,22 +176,24 @@ export function useGroupSession() {
   // Derived state
   // -------------------------------------------------------------------------
 
-  const loading = status === "loading";
+  const loading = status === 'loading';
   const isCoach = currentUser?.id === session?.coachId;
   const spotsLeft = session
     ? Math.max(0, session.maxParticipants - session.currentParticipants)
     : 0;
   const isFull = spotsLeft <= 0;
   const isFree = session?.pricePerParticipant === 0 || session?.isFree === true;
-  const isActive =
-    session?.status === "PUBLISHED" || session?.status === "FULL";
+  const isActive = session?.status === 'PUBLISHED' || session?.status === 'FULL';
 
   // All registrations belonging to current user's family (self + children)
   const familyAthleteIds = (() => {
     const ids = new Set<string>();
     if (currentUser?.id) {
       ids.add(currentUser.id);
-      ids.add(`athlete_${currentUser.id}`);
+    }
+    const selfAthleteId = resolveSelfAthleteId(currentUser);
+    if (selfAthleteId) {
+      ids.add(selfAthleteId);
     }
     for (const child of children) {
       ids.add(child.id);
@@ -207,9 +206,8 @@ export function useGroupSession() {
     return (roster ?? []).flatMap((r) => {
       if (
         !(
-          (r.status === "REGISTERED" || r.status === "WAITLISTED") &&
-          (familyAthleteIds.has(r.parentId) ||
-            familyAthleteIds.has(r.athleteId))
+          (r.status === 'REGISTERED' || r.status === 'WAITLISTED') &&
+          (familyAthleteIds.has(r.parentId) || familyAthleteIds.has(r.athleteId))
         )
       )
         return [];
@@ -217,9 +215,7 @@ export function useGroupSession() {
         (rsvps ?? []).find(
           (rv) =>
             rv.sessionId === r.sessionId &&
-            (rv.userId === r.parentId ||
-              rv.childId === r.athleteId ||
-              rv.userId === r.athleteId),
+            (rv.userId === r.parentId || rv.childId === r.athleteId || rv.userId === r.athleteId),
         ) ?? null;
 
       // Try to find child name
@@ -237,15 +233,12 @@ export function useGroupSession() {
   const isRegistered = myRegistrations.length > 0;
   const hasMultipleKids = children.length > 1;
   const waitlistedRegistrations = myRegistrations.filter(
-    (r) => r.registration.status === "WAITLISTED",
+    (r) => r.registration.status === 'WAITLISTED',
   );
   const isWaitlisted = waitlistedRegistrations.length > 0;
   const waitlistedRoster = (roster ?? [])
-    .filter((r) => r.status === "WAITLISTED")
-    .sort(
-      (a, b) =>
-        new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime(),
-    );
+    .filter((r) => r.status === 'WAITLISTED')
+    .sort((a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime());
   const waitlistPosition = (() => {
     const firstWaitlisted = waitlistedRegistrations[0]?.registration.id;
     if (!firstWaitlisted) return null;
@@ -255,21 +248,15 @@ export function useGroupSession() {
   const waitlistTotal = waitlistedRoster.length;
 
   // Which children are already registered?
-  const registeredChildIds = new Set(
-    myRegistrations.map((r) => r.registration.athleteId),
-  );
+  const registeredChildIds = new Set(myRegistrations.map((r) => r.registration.athleteId));
 
   // Children available to register (not yet registered)
-  const unregisteredChildren = children.filter(
-    (c) => !registeredChildIds.has(c.id),
-  );
+  const unregisteredChildren = children.filter((c) => !registeredChildIds.has(c.id));
 
   // Deadline derived state
   const [nowMs] = useState(() => Date.now());
   const deadline = session?.registrationDeadline ?? null;
-  const isDeadlinePassed = deadline
-    ? new Date(deadline).getTime() < nowMs
-    : false;
+  const isDeadlinePassed = deadline ? new Date(deadline).getTime() < nowMs : false;
 
   // RSVP counts (for coach view)
   const rsvpCounts: RsvpCounts = (() => {
@@ -282,9 +269,9 @@ export function useGroupSession() {
       total: sourceRsvps.length,
     };
     for (const r of sourceRsvps) {
-      if (r.status === "going") counts.going++;
-      else if (r.status === "maybe") counts.maybe++;
-      else if (r.status === "not_going") counts.notGoing++;
+      if (r.status === 'going') counts.going++;
+      else if (r.status === 'maybe') counts.maybe++;
+      else if (r.status === 'not_going') counts.notGoing++;
       else counts.pending++;
     }
     return counts;
@@ -301,20 +288,12 @@ export function useGroupSession() {
       async () => {
         const result =
           isFull && session.waitlistEnabled
-            ? await groupSessionService.joinWaitlist(
-                session.id,
-                athleteId,
-                currentUser.id,
-              )
-            : await groupSessionService.register(
-                session.id,
-                athleteId,
-                currentUser.id,
-              );
+            ? await groupSessionService.joinWaitlist(session.id, athleteId, currentUser.id)
+            : await groupSessionService.register(session.id, athleteId, currentUser.id);
         if (!result.success) {
           uiFeedback.showToast(
-            result.error.message || "Failed to register. Please try again.",
-            "error",
+            result.error.message || 'Failed to register. Please try again.',
+            'error',
           );
           return;
         }
@@ -331,23 +310,21 @@ export function useGroupSession() {
           ]);
         } catch {
           // Non-fatal — RSVP creation failure shouldn't block registration
-          logger.warn("Failed to create auto-RSVP on registration");
+          logger.warn('Failed to create auto-RSVP on registration');
         }
         onRefresh();
-        if (result.data.status === "WAITLISTED") {
+        if (result.data.status === 'WAITLISTED') {
           uiFeedback.showToast(
             "You've been added to the waitlist. We'll notify you when a spot opens.",
           );
         } else {
           const name = children.find((c) => c.id === athleteId)?.name;
-          uiFeedback.showToast(
-            name ? `${name} is registered!` : "Registration successful!",
-          );
+          uiFeedback.showToast(name ? `${name} is registered!` : 'Registration successful!');
         }
       },
       async (regError) => {
-        logger.error("Failed to register:", regError);
-        uiFeedback.showToast("Failed to register. Please try again.", "error");
+        logger.error('Failed to register:', regError);
+        uiFeedback.showToast('Failed to register. Please try again.', 'error');
       },
       () => {
         setRegistering(false);
@@ -359,58 +336,51 @@ export function useGroupSession() {
   const handleRegister = () => {
     if (!session || !currentUser) return;
     if (isDeadlinePassed) {
-      uiFeedback.showToast(
-        "The registration deadline for this session has passed.",
-        "warning",
-      );
+      uiFeedback.showToast('The registration deadline for this session has passed.', 'warning');
       return;
     }
 
     // If parent has kids, require child selection
-    const athleteId = children.length > 0 ? selectedChildId : currentUser.id;
+    const athleteId = children.length > 0 ? selectedChildId : resolveSelfAthleteId(currentUser);
     if (!athleteId) {
-      uiFeedback.showToast("Please select which child to register.");
+      uiFeedback.showToast('Please select which child to register.');
       return;
     }
 
     // Check if already registered
     if (registeredChildIds.has(athleteId)) {
-      uiFeedback.showToast(
-        "This child is already registered for this session.",
-      );
+      uiFeedback.showToast('This child is already registered for this session.');
       return;
     }
     const athleteName =
-      children.find((c) => c.id === athleteId)?.name || "Athlete";
+      children.find((c) => c.id === athleteId)?.name ||
+      resolveSelfAthleteName(currentUser) ||
+      'Athlete';
     const nextDate = session.schedule[0]?.date
-      ? new Date(
-          `${session.schedule[0].date}T${session.schedule[0].startTime || "09:00"}`,
-        )
+      ? new Date(`${session.schedule[0].date}T${session.schedule[0].startTime || '09:00'}`)
       : null;
     const sessionDateLabel = nextDate
-      ? nextDate.toLocaleDateString("en-GB", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
+      ? nextDate.toLocaleDateString('en-GB', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
         })
-      : "upcoming date";
-    const sessionTimeLabel = session.schedule[0]?.startTime || "";
+      : 'upcoming date';
+    const sessionTimeLabel = session.schedule[0]?.startTime || '';
     const sessionPriceLabel =
-      session.pricePerParticipant > 0
-        ? `£${session.pricePerParticipant}`
-        : "Free";
+      session.pricePerParticipant > 0 ? `£${session.pricePerParticipant}` : 'Free';
     const isJoiningWaitlist = isFull && session.waitlistEnabled;
-    const title = isJoiningWaitlist ? "Join waitlist?" : "Review registration";
+    const title = isJoiningWaitlist ? 'Join waitlist?' : 'Review registration';
     const body = isJoiningWaitlist
-      ? `${athleteName} will join the waitlist for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ""}).`
-      : `${athleteName} will be registered for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ""}) at ${sessionPriceLabel}.`;
+      ? `${athleteName} will join the waitlist for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ''}).`
+      : `${athleteName} will be registered for "${session.title}" (${sessionDateLabel}${sessionTimeLabel ? ` · ${sessionTimeLabel}` : ''}) at ${sessionPriceLabel}.`;
     uiFeedback.alert(title, body, [
       {
-        text: "Cancel",
-        style: "cancel",
+        text: 'Cancel',
+        style: 'cancel',
       },
       {
-        text: isJoiningWaitlist ? "Join Waitlist" : "Continue",
+        text: isJoiningWaitlist ? 'Join Waitlist' : 'Continue',
         onPress: () => {
           void performRegister(athleteId);
         },
@@ -422,40 +392,32 @@ export function useGroupSession() {
   const handleUnregister = async (familyReg?: FamilyRegistration) => {
     const target = familyReg ?? myRegistrations[0];
     if (!session || !target) return;
-    const label =
-      children.length > 0
-        ? `${target.childName}'s registration`
-        : "your registration";
+    const label = children.length > 0 ? `${target.childName}'s registration` : 'your registration';
     uiFeedback.alert(
-      "Cancel Registration",
+      'Cancel Registration',
       `Are you sure you want to cancel ${label} for "${session.title}"?`,
       [
         {
-          text: "Keep",
-          style: "cancel",
+          text: 'Keep',
+          style: 'cancel',
         },
         {
-          text: "Cancel Registration",
-          style: "destructive",
+          text: 'Cancel Registration',
+          style: 'destructive',
           onPress: async () => {
             try {
-              const result = await groupSessionService.cancelRegistration(
-                target.registration.id,
-              );
+              const result = await groupSessionService.cancelRegistration(target.registration.id);
               if (!result.success) {
                 uiFeedback.showToast(
-                  result.error.message || "Failed to cancel registration.",
-                  "error",
+                  result.error.message || 'Failed to cancel registration.',
+                  'error',
                 );
                 return;
               }
               onRefresh();
             } catch (cancelError) {
-              logger.error("Failed to cancel registration:", cancelError);
-              uiFeedback.showToast(
-                "Failed to cancel registration. Please try again.",
-                "error",
-              );
+              logger.error('Failed to cancel registration:', cancelError);
+              uiFeedback.showToast('Failed to cancel registration. Please try again.', 'error');
             }
           },
         },
@@ -470,10 +432,7 @@ export function useGroupSession() {
   ) => {
     // Deadline guard — block responses after deadline
     if (isDeadlinePassed) {
-      uiFeedback.showToast(
-        "The RSVP deadline for this session has passed.",
-        "warning",
-      );
+      uiFeedback.showToast('The RSVP deadline for this session has passed.', 'warning');
       return;
     }
     if (!familyReg.rsvp) {
@@ -487,13 +446,10 @@ export function useGroupSession() {
           },
         ]);
         if (created.length > 0) {
-          await rsvpService.respond(
-            created[0].id,
-            toServiceStatus(buttonStatus),
-          );
+          await rsvpService.respond(created[0].id, toServiceStatus(buttonStatus));
         }
       } catch {
-        logger.error("Failed to create + respond to RSVP");
+        logger.error('Failed to create + respond to RSVP');
       }
       onRefresh();
       return;
@@ -502,19 +458,16 @@ export function useGroupSession() {
     const rsvpId = familyReg.rsvp.id;
     await runAsyncTryCatchFinally(
       async () => {
-        const result = await rsvpService.respond(
-          rsvpId,
-          toServiceStatus(buttonStatus),
-        );
+        const result = await rsvpService.respond(rsvpId, toServiceStatus(buttonStatus));
         if (!result.success) {
-          logger.error("Failed to update RSVP response", {
+          logger.error('Failed to update RSVP response', {
             rsvpId,
           });
         }
         onRefresh();
       },
       async (error) => {
-        logger.error("Failed to update RSVP response");
+        logger.error('Failed to update RSVP response');
       },
       () => {
         setResponding(false);
@@ -526,34 +479,29 @@ export function useGroupSession() {
   const handleCancel = async () => {
     if (!session) return;
     uiFeedback.alert(
-      "Cancel Session",
-      "Are you sure you want to cancel this session? All registrations will be cancelled.",
+      'Cancel Session',
+      'Are you sure you want to cancel this session? All registrations will be cancelled.',
       [
         {
-          text: "No",
-          style: "cancel",
+          text: 'No',
+          style: 'cancel',
         },
         {
-          text: "Yes, Cancel",
-          style: "destructive",
+          text: 'Yes, Cancel',
+          style: 'destructive',
           onPress: async () => {
             try {
-              const result = await groupSessionService.cancelSession(
-                session.id,
-              );
+              const result = await groupSessionService.cancelSession(session.id);
               if (!result.success) {
-                uiFeedback.showToast(
-                  result.error.message || "Failed to cancel session.",
-                  "error",
-                );
+                uiFeedback.showToast(result.error.message || 'Failed to cancel session.', 'error');
                 return;
               }
               // Clean up RSVPs
               await rsvpService.deleteForSession(session.id).catch(() => {});
               router.back();
             } catch (cancelErr) {
-              logger.error("Failed to cancel:", cancelErr);
-              uiFeedback.showToast("Failed to cancel session.", "error");
+              logger.error('Failed to cancel:', cancelErr);
+              uiFeedback.showToast('Failed to cancel session.', 'error');
             }
           },
         },
@@ -567,11 +515,11 @@ export function useGroupSession() {
     try {
       await rsvpService.sendReminder(session.id);
       uiFeedback.showToast(
-        `Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? "s" : ""}.`,
-        "success",
+        `Sent to ${rsvpCounts.pending} non-responder${rsvpCounts.pending !== 1 ? 's' : ''}.`,
+        'success',
       );
     } catch {
-      uiFeedback.showToast("Failed to send reminders.", "error");
+      uiFeedback.showToast('Failed to send reminders.', 'error');
     }
   };
   return {

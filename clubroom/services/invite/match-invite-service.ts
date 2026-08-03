@@ -14,7 +14,7 @@ import type {
   BulkInviteResult,
   BulkInviteError,
 } from '@/constants/types';
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
 import { matchService } from '../match-service';
@@ -24,6 +24,38 @@ import { userService } from '../user-service';
 import { loadSquadInvites, saveSquadInvites } from './squad-invite-service';
 
 const logger = createLogger('MatchInviteService');
+const API_MODE_MATCH_INVITE_RESPONSE_UNSUPPORTED =
+  'Aggregate match invite response updates are unsupported in API mode; use athlete-specific /v1 match response routes.';
+interface CoachMatchInvitesResponse {
+  invites: SquadInvite[];
+}
+
+function mapMatchToSquadInvite(match: Match): SquadInvite | null {
+  if (!match.squadId || match.selectedPlayers.length === 0) {
+    return null;
+  }
+
+  const accepted = match.selectedPlayers.filter((player) =>
+    ['AVAILABLE', 'SELECTED', 'RESERVE'].includes(player.status),
+  ).length;
+  const declined = match.selectedPlayers.filter((player) => player.status === 'UNAVAILABLE').length;
+  const pending = match.selectedPlayers.filter((player) => player.status === 'INVITED').length;
+
+  return {
+    id: `squad_match_${match.id}`,
+    squadId: match.squadId,
+    targetType: 'MATCH',
+    targetId: match.id,
+    invitedBy: match.coachId,
+    invitedAt: match.createdAt,
+    memberCount: match.selectedPlayers.length,
+    responses: {
+      accepted,
+      declined,
+      pending,
+    },
+  };
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -73,7 +105,7 @@ export const matchInviteService = {
       : members;
 
     // Create match using match service
-    const createdMatch = await matchService.createMatch({
+    const createdMatchPromise = matchService.createMatch({
       clubId: input.clubId,
       clubName: input.clubName,
       squadId: input.squadId,
@@ -91,14 +123,21 @@ export const matchInviteService = {
       notes: input.notes,
     });
 
-    const players = await Promise.all(
-      eligibleMembers.map(async (member, index) => ({
-        athleteId: member.athleteId,
-        athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
-        parentId: member.parentId,
-        parentName: await resolveUserName(member.parentId, 'Parent'),
-      })),
+    const playersPromise = Promise.all(
+      eligibleMembers.map(async (member, index) => {
+        const [athleteName, parentName] = await Promise.all([
+          resolveUserName(member.athleteId, `Athlete ${index + 1}`),
+          resolveUserName(member.parentId, 'Parent'),
+        ]);
+        return {
+          athleteId: member.athleteId,
+          athleteName,
+          parentId: member.parentId,
+          parentName,
+        };
+      }),
     );
+    const [createdMatch, players] = await Promise.all([createdMatchPromise, playersPromise]);
     const playerInviteResult = await matchService.invitePlayers({
       matchId: createdMatch.id,
       players,
@@ -216,6 +255,12 @@ export const matchInviteService = {
    * Get match invites for a specific match
    */
   async getMatchInvites(matchId: string): Promise<SquadInvite[]> {
+    if (!apiClient.isMockMode) {
+      const match = await matchService.getMatch(matchId);
+      const invite = match ? mapMatchToSquadInvite(match) : null;
+      return invite ? [invite] : [];
+    }
+
     const squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter((si) => si.targetType === 'MATCH' && si.targetId === matchId);
   },
@@ -224,6 +269,20 @@ export const matchInviteService = {
    * Get all match invites by coach
    */
   async getCoachMatchInvites(coachId: string): Promise<SquadInvite[]> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<CoachMatchInvitesResponse>(
+        `/v1/coaches/${encodeURIComponent(coachId)}/match-invites`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load coach match invites through API', {
+          coachId,
+          error: result.error,
+        });
+        throw new Error(result.error.message);
+      }
+      return result.data.invites;
+    }
+
     const squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter((si) => si.targetType === 'MATCH' && si.invitedBy === coachId);
   },
@@ -237,6 +296,16 @@ export const matchInviteService = {
     accepted: number,
     declined: number,
   ): Promise<void> {
+    if (!apiClient.isMockMode) {
+      logger.warn(API_MODE_MATCH_INVITE_RESPONSE_UNSUPPORTED, {
+        matchId,
+        squadId,
+        accepted,
+        declined,
+      });
+      throw new Error(API_MODE_MATCH_INVITE_RESPONSE_UNSUPPORTED);
+    }
+
     let squadInvitesCache = await loadSquadInvites();
     const index = squadInvitesCache.findIndex(
       (si) => si.targetType === 'MATCH' && si.targetId === matchId && si.squadId === squadId,

@@ -1,0 +1,135 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T19:53:50.036Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "verification"
+    ],
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 600,
+    "failOn": "medium",
+    "outDir": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout"
+  },
+  "totals": {
+    "total": 5,
+    "ok": 1,
+    "failed": 4,
+    "high": 4,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "coach_verification_hub",
+      "role": "coach",
+      "title": "Coach opens verification status",
+      "path": "/verification",
+      "finalPath": "/verification",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout/coach__coach_verification_hub.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 20221
+    },
+    {
+      "id": "coach_verification_identity",
+      "role": "coach",
+      "title": "Coach opens identity verification",
+      "path": "/verification/id",
+      "finalPath": "/verification/id",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout/coach__coach_verification_identity.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickText:Error: Text not visible: Passport",
+        "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 67545
+    },
+    {
+      "id": "coach_verification_background",
+      "role": "coach",
+      "title": "Coach opens background verification",
+      "path": "/verification/background",
+      "finalPath": "/verification/background",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout/coach__coach_verification_background.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:assertTextVisible:Error: Text not visible: DBS verified"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 2,
+      "durationMs": 100256
+    },
+    {
+      "id": "coach_verification_insurance",
+      "role": "coach",
+      "title": "Coach opens insurance verification",
+      "path": "/verification/insurance",
+      "finalPath": "/verification/insurance",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout/coach__coach_verification_insurance.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 25568
+    },
+    {
+      "id": "coach_verification_credentials",
+      "role": "coach",
+      "title": "Coach opens credential verification",
+      "path": "/verification/credentials",
+      "finalPath": "/verification/credentials",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout/coach__coach_verification_credentials.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickButton:Error: Button not visible: Add credential",
+        "action_failed:assertTextVisible:Error: Text not visible: Credential type",
+        "action_failed:clickText:Error: Text not visible: Other qualification",
+        "action_failed:assertTextVisible:Error: Text not visible: Qualification name",
+        "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 43140
+    }
+  ]
+}

@@ -69,6 +69,42 @@ interface ApiMatchResponse {
   requestId: string;
 }
 
+export interface ImportClubMatchInput {
+  source?: string;
+  externalId?: string;
+  squadId?: string | null;
+  title?: string;
+  matchType?: MatchType;
+  opponent: string;
+  isHome?: boolean;
+  date: string;
+  kickoffTime: string;
+  meetTime?: string;
+  venue: string;
+  address?: string;
+  maxPlayers?: number;
+  notes?: string;
+}
+
+export interface ImportClubMatchesInput {
+  clubId: string;
+  source?: string;
+  matches: ImportClubMatchInput[];
+}
+
+export interface ImportClubMatchesResult {
+  clubId: string;
+  imported: Match[];
+  skipped: Array<{
+    source: string;
+    externalId: string;
+    matchId: string;
+    reason: string;
+  }>;
+  total: number;
+  requestId: string;
+}
+
 async function resolveMatchHeaders(
   message: string,
   fallbackRole: ApiActingRole = 'member',
@@ -107,6 +143,7 @@ const MOCK_MATCHES: Match[] = [
     isHome: true,
     date: '2026-01-18',
     kickoffTime: '10:00',
+    timeZone: 'Europe/London',
     meetTime: '09:30',
     venue: 'Bradwell Sports Ground',
     address: '123 Sports Lane, London E1 4AB',
@@ -152,6 +189,7 @@ const MOCK_MATCHES: Match[] = [
     isHome: false,
     date: '2026-01-25',
     kickoffTime: '14:00',
+    timeZone: 'Europe/London',
     meetTime: '13:15',
     venue: 'Victoria Park Pitches',
     address: 'Victoria Park, London E9 7BT',
@@ -171,6 +209,7 @@ const MOCK_MATCHES: Match[] = [
     isHome: true,
     date: '2026-01-05',
     kickoffTime: '11:00',
+    timeZone: 'Europe/London',
     venue: 'Bradwell Sports Ground',
     maxPlayers: 14,
     selectedPlayers: [
@@ -391,6 +430,7 @@ export const matchService = {
       isHome: input.isHome,
       date: input.date,
       kickoffTime: input.kickoffTime,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       meetTime: input.meetTime,
       venue: input.venue,
       address: input.address,
@@ -459,6 +499,39 @@ export const matchService = {
       throwServiceError(response.error);
     }
     return response.data.match;
+  },
+
+  /**
+   * Import fixtures through backend authority only. No local CSV/temp import path.
+   */
+  async importClubMatches(input: ImportClubMatchesInput): Promise<ImportClubMatchesResult> {
+    if (USE_MOCK) {
+      throw new Error('Match imports are API-only; use /v1/clubs/:clubId/matches/import.');
+    }
+
+    const headersResult = await resolveMatchHeaders('Sign in to import matches.', 'club_admin');
+    if (!headersResult.success) {
+      throwServiceError(headersResult.error);
+    }
+    const response = await apiFetch<ImportClubMatchesResult>(
+      `/v1/clubs/${encodeURIComponent(input.clubId)}/matches/import`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          source: input.source,
+          matches: input.matches,
+        }),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to import club matches via API', {
+        clubId: input.clubId,
+        error: response.error,
+      });
+      throwServiceError(response.error);
+    }
+    return response.data;
   },
 
   /**

@@ -15,6 +15,10 @@ import { apiClient, apiFetch } from '../api-client';
 import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import type { AthleteSkillLevels } from '@/services/progress/progress-skills-service';
+import {
+  isApiSkillHistorySkill,
+  parseApiSkillHistoryResponse,
+} from '@/services/progress/skill-history-response-contract';
 import type { Session } from '@/constants/app-types';
 import type { FootballSkill } from '@/types/progress-types';
 import {
@@ -49,11 +53,8 @@ interface ApiAthleteGoalsResponse {
 interface ApiAthleteAnalyticsResponse {
   athleteId: string;
   analytics: AthleteAnalytics;
-}
-
-interface ApiSkillHistoryResponse {
-  athleteId: string;
-  skills: SkillProgress[];
+  seedVersion: string | null;
+  requestId: string;
 }
 
 type SkillProgressWithAverage = SkillProgress & { averageLevel?: number };
@@ -88,6 +89,91 @@ type ApiGoalMilestoneRow = Partial<Goal['milestones'][number]> & {
   sortOrder?: number | null;
   status?: string | null;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown, minimum: number, maximum: number): value is number {
+  return (
+    typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
+  );
+}
+
+function isAnalyticsMilestone(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.goalId === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.isCompleted === 'boolean' &&
+    typeof value.order === 'number' &&
+    Number.isInteger(value.order) &&
+    (value.completedAt === undefined || typeof value.completedAt === 'string')
+  );
+}
+
+function isAnalyticsGoal(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.userId === 'string' &&
+    typeof value.athleteId === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.category === 'string' &&
+    typeof value.status === 'string' &&
+    isFiniteNumber(value.progress, 0, 100) &&
+    Array.isArray(value.milestones) &&
+    value.milestones.every(isAnalyticsMilestone) &&
+    typeof value.createdBy === 'string' &&
+    typeof value.createdById === 'string' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
+
+function validateApiAthleteAnalyticsResponse(
+  value: unknown,
+): Result<AthleteAnalytics, ServiceError> {
+  if (!isRecord(value) || !isRecord(value.analytics)) {
+    return err(storageError('Athlete analytics API response did not match contract'));
+  }
+  const analytics = value.analytics;
+  const valid =
+    typeof value.athleteId === 'string' &&
+    typeof value.requestId === 'string' &&
+    value.requestId.length > 0 &&
+    (value.seedVersion === null || typeof value.seedVersion === 'string') &&
+    analytics.athleteId === value.athleteId &&
+    (analytics.period === 'WEEK' ||
+      analytics.period === 'MONTH' ||
+      analytics.period === 'QUARTER' ||
+      analytics.period === 'YEAR' ||
+      analytics.period === 'ALL') &&
+    typeof analytics.totalSessions === 'number' &&
+    Number.isInteger(analytics.totalSessions) &&
+    typeof analytics.sessionsThisPeriod === 'number' &&
+    Number.isInteger(analytics.sessionsThisPeriod) &&
+    analytics.totalSessions >= 0 &&
+    analytics.sessionsThisPeriod >= 0 &&
+    analytics.sessionsThisPeriod <= analytics.totalSessions &&
+    isFiniteNumber(analytics.averageSessionRating, 0, 5) &&
+    isFiniteNumber(analytics.attendanceRate, 0, 100) &&
+    Array.isArray(analytics.skills) &&
+    analytics.skills.every(isApiSkillHistorySkill) &&
+    Array.isArray(analytics.activeGoals) &&
+    analytics.activeGoals.every(isAnalyticsGoal) &&
+    Array.isArray(analytics.completedGoals) &&
+    analytics.completedGoals.every(isAnalyticsGoal) &&
+    isFiniteNumber(analytics.improvementRate, 0, 100) &&
+    isFiniteNumber(analytics.consistencyScore, 0, 100) &&
+    isFiniteNumber(analytics.percentileRank, 0, 100) &&
+    (analytics.lastSessionDate === undefined || typeof analytics.lastSessionDate === 'string');
+
+  return valid
+    ? ok(analytics as unknown as AthleteAnalytics)
+    : err(storageError('Athlete analytics API response did not match contract'));
+}
 
 async function resolveAthleteApiContext(
   athleteId: string,
@@ -645,7 +731,7 @@ export const analyticsQueryService = {
       if (!result.success) {
         return err(result.error);
       }
-      return ok(result.data.analytics);
+      return validateApiAthleteAnalyticsResponse(result.data);
     } catch (error) {
       logger.error('Failed to get athlete analytics', { athleteId, period, error });
       return err(storageError('Failed to load athlete analytics'));
@@ -715,7 +801,7 @@ export const analyticsQueryService = {
         search.set('skillName', skillName);
       }
       const query = search.toString();
-      const result = await apiFetch<ApiSkillHistoryResponse>(
+      const result = await apiFetch<unknown>(
         `/v1/athletes/${context.data.apiAthleteId}/skills/history${query ? `?${query}` : ''}`,
         {
           method: 'GET',
@@ -725,7 +811,11 @@ export const analyticsQueryService = {
       if (!result.success) {
         return err(result.error);
       }
-      return ok(result.data.skills);
+      const parsed = parseApiSkillHistoryResponse(result.data, context.data.apiAthleteId);
+      if (!parsed) {
+        return err(storageError('Athlete skill history API response did not match contract'));
+      }
+      return ok(parsed.skills as SkillProgress[]);
     } catch (error) {
       logger.error('Failed to get skill history', { athleteId, skillName, error });
       return err(storageError('Failed to load skill history'));

@@ -186,6 +186,11 @@ export function usePublicProfile(coachId: string) {
   const reviews = data?.reviews ?? [];
   const sessionOfferings = data?.sessionOfferings ?? [];
   const offeringSummary = summarizeCoachOfferings(sessionOfferings);
+  const shouldVerifyBlockStatus =
+    Boolean(coachId && currentUser?.id) && !isLegacyCoachProfileId(coachId);
+  const blockStatusDataKey = shouldVerifyBlockStatus
+    ? `${currentUser?.id ?? 'anonymous'}:${coachId}`
+    : null;
   const blockedStatus = useScreen<boolean>({
     load: async () => {
       if (!coachId || !currentUser?.id || isLegacyCoachProfileId(coachId)) {
@@ -195,10 +200,28 @@ export function usePublicProfile(coachId: string) {
     },
     deps: [coachId, currentUser?.id],
     isEmpty: () => false,
+    dataKey: blockStatusDataKey,
   });
-  const isBlocked = blockedStatus.data ?? false;
+  const isBlocked = blockedStatus.data === true;
+  const blockStatusError =
+    blockedStatus.status === 'error'
+      ? ((blockedStatus.error as ServiceError | null)?.message ?? 'Unable to verify block status.')
+      : null;
+  const blockStatusUnavailable =
+    shouldVerifyBlockStatus &&
+    (!blockedStatus.hasRequestedTruthfulFrame ||
+      blockedStatus.status === 'loading' ||
+      Boolean(blockStatusError));
+  const profileActionsBlocked = isBlocked || blockStatusUnavailable;
 
   const handleBook = () => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
@@ -206,6 +229,13 @@ export function usePublicProfile(coachId: string) {
     router.push(Routes.bookCoach(coachId));
   };
   const handleOfferingPress = (offering: SessionOffering) => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
@@ -219,6 +249,13 @@ export function usePublicProfile(coachId: string) {
   };
 
   const handleMessage = () => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
       return;
@@ -258,6 +295,9 @@ export function usePublicProfile(coachId: string) {
     handleMessage,
     profileUrl,
     isBlocked,
+    blockStatusError,
+    blockStatusUnavailable,
+    profileActionsBlocked,
   } satisfies {
     coach: Coach | null;
     reviews: PublicReview[];
@@ -285,5 +325,8 @@ export function usePublicProfile(coachId: string) {
     handleMessage: () => void;
     profileUrl: string;
     isBlocked: boolean;
+    blockStatusError: string | null;
+    blockStatusUnavailable: boolean;
+    profileActionsBlocked: boolean;
   };
 }

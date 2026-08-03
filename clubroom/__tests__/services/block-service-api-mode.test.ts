@@ -54,6 +54,13 @@ describe('blockService API mode', () => {
         return new Response(
           JSON.stringify({
             blockedUserIds: ['user_api_2'],
+            blockedUsers: [
+              {
+                id: 'user_api_2',
+                name: 'Blocked Coach',
+                blockedAt: '2026-07-30T10:00:00.000Z',
+              },
+            ],
             status: {
               relationship: 'blocked_by_actor',
               blocked: true,
@@ -67,6 +74,13 @@ describe('blockService API mode', () => {
       return new Response(
         JSON.stringify({
           blockedUserIds: ['user_api_2'],
+          blockedUsers: [
+            {
+              id: 'user_api_2',
+              name: 'Blocked Coach',
+              blockedAt: '2026-07-30T10:00:00.000Z',
+            },
+          ],
           total: 1,
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -86,6 +100,18 @@ describe('blockService API mode', () => {
         assert.deepEqual(listed.data, ['user_api_2']);
       }
 
+      const summaries = await blockService.getBlockedUserSummaries('user_api_1');
+      assert.equal(summaries.success, true);
+      if (summaries.success) {
+        assert.deepEqual(summaries.data, [
+          {
+            id: 'user_api_2',
+            name: 'Blocked Coach',
+            blockedAt: '2026-07-30T10:00:00.000Z',
+          },
+        ]);
+      }
+
       const status = await blockService.getBlockStatus('user_api_1', 'user_api_2');
       assert.equal(status.success, true);
       if (status.success) {
@@ -100,7 +126,7 @@ describe('blockService API mode', () => {
 
       assert.deepEqual(
         fetchCalls.map((call) => call.method),
-        ['POST', 'DELETE', 'GET', 'GET', 'GET'],
+        ['POST', 'DELETE', 'GET', 'GET', 'GET', 'GET'],
       );
       assert.equal(
         fetchCalls.every((call) => call.url.includes('/v1/blocks')),
@@ -109,6 +135,48 @@ describe('blockService API mode', () => {
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('fails closed when the status response omits relationship authority', async () => {
+    const { blockService } = await import('@/services/block-service');
+    const originalFetch = global.fetch;
+    global.fetch = (async () =>
+      new Response(JSON.stringify({ blockedUserIds: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })) as typeof fetch;
+
+    try {
+      const result = await blockService.getBlockStatus('user_api_1', 'user_api_2');
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'UNKNOWN');
+        assert.match(result.error.message, /incomplete/i);
+      }
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('fails closed when the blocked-account list omits safe summaries', async () => {
+    const { blockService } = await import('@/services/block-service');
+    const originalFetch = global.fetch;
+    global.fetch = (async () =>
+      new Response(JSON.stringify({ blockedUserIds: ['user_api_2'] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })) as typeof fetch;
+
+    try {
+      const result = await blockService.getBlockedUserSummaries('user_api_1');
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'UNKNOWN');
+        assert.match(result.error.message, /incomplete/i);
+      }
+    } finally {
       global.fetch = originalFetch;
     }
   });

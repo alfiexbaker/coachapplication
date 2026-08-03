@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
 
 import { clubService, type CalendarEvent } from '@/services/club-service';
 import { toDateStr } from '@/utils/format';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { useRequiredParam } from '@/hooks/use-required-param';
+import { useAuth } from '@/hooks/use-auth';
+import { err, ok, serviceError, validationError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -66,7 +67,9 @@ export interface UseClubCalendarResult {
 }
 
 export function useClubCalendar(): UseClubCalendarResult {
-  const { clubId } = useLocalSearchParams<{ clubId: string }>();
+  const { currentUser } = useAuth();
+  const clubIdParam = useRequiredParam('clubId');
+  const clubId = clubIdParam.valid ? clubIdParam.value : undefined;
 
   const now = new Date();
   const [year, setYear] = useState(() => now.getFullYear());
@@ -75,17 +78,15 @@ export function useClubCalendar(): UseClubCalendarResult {
   const [squadFilter, setSquadFilter] = useState<string | null>(null);
 
   const loadCalendar = async () => {
-    if (!clubId) {
-      return ok<ClubCalendarData>({
-        events: [],
-        squads: [],
-      });
+    if (!clubIdParam.valid) {
+      return Promise.resolve(err(validationError('Invalid club calendar link.')));
     }
+    const resolvedClubId = clubIdParam.value;
 
     try {
       const [events, squads] = await Promise.all([
-        clubService.getCalendarEvents(clubId, { year, month, squadId: squadFilter ?? undefined }),
-        clubService.getCalendarSquads(clubId),
+        clubService.getCalendarEvents(resolvedClubId, { year, month, squadId: squadFilter ?? undefined }),
+        clubService.getCalendarSquads(resolvedClubId),
       ]);
 
       return ok<ClubCalendarData>({
@@ -100,7 +101,7 @@ export function useClubCalendar(): UseClubCalendarResult {
     }
   };
 
-  const calendarDataKey = `${clubId ?? 'missing'}:${year}-${month}:${squadFilter ?? 'all'}`;
+  const calendarDataKey = `club-calendar:${currentUser?.id ?? 'anonymous'}:${clubId ?? 'missing'}:${year}-${month}:${squadFilter ?? 'all'}`;
   const {
     data,
     status,
@@ -111,7 +112,7 @@ export function useClubCalendar(): UseClubCalendarResult {
     retry,
   } = useScreen<ClubCalendarData>({
     load: loadCalendar,
-    deps: [clubId, year, month, squadFilter],
+    deps: [clubId, clubIdParam.valid, currentUser?.id, year, month, squadFilter],
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',

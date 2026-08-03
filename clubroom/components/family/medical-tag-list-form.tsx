@@ -3,7 +3,6 @@ import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -26,7 +25,6 @@ interface MedicalTagListFormProps {
   onMedicationInputChange: (value: string) => void;
   onAddMedication: () => void;
   palette: ThemeColors;
-  showInfoCard?: boolean;
 }
 
 function TagInputSection({
@@ -55,7 +53,16 @@ function TagInputSection({
       <ThemedText style={styles.label}>{label}</ThemedText>
       <Row style={styles.tagInputRow}>
         <TextInput
-          style={[styles.input, { flex: 1, borderColor: palette.border, color: palette.text }]}
+          style={[
+            styles.input,
+            {
+              flex: 1,
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              color: palette.text,
+            },
+          ]}
+          accessibilityLabel={label}
           placeholder={placeholder}
           placeholderTextColor={palette.muted}
           value={inputValue}
@@ -64,7 +71,8 @@ function TagInputSection({
           maxLength={100}
         />
         <Clickable
-          accessibilityLabel="Add tag"
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${label.toLowerCase()}`}
           onPress={onAdd}
           style={[styles.addTagButton, { backgroundColor: palette.tint }]}
         >
@@ -84,7 +92,8 @@ function TagInputSection({
               <ThemedText style={{ color: tagColor }}>{item}</ThemedText>
               <Clickable
                 onPress={() => onRemove(index)}
-                accessibilityLabel={`Remove ${item} tag`}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${item} from ${label.toLowerCase()}`}
                 style={styles.removeTagButton}
               >
                 <Ionicons name="close" size={16} color={tagColor} />
@@ -114,19 +123,9 @@ export const MedicalTagListForm = function MedicalTagListForm({
   onMedicationInputChange,
   onAddMedication,
   palette,
-  showInfoCard = true,
 }: MedicalTagListFormProps) {
   return (
     <View style={styles.stepContent}>
-      {showInfoCard ? (
-        <SurfaceCard style={styles.infoCard}>
-          <Ionicons name="medkit-outline" size={24} color={palette.warning} />
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            Medical information is critical for your child&apos;s safety during sessions.
-          </ThemedText>
-        </SurfaceCard>
-      ) : null}
-
       <TagInputSection
         label="Allergies"
         items={allergies}
@@ -140,7 +139,7 @@ export const MedicalTagListForm = function MedicalTagListForm({
       />
 
       <TagInputSection
-        label="Medical Conditions"
+        label="Medical conditions"
         items={medicalConditions}
         inputValue={conditionInput}
         placeholder="e.g., Asthma, Diabetes"
@@ -154,7 +153,7 @@ export const MedicalTagListForm = function MedicalTagListForm({
       />
 
       <TagInputSection
-        label="Current Medications"
+        label="Current medications"
         items={medications}
         inputValue={medicationInput}
         placeholder="e.g., Ventolin inhaler"
@@ -172,17 +171,6 @@ const styles = StyleSheet.create({
   stepContent: {
     gap: Spacing.md,
   },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  infoText: {
-    flex: 1,
-    ...Typography.small,
-    lineHeight: 18,
-  },
   field: {
     gap: Spacing.xs,
   },
@@ -191,7 +179,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   input: {
-    borderWidth: 1.5,
+    minHeight: 44,
+    borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,

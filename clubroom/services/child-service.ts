@@ -8,8 +8,7 @@
  * - Emergency contacts
  */
 
-import { apiClient } from './api-client';
-import { apiFetch } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { safetyService } from './safety-service';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
@@ -31,6 +30,7 @@ import {
   resolveFamilyAuthorityContext,
   type ApiFamilyAthlete,
 } from '@/services/family/family-api-support';
+import { familyPermissionService } from '@/services/family/family-permission-service';
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
@@ -60,9 +60,13 @@ export interface ChildSquadMembership {
   joinedAt: string;
 }
 
-interface GetChildrenOptions {
+interface ChildReadOptions {
   includeTrustData?: boolean;
 }
+
+type MockChildManager = {
+  children?: readonly { childId: string }[];
+} | null;
 
 interface ApiAthleteSquadMembershipsResponse {
   athleteId: string;
@@ -205,10 +209,10 @@ const CONSENT_TYPES: ConsentType[] = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGEN
 
 function createDefaultConsents(): Consent[] {
   return [
-    { type: 'PHOTO', granted: true, grantedBy: 'Parent/Guardian' },
-    { type: 'VIDEO', granted: true, grantedBy: 'Parent/Guardian' },
+    { type: 'PHOTO', granted: false, grantedBy: '' },
+    { type: 'VIDEO', granted: false, grantedBy: '' },
     { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
-    { type: 'EMERGENCY_TREATMENT', granted: true, grantedBy: 'Parent/Guardian' },
+    { type: 'EMERGENCY_TREATMENT', granted: false, grantedBy: '' },
   ];
 }
 
@@ -236,10 +240,10 @@ function createClearedTrustSensitiveFields(): Pick<
     emergencyContactRelation: '',
     secondaryEmergencyName: undefined,
     secondaryEmergencyPhone: undefined,
-    photoConsent: true,
-    videoConsent: true,
+    photoConsent: false,
+    videoConsent: false,
     socialMediaConsent: false,
-    emergencyTreatmentConsent: true,
+    emergencyTreatmentConsent: false,
   };
 }
 
@@ -317,20 +321,20 @@ function buildConsents(input: Partial<CreateChildInput>, fallback: Consent[]): C
   const consentFlags: Record<ConsentType, boolean> = {
     PHOTO:
       'photoConsent' in input
-        ? (input.photoConsent ?? true)
-        : (existingByType.get('PHOTO')?.granted ?? true),
+        ? (input.photoConsent ?? false)
+        : (existingByType.get('PHOTO')?.granted ?? false),
     VIDEO:
       'videoConsent' in input
-        ? (input.videoConsent ?? true)
-        : (existingByType.get('VIDEO')?.granted ?? true),
+        ? (input.videoConsent ?? false)
+        : (existingByType.get('VIDEO')?.granted ?? false),
     SOCIAL_MEDIA:
       'socialMediaConsent' in input
         ? (input.socialMediaConsent ?? false)
         : (existingByType.get('SOCIAL_MEDIA')?.granted ?? false),
     EMERGENCY_TREATMENT:
       'emergencyTreatmentConsent' in input
-        ? (input.emergencyTreatmentConsent ?? true)
-        : (existingByType.get('EMERGENCY_TREATMENT')?.granted ?? true),
+        ? (input.emergencyTreatmentConsent ?? false)
+        : (existingByType.get('EMERGENCY_TREATMENT')?.granted ?? false),
   };
 
   return CONSENT_TYPES.map((type) =>
@@ -444,10 +448,10 @@ function applyEmergencyInfoToChild(child: ChildProfile, info: EmergencyInfo): Ch
     emergencyContactRelation: primaryContact?.relationship ?? '',
     secondaryEmergencyName: secondaryContact?.name ?? undefined,
     secondaryEmergencyPhone: secondaryContact?.phone ?? undefined,
-    photoConsent: consentsByType.get('PHOTO') ?? true,
-    videoConsent: consentsByType.get('VIDEO') ?? true,
+    photoConsent: consentsByType.get('PHOTO') ?? false,
+    videoConsent: consentsByType.get('VIDEO') ?? false,
     socialMediaConsent: consentsByType.get('SOCIAL_MEDIA') ?? false,
-    emergencyTreatmentConsent: consentsByType.get('EMERGENCY_TREATMENT') ?? true,
+    emergencyTreatmentConsent: consentsByType.get('EMERGENCY_TREATMENT') ?? false,
   };
 }
 
@@ -681,7 +685,7 @@ const MOCK_CHILDREN: ChildProfile[] = normalizeLegacyMockDates([
   {
     id: 'user2',
     parentId: 'user4',
-    firstName: 'Emma',
+    firstName: 'Maisie',
     lastName: 'Barton',
     dateOfBirth: '2009-08-20',
     gender: 'FEMALE',
@@ -838,15 +842,106 @@ function toApiAthletePayload(input: Partial<CreateChildInput>): Record<string, u
   };
 }
 
+function toApiAthleteTrustData(input: CreateChildInput): Record<string, unknown> {
+  const fallback = createDefaultEmergencyInfo('pending');
+  const medical = buildMedicalRecord(input, fallback.medical);
+
+  return {
+    medical: {
+      conditions: medical.conditions,
+      allergies: medical.allergies,
+      medications: medical.medications,
+      restrictions: medical.restrictions,
+      doctorName: medical.doctorName ?? null,
+      doctorPhone: medical.doctorPhone ?? null,
+      insuranceProvider: medical.insuranceProvider ?? null,
+      insuranceNumber: medical.insuranceNumber ?? null,
+      emergencyNotes: medical.notes ?? null,
+    },
+    emergencyContacts: {
+      contacts: buildEmergencyContacts(input, fallback.contacts),
+    },
+    consents: {
+      consents: buildConsents(input, fallback.consents),
+    },
+  };
+}
+
 // ============================================================================
 // SERVICE METHODS
 // ============================================================================
 
 export const childService = {
+  async canCreateChild(): Promise<boolean> {
+    if (USE_MOCK) {
+      return true;
+    }
+
+    const contextResult = await resolveFamilyAuthorityContext('Sign in to add a child profile.');
+    if (!contextResult.success) {
+      return false;
+    }
+
+    try {
+      return await familyPermissionService.isAdmin(
+        contextResult.data.parentId,
+        contextResult.data.familyId,
+      );
+    } catch (error) {
+      logger.warn('Failed to resolve child creation access', { error });
+      return false;
+    }
+  },
+
+  async canManageChildProfile(
+    childId: string,
+    mockManager?: MockChildManager,
+  ): Promise<Result<boolean, ServiceError>> {
+    if (USE_MOCK) {
+      // ponytail: mock fixtures use the authenticated UI actor's declared child links.
+      return ok(Boolean(mockManager?.children?.some((child) => child.childId === childId)));
+    }
+
+    const contextResult = await resolveFamilyAuthorityContext(
+      'Sign in to manage this player profile.',
+    );
+    if (!contextResult.success) {
+      if (contextResult.error.code === 'NOT_FOUND') {
+        return ok(false);
+      }
+      return contextResult;
+    }
+
+    try {
+      const permissionsResult = await familyPermissionService.getGuardianPermissions(
+        contextResult.data.parentId,
+        contextResult.data.familyId,
+      );
+      if (!permissionsResult.success) {
+        return permissionsResult;
+      }
+      if (
+        !permissionsResult.data.includes('MANAGE_PROFILE') &&
+        !permissionsResult.data.includes('ADMIN')
+      ) {
+        return ok(false);
+      }
+
+      const accessibleChildren = await familyPermissionService.getAccessibleChildren(
+        contextResult.data.parentId,
+        contextResult.data.familyId,
+      );
+      return ok(accessibleChildren.some((child) => child.id === childId));
+    } catch (error) {
+      logger.warn('Failed to resolve child profile management access', { childId, error });
+      return err(storageError('Could not verify profile access.'));
+    }
+  },
+
   /**
    * Get all children for a parent
    */
-  async getChildren(parentId: string, options: GetChildrenOptions = {}): Promise<ChildProfile[]> {
+  async getChildren(parentId: string, options: ChildReadOptions = {}): Promise<ChildProfile[]> {
     const includeTrustData = options.includeTrustData ?? true;
 
     if (USE_MOCK) {
@@ -893,11 +988,17 @@ export const childService = {
   /**
    * Get a single child by ID
    */
-  async getChild(childId: string): Promise<ChildProfile | null> {
+  async getChild(
+    childId: string,
+    options: ChildReadOptions = {},
+  ): Promise<ChildProfile | null> {
+    const includeTrustData = options.includeTrustData ?? true;
+
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
       const child = childrenCache.find((c) => c.id === childId) || null;
-      return child ? hydrateChildTrustData(child) : null;
+      if (!child) return null;
+      return includeTrustData ? hydrateChildTrustData(child) : sanitizeChildProfile(child);
     }
 
     const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete profile.');
@@ -933,9 +1034,11 @@ export const childService = {
       throw new Error(athleteResult.error.message);
     }
 
-    return hydrateChildTrustData(
-      mapApiFamilyAthleteToChildProfile(athleteResult.data, athleteResult.data.parentId ?? ''),
+    const child = mapApiFamilyAthleteToChildProfile(
+      athleteResult.data,
+      athleteResult.data.parentId ?? '',
     );
+    return includeTrustData ? hydrateChildTrustData(child) : sanitizeChildProfile(child);
   },
 
   async getSquadMemberships(
@@ -1044,15 +1147,11 @@ export const childService = {
       body: JSON.stringify({
         familyId: contextResult.data.familyId,
         ...toApiAthletePayload(input),
+        trustData: toApiAthleteTrustData(input),
       }),
     });
     if (!createResult.success) {
       throw new Error(createResult.error.message);
-    }
-
-    const trustResult = await syncTrustSensitiveChildData(createResult.data.id, input);
-    if (trustResult && !trustResult.success) {
-      throw new Error(trustResult.error.message);
     }
 
     const child = mapApiFamilyAthleteToChildProfile(createResult.data, parentId);

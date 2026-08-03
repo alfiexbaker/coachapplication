@@ -23,6 +23,7 @@ import {
 import type { Injury, InjuryStatus } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 const logger = createLogger('InjuryHistoryScreen');
 
@@ -47,12 +48,12 @@ export function useInjuries() {
   const explicitSubjectId = (() => {
     const raw = subjectIdParam ?? childIdParam;
     if (!raw) return null;
-    return Array.isArray(raw) ? raw[0] ?? null : raw;
+    return Array.isArray(raw) ? (raw[0] ?? null) : raw;
   })();
 
   const selectedSubjectId = resolveProfileSubjectId({
     explicitSubjectId,
-    currentUserId: currentUser?.id,
+    currentUserId: resolveSelfAthleteId(currentUser),
     profileMode,
     profileSubjectId,
     subjectOptions,
@@ -95,12 +96,12 @@ export function useInjuries() {
     return injuries.filter((i) => i.status === statusFilter);
   })();
 
-  const counts = ({
+  const counts = {
     ALL: injuries.length,
     ACTIVE: injuries.filter((i) => i.status === 'ACTIVE').length,
     RECOVERING: injuries.filter((i) => i.status === 'RECOVERING').length,
     HEALED: injuries.filter((i) => i.status === 'HEALED').length,
-  });
+  };
 
   const handleInjuryPress = (injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -162,7 +163,10 @@ export function useInjuries() {
               }
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             } catch (markError) {
-              logger.error('Failed to mark injury as recovered', { injuryId: injury.id, error: markError });
+              logger.error('Failed to mark injury as recovered', {
+                injuryId: injury.id,
+                error: markError,
+              });
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
             }
           })();
@@ -171,7 +175,9 @@ export function useInjuries() {
     ]);
   };
 
-  const openInjuries = injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING');
+  const openInjuries = injuries.filter(
+    (injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING',
+  );
   const healedInjuries = injuries.filter((injury) => injury.status === 'HEALED');
 
   return {

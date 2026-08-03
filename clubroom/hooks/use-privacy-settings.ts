@@ -27,10 +27,13 @@ export function usePrivacySettings() {
     if (!settingsResult.success) {
       return err(settingsResult.error);
     }
+    if (!blockedResult.success) {
+      return err(blockedResult.error);
+    }
 
     return ok({
       settings: settingsResult.data,
-      blockedUsers: blockedResult.success ? blockedResult.data : [],
+      blockedUsers: blockedResult.data,
     });
   };
 

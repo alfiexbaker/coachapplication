@@ -18,6 +18,7 @@ import {
   err,
   notFound,
   storageError,
+  validationError,
 } from '@/types/result';
 import type { AthleteAnalytics, SkillProgress, Goal, GoalCategory } from '@/constants/types';
 import type { FootballSkill } from '@/types/progress-types';
@@ -32,6 +33,7 @@ import {
   resolveSignedInApiUser,
   toApiAthleteId,
 } from '@/services/api-auth-context';
+import { parseApiSkillUpdateResponse } from '@/services/progress/skill-history-response-contract';
 
 const logger = createLogger('AnalyticsTrackingService');
 
@@ -39,10 +41,6 @@ const USE_MOCK = api.useMock;
 
 function createUniqueId(prefix: 'goal' | 'ms'): string {
   return generateId(prefix);
-}
-
-interface ApiSkillUpdateResponse {
-  score: number;
 }
 
 type ApiGoalRow = {
@@ -153,12 +151,15 @@ async function resolveGoalMutationApiHeaders(
   );
 }
 
-function toApiSkillScore(level: number): number {
+function toApiSkillScore(level: number): number | null {
   if (!Number.isFinite(level)) {
-    return 5;
+    return null;
   }
   const tenPointLevel = level > 10 ? level / 10 : level;
-  return Math.max(1, Math.min(10, Math.round(tenPointLevel)));
+  if (tenPointLevel < 1 || tenPointLevel > 10) {
+    return null;
+  }
+  return Math.round(tenPointLevel);
 }
 
 function normalizeAnalyticsSkill(skill: string): FootballSkill {
@@ -459,19 +460,31 @@ export const analyticsTrackingService = {
         if (!context.success) {
           return context;
         }
-        const result = await apiFetch<ApiSkillUpdateResponse>(
+        const score = toApiSkillScore(newLevel);
+        if (score === null) {
+          return err(validationError('Skill level must resolve to a score from 1 to 10'));
+        }
+        const result = await apiFetch<unknown>(
           `/v1/athletes/${context.data.apiAthleteId}/skill-updates`,
           {
             method: 'POST',
             headers: context.data.headers,
             body: JSON.stringify({
               skillName: normalizeAnalyticsSkill(skill),
-              score: toApiSkillScore(newLevel),
+              score,
+              idempotencyKey: generateId('skill-update'),
             }),
           },
         );
         if (!result.success) {
           return err(result.error);
+        }
+        const response = parseApiSkillUpdateResponse(
+          result.data,
+          context.data.apiAthleteId,
+        );
+        if (!response || response.score !== score) {
+          return err(storageError('Athlete skill update API response did not match contract'));
         }
         return ok(undefined);
       }
@@ -600,7 +613,17 @@ export const analyticsTrackingService = {
       }
       return ok(mapApiGoalPayload(result.data));
     } catch (error) {
-      logger.error('Failed to create goal', { input, error });
+      logger.error('Failed to create goal', {
+        athleteId: input.athleteId,
+        category: input.category ?? 'OTHER',
+        targetDate: input.targetDate,
+        milestoneCount: input.milestones?.length ?? 0,
+        createdBy: input.createdBy,
+        createdById: input.createdById,
+        titleLength: input.title.trim().length,
+        hasDescription: (input.description?.trim().length ?? 0) > 0,
+        error,
+      });
       return err(storageError('Failed to create goal'));
     }
   },

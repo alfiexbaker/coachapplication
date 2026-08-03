@@ -121,6 +121,9 @@ export function useInviteSessionFlow({
 }: UseInviteSessionFlowProps) {
   const [step, setStep] = useState<FlowStep>('choice');
   const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionLoadError, setSessionLoadError] = useState<string | null>(null);
+  const [sessionReloadKey, setSessionReloadKey] = useState(0);
   const [selectedSession, setSelectedSession] = useState<UpcomingSession | null>(null);
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
   const [isNewSession, setIsNewSession] = useState(false);
@@ -128,6 +131,8 @@ export function useInviteSessionFlow({
   useEffect(() => {
     const loadUpcomingSessions = async () => {
       try {
+        setSessionLoading(true);
+        setSessionLoadError(null);
         if (!api.useMock) {
           const sessions = await groupSessionService.getCoachSessions(coachId);
           setUpcomingSessions(
@@ -158,6 +163,14 @@ export function useInviteSessionFlow({
         );
       } catch (error) {
         logger.error('Failed to load upcoming sessions', error);
+        if (!api.useMock) {
+          setUpcomingSessions([]);
+          setSessionLoadError(
+            'Failed to load existing sessions. Please retry before adding athletes.',
+          );
+        }
+      } finally {
+        setSessionLoading(false);
       }
     };
 
@@ -165,7 +178,7 @@ export function useInviteSessionFlow({
       startTransition(() => {
         void loadUpcomingSessions();
       });
-  }, [visible, coachId]);
+  }, [visible, coachId, sessionReloadKey]);
 
   const handleChoiceSelect = (choice: 'existing' | 'new') => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -176,6 +189,16 @@ export function useInviteSessionFlow({
       return;
     }
     setIsNewSession(false);
+    if (sessionLoading && !api.useMock) {
+      uiFeedback.showToast('Still loading existing sessions. Please wait.', 'warning');
+      setStep('select-session');
+      return;
+    }
+    if (sessionLoadError && !api.useMock) {
+      uiFeedback.showToast(sessionLoadError, 'error');
+      setStep('select-session');
+      return;
+    }
     if (upcomingSessions.length === 0) {
       uiFeedback.showToast(
         'No upcoming sessions found. Starting new session invite flow.',
@@ -330,6 +353,7 @@ export function useInviteSessionFlow({
     setSelectedSession(null);
     setSelectedAthletes([]);
     setIsNewSession(false);
+    setSessionLoadError(null);
     onClose();
   };
 
@@ -345,6 +369,9 @@ export function useInviteSessionFlow({
     selectedSession,
     selectedAthletes,
     isNewSession,
+    sessionLoading,
+    sessionLoadError,
+    retryLoadUpcomingSessions: () => setSessionReloadKey((value) => value + 1),
     handleChoiceSelect,
     handleSessionSelect,
     handleAthletesSelected,

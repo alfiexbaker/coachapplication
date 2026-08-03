@@ -1,0 +1,51 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T19:54:33.946Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "coach-profile-canonical"
+    ],
+    "role": "coach",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 700
+  },
+  "totals": {
+    "total": 1,
+    "ok": 0,
+    "failed": 1,
+    "high": 1,
+    "medium": 0,
+    "none": 0
+  },
+  "results": [
+    {
+      "id": "coach_profile_editor_redirect",
+      "role": "coach",
+      "title": "Coach profile compatibility link opens the canonical editor",
+      "path": "/coach-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-2/coach__coach_profile_editor_redirect.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:assertButtonVisible:Error: Button not visible: Save profile",
+        "action_failed:assertButtonDisabled:Error: Button not visible: Save profile",
+        "action_failed:assertTargetMinSize:Error: Minimum-size target not visible: Save profile"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 19474
+    }
+  ]
+}

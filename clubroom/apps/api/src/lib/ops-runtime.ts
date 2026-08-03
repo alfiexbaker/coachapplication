@@ -9,6 +9,7 @@ import {
 } from '@clubroom/config';
 import { getPrismaClientOrThrow } from './prisma-runtime.js';
 import { getObjectStorageBlockers } from './storage-runtime.js';
+import { isUploadScannerReady } from './upload-scanner-heartbeat.js';
 
 export type OpsCheckName = 'api' | 'config' | 'database' | 'objectStorage';
 export type OpsCheckStatus = 'ok' | 'degraded' | 'down';
@@ -25,6 +26,7 @@ export interface OpsIssue {
 interface ReleaseGuardrailOptions {
   hasPrismaMigrations?: boolean;
   probeDatabase?: () => Promise<void>;
+  probeUploadScanner?: () => Promise<boolean>;
 }
 
 const apiRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -49,6 +51,20 @@ function hasRequiredValue(value: string | undefined | null): boolean {
 
 function isProductionRuntime(currentEnv: AppEnv): boolean {
   return currentEnv.NODE_ENV === 'production';
+}
+
+function hasUnsafeSupabaseSessionPoolerLimit(databaseUrl: string): boolean {
+  try {
+    const parsed = new URL(databaseUrl);
+    const port = parsed.port || '5432';
+    if (!parsed.hostname.toLowerCase().endsWith('.pooler.supabase.com') || port !== '5432') {
+      return false;
+    }
+    const rawLimit = parsed.searchParams.get('connection_limit');
+    return !rawLimit || !/^\d+$/.test(rawLimit) || Number(rawLimit) < 1;
+  } catch {
+    return false;
+  }
 }
 
 export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
@@ -77,6 +93,17 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
       'DATABASE_URL_MISSING',
       'DATABASE_URL is required for production startup.',
       'Set DATABASE_URL to the production Postgres connection string.',
+    );
+  }
+
+  if (currentEnv.DATABASE_URL && hasUnsafeSupabaseSessionPoolerLimit(currentEnv.DATABASE_URL)) {
+    pushIssue(
+      issues,
+      'config',
+      'down',
+      'DATABASE_POOL_LIMIT_MISSING',
+      'Supabase session-pooler connections require an explicit Prisma connection limit.',
+      'Add connection_limit to DATABASE_URL based on the Supabase pool size and API replica count; use pool_timeout to bound queue waits.',
     );
   }
 
@@ -156,6 +183,17 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
       'PASSWORD_RESET_EMAIL_DELIVERY_MISSING',
       'Password reset email delivery is not configured for production.',
       'Set API_PASSWORD_RESET_EMAIL_WEBHOOK_URL, API_PASSWORD_RESET_BREVO_API_KEY with API_PASSWORD_RESET_EMAIL_FROM, or complete API_PASSWORD_RESET_SMTP_* settings before release.',
+    );
+  }
+
+  if (!hasRequiredValue(currentEnv.API_UPLOAD_SCAN_RESULT_TOKEN)) {
+    pushIssue(
+      issues,
+      'config',
+      'down',
+      'UPLOAD_SCAN_RESULT_TOKEN_MISSING',
+      'Trusted malware scanner callbacks are not configured for production.',
+      'Set API_UPLOAD_SCAN_RESULT_TOKEN to a private server-to-server token before enabling production media uploads.',
     );
   }
 
@@ -347,7 +385,7 @@ function summarizeReadinessStatus(
 
 export async function buildReadinessReport(
   currentEnv: AppEnv = env,
-  options: Pick<ReleaseGuardrailOptions, 'probeDatabase'> = {},
+  options: Pick<ReleaseGuardrailOptions, 'probeDatabase' | 'probeUploadScanner'> = {},
 ): Promise<{
   status: OpsReadinessStatus;
   checks: Record<OpsCheckName, OpsCheckStatus>;
@@ -355,8 +393,18 @@ export async function buildReadinessReport(
 }> {
   const startupIssues = getStartupConfigIssues(currentEnv);
   const databaseIssues = await getDatabaseIssuesWithProbe(currentEnv, options.probeDatabase);
+  const uploadScannerIssues = await getUploadScannerIssues(
+    currentEnv,
+    options.probeUploadScanner,
+    databaseIssues,
+  );
   const objectStorageIssues = getObjectStorageIssues(currentEnv);
-  const issues = [...startupIssues, ...databaseIssues, ...objectStorageIssues];
+  const issues = [
+    ...startupIssues,
+    ...databaseIssues,
+    ...uploadScannerIssues,
+    ...objectStorageIssues,
+  ];
 
   const checks: Record<OpsCheckName, OpsCheckStatus> = {
     api: 'ok',
@@ -370,6 +418,58 @@ export async function buildReadinessReport(
     checks,
     issues,
   };
+}
+
+async function getUploadScannerIssues(
+  currentEnv: AppEnv,
+  probeUploadScanner: (() => Promise<boolean>) | undefined,
+  databaseIssues: OpsIssue[],
+): Promise<OpsIssue[]> {
+  if (
+    currentEnv.API_DATA_BACKEND !== 'db' ||
+    !hasRequiredValue(currentEnv.DATABASE_URL) ||
+    databaseIssues.some((issue) => issue.status === 'down')
+  ) {
+    return [];
+  }
+
+  const probe =
+    probeUploadScanner ??
+    (currentEnv === env
+      ? async () => isUploadScannerReady({ prisma: getPrismaClientOrThrow() })
+      : undefined);
+  if (!probe) {
+    return [];
+  }
+
+  try {
+    if (await probe()) {
+      return [];
+    }
+  } catch (error) {
+    return [
+      {
+        check: 'database',
+        status: 'down',
+        code: 'UPLOAD_SCANNER_UNAVAILABLE',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Upload scanner heartbeat probe failed.',
+        action: 'Confirm the supervised upload scanner worker can reach Postgres.',
+      },
+    ];
+  }
+
+  return [
+    {
+      check: 'database',
+      status: 'down',
+      code: 'UPLOAD_SCANNER_UNAVAILABLE',
+      message: 'No healthy upload scanner worker heartbeat is active.',
+      action: 'Start a supervised upload scanner worker before accepting private uploads.',
+    },
+  ];
 }
 
 async function getDatabaseIssuesWithProbe(
@@ -475,6 +575,7 @@ export async function getReleaseGuardrailIssues(
 ): Promise<OpsIssue[]> {
   const readiness = await buildReadinessReport(currentEnv, {
     probeDatabase: options.probeDatabase,
+    probeUploadScanner: options.probeUploadScanner,
   });
   const issues = [...readiness.issues];
   const hasPrismaMigrations = await detectPrismaMigrations(options.hasPrismaMigrations ?? true);

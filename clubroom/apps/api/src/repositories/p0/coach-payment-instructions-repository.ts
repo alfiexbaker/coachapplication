@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { getApiDataBackend } from "../../lib/data-backend.js";
-import { getDbFixtureStore } from "../../lib/db-fixture-store.js";
 import { notFound } from "../../lib/http-errors.js";
 import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
 import {
@@ -129,13 +128,9 @@ class StoreCoachPaymentInstructionsRepository
 }
 
 class DbCoachPaymentInstructionsRepository implements CoachPaymentInstructionsRepository {
-  private readonly fixture = new StoreCoachPaymentInstructionsRepository(
-    () => getDbFixtureStore().tables,
-  );
-
   async get(coachUserId: string): Promise<CoachPaymentInstructions> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fixture.get(coachUserId);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const coach = await prisma.coachProfile.findFirst({
@@ -163,7 +158,7 @@ class DbCoachPaymentInstructionsRepository implements CoachPaymentInstructionsRe
     patch: CoachPaymentInstructionsPatch,
   ): Promise<CoachPaymentInstructions> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fixture.update(coachUserId, patch);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const row = await prisma.$transaction(async (tx) => {

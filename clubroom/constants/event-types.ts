@@ -32,6 +32,13 @@ export interface EventAttendee {
   respondedAt: string;
 }
 
+export interface EventRsvpSummary {
+  going: number;
+  maybe: number;
+  notGoing: number;
+  totalGuests: number;
+}
+
 export interface ClubEvent {
   id: string;
   clubId: string;
@@ -46,9 +53,10 @@ export interface ClubEvent {
   date: string;
   startTime: string;
   endTime?: string;
+  timeZone: string;
   // Backward compatibility aliases
   startDate?: string; // alias for date
-  endDate?: string;   // alias for endTime
+  endDate?: string; // alias for endTime
 
   // Location
   venue: string;
@@ -73,7 +81,8 @@ export interface ClubEvent {
   // RSVP
   rsvpRequired: boolean;
   rsvpDeadline?: string;
-  attendees: EventAttendee[];
+  attendees?: EventAttendee[];
+  rsvpSummary?: EventRsvpSummary;
 
   // Status
   status: EventStatus;
@@ -252,6 +261,7 @@ export interface Match {
   // Schedule
   date: string;
   kickoffTime: string;
+  timeZone: string;
   meetTime?: string; // arrive 30min early
 
   // Location
@@ -267,6 +277,9 @@ export interface Match {
 
   // Result (after match)
   result?: MatchResult;
+
+  // Backend-derived capability for match management controls.
+  canManageMatch?: boolean;
 
   // Metadata
   createdAt: string;

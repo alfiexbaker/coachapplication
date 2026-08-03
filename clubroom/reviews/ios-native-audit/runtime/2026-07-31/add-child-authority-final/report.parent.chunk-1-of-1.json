@@ -1,0 +1,46 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T18:00:02.097Z",
+  "meta": {
+    "roles": [
+      "parent"
+    ],
+    "profiles": [
+      "add-child-authority"
+    ],
+    "role": "parent",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 700
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "parent_add_child",
+      "role": "parent",
+      "title": "Family administrator opens add-child flow",
+      "path": "/add-child",
+      "finalPath": "/add-child",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/parent__parent_add_child.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4396
+    }
+  ]
+}

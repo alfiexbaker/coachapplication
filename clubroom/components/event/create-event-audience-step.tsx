@@ -21,12 +21,6 @@ type AudienceKey = EventTargetAudience | 'SQUADS' | 'SPECIFIC_ATHLETES';
 const AUDIENCE_OPTIONS: { key: AudienceKey; label: string; description: string; icon: string }[] = [
   { key: 'ALL', label: 'Everyone', description: 'All club members', icon: 'globe-outline' },
   {
-    key: 'COACHES',
-    label: 'Coaches Only',
-    description: 'Staff and coaches',
-    icon: 'school-outline',
-  },
-  {
     key: 'SQUADS',
     label: 'Specific Squads',
     description: 'Select which squads to invite',
@@ -46,6 +40,9 @@ interface CreateEventAudienceStepProps {
   selectedSquadIds: string[];
   selectedAthleteIds: string[];
   squads: ClubSquad[];
+  squadLoading?: boolean;
+  squadError?: string | null;
+  onRetrySquads?: () => void;
   maxAttendees: string;
   price: string;
   rsvpRequired: boolean;
@@ -60,6 +57,9 @@ function CreateEventAudienceStepInner({
   selectedSquadIds,
   selectedAthleteIds,
   squads,
+  squadLoading = false,
+  squadError = null,
+  onRetrySquads,
   maxAttendees,
   price,
   rsvpRequired,
@@ -67,9 +67,12 @@ function CreateEventAudienceStepInner({
 }: CreateEventAudienceStepProps) {
   const { colors: palette } = useTheme();
 
-  const totalInviteCount = squads
-    .filter((s) => selectedSquadIds.includes(s.id))
-    .reduce((sum, s) => sum + s.memberCount, 0);
+  const selectedSquadIdSet = new Set(selectedSquadIds);
+  const totalInviteCount = squads.reduce(
+    (sum, squad) => sum + (selectedSquadIdSet.has(squad.id) ? squad.memberCount : 0),
+    0,
+  );
+  const hasLiveSquadSelection = !squadLoading && !squadError && selectedSquadIds.length > 0;
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -133,8 +136,12 @@ function CreateEventAudienceStepInner({
             selectedSquadIds={selectedSquadIds}
             onSelectionChange={(ids: string[]) => onFieldChange('selectedSquadIds', ids)}
             multiSelect
+            squads={squads}
+            loading={squadLoading}
+            error={squadError}
+            onRetry={onRetrySquads}
           />
-          {selectedSquadIds.length > 0 && (
+          {hasLiveSquadSelection && (
             <Row
               style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
             >

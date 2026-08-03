@@ -27,6 +27,13 @@ interface PasswordResetDeliveryInput {
   resetToken: string;
 }
 
+interface EmailVerificationDeliveryInput {
+  code: string;
+  email: string;
+  expiresAt: string;
+  requestId?: string;
+}
+
 interface ClubInviteDeliveryInput {
   email: string;
   clubName: string;
@@ -235,6 +242,32 @@ export async function deliverPasswordResetEmail(
     },
     devOutboxEvent: 'password_reset_dev_outbox',
     failureLabel: 'Password reset email',
+  });
+}
+
+export async function deliverEmailVerificationEmail(
+  input: EmailVerificationDeliveryInput,
+): Promise<PasswordResetDeliveryResult> {
+  return deliverTransactionalEmail({
+    to: input.email,
+    subject: 'Verify your Clubroom email',
+    text: [
+      'Use this code to verify your Clubroom email address.',
+      '',
+      `Verification code: ${input.code}`,
+      `This code expires at: ${input.expiresAt}`,
+      '',
+      'If you did not create this account, ignore this email.',
+    ].join('\n'),
+    webhookPayload: {
+      type: 'email_verification',
+      to: input.email,
+      code: input.code,
+      expiresAt: input.expiresAt,
+      requestId: input.requestId,
+    },
+    devOutboxEvent: 'email_verification_dev_outbox',
+    failureLabel: 'Email verification email',
   });
 }
 

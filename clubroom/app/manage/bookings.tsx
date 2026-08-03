@@ -21,8 +21,8 @@ function formatRole(role?: ClubRole | null): string {
   return role ? formatOrganizationRoleLabel(role) : 'No role';
 }
 
-function formatDateTimeLabel(iso?: string): string {
-  if (!iso) return 'No upcoming assignment';
+function formatDateTimeLabel(iso?: string | null): string {
+  if (!iso) return 'Schedule not set';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'Schedule TBC';
   return date.toLocaleString('en-GB', {
@@ -32,6 +32,11 @@ function formatDateTimeLabel(iso?: string): string {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function formatLocationLabel(item: OrgWorkItem): string {
+  if (item.isVirtual) return 'Online';
+  return item.location ?? 'Location not set';
 }
 
 export default function ManageBookingsScreen() {
@@ -417,7 +422,9 @@ function StaffCard({ member }: { member: OrgStaffMember }) {
       </Row>
       <ThemedText style={[styles.hint, { color: colors.muted }]}>
         {member.canTakeAssignments
-          ? `Next session ${formatDateTimeLabel(member.nextSessionAt)}`
+          ? member.nextSessionAt
+            ? `Next session ${formatDateTimeLabel(member.nextSessionAt)}`
+            : 'No upcoming assignment'
           : 'Not currently available for new assignments'}
       </ThemedText>
     </View>
@@ -447,7 +454,7 @@ function WorkCard({
         <View style={styles.flex1}>
           <ThemedText style={styles.staffName}>{item.title}</ThemedText>
           <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            {formatDateTimeLabel(item.scheduledAt)} · {item.location}
+            {formatDateTimeLabel(item.scheduledAt)} · {formatLocationLabel(item)}
           </ThemedText>
         </View>
         <View style={[styles.countPill, { backgroundColor: withAlpha(accent, 0.1) }]}>
@@ -459,9 +466,8 @@ function WorkCard({
 
       <View style={styles.workMetaGrid}>
         <MetaLine label="Delivered by" value={item.assigneeCoachName || 'Unassigned'} />
-        <MetaLine label="Owner" value={item.ownerCoachName || item.createdByName || 'Unknown'} />
         <MetaLine label="Linked bookings" value={String(item.linkedBookingCount)} />
-        <MetaLine label="Created by" value={item.createdByName || 'Unknown'} />
+        <MetaLine label="Created by" value={item.createdByName || item.createdByUserId} />
       </View>
 
       <Clickable

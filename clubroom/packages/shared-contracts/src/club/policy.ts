@@ -4,6 +4,7 @@ import type {
   ClubRole,
   ClubVisibilityArea,
   OrganizationCommercialMode,
+  OrganizationJoinPolicy,
 } from './definitions.js';
 import {
   clubCapabilities,
@@ -42,6 +43,12 @@ export const ORGANIZATION_ROLE_LABELS: Record<ClubRole, string> = {
 export const ORGANIZATION_COMMERCIAL_MODE_LABELS: Record<OrganizationCommercialMode, string> = {
   COACH_OWNED: 'Coach-owned',
   ORG_OWNED: 'Organization-owned',
+};
+
+export const ORGANIZATION_JOIN_POLICY_LABELS: Record<OrganizationJoinPolicy, string> = {
+  INVITE_ONLY: 'Invite only',
+  REQUEST_TO_JOIN: 'Request to join',
+  OPEN: 'Open',
 };
 
 const ORGANIZATION_ROLE_ALIASES: Record<string, ClubRole> = {
@@ -321,6 +328,12 @@ export function formatOrganizationCommercialModeLabel(
   commercialMode?: OrganizationCommercialMode | null,
 ): string {
   return ORGANIZATION_COMMERCIAL_MODE_LABELS[commercialMode ?? 'COACH_OWNED'];
+}
+
+export function formatOrganizationJoinPolicyLabel(
+  joinPolicy?: OrganizationJoinPolicy | null,
+): string {
+  return ORGANIZATION_JOIN_POLICY_LABELS[joinPolicy ?? 'INVITE_ONLY'];
 }
 
 export interface ClubGovernanceSnapshot {

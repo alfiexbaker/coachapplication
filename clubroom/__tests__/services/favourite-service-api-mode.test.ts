@@ -1,9 +1,40 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
+
 describe('favouriteService API mode', () => {
+  it('does not log raw favourite add payload values on failures', () => {
+    const source = readProjectFile('services/favourite-service.ts');
+
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to add favourite via API',\s*\{\s*input,/,
+      'API favourite add failure logs must not include the full input payload',
+    );
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to add favourite',\s*\{\s*input,/,
+      'favourite add failure logs must not include the full input payload',
+    );
+    assert.match(
+      source,
+      /noteLength: note\.length/,
+      'favourite diagnostics should log note length instead of raw note text',
+    );
+    assert.match(
+      source,
+      /hasCoachMetadata: Boolean\(/,
+      'favourite diagnostics should log metadata presence instead of raw coach profile values',
+    );
+  });
+
   it('uses /v1 favourite-coach contracts instead of local favourite storage', async (t) => {
     const [{ favouriteService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/favourite-service'),
@@ -141,6 +172,15 @@ describe('favouriteService API mode', () => {
     const usingDemoSeed = await favouriteService.isUsingDemoSeed('ignored_in_api_mode');
     assert.equal(usingDemoSeed.success, true);
     assert.equal(usingDemoSeed.success && usingDemoSeed.data, false);
+
+    const dismissedDemo = await favouriteService.dismissDemoFavourites();
+    assert.equal(dismissedDemo.success, false);
+    if (!dismissedDemo.success) {
+      assert.equal(dismissedDemo.error.code, 'UNSUPPORTED');
+      assert.deepEqual(dismissedDemo.error.details, {
+        authority: '/v1/me/favourite-coaches',
+      });
+    }
 
     assert.deepEqual(
       calls.map((call) => `${call.method} ${call.path}`),

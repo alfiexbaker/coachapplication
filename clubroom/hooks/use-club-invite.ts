@@ -47,6 +47,8 @@ export function useClubInvite() {
   const [isInviting, setIsInviting] = useState(false);
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [club, setClub] = useState<Club | null>(null);
 
   useEffect(() => {
@@ -57,48 +59,68 @@ export function useClubInvite() {
       if (!currentUser?.id) {
         if (active) {
           setCompletedBookings([]);
+          setClub(null);
+          setLoadError(null);
           setLoading(false);
         }
         return;
       }
 
-      return await runAsyncTryCatchFinally(async () => {
-        const [allBookings, authorityResult] = await Promise.all([
-          bookingService.list(),
-          api.useMock ? Promise.resolve(null) : clubAuthorityService.listClubs(),
-        ]);
-        if (!active) {
-          return;
-        }
-        if (api.useMock) {
-          setClub(
-            clubId
-              ? socialFeedService
-                  .getUserClubs(currentUser.id)
-                  .find((candidate) => candidate.id === clubId) ?? null
-              : null,
-          );
-        } else if (authorityResult?.success) {
-          setClub(authorityResult.data.clubs.find((candidate) => candidate.id === clubId) ?? null);
-        } else {
-          setClub(null);
-        }
+      setLoadError(null);
+      return await runAsyncTryCatchFinally(
+        async () => {
+          const [allBookings, authorityResult] = await Promise.all([
+            bookingService.list(),
+            api.useMock ? Promise.resolve(null) : clubAuthorityService.listClubs(),
+          ]);
+          if (!active) {
+            return;
+          }
+          if (api.useMock) {
+            setClub(
+              clubId
+                ? socialFeedService
+                    .getUserClubs(currentUser.id)
+                    .find((candidate) => candidate.id === clubId) ?? null
+                : null,
+            );
+          } else {
+            if (!authorityResult) {
+              throw new Error('Failed to load club invite context.');
+            }
+            if (!authorityResult.success) {
+              throw new Error(authorityResult.error.message);
+            }
+            setClub(
+              authorityResult.data.clubs.find((candidate) => candidate.id === clubId) ?? null,
+            );
+          }
 
-        setCompletedBookings(
-          allBookings.filter(
-            (booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED',
-          ),
-        );
-      }, async loadError => {
-        logger.error('Failed to load completed bookings for invites', loadError);
-        if (active) {
-          setCompletedBookings([]);
-        }
-      }, () => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+          setLoadError(null);
+          setCompletedBookings(
+            allBookings.filter(
+              (booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED',
+            ),
+          );
+        },
+        async (loadContextError) => {
+          logger.error('Failed to load completed bookings for invites', loadContextError);
+          if (active) {
+            setCompletedBookings([]);
+            setClub(null);
+            setLoadError(
+              loadContextError instanceof Error
+                ? loadContextError.message
+                : 'Failed to load club invite context.',
+            );
+          }
+        },
+        () => {
+          if (active) {
+            setLoading(false);
+          }
+        },
+      );
     };
 
     void loadCompletedBookings();
@@ -106,7 +128,7 @@ export function useClubInvite() {
     return () => {
       active = false;
     };
-  }, [clubId, currentUser?.id]);
+  }, [clubId, currentUser?.id, reloadKey]);
 
   const pastSessionUsers = (() => {
     if (!currentUser) return [];
@@ -301,6 +323,8 @@ export function useClubInvite() {
 
   return {
     loading,
+    loadError,
+    retry: () => setReloadKey((key) => key + 1),
     activeTab,
     setActiveTab,
     searchQuery,

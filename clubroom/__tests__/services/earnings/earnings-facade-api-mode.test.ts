@@ -46,6 +46,10 @@ describe('earningsService facade API mode', () => {
       /Finance API unavailable: \/v1\/coaches\/me\/withdrawals/,
     );
     await assert.rejects(
+      () => earningsService.getWithdrawalHistory('coach_api_money'),
+      /Finance API unavailable: \/v1\/coaches\/me\/withdrawals/,
+    );
+    await assert.rejects(
       () => earningsService.getTransactionHistory('coach_api_money', 2),
       /Finance API unavailable: \/v1\/coaches\/me\/earnings/,
     );
@@ -55,6 +59,7 @@ describe('earningsService facade API mode', () => {
       'GET /v1/coaches/me/earnings',
       'GET /v1/coaches/me/payout-methods',
       'GET /v1/coaches/me/withdrawals?status=pending',
+      'GET /v1/coaches/me/withdrawals',
       'GET /v1/coaches/me/earnings?limit=2',
     ]);
   });

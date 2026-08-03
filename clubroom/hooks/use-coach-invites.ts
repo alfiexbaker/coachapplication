@@ -120,9 +120,24 @@ export function useCoachInvites() {
           handledIncomingCodeRef.current = normalizedCode;
           if (!api.useMock) {
             const joinResult = await clubAuthorityService.joinWithCode(normalizedCode);
-            if (joinResult.success) {
-              onRefresh();
+            if (!joinResult.success) {
+              handledIncomingCodeRef.current = null;
+              uiFeedback.showToast(joinResult.error.message, 'error');
+              return;
             }
+
+            if (joinResult.data.outcome === 'invite_pending') {
+              uiFeedback.showToast(`Review the ${joinResult.data.club.name} invite below.`);
+              onRefresh();
+              return;
+            }
+
+            uiFeedback.showToast(
+              joinResult.data.outcome === 'already_member'
+                ? `You're already in ${joinResult.data.club.name}`
+                : `Joined ${joinResult.data.club.name}`,
+            );
+            router.push(Routes.club(joinResult.data.club.id));
             return;
           }
 
@@ -152,6 +167,8 @@ export function useCoachInvites() {
           }
         } catch (incomingError) {
           logger.error('Failed to process incoming coach invite', incomingError);
+          handledIncomingCodeRef.current = null;
+          uiFeedback.showToast('Failed to process club invite. Please try again.', 'error');
         }
       }
     };
@@ -162,36 +179,40 @@ export function useCoachInvites() {
     if (!currentUser) return;
     setRespondingTo(invite.id);
 
-    return await runAsyncTryCatchFinally(async () => {
-      if (!api.useMock) {
-        const result = await clubAuthorityService.respondToInvite(invite.id, 'accepted');
-        if (!result.success) {
-          throw new Error(result.error.message);
+    return await runAsyncTryCatchFinally(
+      async () => {
+        if (!api.useMock) {
+          const result = await clubAuthorityService.respondToInvite(invite.id, 'accepted');
+          if (!result.success) {
+            throw new Error(result.error.message);
+          }
+          uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
+          router.push(Routes.club(invite.clubId));
+          onRefresh();
+          return;
         }
+
+        const allInvites = await apiClient.get<PendingClubInvite[]>(
+          `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`,
+          [],
+        );
+        const updated = allInvites.map((inv) =>
+          inv.id === invite.id ? { ...inv, status: 'accepted' as const } : inv,
+        );
+        await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
+        logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
         uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
         router.push(Routes.club(invite.clubId));
         onRefresh();
-        return;
-      }
-
-      const allInvites = await apiClient.get<PendingClubInvite[]>(
-        `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`,
-        [],
-      );
-      const updated = allInvites.map((inv) =>
-        inv.id === invite.id ? { ...inv, status: 'accepted' as const } : inv,
-      );
-      await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
-      logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
-      uiFeedback.showToast(`You've joined ${invite.clubName} as ${ROLE_LABELS[invite.role]}.`);
-      router.push(Routes.club(invite.clubId));
-      onRefresh();
-    }, async error => {
-      logger.error('Failed to accept invite', error);
-      uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
-    }, () => {
-      setRespondingTo(null);
-    });
+      },
+      async (error) => {
+        logger.error('Failed to accept invite', error);
+        uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
+      },
+      () => {
+        setRespondingTo(null);
+      },
+    );
   };
 
   const handleDecline = (invite: PendingClubInvite) => {
@@ -206,34 +227,38 @@ export function useCoachInvites() {
           onPress: async () => {
             setRespondingTo(invite.id);
 
-            return await runAsyncTryCatchFinally(async () => {
-              if (!api.useMock) {
-                const result = await clubAuthorityService.respondToInvite(invite.id, 'declined');
-                if (!result.success) {
-                  throw new Error(result.error.message);
+            return await runAsyncTryCatchFinally(
+              async () => {
+                if (!api.useMock) {
+                  const result = await clubAuthorityService.respondToInvite(invite.id, 'declined');
+                  if (!result.success) {
+                    throw new Error(result.error.message);
+                  }
+                  onRefresh();
+                  return;
                 }
-                onRefresh();
-                return;
-              }
 
-              const allInvites = await apiClient.get<PendingClubInvite[]>(
-                `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`,
-                [],
-              );
-              const updated = allInvites.map((inv) =>
-                inv.id === invite.id ? { ...inv, status: 'declined' as const } : inv,
-              );
-              await apiClient.set(
-                `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`,
-                updated,
-              );
-              onRefresh();
-            }, async error => {
-              logger.error('Failed to decline invite', error);
-              uiFeedback.showToast('Failed to decline invite.', 'error');
-            }, () => {
-              setRespondingTo(null);
-            });
+                const allInvites = await apiClient.get<PendingClubInvite[]>(
+                  `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`,
+                  [],
+                );
+                const updated = allInvites.map((inv) =>
+                  inv.id === invite.id ? { ...inv, status: 'declined' as const } : inv,
+                );
+                await apiClient.set(
+                  `${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`,
+                  updated,
+                );
+                onRefresh();
+              },
+              async (error) => {
+                logger.error('Failed to decline invite', error);
+                uiFeedback.showToast('Failed to decline invite.', 'error');
+              },
+              () => {
+                setRespondingTo(null);
+              },
+            );
           },
         },
       ],

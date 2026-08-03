@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-07-31T19:38:51.511Z",
+  "id": "QA-004",
+  "title": "Async control locator produced false product failures",
+  "classification": "test-harness defect",
+  "productDefect": false,
+  "rootCause": "firstVisible performed one immediate locator count and visibility scan while route data could still be rendering asynchronously.",
+  "fix": "Poll the locator for up to five seconds, checking every matching candidate every 200 milliseconds.",
+  "initialTotals": {
+    "total": 100,
+    "ok": 95,
+    "failed": 5,
+    "high": 5,
+    "medium": 0,
+    "none": 95
+  },
+  "coachRetestTotals": {
+    "total": 40,
+    "ok": 40,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 40
+  },
+  "reconciledTotals": {
+    "total": 100,
+    "ok": 100,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 100
+  },
+  "results": [
+    {
+      "id": "coach_add_member_to_squad",
+      "before": {
+        "status": "failed",
+        "severity": "high",
+        "issues": ["action_failed:clickButton:Error: Button not visible: Add"],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_add_member_to_squad.png",
+        "observation": "The Add control is visibly rendered in the failure screenshot."
+      },
+      "after": {
+        "status": "ok",
+        "severity": "none",
+        "issues": [],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-coach-retest/coach__coach_add_member_to_squad.png"
+      }
+    },
+    {
+      "id": "coach_schedule_location_modal_actions",
+      "before": {
+        "status": "failed",
+        "severity": "high",
+        "issues": [
+          "action_failed:clickText:Error: Text not visible: Add time block",
+          "action_failed:clickButton:Error: Button not visible: Add new venue",
+          "action_failed:assertTextVisible:Error: Text not visible: Use Location"
+        ],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_schedule_location_modal_actions.png",
+        "observation": "The Add time block control is visibly rendered in the failure screenshot."
+      },
+      "after": {
+        "status": "ok",
+        "severity": "none",
+        "issues": [],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-coach-retest/coach__coach_schedule_location_modal_actions.png"
+      }
+    },
+    {
+      "id": "coach_earnings_payment_instructions",
+      "before": {
+        "status": "failed",
+        "severity": "high",
+        "issues": [
+          "action_failed:clickText:Error: Text not visible: Payment Instructions",
+          "action_failed:assertTextVisible:Error: Text not visible: Direct Payment Instructions",
+          "action_failed:assertButtonVisible:Error: Button not visible: Copy direct payment instructions"
+        ],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_earnings_payment_instructions.png",
+        "observation": "Payment Instructions is visibly rendered in the failure screenshot."
+      },
+      "after": {
+        "status": "ok",
+        "severity": "none",
+        "issues": [],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-coach-retest/coach__coach_earnings_payment_instructions.png"
+      }
+    },
+    {
+      "id": "coach_verification_identity",
+      "before": {
+        "status": "failed",
+        "severity": "high",
+        "issues": [
+          "action_failed:clickText:Error: Text not visible: Passport",
+          "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+        ],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_identity.png",
+        "observation": "Passport is visibly rendered in the failure screenshot."
+      },
+      "after": {
+        "status": "ok",
+        "severity": "none",
+        "issues": [],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-coach-retest/coach__coach_verification_identity.png"
+      }
+    },
+    {
+      "id": "coach_verification_credentials",
+      "before": {
+        "status": "failed",
+        "severity": "high",
+        "issues": [
+          "action_failed:clickButton:Error: Button not visible: Add credential",
+          "action_failed:assertTextVisible:Error: Text not visible: Credential type",
+          "action_failed:clickText:Error: Text not visible: Other qualification",
+          "action_failed:assertTextVisible:Error: Text not visible: Qualification name",
+          "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+        ],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_credentials.png",
+        "observation": "Add credential is visibly rendered in the failure screenshot."
+      },
+      "after": {
+        "status": "ok",
+        "severity": "none",
+        "issues": [],
+        "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-coach-retest/coach__coach_verification_credentials.png"
+      }
+    }
+  ],
+  "limitations": [
+    "This is responsive browser evidence for the shared React Native surface, not native iOS interaction evidence.",
+    "No product mutation was submitted.",
+    "Native semantic and VoiceOver interaction remains blocked by host DevToolsSecurity.",
+    "Sentry issue inspection remains blocked by the current HTTP 403 credential scope.",
+    "A route-load pass does not imply endpoint, database, RLS or audit-event proof unless a dedicated coverage row records it."
+  ]
+}

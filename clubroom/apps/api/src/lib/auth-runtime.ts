@@ -17,6 +17,7 @@ type SeedTables = Record<string, SeedRow[]>;
 const ACCESS_TOKEN_TTL_SEC = 15 * 60;
 const REFRESH_TOKEN_TTL_SEC = 7 * 24 * 60 * 60;
 const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
+const EMAIL_VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DEV_JWT_SECRET = 'clubroom-dev-jwt-secret-change-me';
 const CLOCK_SKEW_SEC = 30;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
@@ -120,6 +121,8 @@ export interface AuthTokens {
 }
 export interface ApiUserProfile {
   id: string;
+  athleteId?: string;
+  athleteName?: string;
   email: string;
   phone?: string;
   accountType: AccountType;
@@ -159,6 +162,11 @@ export interface ApiUserProfile {
   appRole: AppRole;
 }
 export interface AuthLoginResult {
+  emailVerification?: {
+    email: string;
+    expiresAt: string;
+    token: string;
+  };
   user: ApiUserProfile;
   tokens: AuthTokens;
 }
@@ -192,7 +200,7 @@ interface RegisterInput {
   isOrganization?: boolean;
   organizationName?: string;
 }
-type ApiUserProfileUpdate = Omit<Partial<ApiUserProfile>, 'photoUrl'> & {
+type ApiUserProfileUpdate = Omit<Partial<ApiUserProfile>, 'photoUrl' | 'isVerified'> & {
   photoUrl?: string | null;
 };
 interface MemoryPasswordCredential {
@@ -208,6 +216,16 @@ interface MemoryPasswordResetToken {
   createdAt: string;
   updatedAt: string;
 }
+interface MemoryEmailVerificationToken {
+  email: string;
+  expiresAt: string;
+  id: string;
+  tokenHash: string;
+  usedAt: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
 interface MemoryDeviceRecord extends DeviceRecord {
   createdAt: string;
   updatedAt: string;
@@ -219,11 +237,13 @@ interface MemorySessionRecord extends SessionRecord {
 }
 const memoryPasswordCredentials = new Map<string, MemoryPasswordCredential>();
 const memoryPasswordResetTokens = new Map<string, MemoryPasswordResetToken>();
+const memoryEmailVerificationTokens = new Map<string, MemoryEmailVerificationToken>();
 const memoryDevices = new Map<string, MemoryDeviceRecord>();
 const memorySessions = new Map<string, MemorySessionRecord>();
 export function resetAuthRuntimeForTests(): void {
   memoryPasswordCredentials.clear();
   memoryPasswordResetTokens.clear();
+  memoryEmailVerificationTokens.clear();
   memoryDevices.clear();
   memorySessions.clear();
 }
@@ -570,6 +590,15 @@ function randomHex(bytes = 16): string {
 function hashResetToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
+function randomVerificationCode(): string {
+  return crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
+}
+function hashEmailVerificationCode(userId: string, email: string, code: string): string {
+  return crypto
+    .createHash('sha256')
+    .update(`${userId}:${email.trim().toLowerCase()}:${code}`)
+    .digest('hex');
+}
 function hashPassword(password: string): string {
   const salt = randomHex(16);
   const derived = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -629,6 +658,9 @@ function buildApiUserProfileFromTables(tables: SeedTables, userId: string): ApiU
   }
   const userProfile = findUserProfileRow(tables, userId) ?? {};
   const coachProfile = findCoachProfileRow(tables, userId) ?? {};
+  const athlete = asRows(tables.athletes).find(
+    (row) => asString(row.userId) === userId && asString(row.deletedAt) == null,
+  );
   const roles = findRoleRows(tables, userId);
   const accountType = inferAccountType(roles);
   const appRole = inferAppRole(roles, accountType);
@@ -639,6 +671,8 @@ function buildApiUserProfileFromTables(tables: SeedTables, userId: string): ApiU
   const updatedAt = asString(user.updatedAt) ?? asString(userProfile.updatedAt) ?? createdAt;
   return {
     id: userId,
+    athleteId: asString(athlete?.id),
+    athleteName: asString(athlete?.displayName),
     email: asString(user.email) ?? '',
     phone,
     accountType,
@@ -884,6 +918,15 @@ function retireActiveMemoryResetTokens(userId: string, usedAt: string): void {
     }
     resetToken.usedAt = usedAt;
     resetToken.updatedAt = usedAt;
+  }
+}
+function retireActiveMemoryEmailVerificationTokens(userId: string, usedAt: string): void {
+  for (const verificationToken of memoryEmailVerificationTokens.values()) {
+    if (verificationToken.userId !== userId || verificationToken.usedAt) {
+      continue;
+    }
+    verificationToken.usedAt = usedAt;
+    verificationToken.updatedAt = usedAt;
   }
 }
 function revokeMemorySessionsForPasswordReset(userId: string, revokedAt: string): number {
@@ -1696,12 +1739,178 @@ export async function registerAuthUser(
 ): Promise<AuthLoginResult> {
   const identity = await createUserInCurrentBackend(input);
   await setPasswordCredentialHash(identity.id, hashPassword(input.password));
+  const emailVerification = await createEmailVerificationToken(identity.id);
   const session = await createSessionRecord(identity.id, userAgent);
   return {
+    ...(emailVerification ? { emailVerification } : {}),
     user: await getAuthUserProfile(identity.id),
     tokens: buildTokens(identity, session),
   };
 }
+
+async function loadEmailVerificationTarget(userId: string): Promise<{
+  email: string | null;
+  isVerified: boolean;
+} | null> {
+  const tables = getActiveTables();
+  if (tables) {
+    const user = asRows(tables.users).find((row) => asString(row.id) === userId);
+    if (!user) {
+      return null;
+    }
+    return {
+      email: asString(user.email) ?? null,
+      isVerified: asBoolean(user.isVerified) ?? false,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, isVerified: true },
+  });
+}
+
+export async function createEmailVerificationToken(userId: string): Promise<{
+  email: string;
+  expiresAt: string;
+  token: string;
+} | null> {
+  const target = await loadEmailVerificationTarget(userId);
+  if (!target?.email) {
+    throw badRequest('Email verification requires an account email');
+  }
+  if (target.isVerified) {
+    return null;
+  }
+
+  const email = target.email.trim().toLowerCase();
+  const token = randomVerificationCode();
+  const tokenHash = hashEmailVerificationCode(userId, email, token);
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TOKEN_TTL_MS);
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const now = isoNow();
+    retireActiveMemoryEmailVerificationTokens(userId, now);
+    memoryEmailVerificationTokens.set(tokenHash, {
+      id: newId('evt'),
+      userId,
+      email,
+      tokenHash,
+      expiresAt: expiresAt.toISOString(),
+      usedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const tables = getActiveTables();
+    if (tables) {
+      pushTableRow(tables, 'emailVerificationTokens', {
+        id: newId('evt'),
+        userId,
+        email,
+        tokenHash,
+        expiresAt: expiresAt.toISOString(),
+        usedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    return { email, expiresAt: expiresAt.toISOString(), token };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.emailVerificationToken.updateMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+      data: {
+        usedAt: now,
+      },
+    });
+    await tx.emailVerificationToken.create({
+      data: {
+        id: newId('evt'),
+        userId,
+        email,
+        tokenHash,
+        expiresAt,
+      },
+    });
+  });
+
+  return { email, expiresAt: expiresAt.toISOString(), token };
+}
+
+export async function verifyEmailWithToken(userId: string, code: string): Promise<ApiUserProfile> {
+  const target = await loadEmailVerificationTarget(userId);
+  if (!target?.email) {
+    throw badRequest('Email verification requires an account email');
+  }
+  if (target.isVerified) {
+    return getAuthUserProfile(userId);
+  }
+
+  const email = target.email.trim().toLowerCase();
+  const tokenHash = hashEmailVerificationCode(userId, email, code.trim());
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const token = memoryEmailVerificationTokens.get(tokenHash);
+    if (!token || token.userId !== userId || token.email !== email || token.usedAt) {
+      throw badRequest('Invalid or expired verification code');
+    }
+    if (Date.parse(token.expiresAt) <= Date.now()) {
+      throw badRequest('Invalid or expired verification code');
+    }
+    const user = asRows(getActiveTables()?.users).find((row) => asString(row.id) === userId);
+    if (!user) {
+      throw forbidden(`Authenticated user ${userId} does not exist`);
+    }
+    const now = isoNow();
+    token.usedAt = now;
+    token.updatedAt = now;
+    user.isVerified = true;
+    user.updatedAt = now;
+    const persistedToken = asRows(getActiveTables()?.emailVerificationTokens).find(
+      (row) => asString(row.tokenHash) === tokenHash,
+    );
+    if (persistedToken) {
+      persistedToken.usedAt = now;
+      persistedToken.updatedAt = now;
+    }
+    return buildApiUserProfileFromTables(getActiveTables() ?? {}, userId);
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction(async (tx) => {
+    const token = await tx.emailVerificationToken.findUnique({
+      where: { tokenHash },
+    });
+    if (
+      !token ||
+      token.userId !== userId ||
+      token.email !== email ||
+      token.usedAt ||
+      token.expiresAt <= new Date()
+    ) {
+      throw badRequest('Invalid or expired verification code');
+    }
+    const now = new Date();
+    await tx.emailVerificationToken.update({
+      where: { id: token.id },
+      data: { usedAt: now },
+    });
+    await tx.user.update({
+      where: { id: userId },
+      data: { isVerified: true },
+    });
+  });
+
+  return getAuthUserProfile(userId);
+}
+
 export async function requestPasswordReset(email: string): Promise<{
   expiresAt?: string;
   resetToken?: string;
@@ -1979,7 +2188,7 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
     return buildApiUserProfileFromTables(tables, userId);
   }
   const prisma = getPrismaClientOrThrow();
-  const [user, profile, coachProfile, roleMemberships, guardianLinks] = await Promise.all([
+  const [user, profile, coachProfile, athlete, roleMemberships, guardianLinks] = await Promise.all([
     prisma.user.findUnique({
       where: {
         id: userId,
@@ -1993,6 +2202,12 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
     prisma.coachProfile.findUnique({
       where: {
         userId,
+      },
+    }),
+    prisma.athlete.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
       },
     }),
     prisma.userRoleMembership.findMany({
@@ -2027,6 +2242,8 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
   }));
   return {
     id: user.id,
+    athleteId: athlete?.id,
+    athleteName: athlete?.displayName,
     email: user.email,
     phone: profile?.phoneE164 ?? undefined,
     accountType,
@@ -2078,6 +2295,8 @@ export async function updateAuthUserProfile(
     if (!user) {
       throw forbidden(`Authenticated user ${userId} does not exist`);
     }
+    const emailChanged =
+      Boolean(normalizedEmail) && normalizedEmail !== asString(user.email)?.trim().toLowerCase();
     if (normalizedEmail) {
       const existing = findUserByEmail(tables, normalizedEmail);
       if (existing && asString(existing.id) !== userId) {
@@ -2098,8 +2317,8 @@ export async function updateAuthUserProfile(
       user.name = fullName;
     }
     if (normalizedEmail) user.email = normalizedEmail;
+    if (emailChanged) user.isVerified = false;
     if (updates.photoUrl !== undefined) user.avatarUrl = updates.photoUrl ?? null;
-    if (updates.isVerified !== undefined) user.isVerified = updates.isVerified;
     if (updates.isLive !== undefined) user.isLive = updates.isLive;
     if (updates.onboardingComplete !== undefined)
       user.onboardingComplete = updates.onboardingComplete;
@@ -2168,6 +2387,8 @@ export async function updateAuthUserProfile(
       throw conflict('An account with this email already exists');
     }
   }
+  const currentEmail = user.email?.trim().toLowerCase();
+  const emailChanged = Boolean(normalizedEmail) && normalizedEmail !== currentEmail;
   const fullName = [updates.firstName, updates.lastName].filter(Boolean).join(' ').trim();
   const [, , identity] = await Promise.all([
     prisma.user.update({
@@ -2190,9 +2411,9 @@ export async function updateAuthUserProfile(
               avatarUrl: updates.photoUrl,
             }
           : {}),
-        ...(updates.isVerified !== undefined
+        ...(emailChanged
           ? {
-              isVerified: updates.isVerified,
+              isVerified: false,
             }
           : {}),
         ...(updates.isLive !== undefined

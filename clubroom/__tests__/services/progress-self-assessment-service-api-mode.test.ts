@@ -6,6 +6,21 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
 describe('progressSelfAssessmentService API mode', () => {
+  it('rejects global prompt dispatch instead of returning fake zero', async () => {
+    const { progressSelfAssessmentService } = await import(
+      '@/services/progress/progress-self-assessment-service'
+    );
+
+    const result = await progressSelfAssessmentService.dispatchDuePrompts();
+
+    assert.equal(result.success, false);
+    assert.equal(result.success ? undefined : result.error.code, 'UNSUPPORTED');
+    assert.match(
+      result.success ? '' : result.error.message,
+      /Global self-assessment prompt dispatch is backend-owned in API mode/,
+    );
+  });
+
   it('fails closed when pending prompt lookup fails in /v1', async (t) => {
     const [{ progressSelfAssessmentService }, { authService }] = await Promise.all([
       import('@/services/progress/progress-self-assessment-service'),

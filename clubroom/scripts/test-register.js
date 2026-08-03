@@ -27,7 +27,9 @@ if (!process.env.EXPO_PUBLIC_USE_MOCK) {
   process.env.EXPO_PUBLIC_USE_MOCK = 'true';
 }
 
-const tmpTestsDir = path.resolve(__dirname, '..', '.tmp-tests');
+const tmpTestsDir = process.env.CLUBROOM_TEST_OUT_DIR
+  ? path.resolve(process.env.CLUBROOM_TEST_OUT_DIR)
+  : path.resolve(__dirname, '..', '.tmp-tests');
 
 // =============================================================================
 // NATIVE MODULE MOCKS

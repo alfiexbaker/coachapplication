@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -35,6 +35,7 @@ describe('test account credentials generator', () => {
       );
 
       const content = readFileSync(outputPath, 'utf8');
+      assert.equal(statSync(outputPath).mode & 0o777, 0o600);
       assert.match(content, /Scope: local\/staging\/demo only/);
       assert.match(content, /PasswordCredential\.passwordHash as salted scrypt hashes/);
       assert.ok(readCount(content, 'usersWithEmail') > 0);
@@ -59,5 +60,22 @@ describe('test account credentials generator', () => {
     } finally {
       rmSync(tempDir, { force: true, recursive: true });
     }
+  });
+
+  it('keeps staging demo credential output owner-only', () => {
+    const source = readFileSync('packages/db/scripts/reset-demo-passwords.mjs', 'utf8');
+
+    assert.match(source, /writeFileSync\(CREDENTIALS_OUTPUT_PATH, lines\.join\('\\n'\), \{/);
+    assert.match(source, /mode: 0o600/);
+    assert.match(source, /chmodSync\(CREDENTIALS_OUTPUT_PATH, 0o600\)/);
+  });
+
+  it('keeps staging UI flow credentials outside tracked source', () => {
+    const source = readFileSync('scripts/ui-flow-checks-50.mjs', 'utf8');
+
+    assert.match(source, /TEST_ACCOUNTS\.staging\.local\.txt/);
+    assert.match(source, /\(stat\.mode & 0o077\) !== 0/);
+    assert.match(source, /enter your account email/);
+    assert.doesNotMatch(source, /password:\s*'(coach|user|admin)'/);
   });
 });

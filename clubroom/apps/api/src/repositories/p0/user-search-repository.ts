@@ -1,3 +1,5 @@
+import type { UserDirectoryEntry, UserDirectoryRole } from '@clubroom/shared-contracts';
+
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -7,28 +9,23 @@ import { normalizeForJson } from './normalize.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 
-type SearchRole = 'COACH' | 'PARENT' | 'ADMIN' | 'USER';
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
 
-export interface UserSearchResult {
-  id: string;
-  name: string;
-  email?: string;
-  avatar?: string;
-  postcode?: string;
-  dateOfBirth?: string;
-  role: SearchRole;
-}
+export type UserSearchResult = UserDirectoryEntry;
 
 export interface UserSearchParams {
   authUserId: string;
   query: string;
   limit?: number;
+}
+
+export interface UserProfileReadParams {
+  authUserId: string;
+  userId: string;
 }
 
 export interface UserSearchResponse {
@@ -39,6 +36,10 @@ export interface UserSearchResponse {
 
 export interface UserSearchRepository {
   searchUsers(params: UserSearchParams): Promise<UserSearchResponse>;
+  getUserById(params: UserProfileReadParams): Promise<{
+    user: UserSearchResult | null;
+    dataVersion: string | null;
+  }>;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -52,7 +53,7 @@ function isEmailQuery(query: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(query);
 }
 
-function mapRole(role: string | undefined): SearchRole {
+function mapRole(role: string | undefined): UserDirectoryRole {
   switch (role) {
     case 'coach':
     case 'COACH':
@@ -283,6 +284,66 @@ function searchSeedUsers(params: UserSearchParams): UserSearchResponse {
   return { users, total: users.length, dataVersion: store.version };
 }
 
+function getSeedUserById(params: UserProfileReadParams): {
+  user: UserSearchResult | null;
+  dataVersion: string | null;
+} {
+  const store = resolveSeedStore();
+  if (!store) {
+    throw new Error('Seed profile read requested without seed store');
+  }
+
+  const user = asRows(store.tables.users).find(
+    (row) =>
+      asString(row.id) === params.userId &&
+      asString(row.accountStatus) !== 'disabled' &&
+      !asString(row.deletedAt),
+  );
+  if (!user) {
+    return { user: null, dataVersion: store.version };
+  }
+
+  const blockedUserIds = seedBlockedUserIdsForSearch(store.tables, params.authUserId);
+  if (blockedUserIds.has(params.userId)) {
+    return { user: null, dataVersion: store.version };
+  }
+
+  const profiles = asRows(store.tables.userProfiles);
+  const privacySettings = asRows(store.tables.userPrivacySettings);
+  const rolesByUser = seedRolesByUser(store.tables);
+  const relatedUserIds = seedRelationshipsForSearch({
+    tables: store.tables,
+    authUserId: params.authUserId,
+  });
+  const profile = profiles.find((row) => asString(row.userId) === params.userId);
+  const privacy = privacySettings.find((row) => asString(row.userId) === params.userId);
+  const athlete = asRows(store.tables.athletes).find(
+    (row) => asString(row.userId) === params.userId,
+  );
+  const related = relatedUserIds.has(params.userId);
+  const minor =
+    isUnder18(asString(profile?.dateOfBirth)) || isUnder18(asString(athlete?.dateOfBirth));
+  if (minor && !related) {
+    return { user: null, dataVersion: store.version };
+  }
+  const profileVisible = asBoolean(privacy?.profileVisible) !== false;
+  if (!minor && !profileVisible && !related) {
+    return { user: null, dataVersion: store.version };
+  }
+
+  return {
+    user: mapSeedUser({
+      user,
+      profile,
+      privacy,
+      roles: rolesByUser.get(params.userId) ?? [],
+      query: '',
+      isRelated: related,
+    }),
+    dataVersion: store.version,
+  };
+}
+
 class DefaultUserSearchRepository implements UserSearchRepository {
   async searchUsers(params: UserSearchParams): Promise<UserSearchResponse> {
     const seedStore = resolveSeedStore();
@@ -430,6 +491,124 @@ class DefaultUserSearchRepository implements UserSearchRepository {
       .slice(0, limit);
 
     return normalizeForJson({ users, total: users.length, dataVersion: null });
+  }
+
+  async getUserById(params: UserProfileReadParams): Promise<{
+    user: UserSearchResult | null;
+    dataVersion: string | null;
+  }> {
+    const seedStore = resolveSeedStore();
+    if (seedStore) {
+      return getSeedUserById(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const user = await prisma.user.findFirst({
+      where: {
+        id: params.userId,
+        accountStatus: 'active',
+        deletedAt: null,
+      },
+      include: {
+        profile: true,
+        privacySetting: true,
+        roles: {
+          where: {
+            active: true,
+            revokedAt: null,
+          },
+        },
+        linkedAthleteAccount: true,
+      },
+    });
+    if (!user) {
+      return { user: null, dataVersion: null };
+    }
+
+    const athleteId = user.linkedAthleteAccount?.id;
+    const [
+      requesterFamilies,
+      sharedFamilies,
+      guardianLinks,
+      bookingLinks,
+      blockLinks,
+    ] = await Promise.all([
+      prisma.familyMembership.findMany({
+        where: { userId: params.authUserId, deletedAt: null },
+        select: { familyId: true },
+      }),
+      prisma.familyMembership.findMany({
+        where: { userId: params.userId, deletedAt: null },
+        select: { familyId: true },
+      }),
+      athleteId
+        ? prisma.guardianChildLink.findMany({
+            where: {
+              guardianUserId: params.authUserId,
+              athleteId,
+              deletedAt: null,
+            },
+            select: { athleteId: true },
+          })
+        : Promise.resolve([]),
+      athleteId
+        ? prisma.bookingParticipant.findMany({
+            where: {
+              athleteId,
+              deletedAt: null,
+              booking: {
+                coachUserId: params.authUserId,
+                deletedAt: null,
+                status: { not: 'CANCELLED' },
+              },
+            },
+            select: { athleteId: true },
+          })
+        : Promise.resolve([]),
+      prisma.userBlock.findMany({
+        where: {
+          deletedAt: null,
+          OR: [
+            { blockerUserId: params.authUserId, blockedUserId: params.userId },
+            { blockerUserId: params.userId, blockedUserId: params.authUserId },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    if (blockLinks.length > 0) {
+      return { user: null, dataVersion: null };
+    }
+
+    const requesterFamilyIds = new Set(requesterFamilies.map((row) => row.familyId));
+    const related =
+      user.id === params.authUserId ||
+      sharedFamilies.some((row) => requesterFamilyIds.has(row.familyId)) ||
+      guardianLinks.length > 0 ||
+      bookingLinks.length > 0;
+    const minor =
+      isUnder18(user.profile?.dateOfBirth?.toISOString()) ||
+      isUnder18(user.linkedAthleteAccount?.dateOfBirth?.toISOString());
+    if (minor && !related) {
+      return { user: null, dataVersion: null };
+    }
+    const profileVisible = user.privacySetting?.profileVisible !== false;
+    if (!minor && !profileVisible && !related) {
+      return { user: null, dataVersion: null };
+    }
+
+    const showLocation = user.privacySetting?.showLocation !== false;
+    const result: UserSearchResult = {
+      id: user.id,
+      name: user.name,
+      ...(related && user.email ? { email: user.email } : {}),
+      ...(user.avatarUrl ? { avatar: user.avatarUrl } : {}),
+      ...(showLocation && user.profile?.postcode ? { postcode: user.profile.postcode } : {}),
+      role: mapRole(user.roles[0]?.role),
+    };
+
+    return normalizeForJson({ user: result, dataVersion: null });
   }
 }
 

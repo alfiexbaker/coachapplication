@@ -20,13 +20,27 @@ import {
 import { resolveDeepLink } from '@/utils/deep-link';
 import { api } from '@/constants/config';
 import {
-  communityMediaAuthorityService,
+  notificationAuthorityService,
   type AuthorityNotificationItem,
-} from '../community-media-authority-service';
+} from './notification-authority-service';
 import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('NotificationStore');
 const USE_MOCK = api.useMock;
+
+function isServiceError(error: unknown): error is ServiceError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    typeof (error as ServiceError).message === 'string'
+  );
+}
+
+function notificationStoreError(error: unknown, fallbackMessage: string): ServiceError {
+  return isServiceError(error) ? error : storageError(fallbackMessage);
+}
 
 /**
  * Extended notification with additional metadata.
@@ -59,7 +73,7 @@ class NotificationStore {
   }
 
   private async listAuthoritative(): Promise<Result<AuthorityNotificationItem[], ServiceError>> {
-    return communityMediaAuthorityService.listNotifications();
+    return notificationAuthorityService.listNotifications();
   }
 
   private upsertOverlay(
@@ -92,10 +106,10 @@ class NotificationStore {
         );
       }
 
-      return ok(await this.loadLocalOverlays());
+      return ok((await this.loadLocalOverlays()).filter((item) => !item.dismissed));
     } catch (error) {
       logger.error('Failed to list notifications', error);
-      return err(storageError('Failed to load notifications'));
+      return err(notificationStoreError(error, 'Failed to load notifications'));
     }
   }
 
@@ -137,7 +151,7 @@ class NotificationStore {
       return ok(changed);
     } catch (error) {
       logger.error('Failed to migrate notification route aliases', error);
-      return err(storageError('Failed to migrate notification route aliases'));
+      return err(notificationStoreError(error, 'Failed to migrate notification route aliases'));
     }
   }
 
@@ -191,7 +205,7 @@ class NotificationStore {
       return this.list();
     } catch (error) {
       logger.error('Failed to create notification', { notification, error });
-      return err(storageError('Failed to create notification'));
+      return err(notificationStoreError(error, 'Failed to create notification'));
     }
   }
 
@@ -201,7 +215,7 @@ class NotificationStore {
   async markAsRead(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const result = await communityMediaAuthorityService.markNotificationRead(id);
+        const result = await notificationAuthorityService.markNotificationRead(id);
         if (!result.success) {
           return result;
         }
@@ -225,7 +239,7 @@ class NotificationStore {
       return this.list();
     } catch (error) {
       logger.error('Failed to mark notification as read', { id, error });
-      return err(storageError('Failed to update notification'));
+      return err(notificationStoreError(error, 'Failed to update notification'));
     }
   }
 
@@ -235,7 +249,7 @@ class NotificationStore {
   async markAllAsRead(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const result = await communityMediaAuthorityService.markAllNotificationsRead();
+        const result = await notificationAuthorityService.markAllNotificationsRead();
         if (!result.success) {
           return result;
         }
@@ -257,7 +271,7 @@ class NotificationStore {
       return this.list();
     } catch (error) {
       logger.error('Failed to mark all notifications as read', error);
-      return err(storageError('Failed to update notifications'));
+      return err(notificationStoreError(error, 'Failed to update notifications'));
     }
   }
 
@@ -269,7 +283,7 @@ class NotificationStore {
   ): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const readResult = await communityMediaAuthorityService.markNotificationRead(id);
+        const readResult = await notificationAuthorityService.markNotificationRead(id);
         if (!readResult.success) {
           return readResult;
         }
@@ -293,7 +307,7 @@ class NotificationStore {
       return ok({ ...existing, read: true, handled: true });
     } catch (error) {
       logger.error('Failed to mark notification as handled', { id, error });
-      return err(storageError('Failed to update notification'));
+      return err(notificationStoreError(error, 'Failed to update notification'));
     }
   }
 
@@ -303,7 +317,7 @@ class NotificationStore {
   async dismiss(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const result = await communityMediaAuthorityService.dismissNotification(id);
+        const result = await notificationAuthorityService.dismissNotification(id);
         if (!result.success) {
           return result;
         }
@@ -329,7 +343,7 @@ class NotificationStore {
       return this.list();
     } catch (error) {
       logger.error('Failed to dismiss notification', { id, error });
-      return err(storageError('Failed to dismiss notification'));
+      return err(notificationStoreError(error, 'Failed to dismiss notification'));
     }
   }
 
@@ -339,7 +353,7 @@ class NotificationStore {
   async clearAll(): Promise<Result<void, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const result = await communityMediaAuthorityService.dismissAllNotifications();
+        const result = await notificationAuthorityService.dismissAllNotifications();
         if (!result.success) {
           return result;
         }
@@ -350,7 +364,7 @@ class NotificationStore {
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to clear notifications', error);
-      return err(storageError('Failed to clear notifications'));
+      return err(notificationStoreError(error, 'Failed to clear notifications'));
     }
   }
 

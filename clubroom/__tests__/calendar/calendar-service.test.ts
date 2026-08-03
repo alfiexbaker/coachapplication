@@ -138,6 +138,20 @@ describe('Calendar Service', () => {
       // Special characters should be escaped
       assert.ok(icsContent.includes('Victoria Park\\, London'));
     });
+
+    test('should apply the exposed export preferences', async () => {
+      const icsContent = await calendarService.getICSContent(mockBooking, {
+        ...calendarService.getDefaultSettings(),
+        userId: 'calendar_export_preferences',
+        includeLocation: false,
+        includeNotes: false,
+        reminderMinutes: 30,
+      });
+
+      assert.ok(!icsContent.includes('LOCATION:'));
+      assert.ok(!icsContent.includes('DESCRIPTION:Session Type'));
+      assert.ok(icsContent.includes('TRIGGER:-PT30M'));
+    });
   });
 
   describe('generateCalendarLink', () => {

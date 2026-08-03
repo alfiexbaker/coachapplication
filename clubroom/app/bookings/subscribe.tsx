@@ -37,7 +37,7 @@ export default function SubscribeScreen() {
   const renderCoachSelectionShell = (content: ReactNode) =>
     renderShell(
       <>
-        <Stack.Screen options={{ title: 'Select a Coach', headerShown: true }} />
+        <Stack.Screen options={{ title: 'Select a coach', headerShown: true }} />
         {content}
       </>,
     );
@@ -90,9 +90,9 @@ export default function SubscribeScreen() {
     return renderCoachSelectionShell(
       <>
         <ThemedView style={styles.header}>
-          <ThemedText type="subtitle">Choose Your Coach</ThemedText>
+          <ThemedText type="subtitle">Choose a coach</ThemedText>
           <ThemedText style={[styles.headerSubtext, { color: palette.muted }]}>
-            Select a coach to set up recurring sessions with
+            Set up recurring sessions.
           </ThemedText>
         </ThemedView>
         <FlatList
@@ -118,7 +118,7 @@ export default function SubscribeScreen() {
     <>
       <Stack.Screen
         options={{
-          title: 'New Subscription',
+          title: 'Recurring booking',
           headerShown: true,
           headerLeft: () => (
             <Clickable
@@ -201,7 +201,7 @@ function renderCoachSelectionItem({ item }: ListRenderItemInfo<CoachSelectionIte
         </View>
         <View style={styles.coachPrice}>
           <ThemedText type="defaultSemiBold" style={{ color: item.palette.tint }}>
-            ${item.coach.pricePerSession}
+            £{item.coach.pricePerSession}
           </ThemedText>
           <ThemedText style={[styles.priceLabel, { color: item.palette.muted }]}>
             /session

@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
-import type { PositionRole } from '@/types/progress-types';
+import { shouldLoadFamilyChildren } from '@/hooks/child-context-helpers';
 import {
   childService,
   type Gender,
@@ -28,10 +28,43 @@ export type Step = 'basic' | 'special_needs' | 'safety';
 export const STEPS: Step[] = ['basic', 'special_needs', 'safety'];
 
 export const STEP_TITLES: Record<Step, string> = {
-  basic: 'Child Details',
-  special_needs: 'Support Needs',
-  safety: 'Safety Essentials',
+  basic: 'Player details',
+  special_needs: 'Support needs',
+  safety: 'Safety',
 };
+
+export function useCanCreateChild() {
+  const { currentUser, isLoading } = useAuth();
+  const userId = currentUser?.id;
+  const canStartFamily = shouldLoadFamilyChildren(currentUser);
+  const familyScopeKey = userId && canStartFamily ? `${userId}:family` : null;
+  const [access, setAccess] = useState<{ scopeKey: string; allowed: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!familyScopeKey) {
+      return;
+    }
+
+    let cancelled = false;
+    void childService.canCreateChild().then((canCreate) => {
+      if (!cancelled) {
+        setAccess({ scopeKey: familyScopeKey, allowed: canCreate });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [familyScopeKey]);
+
+  const resolved =
+    canStartFamily && access?.scopeKey === familyScopeKey ? access.allowed : false;
+
+  return {
+    canCreateChild: resolved,
+    checkingCreateChildAccess:
+      isLoading || Boolean(familyScopeKey && access?.scopeKey !== familyScopeKey),
+  };
+}
 
 function clearAddChildDraft() {
   return apiClient.removeLocal(STORAGE_KEYS.ADD_CHILD_DRAFT);
@@ -52,7 +85,6 @@ export function useAddChild() {
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [gender, setGender] = useState<Gender | null>(null);
   const [relationship, setRelationship] = useState<Relationship | null>(null);
-  const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   // Step 2: Conditional support profile
@@ -96,10 +128,10 @@ export function useAddChild() {
   const [secondaryPhone, setSecondaryPhone] = useState('');
 
   // Stored defaults for downstream safeguarding/media flows.
-  const [photoConsent, setPhotoConsent] = useState(true);
-  const [videoConsent, setVideoConsent] = useState(true);
-  const [socialMediaConsent, setSocialMediaConsent] = useState(false);
-  const [emergencyTreatmentConsent, setEmergencyTreatmentConsent] = useState(true);
+  const photoConsent = false;
+  const videoConsent = false;
+  const socialMediaConsent = false;
+  const [emergencyTreatmentConsent, setEmergencyTreatmentConsent] = useState(false);
 
   const stepIndex = STEPS.indexOf(currentStep);
   const isFirstStep = stepIndex === 0;
@@ -166,27 +198,33 @@ export function useAddChild() {
     }
   };
 
+  const clearSpecialNeedDraft = () => {
+    setSnCategory(null);
+    setSnName('');
+    setSnDescription('');
+    setSnSeverity(undefined);
+    setSnAccommodations([]);
+    setSnParentHints('');
+  };
+
   const addSpecialNeed = () => {
-    if (snCategory && snName.trim()) {
-      setSpecialNeeds((p) => [
-        ...p,
-        {
-          id: `sn-${Date.now()}`,
-          category: snCategory,
-          name: snName.trim(),
-          description: snDescription.trim() || undefined,
-          severity: snSeverity,
-          accommodationsNeeded: snAccommodations.length > 0 ? snAccommodations : undefined,
-          parentHints: snParentHints.trim() || undefined,
-        },
-      ]);
-      setSnCategory(null);
-      setSnName('');
-      setSnDescription('');
-      setSnSeverity(undefined);
-      setSnAccommodations([]);
-      setSnParentHints('');
+    if (!snCategory || !snName.trim()) {
+      return;
     }
+
+    setSpecialNeeds((p) => [
+      ...p,
+      {
+        id: `sn-${Date.now()}`,
+        category: snCategory,
+        name: snName.trim(),
+        description: snDescription.trim() || undefined,
+        severity: snSeverity,
+        accommodationsNeeded: snAccommodations.length > 0 ? snAccommodations : undefined,
+        parentHints: snParentHints.trim() || undefined,
+      },
+    ]);
+    clearSpecialNeedDraft();
   };
 
   const removeSpecialNeed = (id: string) => {
@@ -210,12 +248,7 @@ export function useAddChild() {
     setCommPrefs([]);
     setTriggers([]);
     setCalmingStrategies([]);
-    setSnCategory(null);
-    setSnName('');
-    setSnDescription('');
-    setSnSeverity(undefined);
-    setSnAccommodations([]);
-    setSnParentHints('');
+    clearSpecialNeedDraft();
   };
 
   const handleMedicalDetailsChange = (value: boolean) => {
@@ -351,7 +384,6 @@ export function useAddChild() {
           dateOfBirth: dateOfBirth ? toDateStr(dateOfBirth) : undefined,
           gender: gender!,
           relationship: relationship!,
-          primaryPosition: primaryPosition ?? undefined,
           photoUrl: photoUri || undefined,
           disabilities,
           specialNeeds,
@@ -380,7 +412,7 @@ export function useAddChild() {
           clearAddChildDraft(),
         ]);
 
-        uiFeedback.showToast(`${firstName}'s profile has been created!`, 'success');
+        uiFeedback.showToast(`${firstName}'s profile has been created.`, 'success');
         router.back();
       },
       async (error) => {
@@ -400,7 +432,6 @@ export function useAddChild() {
     dateOfBirth,
     gender,
     relationship,
-    primaryPosition,
     photoUri,
     showDatePicker,
     onFirstNameChange: setFirstName,
@@ -409,7 +440,6 @@ export function useAddChild() {
     onDateOfBirthChange: setDateOfBirth,
     onGenderChange: setGender,
     onRelationshipChange: setRelationship,
-    onPrimaryPositionChange: setPrimaryPosition,
     onPickImage: pickImage,
     onShowDatePicker: setShowDatePicker,
   };
@@ -462,25 +492,8 @@ export function useAddChild() {
     onSnAccommodationsChange: setSnAccommodations,
     onSnParentHintsChange: setSnParentHints,
     onAddSpecialNeed: addSpecialNeed,
+    onCancelSpecialNeed: clearSpecialNeedDraft,
     onRemoveSpecialNeed: removeSpecialNeed,
-
-    // Medical fields
-    allergies,
-
-    allergyInput,
-    medicalConditions,
-    conditionInput,
-    medications,
-    medicationInput,
-    onAllergiesChange: setAllergies,
-    onAllergyInputChange: setAllergyInput,
-    onAddAllergy: addAllergy,
-    onMedicalConditionsChange: setMedicalConditions,
-    onConditionInputChange: setConditionInput,
-    onAddCondition: addCondition,
-    onMedicationsChange: setMedications,
-    onMedicationInputChange: setMedicationInput,
-    onAddMedication: addMedication,
   };
 
   const safetyProps = {

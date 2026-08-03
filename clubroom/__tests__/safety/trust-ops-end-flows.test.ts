@@ -30,12 +30,12 @@ describe('Trust/Ops end-flow readiness', () => {
     );
     assertMatches(
       source,
-      /const handleRaiseConcernByAthlete = useCallback\(\(athleteId: string\) => \{[\s\S]*router\.push\(Routes\.rosterAthleteConcern\(athleteId\)\);/m,
+      /const handleRaiseConcernByAthlete = \(athleteId: string\) => \{[\s\S]*router\.push\(Routes\.rosterAthleteConcern\(athleteId\)\);/m,
       'Athlete concern callback must navigate using the target athlete id',
     );
     assertMatches(
       source,
-      /const handleRaiseConcernByRegistration = useCallback\(\s*\(registrationId: string\)\s*=>\s*\{[\s\S]*const athleteId = athlete\?\.registration\.userId;[\s\S]*router\.push\(Routes\.rosterAthleteConcern\(athleteId\)\);/m,
+      /const handleRaiseConcernByRegistration = \(registrationId: string\) => \{[\s\S]*const athleteId = athlete\?\.registration\.userId;[\s\S]*router\.push\(Routes\.rosterAthleteConcern\(athleteId\)\);/m,
       'Registration-based concern callback must resolve and pass athlete id context',
     );
   });
@@ -56,22 +56,13 @@ describe('Trust/Ops end-flow readiness', () => {
     );
   });
 
-  it('home/profile surfaces expose health and injury entry points', () => {
+  it('home and child-profile surfaces expose health entry points', () => {
     const homeSource = readSource('components/user/home-screen-sections.tsx');
-    const parentSource = readSource('components/parent/discover-screen.tsx');
     const childProgressSource = readSource('app/development/child-progress/[childId].tsx');
 
     assert.ok(
       homeSource.includes("label: 'Health', route: Routes.HEALTH"),
       'Athlete home quick actions should include Health route',
-    );
-    assert.ok(
-      parentSource.includes('router.push(Routes.HEALTH)'),
-      'Parent discover quick links should route to Health',
-    );
-    assert.ok(
-      parentSource.includes('Health & Injury'),
-      'Parent discover quick links should clearly label Health & Injury',
     );
     assert.ok(
       childProgressSource.includes('router.push(Routes.HEALTH)'),

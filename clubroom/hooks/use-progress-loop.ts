@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
@@ -25,6 +26,7 @@ import {
   type ProgressTaskGroupKey,
 } from '@/utils/progress-task-time';
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
+import { resolveSelfAthleteId, resolveSelfAthleteName } from '@/utils/athlete-identity';
 const logger = createLogger('useProgressLoop');
 export type ProgressLoopFilter = 'all' | 'pending' | 'overdue' | 'done';
 export interface ProgressLoopTaskGroup {
@@ -282,11 +284,11 @@ export function groupTasksForProgressLoop(
 }
 export function useProgressLoop(athleteIdParam?: string | null) {
   const { currentUser } = useAuth();
-  const inflightTaskIdsRef = useRef(new Set<string>());
+  const inflightTaskIdsRef = useLazyRef(() => new Set<string>());
   const coachActionInFlightRef = useRef(false);
-  const retryTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const queuedMutationsRef = useRef(new Map<string, PendingTaskMutation>());
-  const retryAttemptRef = useRef(new Map<string, number>());
+  const retryTimersRef = useLazyRef(() => new Map<string, ReturnType<typeof setTimeout>>());
+  const queuedMutationsRef = useLazyRef(() => new Map<string, PendingTaskMutation>());
+  const retryAttemptRef = useLazyRef(() => new Map<string, number>());
   const taskSyncNoticeKeyRef = useRef(0);
   const flushQueuedMutationsRef = useRef<() => void>(() => {});
   const [taskOptimisticPatches, setTaskOptimisticPatches] = useState<
@@ -327,7 +329,7 @@ export function useProgressLoop(athleteIdParam?: string | null) {
       }
       return contextChildren[0].id;
     }
-    return currentUser.id;
+    return resolveSelfAthleteId(currentUser);
   })();
   const selectedAthleteName = (() => {
     if (!selectedAthleteId) {
@@ -337,7 +339,7 @@ export function useProgressLoop(athleteIdParam?: string | null) {
     if (child) {
       return child.name;
     }
-    return currentUser?.name ?? 'Athlete';
+    return resolveSelfAthleteName(currentUser) ?? 'Athlete';
   })();
   const loadData = async () => {
     if (!currentUser?.id) {
@@ -678,7 +680,7 @@ export function useProgressLoop(athleteIdParam?: string | null) {
       queuedMutationsRef.current.clear();
       retryAttemptRef.current.clear();
     },
-    [],
+    [queuedMutationsRef, retryAttemptRef, retryTimersRef],
   );
   useEffect(() => {
     const nextScope = `${isCoachView ? 'coach' : 'athlete'}:${selectedAthleteId ?? 'none'}`;
@@ -702,7 +704,7 @@ export function useProgressLoop(athleteIdParam?: string | null) {
     setSyncingTaskIds({});
     // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- task sync notices should not carry between coach/athlete scopes.
     setTaskSyncErrorNotice(null);
-  }, [isCoachView, selectedAthleteId]);
+  }, [isCoachView, queuedMutationsRef, retryAttemptRef, retryTimersRef, selectedAthleteId]);
   const queueTotals = {
     athletes: coachQueue.length,
     pending: coachQueue.reduce((sum, row) => sum + row.pendingCount, 0),

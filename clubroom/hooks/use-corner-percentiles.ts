@@ -55,7 +55,7 @@ export function useCornerPercentiles({
 }: UseCornerPercentilesInput): Record<FourCornerKey, number | null> {
   const [topPercentByCorner, setTopPercentByCorner] =
     useState<Record<FourCornerKey, number | null>>(EMPTY_TOP_PERCENT);
-  const cornerValuesKey = `${cornerValues.technical}|${cornerValues.physical}|${cornerValues.psychological}|${cornerValues.social}`;
+  const { technical, physical, psychological, social } = cornerValues;
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -80,8 +80,14 @@ export function useCornerPercentiles({
           psychological: null,
           social: null,
         };
+        const athleteScores: CornerScoreMap = {
+          technical,
+          physical,
+          psychological,
+          social,
+        };
         (Object.keys(next) as FourCornerKey[]).forEach((corner) => {
-          const athleteScore = cornerValues[corner];
+          const athleteScore = athleteScores[corner];
           if (athleteScore <= 0) {
             next[corner] = null;
             return;
@@ -122,6 +128,6 @@ export function useCornerPercentiles({
     return () => {
       cancelled = true;
     };
-  }, [athleteId, cornerValuesKey, cornerValues]);
+  }, [athleteId, physical, psychological, social, technical]);
   return topPercentByCorner;
 }

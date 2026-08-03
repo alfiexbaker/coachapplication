@@ -38,9 +38,9 @@ export const InviteErrorDetails = function InviteErrorDetails({
       </Row>
 
       <Animated.View entering={FadeInUp.duration(200)} style={styles.errorList}>
-        {errors.map((error, index) => (
+        {errors.map((error) => (
           <View
-            key={`${error.memberId}-${index}`}
+            key={`${error.memberId}:${error.code ?? 'unknown'}:${error.error}`}
             style={[styles.errorItem, { backgroundColor: withAlpha(palette.error, 0.03) }]}
           >
             <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>

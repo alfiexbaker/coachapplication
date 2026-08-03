@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 
 import { Components, Fonts, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { getUsableProfilePhotoUrl } from '@/utils/profile-photo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,9 +115,10 @@ function AvatarInner({
   const fontConfig = FONT_MAP[size];
   const indicatorSize = INDICATOR_SIZE_MAP[size];
   const indicatorBorder = INDICATOR_BORDER_MAP[size];
+  const usableUri = getUsableProfilePhotoUrl(uri);
 
   const isOnlineResolved = isOnline ?? online ?? false;
-  const showImage = uri && !hasError;
+  const showImage = usableUri && !hasError;
   const initials = name ? getInitials(name) : '?';
   const resolvedAccessibilityLabel =
     accessibilityLabel ??
@@ -133,7 +135,7 @@ function AvatarInner({
     startTransition(() => {
       setRetryCount(0);
     });
-  }, [uri]);
+  }, [usableUri]);
 
   useEffect(() => {
     return () => {
@@ -153,7 +155,7 @@ function AvatarInner({
   };
 
   const handleImageError = () => {
-    if (!uri) {
+    if (!usableUri) {
       setHasError(true);
       return;
     }
@@ -180,7 +182,10 @@ function AvatarInner({
       {showImage ? (
         <Image
           source={{
-            uri: retryCount > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}retry=${retryCount}` : uri,
+            uri:
+              retryCount > 0
+                ? `${usableUri}${usableUri.includes('?') ? '&' : '?'}retry=${retryCount}`
+                : usableUri,
           }}
           style={[
             themedStyles.image,

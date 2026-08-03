@@ -1,6 +1,6 @@
 # Clubroom API Feature System Report
 
-Generated: 2026-07-08
+Generated: 2026-07-16
 
 This is a snapshot map for product/API coverage. Canonical runtime truth remains:
 
@@ -11,15 +11,15 @@ This is a snapshot map for product/API coverage. Canonical runtime truth remains
 
 ## Current Status
 
-- API runtime estimate: about 94% operational against the staged `/v1`/Supabase path.
-- Whole-app API-cutover confidence: about 85% until the remaining long-tail service paths and mobile E2E role flows are proven.
-- Latest focused slice validation: API-mode fail-closed service tests, booking/invite route OpenAPI classification checks, `npm run test:compile`, root `npm run typecheck`, and `npm run audit:api-boundaries` passed after the latest drill-detail, coach follow, discovery/follow-suggestion, logging-semantics, trust escalation, badge action strictness, family progress analytics strictness, booking status lifecycle strictness, and self-booking preference strictness slices.
+- API runtime estimate: about 97% operational against the staged `/v1`/Supabase path.
+- Whole-app API-cutover confidence: about 90% until mobile E2E role flows, provider smokes, and launch-scale performance are proven.
+- Latest focused slice validation: TypeScript test compile, focused node tests, root typecheck, `node scripts/api-boundary-audit.js`, and `git diff --check` passed after the latest staffing-console and destructive seed-import guard slices.
 - Latest staging/Supabase smoke: 29/29 passed on 2026-07-08, 0 warnings, 0 failures.
 - Latest strict DB audit: `npm run audit:db:stage:strict` passed on 2026-07-08 with 40/40 migrations applied, 0 blockers, and 0 warnings.
 - Latest strict API-mode runtime smoke: `npm run smoke:api-mode:strict` passed on 2026-07-08 against the configured staging API origin with `/v1/ready=ready`.
 - Latest UI role sweep: 36/36 passed on 2026-07-08 with 0 high/medium findings across parent, athlete, and admin.
 - Latest focused money-provider checks: payout/earnings 4/4, payment instructions 2/2, and wave2+ invoice/payment routes 59/59 passed in seed API mode.
-- Swagger/OpenAPI: `/v1/docs`, generated from route inventory, 400 operations.
+- Swagger/OpenAPI: `/v1/docs`, generated from route inventory, 400 operations; current route-inventory status scan has no `/v1` rows outside `implemented`.
 - Current data rule: API mode must use `/v1` service authority and fail closed instead of using local/mock product data.
 - Runtime config rule: every non-test frontend runtime fails fast if `EXPO_PUBLIC_USE_MOCK=true`; every frontend runtime fails fast if `EXPO_PUBLIC_PRE_API_LIVE_MODE=true`.
 - Payout rule: payout and payment flows use API routes with simulated provider completion; no real money is wired.
@@ -38,7 +38,7 @@ API slices should ship with tests that prove:
 
 | Category | Subcategory | Runtime API coverage | Main frontend/service entrypoints | Notes |
 | --- | --- | --- | --- | --- |
-| Auth and account | login/session/self profile | `/v1/auth/*`, `/v1/auth/me`, `/v1/me`, `/v1/me/sessions*` | `services/auth-service.ts`, `hooks/use-auth.tsx`, `hooks/use-account-settings.ts` | Email, name, and phone are backend-owned in API mode. |
+| Auth and account | login/session/self profile | `/v1/auth/*`, `/v1/auth/me`, `/v1/me`, `/v1/me/sessions*` | `services/auth-service.ts`, `hooks/use-auth.tsx`, `hooks/use-account-settings.ts` | Email, name, and phone are backend-owned in API mode; API-mode test users must exist in the backend database and are not exposed through a client-side fixture directory. |
 | Users | search and self display | `/v1/users/search`, `/v1/me` | `services/user-service.ts` | Local `USERS` browsing is not live authority in API mode. |
 | Family and athletes | child profile create/update/remove | `/v1/athletes*`, `/v1/families/:familyId` | `services/child-service.ts`, `hooks/use-edit-child-profile.ts`, `hooks/use-children-hub.ts` | Generic profile editing does not mutate family child lists; child and guardian relationship edits stay in dedicated family/athlete flows. |
 | Privacy | account privacy settings | `/v1/me/privacy-settings` | `services/privacy-settings-service.ts` | Backend-owned `UserPrivacySetting`. |
@@ -67,7 +67,7 @@ API slices should ship with tests that prove:
 | Coaches | travel/trials/payment instructions | `/v1/coaches/me/travel-settings`, `/v1/coaches/:coachId/trial-*`, `/v1/coaches/me/payment-instructions` | travel/trial/payment services | Payment instruction audit avoids raw bank text in audit metadata. |
 | Events | club event CRUD/publish/cancel/reminder | `/v1/clubs/:clubId/events*`, `/v1/events/:eventId*` | `services/event/event-crud-service.ts` | Draft visibility and athlete targeting are backend-owned. |
 | Events | RSVP and attendance | `/v1/events/:eventId/rsvp`, `/v1/events/:eventId/rsvps*`, `/v1/events/:eventId/attendance*` | RSVP and attendance services | Writes are audited; location validation supported. |
-| Sessions | group sessions and registration | `/v1/group-sessions*`, `/v1/group-session-registrations*` | group-session services, booking hooks | Session invite/registration flows are backend-owned in API mode; confirmed registrations create/reactivate session message-thread access for the delivery coach and registering family/athlete account. |
+| Sessions | group sessions and registration | `/v1/group-sessions*`, `/v1/group-session-registrations*` | group-session services, booking hooks | Session invite/registration flows are backend-owned in API mode; confirmed registrations create/reactivate session message-thread access for the delivery coach and registering family/athlete account, with DB proof for registration, invoice, and thread side effects. |
 | Session completion | feedback and messaging shortcuts | `/v1/bookings/:bookingId/complete`, `/v1/session-feedback`, `/v1/message-threads*` | `hooks/use-session-completion.ts`, `hooks/use-dev-session.ts` | Local `COACH_SESSIONS` ingestion remains mock/demo-only for legacy aggregate helpers; group-session shortcuts use `MessageThread.groupSessionId` created by confirmed registration. |
 | Progress | goals, milestones, analytics, skills, badges | `/v1/athletes/:athleteId/*`, `/v1/goals*`, `/v1/badge-awards*`, `/v1/sessions/:sessionId/badges` | `services/progress/*`, badge services | Backend rows own goal/skill/badge state in API mode. |
 | Progress | termly reports, practice logs/tasks, drills | `/v1/athletes/:athleteId/termly-reports`, `/v1/practice-*`, `/v1/drills*`, `/v1/drill-assignments*` | progress and drill services | Saved termly snapshots persist server-side. |
@@ -122,7 +122,7 @@ API slices should ship with tests that prove:
 
 | Gap | Current behavior | Needed API/product decision |
 | --- | --- | --- |
-| Long-tail API-mode read/write paths | Core smoke flows pass, but remaining compatibility services still need classification so true API failures are not hidden as empty lists, `null`, or local defaults. Recent slices fixed practice tasks, squad reads, self-assessment prompts, family child updates, injury updates, coach follow toggles, drill-assignment detail, follow suggestions, stale invoice read route status, session invite API read failures, bulk/group invite API read failures, and availability template/override read failures. | Continue path-scoped service review until every API-mode path either uses `/v1`, is explicitly local UI state, or fails closed with product-visible handling. |
+| Long-tail API-mode read/write paths | Current route inventory has no non-implemented `/v1` rows and the API-boundary audit is clean, but compatibility services still need periodic classification so true API failures are not hidden as empty lists, `null`, or local defaults. Recent checks covered practice logs, analytics, progress reports, family calendar/bookings, booking confirmation club context, privacy/deletion, user search/profile, family permissions, community/media, scheduling/cancellation, and payout simulation. | Continue path-scoped service review until every API-mode path either uses `/v1`, is explicitly local UI state, or fails closed with product-visible handling. |
 | Mobile role E2E depth | UI role sweeps and staging smoke cover high-value web/runtime flows; full mobile role E2E coverage is not complete. | Add/finish mobile E2E flows for coach, parent, athlete, club owner/admin, and trust-sensitive denial paths. |
 | Swagger/OpenAPI polish | `/v1/docs` is a usable Swagger UI over generated OpenAPI 3.1, with operation IDs, domain tags, and lifecycle effects. | Add route-specific examples and richer request/response schemas where the generated route-inventory defaults are too thin. |
 | Live payment/payout provider cutover | API routes support simulated provider completion and audited state transitions; no real money is wired. | Wire Stripe/payment/payout provider credentials and webhooks when product/compliance is ready. |
@@ -138,11 +138,19 @@ API slices should ship with tests that prove:
 | Notifications | Product action routes create durable backend notification rows; generic client create/send helpers are mock-only and fail closed in API mode. | Covered by `__tests__/services/notification/notification-api-mode.test.ts` and `__tests__/services/notification/notification-api-boundary.test.ts`. |
 | Mock control | API mode blocks generic storage bridge and mock/local product authority; non-test frontend config rejects mock and pre-API flags. | Retained mock branches are test-only scaffolding; recent hardening keeps academy, bookings, children/family, clubs, earnings, health, invites, media, roster, RSVP, safety, squads, and calendar exports off product-runtime fixture caches. |
 | Swagger | Generated from route inventory. | Invoice list/detail reads now show as implemented DB-backed finance routes; regenerate with `npm run api:openapi` after route inventory edits. |
-| Validation | Full verifier is the slice gate, with focused tests per strictness slice. | Latest focused strictness slices passed compile, typecheck, service tests, and API-boundary audit; latest staging smoke passed 29/29. |
+| Validation | Full verifier is the slice gate, with focused tests per strictness slice. | Latest focused strictness slices passed compile, typecheck, service tests, and API-boundary audit; latest staging smoke passed 29/29. Route-inventory status scan currently shows no non-implemented `/v1` rows. |
 | Supabase/Postgres | Schema migrations are audited for RLS and direct grants; staging smoke proves the configured DB-backed API path. | Latest DB migration audit: 40 migrations, 120 created tables, 0 missing RLS, 0 direct anon/auth grants. Latest staging smoke: 29/29 passed on 2026-07-08, 0 warnings, 0 failures. Strict API-mode runtime smoke passed with `/v1/ready=ready`. |
 
 ## Latest Committed API Slices
 
+- `ad5265e9 fix(db): guard destructive p0 seed import`
+- `730c78e0 fix(bookings): fail closed on staffing console reads`
+- `801d15df fix(db): move rls trigger function private`
+- `f9c148de fix(db): harden supabase public grant preflight`
+- `91ae3d23 fix(db): block unsafe supabase default grants`
+- `3c2bb1fe test(api): prove group thread message db receipts`
+- `1d6b32ff test(api): prove group registration db side effects`
+- `fa4572ff fix(invites): redirect legacy invite-code admin in api mode`
 - `35b22443 fix(trust): fail closed on concern escalation errors`
 - `1ca99344 chore(logs): use remove and archive wording`
 - `c0a3a5cc fix(follows): fail closed on coach suggestion errors`

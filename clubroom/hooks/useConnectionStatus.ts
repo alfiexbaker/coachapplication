@@ -6,7 +6,8 @@
  * Emits CONNECTION_CHANGED event on state transitions.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Platform } from 'react-native';
 import NetInfo, { NetInfoState, NetInfoStateType } from '@react-native-community/netinfo';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
@@ -19,11 +20,9 @@ function getIsExpensive(state: NetInfoState): boolean {
   return Boolean(state.details.isConnectionExpensive);
 }
 
-function clearReconnectTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
-  if (ref.current) {
-    clearTimeout(ref.current);
-    ref.current = null;
-  }
+function subscribeToNativeConnection(listener: (state: NetInfoState) => void): () => void {
+  const unsubscribe = NetInfo.addEventListener(listener);
+  return () => unsubscribe();
 }
 
 export function useConnectionStatus() {
@@ -39,45 +38,15 @@ export function useConnectionStatus() {
   const isConnectedRef = useRef(true);
   const wasOfflineRef = useRef(false);
   const connectionTypeRef = useRef<NetInfoState['type']>(NetInfoStateType.unknown);
-  const reconnectedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep refs in sync with state
-  useEffect(() => {
-    isConnectedRef.current = isConnected;
-  }, [isConnected]);
-
-  useEffect(() => {
-    wasOfflineRef.current = wasOffline;
-  }, [wasOffline]);
-
-  useEffect(() => {
-    connectionTypeRef.current = connectionType;
-  }, [connectionType]);
-
-  // Subscribe once on mount, read from refs inside callback
-  useEffect(() => {
-    void NetInfo.fetch().then((state) => {
-      const connected = state.isConnected ?? true;
-      const type = state.type;
-      const expensive = getIsExpensive(state);
-
-      isConnectedRef.current = connected;
-      connectionTypeRef.current = type;
-      setIsConnected(connected);
-      setConnectionType(type);
-      setIsExpensive(expensive);
-    });
-
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      const connected = state.isConnected ?? true;
+  const applyConnectionState = useCallback(
+    (connected: boolean, type: NetInfoState['type'], expensive: boolean) => {
       const prevConnected = isConnectedRef.current;
       const prevWasOffline = wasOfflineRef.current;
       const prevType = connectionTypeRef.current;
-      const type = state.type;
-      const expensive = getIsExpensive(state);
 
       if (!connected && prevConnected) {
-        // Just went offline
+        wasOfflineRef.current = true;
         setWasOffline(true);
         logger.warn('Connection lost');
 
@@ -88,12 +57,7 @@ export function useConnectionStatus() {
       }
 
       if (connected && !prevConnected && prevWasOffline) {
-        // Just came back online after being offline
         setShowReconnected(true);
-        if (reconnectedTimeoutRef.current) {
-          clearTimeout(reconnectedTimeoutRef.current);
-        }
-        reconnectedTimeoutRef.current = setTimeout(() => setShowReconnected(false), 2000);
         logger.info('Connection restored', { type });
 
         emitTyped(ServiceEvents.CONNECTION_CHANGED, {
@@ -106,17 +70,52 @@ export function useConnectionStatus() {
         logger.info('Connection type changed', { from: prevType, to: type });
       }
 
+      isConnectedRef.current = connected;
       connectionTypeRef.current = type;
       setIsConnected(connected);
       setConnectionType(type);
       setIsExpensive(expensive);
-    });
+    },
+    [],
+  );
 
-    return () => {
-      unsubscribe();
-      clearReconnectTimer(reconnectedTimeoutRef);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return;
+    }
+    const updateBrowserConnection = () => {
+      applyConnectionState(
+        typeof navigator === 'undefined' ? true : navigator.onLine,
+        NetInfoStateType.other,
+        false,
+      );
     };
-  }, []);
+
+    updateBrowserConnection();
+    window.addEventListener('online', updateBrowserConnection);
+    window.addEventListener('offline', updateBrowserConnection);
+    return () => {
+      window.removeEventListener('online', updateBrowserConnection);
+      window.removeEventListener('offline', updateBrowserConnection);
+    };
+  }, [applyConnectionState]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    return subscribeToNativeConnection((state) => {
+      applyConnectionState(state.isConnected ?? true, state.type, getIsExpensive(state));
+    });
+  }, [applyConnectionState]);
+
+  useEffect(() => {
+    if (!showReconnected) {
+      return;
+    }
+    const timeout = setTimeout(() => setShowReconnected(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [showReconnected]);
 
   return {
     isConnected,

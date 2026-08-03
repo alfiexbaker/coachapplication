@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, Components, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface ReminderOption {
@@ -45,12 +45,11 @@ export function SyncSettingsCard({
 
   return (
     <View style={styles.container}>
-      {/* Header/Toggle */}
       <Clickable
         onPress={() => !disabled && setIsExpanded(!isExpanded)}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel="Session reminder options"
+        accessibilityLabel={`Reminder, ${displayLabel}`}
         accessibilityState={{ expanded: isExpanded, disabled }}
         style={({ pressed }) => [
           styles.header,
@@ -64,7 +63,7 @@ export function SyncSettingsCard({
           <Ionicons name="alarm" size={22} color={palette.accent} />
         </View>
         <View style={styles.headerContent}>
-          <ThemedText style={styles.headerTitle}>Session Reminder</ThemedText>
+          <ThemedText style={styles.headerTitle}>Reminder</ThemedText>
           <ThemedText style={[styles.headerValue, { color: palette.muted }]}>
             {displayLabel}
           </ThemedText>
@@ -76,7 +75,6 @@ export function SyncSettingsCard({
         />
       </Clickable>
 
-      {/* Expanded Options */}
       {isExpanded && !disabled && (
         <View style={[styles.optionsContainer, { borderColor: palette.border }]}>
           {REMINDER_OPTIONS.map((option) => {
@@ -120,9 +118,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: Components.card.padding,
-    minHeight: 44,
+    padding: Spacing.sm,
+    minHeight: 56,
     gap: Spacing.sm,
   },
   iconContainer: {

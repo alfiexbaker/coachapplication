@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test, { describe, beforeEach } from 'node:test';
+import { Platform } from 'react-native';
 
 import { mediaService } from '@/services/media-service';
 import { apiClient } from '@/services/api-client';
@@ -95,6 +96,66 @@ describe('mediaService', () => {
       const result = expectOk(await mediaService.getSessionMedia(sessionId, athleteId));
       assert.ok(result);
       assert.equal(result!.photos.length, 2);
+    });
+
+    test('API web upload rejects a failed local media response before signed upload', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalPlatform = Platform.OS;
+      const originalFetch = globalThis.fetch;
+      const requestedUrls: string[] = [];
+      const photoUri = 'https://local.example/session-photo.jpg';
+      const signedUploadUrl = 'https://signed.example/upload';
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      Platform.OS = 'web';
+      globalThis.fetch = (async (input) => {
+        const url = String(input);
+        requestedUrls.push(url);
+
+        if (url === photoUri && requestedUrls.filter((value) => value === photoUri).length === 1) {
+          return new Response('photo');
+        }
+        if (url.endsWith('/v1/uploads/init')) {
+          return jsonResponse({
+            uploadSessionId: 'upload_session_media',
+            mediaObjectId: 'media_object_media',
+            uploadUrl: signedUploadUrl,
+          });
+        }
+        if (url === photoUri) {
+          return new Response('source unavailable', { status: 503 });
+        }
+        return jsonResponse({ message: `Unexpected ${url}` }, 500);
+      }) as typeof fetch;
+
+      try {
+        const result = await mediaService.saveSessionMedia(
+          makeMedia({
+            photos: [
+              {
+                ...makePhoto(photoUri),
+                thumbnailUri: photoUri,
+              },
+            ],
+          }),
+        );
+
+        assert.equal(result.success, false);
+        if (!result.success) {
+          assert.equal(result.error.code, 'STORAGE');
+          assert.match(String(result.error.details), /Unable to read upload file \(503\)/);
+        }
+        assert.equal(requestedUrls.includes(signedUploadUrl), false);
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        Platform.OS = originalPlatform;
+        globalThis.fetch = originalFetch;
+      }
     });
   });
 
@@ -477,12 +538,15 @@ describe('mediaService', () => {
       const source = readFileSync(path.join(process.cwd(), 'hooks/use-session-media.ts'), 'utf8');
 
       assert.match(source, /photo\.id \?\? photo\.mediaObjectId \?\? photo\.uri/);
-      assert.match(source, /setPhotos\(persisted\.photos\)/);
+      assert.match(source, /applyCurrentMedia\(persisted\.photos, persisted\.video\)/);
       assert.match(source, /const assetKey = resolveAssetRemovalKey\(photos, video, uri\)/);
       assert.match(
         source,
         /mediaService\.removeSessionMediaAsset\(sessionId, athleteId, assetKey\)/,
       );
+      assert.match(source, /storedMedia\.sessionId === sessionId/);
+      assert.match(source, /storedMedia\.athleteId === athleteId/);
+      assert.match(source, /return \(\) => controller\.abort\(\)/);
     });
   });
 

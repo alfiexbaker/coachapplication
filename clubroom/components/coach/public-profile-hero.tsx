@@ -22,6 +22,7 @@ interface PublicProfileHeroProps {
   onMessage: () => void;
   offeringSummary: CoachOfferingSummary;
   isBlocked?: boolean;
+  actionsUnavailable?: boolean;
 }
 
 export const PublicProfileHero = function PublicProfileHero({
@@ -31,6 +32,7 @@ export const PublicProfileHero = function PublicProfileHero({
   onMessage,
   offeringSummary,
   isBlocked = false,
+  actionsUnavailable = false,
 }: PublicProfileHeroProps) {
   const { colors: palette } = useTheme();
   const { width } = useWindowDimensions();
@@ -44,6 +46,7 @@ export const PublicProfileHero = function PublicProfileHero({
       : offeringSummary.publicOfferingsCount > 0
         ? `${offeringSummary.publicOfferingsCount} public sessions`
         : 'Private booking first';
+  const disableActions = isBlocked || actionsUnavailable;
 
   return (
     <>
@@ -168,23 +171,25 @@ export const PublicProfileHero = function PublicProfileHero({
         <Row style={styles.ctaRow}>
           <Clickable
             onPress={onBook}
+            disabled={disableActions}
             style={[
               styles.bookButton,
-              { backgroundColor: isBlocked ? palette.border : palette.tint },
+              { backgroundColor: disableActions ? palette.border : palette.tint },
             ]}
           >
             <Ionicons name="calendar-outline" size={Components.icon.md} color={palette.surface} />
             <ThemedText style={[Typography.bodySemiBold, { color: palette.surface }]}>
-              {isBlocked ? 'Booking unavailable' : 'Book a Session'}
+              {disableActions ? 'Booking unavailable' : 'Book a Session'}
             </ThemedText>
           </Clickable>
           <Clickable
             onPress={onMessage}
+            disabled={disableActions}
             style={[styles.messageButton, { borderColor: palette.border }]}
           >
             <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.text} />
             <ThemedText style={[Typography.caption, { color: palette.text }]}>
-              {isBlocked ? 'Contact unavailable' : 'Request Contact'}
+              {disableActions ? 'Contact unavailable' : 'Request Contact'}
             </ThemedText>
           </Clickable>
         </Row>

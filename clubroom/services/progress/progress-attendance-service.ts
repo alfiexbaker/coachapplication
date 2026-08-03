@@ -3,7 +3,14 @@ import type { SessionAttendance } from '@/constants/session-types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  err,
+  ok,
+  storageError,
+  unsupportedError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressAttendanceService');
@@ -52,10 +59,12 @@ export async function upsertCompletedBookingSessions(
   }
 
   if (!apiClient.isMockMode) {
-    logger.info('Skipping completed booking local session ingestion in API mode', {
-      bookingId: booking.id,
-    });
-    return ok([]);
+    return err(
+      unsupportedError(
+        'Completed booking session ingestion is mock-only; API mode uses /v1 booking completion or group attendance authority.',
+        { bookingId: booking.id },
+      ),
+    );
   }
 
   const athleteIds = resolveAthleteIds(booking);

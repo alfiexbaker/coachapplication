@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -97,17 +97,15 @@ function DayEditorVenueSectionInner({
     });
     if (!preset) return;
 
-    setSavedLocations((previous) => {
-      const updated = dedupeLocationPresets([preset, ...previous]).slice(0, 8);
-      if (!apiClient.isMockMode) {
-        return updated;
-      }
+    const updated = dedupeLocationPresets([preset, ...savedLocations]).slice(0, 8);
+    setSavedLocations(updated);
+    if (!apiClient.isMockMode) return;
 
-      void apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated).catch((error) => {
-        logger.error('Failed to save location preset', error);
-      });
-      return updated;
-    });
+    try {
+      await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
+    } catch (error) {
+      logger.error('Failed to save location preset', error);
+    }
   };
 
   const closeAddVenueModal = () => {

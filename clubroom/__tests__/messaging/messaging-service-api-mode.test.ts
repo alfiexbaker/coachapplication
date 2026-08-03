@@ -59,6 +59,48 @@ afterEach(async () => {
 });
 
 describe('MessagingService API mode', () => {
+  it('posts read receipts without a fabricated request body', async () => {
+    const restoreUser = await setupApiModeUser();
+    const { communityMediaAuthorityService } = await import(
+      '@/services/community-media-authority-service'
+    );
+    const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
+
+    globalThis.fetch = (async (input, init) => {
+      fetchCalls.push({ url: String(input), init });
+      return jsonResponse({ thread: null });
+    }) as typeof fetch;
+
+    try {
+      const threadResult = await communityMediaAuthorityService.markThreadMessagesRead(
+        'thread_api_direct',
+      );
+      const groupResult = await communityMediaAuthorityService.markGroupMessagesRead(
+        'group_api_parent',
+      );
+
+      assert.equal(threadResult.success, true);
+      assert.equal(groupResult.success, true);
+      assert.deepEqual(
+        fetchCalls.map(({ url, init }) => ({ url, method: init?.method, body: init?.body })),
+        [
+          {
+            url: 'http://localhost:4000/v1/message-threads/thread_api_direct/read',
+            method: 'POST',
+            body: undefined,
+          },
+          {
+            url: 'http://localhost:4000/v1/community-groups/group_api_parent/messages/read',
+            method: 'POST',
+            body: undefined,
+          },
+        ],
+      );
+    } finally {
+      restoreUser();
+    }
+  });
+
   it('does not merge local message overlays or deleted masks into API-mode reads', async () => {
     const restoreUser = await setupApiModeUser();
     const [{ STORAGE_KEYS }, { messagingService }] = await Promise.all([
@@ -211,6 +253,15 @@ describe('MessagingService API mode', () => {
           ],
         });
       }
+      if (url.endsWith('/v1/users/parent_api_reader')) {
+        return jsonResponse({
+          user: {
+            id: 'parent_api_reader',
+            name: 'Parent Reader',
+            role: 'PARENT',
+          },
+        });
+      }
       if (url.endsWith('/v1/bookings')) {
         return jsonResponse({ bookings: [] });
       }
@@ -227,6 +278,7 @@ describe('MessagingService API mode', () => {
       assert.deepEqual(fetchCalls, [
         'http://localhost:4000/v1/message-threads',
         'http://localhost:4000/v1/community-groups',
+        'http://localhost:4000/v1/users/parent_api_reader',
         'http://localhost:4000/v1/bookings',
       ]);
       assert.equal(result.data.length, 2);
@@ -270,6 +322,15 @@ describe('MessagingService API mode', () => {
       if (url.endsWith('/v1/community-groups')) {
         return jsonResponse({ groups: [] });
       }
+      if (url.endsWith('/v1/users/coach_api_sender')) {
+        return jsonResponse({
+          user: {
+            id: 'coach_api_sender',
+            name: 'Coach Sender',
+            role: 'COACH',
+          },
+        });
+      }
       if (url.endsWith('/v1/bookings')) {
         return jsonResponse({ message: 'temporary booking label failure' }, 503);
       }
@@ -286,11 +347,74 @@ describe('MessagingService API mode', () => {
       assert.deepEqual(fetchCalls, [
         'http://localhost:4000/v1/message-threads',
         'http://localhost:4000/v1/community-groups',
+        'http://localhost:4000/v1/users/coach_api_sender',
         'http://localhost:4000/v1/bookings',
       ]);
       assert.equal(result.data.length, 1);
-      assert.equal(result.data[0]?.title, 'Coach');
+      assert.equal(result.data[0]?.title, 'Coach Sender');
       assert.equal(result.data[0]?.serviceName, 'Direct message');
+    } finally {
+      restoreUser();
+    }
+  });
+
+  it('does not grant API-mode co-guardian access from caller-supplied child ids', async () => {
+    const restoreUser = await setupApiModeUser();
+    const { messagingService } = await import('@/services/messaging-service');
+    const fetchCalls: string[] = [];
+
+    globalThis.fetch = (async (input) => {
+      const url = String(input);
+      fetchCalls.push(url);
+      if (url.endsWith('/v1/message-threads')) {
+        return jsonResponse({
+          threads: [
+            {
+              id: 'thread_api_visible',
+              threadType: 'DIRECT',
+              createdAt: '2026-07-03T12:00:00.000Z',
+              messages: [],
+              participants: [{ userId: 'parent_api_reader' }],
+            },
+          ],
+        });
+      }
+      if (url.endsWith('/v1/community-groups')) {
+        return jsonResponse({ groups: [] });
+      }
+      if (url.endsWith('/v1/users/parent_api_reader')) {
+        return jsonResponse({
+          user: {
+            id: 'parent_api_reader',
+            name: 'Parent Reader',
+            role: 'PARENT',
+          },
+        });
+      }
+      if (url.endsWith('/v1/bookings')) {
+        return jsonResponse({ bookings: [] });
+      }
+      return jsonResponse({ message: `Unexpected ${url}` }, 500);
+    }) as typeof fetch;
+
+    try {
+      const result = await messagingService.checkCoGuardianAccess(
+        'thread_api_hidden',
+        'parent_api_reader',
+        ['athlete_api_child'],
+      );
+
+      assert.equal(result.success, true);
+      if (!result.success) {
+        return;
+      }
+      assert.equal(result.data, false);
+      assert.deepEqual(fetchCalls, [
+        'http://localhost:4000/v1/message-threads',
+        'http://localhost:4000/v1/community-groups',
+        'http://localhost:4000/v1/users/parent_api_reader',
+        'http://localhost:4000/v1/bookings',
+      ]);
     } finally {
       restoreUser();
     }

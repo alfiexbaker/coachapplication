@@ -20,8 +20,4 @@ export * from './scheduling-rules-modal';
 export * from './share-profile';
 export * from './time-off-sheet';
 export { default as TrialSessionEditor } from './trial-session-editor';
-// Coach profile sub-components
-export * from './profile-header';
-export * from './profile-tabs';
-export * from './profile-quick-actions';
 export * from './profile-post-card';

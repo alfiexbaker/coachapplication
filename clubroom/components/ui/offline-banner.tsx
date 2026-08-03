@@ -1,19 +1,12 @@
 /**
  * Offline Banner
  *
- * Persistent top banner when the user is offline.
- * Animated slide-down/slide-up with Reanimated.
- * Shows queue count, sync progress, flush result, and retry.
+ * Top status row for offline and reconnection states.
+ * Occupies layout space so it never covers the active screen.
+ * Queue status is shown only in mock mode where queued writes are supported.
  */
 
-import { useEffect } from 'react';
-import { StyleSheet, ActivityIndicator } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  withSpring,
-} from 'react-native-reanimated';
+import { StyleSheet, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
@@ -23,27 +16,15 @@ import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
+import { api } from '@/constants/config';
+
+const USE_MOCK = api.useMock;
 
 export function OfflineBanner() {
   const { colors } = useTheme();
   const { isConnected, showReconnected } = useConnectionStatus();
   const { queueSize, isFlushing, lastFlushResult, manualFlush } = useOfflineQueue();
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(-100);
-
-  const showBanner = !isConnected || showReconnected || isFlushing;
-
-  useEffect(() => {
-    if (showBanner) {
-      translateY.set(withSpring(0, { damping: 15, stiffness: 120 }));
-    } else {
-      translateY.set(withTiming(-100, { duration: 300 }));
-    }
-  }, [showBanner, translateY]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
 
   const handleRetry = () => {
     void manualFlush();
@@ -51,6 +32,11 @@ export function OfflineBanner() {
 
   // Determine banner state
   const hasFailedActions = lastFlushResult !== null && lastFlushResult.failed > 0;
+  const showBanner =
+    isFlushing ||
+    showReconnected ||
+    hasFailedActions ||
+    (!isConnected && (!USE_MOCK || queueSize > 0));
 
   let backgroundColor: string;
   let textColor: string;
@@ -81,18 +67,20 @@ export function OfflineBanner() {
     textColor = colors.warning;
     iconName = 'wifi-outline';
     message =
-      queueSize > 0
+      USE_MOCK && queueSize > 0
         ? `You're offline. ${queueSize} change${queueSize === 1 ? '' : 's'} saved`
-        : "You're offline. Changes will sync when you reconnect.";
+        : USE_MOCK
+          ? "You're offline. Changes will sync when you reconnect."
+          : "You're offline. Check your connection.";
+  }
+
+  if (!showBanner) {
+    return null;
   }
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        animatedStyle,
-        { paddingTop: insets.top + Spacing.xs, backgroundColor },
-      ]}
+    <View
+      style={[styles.container, { paddingTop: insets.top + Spacing.xs, backgroundColor }]}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
     >
@@ -115,17 +103,13 @@ export function OfflineBanner() {
           </Clickable>
         )}
       </Row>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 40,
+    flexShrink: 0,
     paddingBottom: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },

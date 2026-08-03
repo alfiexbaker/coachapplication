@@ -34,10 +34,8 @@ export const EditBasicInfo = function EditBasicInfo({
 
   return (
     <SurfaceCard style={styles.section}>
-      <ThemedText type="subtitle">Basic Information</ThemedText>
-
       <View style={styles.fieldGroup}>
-        <ThemedText style={styles.label}>Full Name</ThemedText>
+        <ThemedText style={styles.label}>Name</ThemedText>
         <TextInput
           value={fullName}
           onChangeText={onChangeName}
@@ -45,9 +43,8 @@ export const EditBasicInfo = function EditBasicInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Full name"
-
-            maxLength={50}
-          />
+          maxLength={50}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -55,23 +52,16 @@ export const EditBasicInfo = function EditBasicInfo({
         <TextInput
           value={bio}
           onChangeText={onChangeBio}
-          placeholder={
-            userIsCoach
-              ? 'Tell parents about your coaching philosophy...'
-              : 'A bit about yourself...'
-          }
+          placeholder={userIsCoach ? 'Coaching approach and experience' : 'About you'}
           placeholderTextColor={colors.muted}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
           style={[...inputStyle, styles.textArea]}
           accessibilityLabel="Bio"
-
-            maxLength={20}
-          />
-        {userIsCoach && (
-          <ThemedText style={styles.helper}>{bio.length} / 500 characters</ThemedText>
-        )}
+          maxLength={500}
+        />
+        {userIsCoach && <ThemedText style={styles.helper}>{bio.length}/500</ThemedText>}
       </View>
     </SurfaceCard>
   );
@@ -84,6 +74,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.subheading,

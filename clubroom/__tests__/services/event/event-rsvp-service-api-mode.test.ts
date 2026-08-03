@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
@@ -10,6 +12,10 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
 async function setupApiModeUser() {
@@ -84,6 +90,14 @@ afterEach(async () => {
 });
 
 describe('eventRsvpService API mode', () => {
+  it('does not claim the base event RSVP API is missing', () => {
+    const source = readProjectFile('services/event/event-rsvp-service.ts');
+
+    assert.doesNotMatch(source, /needs a \/v1 event RSVP API before it can run in API mode/);
+    assert.match(source, /event_rsvp_by_id_update/);
+    assert.match(source, /Use submitRSVP with the event id/);
+  });
+
   it('surfaces /v1 RSVP read failures instead of empty RSVP state', async () => {
     const restoreUser = await setupApiModeUser();
     const restoreStorage = await trapGenericStorage();
@@ -218,7 +232,10 @@ describe('eventRsvpService API mode', () => {
       assert.equal(unsupported.success, false);
       if (!unsupported.success) {
         assert.equal(unsupported.error.code, 'UNSUPPORTED');
-        assert.match(unsupported.error.message, /Updating event RSVPs/i);
+        assert.match(unsupported.error.message, /by RSVP id is unsupported/i);
+        assert.deepEqual(unsupported.error.details, {
+          missingAuthority: 'event_rsvp_by_id_update',
+        });
       }
     } finally {
       restoreStorage();

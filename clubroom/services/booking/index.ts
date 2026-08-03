@@ -34,6 +34,12 @@ export const bookingService = {
     bookingAuthorityService.createBooking(...args),
   cancelBookingViaApi: (...args: Parameters<typeof bookingAuthorityService.cancelBooking>) =>
     bookingAuthorityService.cancelBooking(...args),
+  declineBookingRequest: (
+    ...args: Parameters<typeof bookingAuthorityService.declineBookingRequest>
+  ) => bookingAuthorityService.declineBookingRequest(...args),
+  withdrawBookingRequest: (
+    ...args: Parameters<typeof bookingAuthorityService.withdrawBookingRequest>
+  ) => bookingAuthorityService.withdrawBookingRequest(...args),
   reopenBookingViaApi: (...args: Parameters<typeof bookingAuthorityService.reopenBooking>) =>
     bookingAuthorityService.reopenBooking(...args),
   completeBooking: (...args: Parameters<typeof bookingCrudService.completeBooking>) =>

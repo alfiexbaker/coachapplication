@@ -10,7 +10,11 @@ import {
   resolveSignedInApiUser,
   toApiAthleteId,
 } from '@/services/api-auth-context';
-import { bookingService } from '@/services/booking';
+import {
+  bookingAuthorityService,
+  bookingService,
+  mapApiBookingToBooking,
+} from '@/services/booking';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import { progressPracticeLogService } from '@/services/progress/progress-practice-log-service';
 import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
@@ -140,6 +144,17 @@ function toOneDecimal(value: number): number {
 function isApiMode(): boolean {
   return !api.useMock;
 }
+async function listTermlyReportBookings(): Promise<Booking[]> {
+  if (!isApiMode()) {
+    return bookingService.list();
+  }
+
+  const result = await bookingAuthorityService.listBookings();
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.map((booking) => mapApiBookingToBooking(booking));
+}
 async function resolveTermlyReportApiAccess(
   athleteId: string,
 ): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
@@ -195,7 +210,7 @@ async function generateTermlyReport(
   try {
     const [bookings, feedback, awards, practiceLogs, selfAssessments, skillLevels, goals] =
       await Promise.all([
-        bookingService.list(),
+        listTermlyReportBookings(),
         progressFeedbackService.getFeedbackForAthlete(input.athleteId, viewerRole),
         badgeService.listAwardsForAthlete(input.athleteId),
         progressPracticeLogService.listAthleteLogs(input.athleteId),

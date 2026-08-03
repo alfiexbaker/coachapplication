@@ -1,13 +1,13 @@
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsFormScreen } from '@/components/settings';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Row } from '@/components/primitives/row';
+import { SettingsFormScreen, SettingsSection, SettingsToggleRow } from '@/components/settings';
 import { Clickable } from '@/components/primitives/clickable';
+import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { ErrorState, LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
-import { Spacing, Typography } from '@/constants/theme';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTravelRadiusSettings } from '@/hooks/use-travel-radius-settings';
 
@@ -41,100 +41,115 @@ export default function TravelRadiusScreen() {
   return (
     <SettingsFormScreen
       title="Travel Radius"
-      infoText={
-        error ??
-        (canSave
-          ? 'Parents searching nearby will see you within this service radius.'
-          : 'Travel radius editing is unavailable for this account.')
-      }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
       }
     >
-      <SurfaceCard style={styles.card}>
-        <ThemedText type="defaultSemiBold">Your Location</ThemedText>
-        <Row gap="sm" align="center">
-          <Ionicons name="location" size={20} color={palette.tint} />
-          <ThemedText>{postcode}</ThemedText>
-        </Row>
-      </SurfaceCard>
+      {error ? <StatusBanner message={error} variant="error" /> : null}
 
-      <SurfaceCard style={styles.card}>
-        <ThemedText type="defaultSemiBold">Travel Radius</ThemedText>
-        <Row align="center" justify="space-between">
-          <Clickable
-            onPress={() => update('radiusMiles', Math.max(1, settings.radiusMiles - 1))}
-            style={styles.stepper}
-            disabled={!canSave}
+      <SettingsSection title="Service area">
+        <View style={styles.settingRow}>
+          <View
+            style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}
           >
-            <Ionicons name="remove" size={20} color={palette.text} />
-          </Clickable>
-          <View style={styles.radiusValue}>
-            <ThemedText type="title">{settings.radiusMiles} miles</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>
-              Discovery radius for in-person sessions
-            </ThemedText>
+            <Ionicons name="location-outline" size={22} color={palette.accent} />
           </View>
-          <Clickable
-            onPress={() => update('radiusMiles', Math.min(50, settings.radiusMiles + 1))}
-            style={styles.stepper}
-            disabled={!canSave}
-          >
-            <Ionicons name="add" size={20} color={palette.text} />
-          </Clickable>
-        </Row>
-        <ThemedText style={[Typography.small, { color: palette.muted }]}>
-          Suggested range: 5-20 miles for local grassroots coverage.
-        </ThemedText>
-      </SurfaceCard>
+          <View style={styles.settingContent}>
+            <ThemedText type="defaultSemiBold">Base postcode</ThemedText>
+          </View>
+          <ThemedText style={[styles.postcode, { color: palette.muted }]}>{postcode}</ThemedText>
+        </View>
 
-      <SurfaceCard style={styles.card}>
-        <Row justify="space-between" align="center">
-          <View style={styles.toggleText}>
-            <ThemedText type="defaultSemiBold">Accept travel sessions</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>
-              Show in search for in-person bookings inside your radius
-            </ThemedText>
-          </View>
-          <Clickable
-            onPress={() => update('acceptsTravelSessions', !settings.acceptsTravelSessions)}
-            disabled={!canSave}
-          >
-            <Ionicons
-              name={settings.acceptsTravelSessions ? 'checkmark-circle' : 'ellipse-outline'}
-              size={24}
-              color={settings.acceptsTravelSessions ? palette.success : palette.muted}
-            />
-          </Clickable>
-        </Row>
-        <Row justify="space-between" align="center">
-          <View style={styles.toggleText}>
-            <ThemedText type="defaultSemiBold">Accept remote sessions</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>
-              Keep remote/virtual sessions available even outside your local radius
-            </ThemedText>
-          </View>
-          <Clickable
-            onPress={() => update('acceptsRemoteSessions', !settings.acceptsRemoteSessions)}
-            disabled={!canSave}
-          >
-            <Ionicons
-              name={settings.acceptsRemoteSessions ? 'checkmark-circle' : 'ellipse-outline'}
-              size={24}
-              color={settings.acceptsRemoteSessions ? palette.success : palette.muted}
-            />
-          </Clickable>
-        </Row>
-      </SurfaceCard>
+        <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
-      {saving ? <SubmitProgressState label="Saving travel settings..." /> : null}
+        <View style={styles.radiusRow}>
+          <ThemedText type="defaultSemiBold" style={styles.radiusLabel}>
+            Search radius
+          </ThemedText>
+          <Row align="center" gap="xs">
+            <Clickable
+              onPress={() => update('radiusMiles', Math.max(1, settings.radiusMiles - 1))}
+              style={[styles.stepperButton, { backgroundColor: palette.background }]}
+              disabled={!canSave || saving || settings.radiusMiles <= 1}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease in-person radius"
+              accessibilityState={{ disabled: !canSave || saving || settings.radiusMiles <= 1 }}
+            >
+              <Ionicons name="remove" size={18} color={palette.text} />
+            </Clickable>
+            <ThemedText style={styles.radiusValue}>{settings.radiusMiles} mi</ThemedText>
+            <Clickable
+              onPress={() => update('radiusMiles', Math.min(50, settings.radiusMiles + 1))}
+              style={[styles.stepperButton, { backgroundColor: palette.background }]}
+              disabled={!canSave || saving || settings.radiusMiles >= 50}
+              accessibilityRole="button"
+              accessibilityLabel="Increase in-person radius"
+              accessibilityState={{ disabled: !canSave || saving || settings.radiusMiles >= 50 }}
+            >
+              <Ionicons name="add" size={18} color={palette.text} />
+            </Clickable>
+          </Row>
+        </View>
+      </SettingsSection>
+
+      <SettingsSection title="Session formats">
+        <SettingsToggleRow
+          icon="football-outline"
+          title="In-person sessions"
+          subtitle="Shown in local search"
+          value={settings.acceptsTravelSessions}
+          onValueChange={(value) => update('acceptsTravelSessions', value)}
+          disabled={!canSave || saving}
+        />
+        <View style={[styles.divider, { backgroundColor: palette.border }]} />
+        <SettingsToggleRow
+          icon="videocam-outline"
+          title="Remote sessions"
+          subtitle="No distance limit"
+          value={settings.acceptsRemoteSessions}
+          onValueChange={(value) => update('acceptsRemoteSessions', value)}
+          disabled={!canSave || saving}
+        />
+      </SettingsSection>
+
+      {saving ? <SubmitProgressState label="Saving..." /> : null}
     </SettingsFormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: Spacing.sm, marginBottom: Spacing.md },
-  stepper: { padding: Spacing.sm },
-  radiusValue: { alignItems: 'center', flex: 1, gap: Spacing.micro },
-  toggleText: { flex: 1, gap: Spacing.micro, paddingRight: Spacing.sm },
+  settingRow: {
+    minHeight: 64,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingContent: { flex: 1, minWidth: 0 },
+  postcode: { ...Typography.body, flexShrink: 1, maxWidth: '35%', textAlign: 'right' },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 56 + Spacing.sm },
+  radiusRow: {
+    minHeight: 64,
+    padding: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  radiusLabel: { flexShrink: 1 },
+  stepperButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radiusValue: { ...Typography.bodySemiBold, minWidth: 44, textAlign: 'center' },
 });

@@ -1,0 +1,57 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T22:36:41.341Z",
+  "meta": {
+    "roles": [
+      "athlete"
+    ],
+    "profiles": [
+      "coach-profile-canonical"
+    ],
+    "role": "athlete",
+    "chunkSize": 1,
+    "chunkIndex": null,
+    "retries": 0,
+    "pauseMs": 250
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 1,
+    "none": 0
+  },
+  "results": [
+    {
+      "id": "athlete_coach_profile_denied",
+      "role": "athlete",
+      "title": "athlete cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/athlete__athlete_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "console:[ERROR] [22:36:37.039] [BookingCrudService] Failed to list bookings",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch",
+        "console:[ERROR] [22:36:37.040] [BookingSearchService] Failed to get bookings",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch",
+        "console:[ERROR] [22:36:37.040] [UserHomeScreen] Failed to load home data",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4560
+    }
+  ]
+}

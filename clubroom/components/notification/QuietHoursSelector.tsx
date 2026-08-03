@@ -13,11 +13,7 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { QuietHours } from '@/constants/types';
 import { ThemedText } from '@/components/themed-text';
-import {
-  QuietHoursHeader,
-  TimeRangeSection,
-  TimePickerModal,
-} from './quiet-hours-sections';
+import { QuietHoursHeader, TimeRangeSection, TimePickerModal } from './quiet-hours-sections';
 import { parseTimeToDate, formatDateToTime } from './quiet-hours-helpers';
 
 export interface QuietHoursSelectorProps {
@@ -116,8 +112,7 @@ export function QuietHoursSelector({
       {!value.enabled && (
         <View style={styles.helperContainer}>
           <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-            Quiet hours pause push notifications only. In-app notifications still appear when you
-            open the app. Recommended overnight range: 10:00 PM to 8:00 AM.
+            In-app notifications remain available during quiet hours.
           </ThemedText>
         </View>
       )}

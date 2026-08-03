@@ -43,13 +43,19 @@ export default function VideoUploadScreen() {
         align="center"
         style={[styles.header, { borderBottomColor: colors.border }]}
       >
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
+        <Clickable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityLabel="Back"
+        >
           <Ionicons name="arrow-back" size={24} color={colors.foreground} />
         </Clickable>
         <ThemedText type="subtitle">Upload Video</ThemedText>
         <Clickable
           onPress={handleSubmit}
           disabled={!canSubmit}
+          accessibilityLabel="Upload video"
+          accessibilityState={{ disabled: !canSubmit, busy: isUploading }}
           style={[
             styles.submitButton,
             { backgroundColor: canSubmit ? colors.tint : colors.border },
@@ -89,7 +95,7 @@ export default function VideoUploadScreen() {
             <StatusBanner
               variant="success"
               icon="checkmark-circle"
-              message={`${videoData.name} selected (${formatDuration(videoData.duration)}, ${formatFileSize(videoData.fileSize)}). It stays private on this device until upload completes.`}
+              message={`${videoData.name} selected (${formatDuration(videoData.duration)}, ${formatFileSize(videoData.fileSize)}). It stays private until upload and safety checks complete.`}
               action={
                 !isUploading
                   ? {
@@ -113,6 +119,9 @@ export default function VideoUploadScreen() {
               value={title}
               onChangeText={setTitle}
               editable={!isUploading}
+              accessibilityLabel="Video title"
+              accessibilityHint="Required. Maximum 100 characters."
+              accessibilityState={{ disabled: isUploading }}
               placeholder="e.g., Dribbling Session — Week 4"
               placeholderTextColor={colors.muted}
               style={[
@@ -128,6 +137,9 @@ export default function VideoUploadScreen() {
               value={description}
               onChangeText={setDescription}
               editable={!isUploading}
+              accessibilityLabel="Video description"
+              accessibilityHint="Optional. Maximum 500 characters."
+              accessibilityState={{ disabled: isUploading }}
               placeholder="Add notes about what's covered in this video..."
               placeholderTextColor={colors.muted}
               multiline

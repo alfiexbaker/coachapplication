@@ -15,6 +15,7 @@ import {
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('VideoUpload');
+const SUPPORTED_VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'm4v']);
 
 interface VideoUploadProps {
   onSelect: (videoData: {
@@ -27,6 +28,12 @@ interface VideoUploadProps {
   disabled?: boolean;
   maxDurationSeconds?: number;
   maxFileSizeMB?: number;
+}
+
+function isSupportedVideoFile(value: string): boolean {
+  const filename = value.split(/[?#]/, 1)[0] ?? '';
+  const extension = filename.split('.').pop()?.toLowerCase();
+  return Boolean(extension && SUPPORTED_VIDEO_EXTENSIONS.has(extension));
 }
 
 export function VideoUpload({
@@ -52,8 +59,14 @@ export function VideoUpload({
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        const fileName = asset.fileName || asset.uri;
         const durationSecs = (asset.duration || 0) / 1000;
         const fileSizeBytes = asset.fileSize || 0;
+
+        if (!isSupportedVideoFile(fileName)) {
+          uiFeedback.showToast('Choose an MP4, MOV, or M4V video.', 'error');
+          return;
+        }
 
         if (durationSecs > maxDurationSeconds) {
           uiFeedback.showToast(`Maximum video duration is ${Math.floor(maxDurationSeconds / 60)} minutes.`);
@@ -100,6 +113,13 @@ export function VideoUpload({
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        const fileName = asset.fileName || asset.uri;
+
+        if (!isSupportedVideoFile(fileName)) {
+          uiFeedback.showToast('Choose an MP4, MOV, or M4V video.', 'error');
+          return;
+        }
+
         setSelectedVideo({
           uri: asset.uri,
           name: asset.fileName || `recording_${Date.now()}.mp4`,

@@ -10,17 +10,14 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import type { AttendanceStatus } from '@/hooks/use-group-roster';
-import {
-  getGroupRegistrationAthleteName,
-  getGroupRegistrationParentName,
-} from '@/utils/group-display';
+import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
 interface RollCallParticipantListProps {
   participants: GroupRegistration[];
   attendance: Record<string, AttendanceStatus>;
   colors: ThemeColors;
   onMarkStatus: (id: string, status: AttendanceStatus) => void | Promise<void>;
-  onReportInjury: (registration: GroupRegistration) => void;
+  onReportInjury?: (registration: GroupRegistration) => void;
 }
 
 interface RollCallActionItem {
@@ -41,7 +38,7 @@ interface RollCallParticipantItem {
   status: AttendanceStatus;
   colors: ThemeColors;
   actions: RollCallActionItem[];
-  onReportInjury: () => void;
+  onReportInjury?: () => void;
 }
 
 export function RollCallParticipantList({
@@ -77,12 +74,12 @@ function getRollCallParticipantItems(
   attendance: Record<string, AttendanceStatus>,
   colors: ThemeColors,
   onMarkStatus: (id: string, status: AttendanceStatus) => void | Promise<void>,
-  onReportInjury: (registration: GroupRegistration) => void,
+  onReportInjury?: (registration: GroupRegistration) => void,
 ): RollCallParticipantItem[] {
   return participants.map((registration, index) => {
     const status = attendance[registration.id] || 'unmarked';
     const athleteName = getGroupRegistrationAthleteName(registration);
-    const parentName = getGroupRegistrationParentName(registration);
+    const parentName = registration.parentName?.trim() || null;
 
     return {
       key: registration.id,
@@ -92,7 +89,7 @@ function getRollCallParticipantItems(
       status,
       colors,
       actions: getRollCallActionItems(registration.id, athleteName, status, colors, onMarkStatus),
-      onReportInjury: () => onReportInjury(registration),
+      onReportInjury: onReportInjury ? () => onReportInjury(registration) : undefined,
     };
   });
 }
@@ -183,20 +180,22 @@ function renderRollCallParticipantItem({ item }: ListRenderItemInfo<RollCallPart
             />
           </Clickable>
         ))}
-        <Clickable
-          style={[
-            styles.injuryBtn,
-            {
-              backgroundColor: withAlpha(item.colors.error, 0.09),
-              borderColor: withAlpha(item.colors.error, 0.19),
-            },
-          ]}
-          onPress={item.onReportInjury}
-          accessibilityRole="button"
-          accessibilityLabel={`Report injury for ${item.athleteName}`}
-        >
-          <Ionicons name="medkit" size={16} color={item.colors.error} />
-        </Clickable>
+        {item.onReportInjury ? (
+          <Clickable
+            style={[
+              styles.injuryBtn,
+              {
+                backgroundColor: withAlpha(item.colors.error, 0.09),
+                borderColor: withAlpha(item.colors.error, 0.19),
+              },
+            ]}
+            onPress={item.onReportInjury}
+            accessibilityRole="button"
+            accessibilityLabel={`Report injury for ${item.athleteName}`}
+          >
+            <Ionicons name="medkit" size={16} color={item.colors.error} />
+          </Clickable>
+        ) : null}
       </Row>
     </Animated.View>
   );

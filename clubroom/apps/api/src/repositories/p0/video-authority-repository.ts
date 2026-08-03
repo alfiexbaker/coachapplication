@@ -255,6 +255,13 @@ function latestScanForMedia(tables: SeedTables, mediaObjectId: string): SeedRow 
 }
 function assertMediaObjectReadyForVideo(tables: SeedTables, mediaObject: SeedRow): void {
   const mediaObjectId = asString(mediaObject.id);
+  const kind = String(mediaObject.kind ?? '').toUpperCase();
+  if (kind !== 'VIDEO') {
+    throw badRequest('Media object kind must be VIDEO before video creation', {
+      mediaObjectId,
+      mediaKind: kind || null,
+    });
+  }
   const status = mediaStatus(mediaObject);
   const latestScan = latestScanForMedia(tables, mediaObjectId ?? '');
   const verdict = scanVerdict(latestScan);
@@ -397,8 +404,12 @@ class StoreVideoAuthorityRepository implements VideoAuthorityRepository {
         videoId: params.videoId,
       });
     }
-    video.title = params.title?.trim() || null;
-    video.description = params.description?.trim() || null;
+    if (params.title !== undefined) {
+      video.title = params.title?.trim() || null;
+    }
+    if (params.description !== undefined) {
+      video.description = params.description?.trim() || null;
+    }
     video.updatedByUserId = params.authUserId;
     video.updatedAt = nowIso();
     video.version = nextVersion(video.version);
@@ -855,6 +866,7 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
         select: {
           id: true,
           ownerUserId: true,
+          kind: true,
           status: true,
           scans: {
             orderBy: {
@@ -875,6 +887,12 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
       if (!params.isPrivilegedAdmin && mediaObject.ownerUserId !== params.authUserId) {
         throw forbidden('Media object does not belong to authenticated user', {
           mediaObjectId: params.mediaObjectId,
+        });
+      }
+      if (mediaObject.kind !== 'VIDEO') {
+        throw badRequest('Media object kind must be VIDEO before video creation', {
+          mediaObjectId: params.mediaObjectId,
+          mediaKind: mediaObject.kind,
         });
       }
       const existing = await tx.video.findFirst({
@@ -969,8 +987,9 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
         id: params.videoId,
       },
       data: {
-        title: params.title?.trim() || null,
-        description: params.description?.trim() || null,
+        title: params.title === undefined ? undefined : params.title?.trim() || null,
+        description:
+          params.description === undefined ? undefined : params.description?.trim() || null,
         updatedByUserId: params.authUserId,
         version: {
           increment: 1n,

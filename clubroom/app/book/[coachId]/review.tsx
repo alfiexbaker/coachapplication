@@ -77,7 +77,13 @@ export default function ReviewScreen() {
   const { currentUser } = useAuth();
   const { children } = useChildContext();
   const [clubLabel, setClubLabel] = useState<string | null>(null);
+  const [clubContextLoading, setClubContextLoading] = useState(Boolean(draft.clubId));
+  const [clubContextError, setClubContextError] = useState<string | null>(null);
   const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
+  const [assigneeContextLoading, setAssigneeContextLoading] = useState(
+    Boolean(draft.assigneeCoachId),
+  );
+  const [assigneeContextError, setAssigneeContextError] = useState<string | null>(null);
   const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
     draft.commercialMode ?? null,
   );
@@ -92,10 +98,21 @@ export default function ReviewScreen() {
         schedulingRulesService.getCancellationPolicy(coachId),
       ]);
 
+      if (!policyResult.success) {
+        logger.error('Failed to load cancellation policy for booking review', policyResult.error);
+        return err(policyResult.error);
+      }
+      if (!policyResult.data && !apiClient.isMockMode) {
+        return err(
+          serviceError(
+            'VALIDATION',
+            'Cancellation terms are unavailable from the live coach policy. Booking confirmation blocked.',
+          ),
+        );
+      }
+
       const cancellationPolicy =
-        policyResult.success && policyResult.data
-          ? policyResult.data
-          : schedulingRulesService.getDefaultCancellationPolicy();
+        policyResult.data ?? schedulingRulesService.getDefaultCancellationPolicy();
 
       if (!coachResult.success) {
         if (coachResult.error.code !== 'NOT_FOUND') {
@@ -191,25 +208,67 @@ export default function ReviewScreen() {
     if (!draft.clubId) {
       startTransition(() => {
         setClubLabel(null);
+        setClubContextLoading(false);
+        setClubContextError(null);
+        setCommercialMode(draft.commercialMode ?? null);
       });
       return;
     }
     let cancelled = false;
-    void clubAuthorityService.getClubById(draft.clubId).then((result) => {
-      if (cancelled) return;
-      const club = result.success ? result.data : null;
-      if (club?.name) {
-        setClubLabel(club.name);
-        const nextCommercialMode = club.commercialMode ?? 'COACH_OWNED';
+    startTransition(() => {
+      setClubContextLoading(true);
+      setClubContextError(null);
+      setClubLabel(null);
+      setCommercialMode(null);
+    });
+    void clubAuthorityService
+      .getClubById(draft.clubId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          const message = result.error.message || 'Could not load organization context.';
+          logger.error('Failed to load booking review club context', {
+            clubId: draft.clubId,
+            error: result.error,
+          });
+          setClubContextError(message);
+          setClubLabel(null);
+          setCommercialMode(null);
+          return;
+        }
+
+        const club = result.data;
+        const nextCommercialMode = club.commercialMode ?? null;
+        if (!nextCommercialMode) {
+          logger.error('Booking review club context missing commercial mode', {
+            clubId: draft.clubId,
+          });
+          setClubContextError('Could not load organization billing context.');
+          setClubLabel(null);
+          setCommercialMode(null);
+          return;
+        }
+        setClubLabel(club.name?.trim() || safeDisplayLabel(draft.clubId, 'Organization'));
         setCommercialMode(nextCommercialMode);
-        if (draft.commercialMode !== nextCommercialMode) {
+        if (nextCommercialMode && draft.commercialMode !== nextCommercialMode) {
           updateDraft({ commercialMode: nextCommercialMode });
         }
-      } else {
-        setClubLabel(safeDisplayLabel(draft.clubId, 'Club session'));
-        setCommercialMode('COACH_OWNED');
-      }
-    });
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        logger.error('Failed to load booking review club context', {
+          clubId: draft.clubId,
+          error: loadError,
+        });
+        setClubContextError('Could not load organization context.');
+        setClubLabel(null);
+        setCommercialMode(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setClubContextLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -219,20 +278,58 @@ export default function ReviewScreen() {
     if (!draft.assigneeCoachId) {
       startTransition(() => {
         setAssigneeLabel(null);
+        setAssigneeContextLoading(false);
+        setAssigneeContextError(null);
       });
       return;
     }
     let cancelled = false;
-    void userService.getUserById(draft.assigneeCoachId).then((result) => {
-      if (cancelled) return;
-      if (result.success) {
-        setAssigneeLabel(
-          result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'),
-        );
-      } else {
-        setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
-      }
+    startTransition(() => {
+      setAssigneeContextLoading(true);
+      setAssigneeContextError(null);
+      setAssigneeLabel(null);
     });
+    void userService
+      .getUserById(draft.assigneeCoachId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          const message = result.error.message || 'Could not load delivery coach context.';
+          logger.error('Failed to load booking review delivery coach context', {
+            assigneeCoachId: draft.assigneeCoachId,
+            error: result.error,
+          });
+          setAssigneeContextError(message);
+          setAssigneeLabel(null);
+          return;
+        }
+
+        const resolvedName = result.data.name?.trim();
+        if (!resolvedName) {
+          logger.error('Booking review delivery coach context missing display name', {
+            assigneeCoachId: draft.assigneeCoachId,
+          });
+          setAssigneeContextError('Could not load delivery coach context.');
+          setAssigneeLabel(null);
+          return;
+        }
+
+        setAssigneeLabel(resolvedName);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        logger.error('Failed to load booking review delivery coach context', {
+          assigneeCoachId: draft.assigneeCoachId,
+          error: loadError,
+        });
+        setAssigneeContextError('Could not load delivery coach context.');
+        setAssigneeLabel(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAssigneeContextLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -268,13 +365,25 @@ export default function ReviewScreen() {
       minute: '2-digit',
     });
   })();
+  const deliveredByLabel = draft.assigneeCoachId
+    ? assigneeContextError
+      ? 'Delivery coach unavailable'
+      : (assigneeLabel ?? 'Loading delivery coach...')
+    : coach?.name || draft.coachName || 'Coach';
   const relationshipContext = getBookingRelationshipContext({
     actingAs: draft.actingAs,
     organizationLabel: clubLabel,
     coachLabel: coach?.name || draft.coachName || 'Coach',
-    deliveredByLabel: assigneeLabel || coach?.name || draft.coachName || 'Coach',
+    deliveredByLabel,
     commercialMode,
   });
+  const hasResolvedClubContext =
+    !draft.clubId ||
+    (!clubContextLoading && !clubContextError && Boolean(clubLabel && commercialMode));
+  const hasResolvedAssigneeContext =
+    !draft.assigneeCoachId ||
+    (!assigneeContextLoading && !assigneeContextError && Boolean(assigneeLabel));
+  const canContinue = hasRequiredDraft && hasResolvedClubContext && hasResolvedAssigneeContext;
 
   const handleBack = () => {
     void bookingStepAnalyticsService.track({
@@ -310,6 +419,34 @@ export default function ReviewScreen() {
         step: 'review',
         status: 'validation_fail',
         failure_code: 'incomplete_booking_draft',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: accountHasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+    if (!hasResolvedClubContext) {
+      void bookingStepAnalyticsService.track({
+        step: 'review',
+        status: 'validation_fail',
+        failure_code: clubContextLoading ? 'club_context_loading' : 'club_context_unavailable',
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: accountHasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+    if (!hasResolvedAssigneeContext) {
+      void bookingStepAnalyticsService.track({
+        step: 'review',
+        status: 'validation_fail',
+        failure_code: assigneeContextLoading
+          ? 'assignee_context_loading'
+          : 'assignee_context_unavailable',
         role: currentUser?.role,
         currentUserId: currentUser?.id,
         hasChildren: accountHasChildren,
@@ -441,6 +578,26 @@ export default function ReviewScreen() {
                 confirmation.
               </ThemedText>
             ) : null}
+            {draft.clubId && clubContextLoading ? (
+              <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
+                Loading organization context...
+              </ThemedText>
+            ) : null}
+            {clubContextError ? (
+              <ThemedText style={[styles.rateNote, { color: palette.error }]}>
+                {clubContextError}
+              </ThemedText>
+            ) : null}
+            {draft.assigneeCoachId && assigneeContextLoading ? (
+              <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
+                Loading delivery coach context...
+              </ThemedText>
+            ) : null}
+            {assigneeContextError ? (
+              <ThemedText style={[styles.rateNote, { color: palette.error }]}>
+                {assigneeContextError}
+              </ThemedText>
+            ) : null}
 
             {coach?.minPrice ? (
               <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
@@ -456,10 +613,10 @@ export default function ReviewScreen() {
           style={[
             styles.cta,
             {
-              backgroundColor: hasRequiredDraft ? palette.tint : withAlpha(palette.tint, 0.45),
+              backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.45),
             },
           ]}
-          disabled={!hasRequiredDraft}
+          disabled={!canContinue}
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons name="receipt-outline" size={18} color={palette.onPrimary} />

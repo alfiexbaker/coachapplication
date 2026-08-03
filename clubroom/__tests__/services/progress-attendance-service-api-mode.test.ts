@@ -5,7 +5,7 @@ import type { Booking } from '@/constants/app-types';
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
 describe('progressAttendanceService API mode', () => {
-  it('does not mirror completed bookings into local coach sessions', async () => {
+  it('fails closed instead of mirroring completed bookings into local coach sessions', async () => {
     const [{ progressAttendanceService }, { apiClient }] = await Promise.all([
       import('@/services/progress/progress-attendance-service'),
       import('@/services/api-client'),
@@ -33,8 +33,12 @@ describe('progressAttendanceService API mode', () => {
       };
       const result = await progressAttendanceService.upsertCompletedBookingSessions(booking);
 
-      assert.equal(result.success, true);
-      assert.deepEqual(result.success && result.data, []);
+      assert.equal(result.success, false);
+      assert.equal(result.success ? undefined : result.error.code, 'UNSUPPORTED');
+      assert.match(
+        result.success ? '' : result.error.message,
+        /mock-only; API mode uses \/v1 booking completion or group attendance authority/,
+      );
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;

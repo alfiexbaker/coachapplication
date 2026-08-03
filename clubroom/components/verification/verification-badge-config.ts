@@ -13,25 +13,25 @@ export const LEVEL_CONFIG: Record<
   }
 > = {
   PREMIUM: {
-    label: 'Premium Verified',
-    shortLabel: 'Premium',
+    label: 'Fully verified',
+    shortLabel: 'Verified',
     icon: 'shield-checkmark',
     colorKey: 'success',
   },
   VERIFIED: {
-    label: 'Verified Coach',
-    shortLabel: 'Verified',
+    label: 'Core checks complete',
+    shortLabel: 'Core checks',
     icon: 'checkmark-shield',
     colorKey: 'success',
   },
   BASIC: {
-    label: 'Basic Verified',
-    shortLabel: 'Basic',
+    label: 'Contact verified',
+    shortLabel: 'Contact',
     icon: 'checkmark-circle',
     colorKey: 'warning',
   },
   NONE: {
-    label: 'Not Verified',
+    label: 'Not verified',
     shortLabel: 'Unverified',
     icon: 'shield-outline',
     colorKey: 'muted',

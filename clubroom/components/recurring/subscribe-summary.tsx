@@ -65,7 +65,7 @@ function SubscribeSummaryInner({
         >
           <ThemedText style={{ color: palette.muted }}>Est. Monthly Cost</ThemedText>
           <ThemedText type="subtitle" style={{ color: palette.tint }}>
-            ${monthlyEstimate}
+            £{monthlyEstimate}
           </ThemedText>
         </Row>
       )}

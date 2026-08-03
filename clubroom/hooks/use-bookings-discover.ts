@@ -12,6 +12,7 @@ import { bookingService } from '@/services/booking';
 import { groupSessionService, sessionRegistrationService } from '@/services/group-session';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { discoverService } from '@/services/discover-service';
+import { apiClient } from '@/services/api-client';
 // Note: discoverService.getSuggestedCoaches() exists but we deliberately
 // don't surface coach rankings — marketplace fairness concern.
 import { ServiceEvents } from '@/services/event-bus';
@@ -41,6 +42,7 @@ import type {
   GroupRegistration,
 } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+import { buildAuthScopedSnapshotKey } from '@/utils/auth-scoped-snapshot-key';
 const logger = createLogger('useBookingsDiscover');
 interface DiscoverData {
   pendingInvites: SessionInvite[];
@@ -49,7 +51,7 @@ interface DiscoverData {
   clubSessions: GroupSession[];
   openSessions: SessionOffering[];
 }
-let lastDiscoverSnapshot: DiscoverData | null = null;
+const discoverSnapshots = new Map<string, DiscoverData>();
 export interface UseBookingsDiscoverResult {
   pendingInvites: SessionInvite[];
   thisWeekOfferings: SessionOffering[];
@@ -86,6 +88,13 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       ].join(':'),
     )
     .join('|');
+  const snapshotKey = buildAuthScopedSnapshotKey(
+    currentUser?.id,
+    'bookings-discover',
+    currentUser?.role,
+    contextChildrenSignature,
+    activeChildId,
+  );
   const hasParentInviteScope = Boolean(
     currentUser &&
     currentUser.role !== 'COACH' &&
@@ -109,6 +118,9 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
             logger.warn('Pending invites fetch was interrupted', e);
           } else {
             logger.error('Failed to load pending invites', e);
+          }
+          if (!apiClient.isMockMode) {
+            throw e;
           }
         }
       }
@@ -236,13 +248,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         serviceError('UNKNOWN', 'Failed to load discover data. Pull down to refresh.', loadError),
       );
     }
-  }, [
-    activeChildId,
-    contextChildrenSignature,
-    currentUser?.id,
-    currentUser?.role,
-    hasParentInviteScope,
-  ]);
+  }, [activeChildId, contextChildren, currentUser, hasParentInviteScope]);
   const {
     data,
     status,
@@ -269,11 +275,14 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
     loadingStrategy: 'warm-first',
   });
   useEffect(() => {
-    if (data) {
-      lastDiscoverSnapshot = data;
+    if (data && snapshotKey) {
+      discoverSnapshots.set(snapshotKey, data);
     }
-  }, [data]);
-  const resolvedData = data ?? lastDiscoverSnapshot;
+  }, [data, snapshotKey]);
+  const resolvedData =
+    data ??
+    (status === 'loading' && snapshotKey ? discoverSnapshots.get(snapshotKey) : null) ??
+    null;
   const pendingInvites = resolvedData?.pendingInvites ?? [];
   const thisWeekOfferings = resolvedData?.thisWeekOfferings ?? [];
   const familiarCoaches = resolvedData?.familiarCoaches ?? [];

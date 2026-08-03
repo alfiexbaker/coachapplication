@@ -9,6 +9,13 @@ export interface EventWorkspaceState {
   canShareRecap: boolean;
 }
 
+export function isEventStaffWorkspaceDenied(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /only event staff can read event (attendance|rsvps)/i.test(error.message)
+  );
+}
+
 function getEventEndTimestamp(event: ClubEvent): number | null {
   const time = event.endTime || event.startTime;
   const timestamp = new Date(`${event.date}T${time}`).getTime();

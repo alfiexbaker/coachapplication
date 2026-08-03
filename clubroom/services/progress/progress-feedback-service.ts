@@ -16,11 +16,12 @@ import {
   deriveApiActingRole,
   resolveSignedInApiUser,
   toApiAthleteId,
+  toApiUserId,
 } from "@/services/api-auth-context";
 import { createLogger } from "@/utils/logger";
 import { progressSkillsService } from "./progress-skills-service";
 import { computeFourCorners } from "@/constants/position-skills";
-import { err, ok, type Result, type ServiceError } from "@/types/result";
+import { err, ok, storageError, type Result, type ServiceError } from "@/types/result";
 import type {
   FourCornerKey,
   FourCornerRatings,
@@ -102,12 +103,43 @@ type ApiSessionFeedbackResponse = {
   feedback: SessionFeedback | null;
 };
 
+class FeedbackAuthorityError extends Error {
+  readonly serviceError: ServiceError;
+
+  constructor(serviceError: ServiceError) {
+    super(serviceError.message);
+    this.name = "FeedbackAuthorityError";
+    this.serviceError = serviceError;
+  }
+}
+
+function throwFeedbackAuthorityError(error: ServiceError): never {
+  throw new FeedbackAuthorityError(error);
+}
+
+function isFeedbackServiceError(error: unknown): error is ServiceError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "message" in error &&
+    typeof (error as ServiceError).message === "string"
+  );
+}
+
+function feedbackServiceError(error: unknown, fallbackMessage: string): ServiceError {
+  if (error instanceof FeedbackAuthorityError) {
+    return error.serviceError;
+  }
+  return isFeedbackServiceError(error) ? error : storageError(fallbackMessage);
+}
+
 async function resolveFeedbackApiAccess(
   athleteId: string,
 ): Promise<{ apiAthleteId: string; headers: Record<string, string> }> {
   const currentUserResult = await resolveSignedInApiUser("Sign in to view session feedback.");
   if (!currentUserResult.success) {
-    throw new Error(currentUserResult.error.message);
+    throwFeedbackAuthorityError(currentUserResult.error);
   }
 
   const currentUser = currentUserResult.data;
@@ -174,7 +206,7 @@ async function addSessionFeedback(
       body: JSON.stringify(feedback),
     });
     if (!result.success) {
-      throw new Error(result.error.message);
+      throwFeedbackAuthorityError(result.error);
     }
     if (!result.data.feedback) {
       throw new Error("Session feedback save did not return feedback.");
@@ -270,7 +302,7 @@ async function getSessionFeedback(
       `/v1/session-feedback?sessionId=${encodeURIComponent(sessionId)}&viewerRole=${viewerRole}`,
     );
     if (!result.success) {
-      throw new Error(result.error.message);
+      throwFeedbackAuthorityError(result.error);
     }
     return result.data.feedback;
   }
@@ -304,7 +336,7 @@ async function getFeedbackForAthlete(
       { headers: access.headers },
     );
     if (!result.success) {
-      throw new Error(result.error.message);
+      throwFeedbackAuthorityError(result.error);
     }
     return result.data.feedback;
   }
@@ -332,6 +364,44 @@ async function getFeedbackForAthlete(
     filtered = filtered.slice(0, limit);
   }
   return filtered;
+}
+async function getFeedbackForCoach(
+  coachUserId: string,
+  limit?: number,
+): Promise<SessionFeedback[]> {
+  if (!apiClient.isMockMode) {
+    const currentUserResult = await resolveSignedInApiUser("Sign in to view coach development.");
+    if (!currentUserResult.success) {
+      throwFeedbackAuthorityError(currentUserResult.error);
+    }
+    const currentUser = currentUserResult.data;
+    const query = new URLSearchParams();
+    if (limit) {
+      query.set("limit", String(limit));
+    }
+    const queryString = query.toString();
+    const actingRole = deriveApiActingRole(currentUser, "coach");
+    const result = await apiFetch<ApiSessionFeedbackListResponse>(
+      `/v1/coaches/${encodeURIComponent(toApiUserId(coachUserId))}/development-sessions${
+        queryString ? `?${queryString}` : ""
+      }`,
+      {
+        headers: buildApiAuthHeaders({
+          actingRole,
+          coachVerified: actingRole === "coach" && currentUser.isVerified,
+        }),
+      },
+    );
+    if (!result.success) {
+      throwFeedbackAuthorityError(result.error);
+    }
+    return result.data.feedback;
+  }
+
+  const allFeedback = await getAllSessionFeedback();
+  return allFeedback
+    .filter((feedback) => feedback.coachId === coachUserId)
+    .slice(0, limit);
 }
 async function getLatestForAthlete(
   athleteId: string,
@@ -512,11 +582,7 @@ async function createFeedbackFromQuickRate(
     return ok(feedback);
   } catch (error) {
     logger.error("Failed to create feedback from quick rate", error);
-    return err({
-      code: "STORAGE",
-      message: "Failed to save quick rate feedback",
-      details: error,
-    });
+    return err(feedbackServiceError(error, "Failed to save quick rate feedback"));
   }
 }
 
@@ -540,7 +606,7 @@ async function getSessionNote(
       `/v1/bookings/${encodeURIComponent(bookingId)}/session-note`,
     );
     if (!result.success) {
-      throw new Error(result.error.message);
+      throwFeedbackAuthorityError(result.error);
     }
     return result.data.note;
   }
@@ -560,7 +626,7 @@ async function saveSessionNote(
       },
     );
     if (!result.success) {
-      throw new Error(result.error.message);
+      throwFeedbackAuthorityError(result.error);
     }
     if (!result.data.note) {
       throw new Error("Session note save did not return a note.");
@@ -593,6 +659,7 @@ export const progressFeedbackService = {
   addSessionFeedback,
   getSessionFeedback,
   getFeedbackForAthlete,
+  getFeedbackForCoach,
   getLatestForAthlete,
   getPreviousCorners,
   createFeedbackFromQuickRate,

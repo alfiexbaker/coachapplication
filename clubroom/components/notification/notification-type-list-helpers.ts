@@ -4,6 +4,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   BOOKING_RECEIVED: "New Booking Requests",
   BOOKING_HANDOFF: "Booking Handoffs",
   BOOKING_CONFIRMED: "Booking Confirmations",
+  BOOKING_COMPLETED: "Booking Completions",
   BOOKING_CANCELLED: "Booking Cancellations",
   CLUB_UPDATE: "Club Updates",
   SUPPORT_UPDATE: "Support Updates",

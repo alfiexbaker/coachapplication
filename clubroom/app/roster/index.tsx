@@ -37,7 +37,7 @@ export default function RosterScreen() {
   const coachId = currentUser?.id ?? null;
 
   const loadData = async () => {
-    if (!coachId) {
+    if (!coachId || currentUser?.role !== 'COACH') {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view your roster.'));
     }
 
@@ -65,7 +65,7 @@ export default function RosterScreen() {
     allTags: string[];
   }>({
     load: loadData,
-    deps: [coachId, filters, searchQuery],
+    deps: [coachId, currentUser?.role, filters, searchQuery],
     isEmpty: (value) => value.roster.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
@@ -101,8 +101,17 @@ export default function RosterScreen() {
   }
 
   if (status === 'error') {
+    const terminalAccessError = error?.code === 'UNAUTHORIZED';
     return renderShell(
-      <ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />,
+      <ErrorState
+        title={terminalAccessError ? 'Roster access unavailable' : undefined}
+        message={
+          terminalAccessError
+            ? 'Your account does not have a roster to manage.'
+            : error?.message || 'Failed to load athlete roster.'
+        }
+        onRetry={terminalAccessError ? undefined : retry}
+      />,
     );
   }
 

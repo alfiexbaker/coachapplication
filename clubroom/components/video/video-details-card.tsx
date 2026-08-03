@@ -12,7 +12,6 @@ import { videoService } from '@/services/video-service';
 
 interface VideoDetailsCardProps {
   colors: ThemeColors;
-  coachName: string;
   createdAt: string;
   fileSize: number;
   sessionId?: string;
@@ -21,7 +20,6 @@ interface VideoDetailsCardProps {
 
 export const VideoDetailsCard = function VideoDetailsCard({
   colors,
-  coachName,
   createdAt,
   fileSize,
   sessionId,
@@ -33,10 +31,6 @@ export const VideoDetailsCard = function VideoDetailsCard({
         Details
       </ThemedText>
       <Column gap="sm">
-        <Row justify="space-between" align="center">
-          <ThemedText style={{ color: colors.muted }}>Coach</ThemedText>
-          <ThemedText>{coachName}</ThemedText>
-        </Row>
         <Row justify="space-between" align="center">
           <ThemedText style={{ color: colors.muted }}>Uploaded</ThemedText>
           <ThemedText>

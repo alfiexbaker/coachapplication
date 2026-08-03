@@ -613,13 +613,20 @@ class InvoiceService {
     if (USE_MOCK) {
       return apiClient.get<Invoice[]>(STORAGE_KEY_INVOICES, MOCK_INVOICES);
     }
-    return [];
+    throw new Error(
+      "Local invoice storage is mock-only; API mode uses /v1/invoices authority.",
+    );
   }
 
   /**
    * Save invoices to storage
    */
   private async saveInvoices(invoices: Invoice[]): Promise<void> {
+    if (!USE_MOCK) {
+      throw new Error(
+        "Local invoice storage is mock-only; API mode uses /v1/invoices authority.",
+      );
+    }
     await apiClient.set(STORAGE_KEY_INVOICES, invoices);
   }
 
@@ -629,7 +636,9 @@ class InvoiceService {
    */
   async upsertInvoice(invoice: Invoice): Promise<void> {
     if (!USE_MOCK) {
-      return;
+      throw new Error(
+        "Synthetic invoice upsert is mock-only; API mode must use /v1/invoices/generate.",
+      );
     }
     const invoices = await this.getAllInvoices();
     const exists = invoices.some((inv) => inv.id === invoice.id);

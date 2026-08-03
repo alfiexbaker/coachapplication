@@ -182,6 +182,11 @@ No updates/deletes except controlled retention/archive on eligible tables.
 - `badges`, `athlete_badges`
 - `drills`, `drill_assignments`, `assignment_submissions`
 - `media_objects`, `upload_sessions`, `malware_scan_results`
+  - `upload_sessions` owns the active scan-attempt token, lease expiry, retry schedule, linked clean-result id, original staging key, and an independent post-expiry staging-cleanup lease/result with its own attempt count. Completion and callback transactions lock this row so stale workers and completion/scan races cannot promote unsafe media; cleanup retries cannot alter sealed media authority.
+  - `malware_scan_results` links to its upload session and stores unique source/attempt ids plus exact object size, ETag, SHA-256, deterministic sealed storage key, and canonical request hash. One scanner attempt and one source result can produce only one stored verdict.
+  - `runtime_worker_heartbeats` stores short-lived internal worker readiness leases. Upload initialization and `/v1/ready` require a current healthy upload-scanner heartbeat in database mode; RLS and grants prevent `anon` or `authenticated` clients reading this operational state directly.
+  - Client upload keys are mutable staging locations. A clean worker uploads the exact downloaded-and-scanned temporary bytes to a server-only sealed key, and the callback atomically replaces `media_objects.storage_key` with that sealed key before completion can expose the media.
+  - Migration `20260730230000_reject_legacy_unsealed_media` preserves but marks pre-sealing `AVAILABLE` rows and their upload sessions `REJECTED`, with one `upload.legacy_unsealed_rejected` audit event per media object. Legacy bytes must be re-uploaded through current scan authority rather than trusted retroactively.
 - `videos`, `video_annotations`
 - `progress_timeline_entries`
 

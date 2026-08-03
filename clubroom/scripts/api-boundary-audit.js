@@ -13,7 +13,24 @@ const shouldUpdateBaseline = args.has('--update-baseline') || args.has('--write'
 const UI_TARGETS = ['app', 'components', 'hooks'];
 const APP_TARGETS = ['app', 'components', 'hooks', 'services'];
 const API_TARGETS = ['apps/api/src'];
+const FRONTEND_RUNTIME_TARGETS = [
+  'app',
+  'components',
+  'constants',
+  'context',
+  'hooks',
+  'navigation',
+  'services',
+  'utils',
+];
+const SERVICE_TARGETS = ['services'];
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+
+const API_MODE_FALSE_SUCCESS_REGEX =
+  /\bif\s*\(\s*!\s*(?:apiClient\.isMockMode|USE_MOCK|isMockMode\(\))\s*\)\s*(?:\{\s*)?return\s+ok\(\s*undefined\s*\)\s*;/g;
+const SUPABASE_DATA_API_IMPORT_REGEX = /(['"])@supabase\/supabase-js\1/g;
+const SUPABASE_DATA_API_PATH_REGEX =
+  /(['"`])[^'"`]*(?:\/rest\/v1(?:\/[^'"`]*)?|\/graphql\/v1(?:\/[^'"`]*)?)\1/g;
 
 const TRUST_SENSITIVE_STORAGE_KEYS = new Set([
   'BOOKINGS',
@@ -333,6 +350,48 @@ function collectRawPrismaHandlerFindings() {
   return findings;
 }
 
+function collectApiModeFalseSuccessFindings() {
+  const findings = [];
+  for (const file of listFiles(SERVICE_TARGETS, { extensions: SOURCE_EXTENSIONS })) {
+    const source = stripCommentsPreserveLines(readSource(file));
+    addRegexFindings(
+      findings,
+      'api-mode-false-success',
+      file,
+      source,
+      API_MODE_FALSE_SUCCESS_REGEX,
+      'API mode must call live authority or return an explicit error instead of reporting success after skipping work.',
+    );
+  }
+  return findings;
+}
+
+function collectSupabaseDataApiFindings() {
+  const findings = [];
+  for (const file of listFiles(FRONTEND_RUNTIME_TARGETS, { extensions: SOURCE_EXTENSIONS })) {
+    const source = stripCommentsPreserveLines(readSource(file));
+    const message =
+      'Use a Fastify /v1 service contract; frontend runtime code must not call the Supabase Data API directly.';
+    addRegexFindings(
+      findings,
+      'supabase-data-api-client',
+      file,
+      source,
+      SUPABASE_DATA_API_IMPORT_REGEX,
+      message,
+    );
+    addRegexFindings(
+      findings,
+      'supabase-data-api-client',
+      file,
+      source,
+      SUPABASE_DATA_API_PATH_REGEX,
+      message,
+    );
+  }
+  return findings;
+}
+
 function collectFindings() {
   return uniqueFindings([
     ...collectFrontendRawFetchFindings(),
@@ -342,6 +401,8 @@ function collectFindings() {
     ...collectNativeAlertFindings(),
     ...collectUntracedBackendRouteFindings(),
     ...collectRawPrismaHandlerFindings(),
+    ...collectApiModeFalseSuccessFindings(),
+    ...collectSupabaseDataApiFindings(),
   ]);
 }
 
@@ -405,10 +466,18 @@ function main() {
   console.log('Pass: no new API/UI boundary violations detected.');
 }
 
-try {
-  main();
-} catch (error) {
-  console.error('API boundary audit failed to run.');
-  console.error(error);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error('API boundary audit failed to run.');
+    console.error(error);
+    process.exit(1);
+  }
 }
+
+module.exports = {
+  API_MODE_FALSE_SUCCESS_REGEX,
+  SUPABASE_DATA_API_IMPORT_REGEX,
+  SUPABASE_DATA_API_PATH_REGEX,
+};

@@ -9,13 +9,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
-import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubDashboard } from '@/hooks/use-club-dashboard';
-import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
 import { Routes } from '@/navigation/routes';
-import { buildOwnerDemoWalkthrough } from '@/utils/demo-walkthrough';
 import type {
   OrgOwnerDashboardData,
   OwnerDashboardSupportIssue,
@@ -26,7 +23,7 @@ import type {
 } from '@/services/org-head-coach-service';
 import type { OrgWorkItem } from '@/services/org-staffing-service';
 
-function formatDateLabel(iso?: string): string {
+function formatDateLabel(iso?: string | null): string {
   if (!iso) return 'Date pending';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -36,6 +33,11 @@ function formatDateLabel(iso?: string): string {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function formatLocationLabel(item: OrgWorkItem): string {
+  if (item.isVirtual) return 'Online';
+  return item.location ?? 'Location not set';
 }
 
 type PriorityAction = {
@@ -253,7 +255,7 @@ function UnassignedRow(props: { item: OrgWorkItem; onPress: () => void }) {
           <View style={styles.rowBody}>
             <ThemedText style={styles.rowTitle}>{props.item.title}</ThemedText>
             <ThemedText style={[styles.rowMeta, { color: colors.muted }]}>
-              {formatDateLabel(props.item.scheduledAt)} · {props.item.location}
+              {formatDateLabel(props.item.scheduledAt)} · {formatLocationLabel(props.item)}
             </ThemedText>
             <ThemedText style={[styles.rowMeta, { color: colors.muted }]}>
               {props.item.linkedBookingCount} linked booking
@@ -353,11 +355,6 @@ export default function DashboardScreen() {
   const { colors } = useTheme();
   const { clubId, dashboard, status, error, retry, refreshing, onRefresh, navigateTo } =
     useClubDashboard();
-  const walkthrough = buildOwnerDemoWalkthrough(clubId);
-  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    dashboard?.viewerMembership.userId,
-    walkthrough,
-  );
 
   if (status === 'loading') {
     return (
@@ -394,7 +391,7 @@ export default function DashboardScreen() {
       header={
         <PageHeader
           title="Owner Dashboard"
-          subtitle={`${dashboard.club.name} · ${dashboard.viewerMembership.role}`}
+          subtitle={`${dashboard.club.name} · ${dashboard.viewerMembership?.role ?? 'System administrator'}`}
           showBack
         />
       }
@@ -571,10 +568,10 @@ export default function DashboardScreen() {
           onPress={() => navigateTo(Routes.EARNINGS)}
         />
         <ActionLink
-          title="Club Hub & Admin"
-          description="Jump into club settings, invites, and branded club administration."
+          title="Club settings"
+          description="Manage club details, invites, branding, and members."
           icon="shield-outline"
-          onPress={() => navigateTo(Routes.clubHub({ clubId }))}
+          onPress={() => navigateTo(Routes.clubSettings({ clubId, section: 'details' }))}
         />
       </View>
 
@@ -612,20 +609,6 @@ export default function DashboardScreen() {
           </SurfaceCard>
         )}
       </View>
-
-      {visibleWalkthrough ? (
-        <View style={styles.section}>
-          <SectionHeader
-            title="Optional walkthrough"
-            caption="Keep this below the operating surface so live work stays first."
-          />
-          <DemoWalkthroughCard
-            walkthrough={visibleWalkthrough}
-            onPressStep={(step) => navigateTo(step.route)}
-            onDismiss={dismissWalkthrough}
-          />
-        </View>
-      ) : null}
     </PageContainer>
   );
 }

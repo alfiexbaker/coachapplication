@@ -8,6 +8,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
 import { Row } from '@/components/primitives';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+import { formatBookingPrice } from './multi-week-picker-helpers';
 
 export interface WeekRow {
   weekDate: string;
@@ -64,8 +65,7 @@ export function MultiWeekPicker({
           </ThemedText>
         </Row>
         <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
-          {currency}
-          {totalCost.toFixed(0)}
+          {formatBookingPrice(totalCost, currency)}
         </ThemedText>
       </Row>
 

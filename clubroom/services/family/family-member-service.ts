@@ -22,9 +22,8 @@ import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { childService, type ChildProfile } from '@/services/child-service';
 import {
   bookingAuthorityService,
-  bookingService,
   mapApiBookingToBooking,
-} from '@/services/booking';
+} from '@/services/booking/booking-authority-service';
 import type { Booking } from '@/constants/app-types';
 import { mapChildProfileToFamilyMember } from './family-api-support';
 import { analyticsQueryService } from '@/services/analytics/analytics-query-service';
@@ -34,6 +33,7 @@ import {
   safeDisplayLabel,
 } from '@/utils/booking-display';
 import { isBrowserFetchFailure } from '@/utils/network-errors';
+import { CHILD_COLORS } from './family-colors';
 
 const logger = createLogger('FamilyMemberService');
 const USE_MOCK = api.useMock;
@@ -45,16 +45,7 @@ const USE_MOCK = api.useMock;
 /**
  * Color palette for children in calendar/charts.
  */
-export const CHILD_COLORS = [
-  '#3B82F6', // Blue
-  '#10B981', // Green
-  '#F59E0B', // Amber
-  '#EF4444', // Red
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#06B6D4', // Cyan
-  '#F97316', // Orange
-] as const;
+export { CHILD_COLORS } from './family-colors';
 
 // ============================================================================
 // MOCK DATA
@@ -313,6 +304,9 @@ async function loadOptionalAuthoritativeFamilyBookings(
     logger.warn('family_calendar_bookings_unavailable', {
       error: bookingResult.error.message,
     });
+    if (!USE_MOCK) {
+      throw new Error(bookingResult.error.message || 'Family bookings unavailable.');
+    }
     return [];
   }
 
@@ -650,13 +644,8 @@ class FamilyMemberService {
       if (!child) {
         return [];
       }
-      const bookings = await bookingService.list();
-      return buildFamilyCalendarEvents(
-        bookings.filter((booking) =>
-          (booking.athleteIds ?? (booking.athleteId ? [booking.athleteId] : [])).includes(childId),
-        ),
-        [child],
-      ).sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
+      const bookings = await loadOptionalAuthoritativeFamilyBookings([child]);
+      return bookings.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
     }
 
     const bookings = await this.loadBookings();

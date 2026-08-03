@@ -79,6 +79,7 @@ export const familyService = {
   // FAMILY SHARING - ACCOUNTS (from familyRelationshipService)
   // ==========================================================================
   getFamilyAccount: familyRelationshipService.getFamilyAccount.bind(familyRelationshipService),
+  findFamilyAccount: familyRelationshipService.findFamilyAccount.bind(familyRelationshipService),
   getGuardians: familyRelationshipService.getGuardians.bind(familyRelationshipService),
 
   // ==========================================================================

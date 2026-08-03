@@ -9,7 +9,8 @@ interface ChildScreenStateProps {
   colors: ThemeColors;
   status: 'loading' | 'error' | 'ready';
   errorMessage: string;
-  onRetry: () => void;
+  onRetry?: () => void;
+  errorTitle?: string;
   loadingVariant?: LoadingVariant;
   header?: ReactNode;
   children?: ReactNode;
@@ -20,6 +21,7 @@ export function ChildScreenState({
   status,
   errorMessage,
   onRetry,
+  errorTitle,
   loadingVariant = 'detail',
   header,
   children,
@@ -30,7 +32,7 @@ export function ChildScreenState({
       {status === 'loading' ? (
         <LoadingState variant={loadingVariant} />
       ) : status === 'error' ? (
-        <ErrorState message={errorMessage} onRetry={onRetry} />
+        <ErrorState message={errorMessage} onRetry={onRetry} title={errorTitle} />
       ) : (
         children
       )}

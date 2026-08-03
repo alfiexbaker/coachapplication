@@ -1,27 +1,29 @@
 /**
- * Hook for the Post Detail screen.
- * Manages post lookup, comment threads, likes, and comment submission.
+ * State and authority wiring for the post detail route.
  */
 
-import { useEffect, useState, startTransition } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+
 import { useAuth } from '@/hooks/use-auth';
-import { useScreen, type ScreenStatus, type UseScreenResult } from '@/hooks/use-screen';
+import { useScreen } from '@/hooks/use-screen';
 import { api } from '@/constants/config';
 import { commentService } from '@/services/comment-service';
 import { socialFeedService } from '@/services/social-feed-service';
+import { apiClient } from '@/services/api-client';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 import { createLogger } from '@/utils/logger';
 import type { Post } from '@/constants/social-types';
 import type { ClubFeedPost } from '@/constants/club-types';
 import type { CommentThread, ThreadedComment } from '@/constants/comment-types';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, validationError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('PostDetail');
+const EMPTY_THREADS: CommentThread[] = [];
 
-// Normalized shape for both Post and ClubFeedPost
 export interface NormalizedPost {
   authorName: string;
   authorAvatar: string | undefined;
@@ -35,10 +37,13 @@ export interface NormalizedPost {
   likedByCurrentUser?: boolean;
 }
 
+interface PostDetailData {
+  post: Post | ClubFeedPost;
+  threads: CommentThread[];
+}
+
 function isInternalDisplayId(value: string): boolean {
-  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(
-    value,
-  );
+  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(value);
 }
 
 function displayAuthorName(value: string | undefined, fallback: string): string {
@@ -48,11 +53,12 @@ function displayAuthorName(value: string | undefined, fallback: string): string 
 
 function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
   if ('body' in post) {
+    const title = post.title?.trim();
     return {
-      authorName: displayAuthorName(post.authorName, 'Club update'),
+      authorName: displayAuthorName(post.authorName, 'Club'),
       authorAvatar: undefined,
       content: post.body,
-      title: post.title,
+      title: title && !/^(?:post|update)$/i.test(title) ? title : undefined,
       createdAt: post.createdAt,
       likes: [],
       reactionCount: 'reactionCount' in post ? (post.reactionCount ?? 0) : 0,
@@ -62,7 +68,7 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
     };
   }
   return {
-    authorName: displayAuthorName(post.authorId, 'Post author'),
+    authorName: displayAuthorName(post.authorId, 'Member'),
     authorAvatar: undefined,
     content: post.content,
     title: undefined,
@@ -78,45 +84,33 @@ export type FlatItem =
   | { type: 'reply'; data: ThreadedComment; isReply: true };
 
 function flattenThreads(threads: CommentThread[]): FlatItem[] {
-  const items: FlatItem[] = [];
-  for (const thread of threads) {
-    items.push({ type: 'comment', data: thread.comment, isReply: false });
-    for (const reply of thread.replies) {
-      items.push({ type: 'reply', data: reply, isReply: true });
-    }
-  }
-  return items;
+  return threads.flatMap((thread) => [
+    { type: 'comment' as const, data: thread.comment, isReply: false as const },
+    ...thread.replies.map((reply) => ({
+      type: 'reply' as const,
+      data: reply,
+      isReply: true as const,
+    })),
+  ]);
+}
+
+function countVisibleComments(threads: CommentThread[]): number {
+  return threads.reduce(
+    (count, thread) =>
+      count +
+      (thread.comment.isDeleted ? 0 : 1) +
+      thread.replies.filter((reply) => !reply.isDeleted).length,
+    0,
+  );
+}
+
+function mutationMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim() ? error.message : fallback;
 }
 
 export function usePostDetail() {
   const { currentUser } = useAuth();
   const { postId } = useLocalSearchParams<{ postId: string }>();
-
-  const localPost = (() => {
-    if (!api.useMock) return null;
-    if (!postId) return null;
-    if (currentUser?.id) {
-      const aggregatedPosts = socialFeedService.getAggregatedFeed(currentUser.id);
-      const aggregatedMatch = aggregatedPosts.find((item) => item.id === postId);
-      if (aggregatedMatch) {
-        return aggregatedMatch;
-      }
-    }
-
-    if (currentUser?.role === 'COACH' && currentUser.id) {
-      const personalPosts = socialFeedService.getPersonalFeed(currentUser.id);
-      const personalMatch = personalPosts.find((item) => item.id === postId);
-      if (personalMatch) {
-        return personalMatch;
-      }
-    }
-
-    return null;
-  })();
-
-  const [authorityPost, setAuthorityPost] = useState<ClubFeedPost | null>(null);
-  const [postLoading, setPostLoading] = useState(!api.useMock);
-  const [postError, setPostError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(
@@ -124,122 +118,86 @@ export function usePostDetail() {
   );
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [postReactionPending, setPostReactionPending] = useState(false);
+  const [pendingCommentIds, setPendingCommentIds] = useState<string[]>([]);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const postReactionPendingRef = useRef(false);
+  const [pendingCommentIdsSet] = useState(() => new Set<string>());
+  const submittingCommentRef = useRef(false);
+  const submitIntentKeyRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    const loadPost = async () => {
-      if (api.useMock) {
-        setAuthorityPost(null);
-        setPostError(null);
-        setPostLoading(false);
-        return;
-      }
-      if (!postId) {
-        setAuthorityPost(null);
-        setPostError('Post not found');
-        setPostLoading(false);
-        return;
-      }
-
-      setPostLoading(true);
-      setPostError(null);
-      const result = await socialFeedService.getPostAuthority(postId);
-      if (!active) return;
-      if (!result.success) {
-        setAuthorityPost(null);
-        setPostError(result.error.message);
-        setPostLoading(false);
-        return;
-      }
-      setAuthorityPost(result.data);
-      setPostLoading(false);
-    };
-
-    void loadPost();
-
-    return () => {
-      active = false;
-    };
-  }, [postId, currentUser?.id]);
-
-  const post = api.useMock ? localPost : authorityPost;
-  const normalized = post ? normalizePost(post) : null;
-
-  useEffect(() => {
-    if (!normalized) return;
-    if (typeof normalized.likedByCurrentUser === 'boolean') {
-      startTransition(() => {
-        setLiked(normalized.likedByCurrentUser === true);
-      });
-      startTransition(() => {
-        setLikeCount(normalized.reactionCount);
-      });
-    } else if (normalized.likes.length > 0) {
-      startTransition(() => {
-        setLiked(normalized.likes.includes(currentUser?.id ?? ''));
-      });
-      startTransition(() => {
-        setLikeCount(normalized.likes.length);
-      });
-    } else {
-      startTransition(() => {
-        setLikeCount(normalized.reactionCount);
-      });
-    }
-  }, [normalized, currentUser?.id]);
-
-  const loadComments = async () => {
+  const loadDetail = async () => {
     if (!postId) {
-      return ok<CommentThread[]>([]);
+      return err(validationError('Update unavailable.'));
     }
 
     try {
-      const result = await commentService.getCommentsForPost(postId);
-      if (!result.success) {
-        return err(result.error);
+      const postResult = await socialFeedService.getPostAuthority(postId);
+      if (!postResult.success) {
+        return err(postResult.error);
       }
 
-      return ok(result.data);
+      const commentsResult = await commentService.getCommentsForPost(postId);
+      if (!commentsResult.success) {
+        return err(commentsResult.error);
+      }
+
+      return ok<PostDetailData>({
+        post: postResult.data,
+        threads: commentsResult.data,
+      });
     } catch (loadError) {
-      logger.error('Failed to load comments', loadError);
-      return err(serviceError('UNKNOWN', 'Failed to load comments.', loadError));
+      logger.error('Failed to load post detail', loadError);
+      return err(serviceError('UNKNOWN', 'Could not load this update.', loadError));
     }
   };
 
-  const {
-    data,
-    status,
-    pendingState,
-    showSectionSkeleton,
-    isPending,
-    error: loadError,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<CommentThread[]>({
-    load: loadComments,
-    deps: [postId],
-    isEmpty: (value) => value.length === 0,
+  const screen = useScreen<PostDetailData>({
+    load: loadDetail,
+    deps: [postId, currentUser?.id],
+    dataKey: postId ?? null,
+    isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
   });
 
-  const threads = data ?? [];
-
+  const post = screen.data?.post ?? null;
+  const threads = screen.data?.threads ?? EMPTY_THREADS;
+  const normalized = post ? normalizePost(post) : null;
   const flatItems = flattenThreads(threads);
+  const totalCommentCount = countVisibleComments(threads);
 
-  const totalCommentCount = (() => {
-    let count = 0;
-    for (const thread of threads) {
-      if (!thread.comment.isDeleted) count += 1;
-      count += thread.replies.filter((r) => !r.isDeleted).length;
-    }
-    return count;
-  })();
+  useEffect(() => {
+    if (!post) return;
+    const loadedPost = normalizePost(post);
+    startTransition(() => {
+      const nextLiked =
+        typeof loadedPost.likedByCurrentUser === 'boolean'
+          ? loadedPost.likedByCurrentUser
+          : loadedPost.likes.includes(currentUser?.id ?? '');
+      setLiked(nextLiked);
+      setLikeCount(loadedPost.reactionCount);
+    });
+  }, [post, currentUser?.id]);
+
+  const beginCommentAction = (commentId: string): boolean => {
+    if (pendingCommentIdsSet.has(commentId)) return false;
+    pendingCommentIdsSet.add(commentId);
+    setPendingCommentIds(Array.from(pendingCommentIdsSet));
+    setActionError(null);
+    return true;
+  };
+
+  const finishCommentAction = (commentId: string) => {
+    pendingCommentIdsSet.delete(commentId);
+    setPendingCommentIds(Array.from(pendingCommentIdsSet));
+  };
 
   const handleLikePost = async () => {
-    if (!postId || !currentUser) return;
+    if (!postId || !currentUser || postReactionPendingRef.current) return;
+    postReactionPendingRef.current = true;
+    setPostReactionPending(true);
+    setActionError(null);
     logger.press('LikePost', { postId });
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const previousLiked = liked;
@@ -248,172 +206,181 @@ export function usePostDetail() {
     setLiked(nextLiked);
     setLikeCount(Math.max(0, previousLikeCount + (nextLiked ? 1 : -1)));
 
-    if (api.useMock) {
-      socialFeedService.toggleReaction(postId, currentUser.id);
-      return;
-    }
+    await runAsyncTryCatchFinally(
+      async () => {
+        if (api.useMock) {
+          socialFeedService.toggleReaction(postId, currentUser.id);
+          return;
+        }
 
-    const result = await socialFeedService.toggleReactionAuthority(postId);
-    if (result.success) {
-      setActionError(null);
-      setLiked(result.data.likedByCurrentUser === true);
-      setLikeCount(result.data.reactionCount ?? result.data.likes?.length ?? 0);
-      return;
-    }
+        const result = await socialFeedService.toggleReactionAuthority(postId);
+        if (!result.success) {
+          setLiked(previousLiked);
+          setLikeCount(previousLikeCount);
+          setActionError(result.error.message);
+          return;
+        }
 
-    setLiked(previousLiked);
-    setLikeCount(previousLikeCount);
-    setActionError(result.error.message);
-    uiFeedback.showToast(result.error.message || 'Failed to update reaction.', 'error');
+        setLiked(result.data.likedByCurrentUser === true);
+        setLikeCount(result.data.reactionCount ?? result.data.likes?.length ?? 0);
+      },
+      (reactionError) => {
+        setLiked(previousLiked);
+        setLikeCount(previousLikeCount);
+        setActionError(mutationMessage(reactionError, 'Could not update this reaction.'));
+      },
+      () => {
+        postReactionPendingRef.current = false;
+        setPostReactionPending(false);
+      },
+    );
   };
 
   const handleLikeComment = async (commentId: string) => {
-    if (!currentUser) return;
-    const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
-    if (result.success) {
-      setActionError(null);
-      onRefresh();
-      return;
-    }
-    setActionError(result.error.message);
+    if (!currentUser || !beginCommentAction(commentId)) return;
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
+        if (!result.success) {
+          setActionError(result.error.message);
+          return;
+        }
+        screen.onRefresh();
+      },
+      (reactionError) => {
+        setActionError(mutationMessage(reactionError, 'Could not update this reaction.'));
+      },
+      () => finishCommentAction(commentId),
+    );
   };
 
   const handleReply = (commentId: string, authorName: string) => {
+    submitIntentKeyRef.current = null;
+    setActionError(null);
     setReplyingTo({ commentId, authorName });
   };
-  const handleCancelReply = () => setReplyingTo(null);
+
+  const handleCancelReply = () => {
+    submitIntentKeyRef.current = null;
+    setReplyingTo(null);
+  };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!currentUser) return;
-    uiFeedback.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          const result = await commentService.deleteComment({
-            commentId,
-            userId: currentUser.id,
-          });
-          if (result.success) {
-            setActionError(null);
-            onRefresh();
-            return;
-          }
+    if (!currentUser || !beginCommentAction(commentId)) return;
+    await runAsyncTryCatchFinally(
+      async () => {
+        const confirmed = await uiFeedback.confirm({
+          title: 'Delete comment?',
+          message: 'This cannot be undone.',
+          confirmText: 'Delete',
+          cancelText: 'Cancel',
+          destructive: true,
+        });
+        if (!confirmed) return;
+
+        const result = await commentService.deleteComment({
+          commentId,
+          userId: currentUser.id,
+        });
+        if (!result.success) {
           setActionError(result.error.message);
-        },
+          return;
+        }
+        screen.onRefresh();
       },
-    ]);
+      (deleteError) => {
+        setActionError(mutationMessage(deleteError, 'Could not delete this comment.'));
+      },
+      () => finishCommentAction(commentId),
+    );
   };
 
-  const handleSubmitComment = async () => {
-    if (!newComment.trim() || !currentUser) return;
+  const handleCommentChange = (value: string) => {
+    submitIntentKeyRef.current = null;
+    setActionError(null);
+    setNewComment(value);
+  };
+
+  const handleSubmitComment = async (content: string) => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent || !currentUser || !postId || submittingCommentRef.current) return;
+    submittingCommentRef.current = true;
+    setSubmittingComment(true);
+    setActionError(null);
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const result = await commentService.createComment({
-      postId: postId ?? '',
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      authorAvatar: currentUser.avatar,
-      content: newComment,
-      parentId: replyingTo?.commentId,
-    });
-    if (result.success) {
-      setActionError(null);
-      setNewComment('');
-      setReplyingTo(null);
-      onRefresh();
-      return;
-    }
-    setActionError(result.error.message);
+    const idempotencyKey =
+      submitIntentKeyRef.current ?? apiClient.generateId('comment-create-intent');
+    submitIntentKeyRef.current = idempotencyKey;
+
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await commentService.createComment({
+          postId,
+          authorId: currentUser.id,
+          authorName: currentUser.name,
+          authorAvatar: currentUser.avatar,
+          content: trimmedContent,
+          parentId: replyingTo?.commentId,
+          idempotencyKey,
+        });
+        if (!result.success) {
+          setActionError(result.error.message);
+          return;
+        }
+
+        submitIntentKeyRef.current = null;
+        setNewComment('');
+        setReplyingTo(null);
+        screen.onRefresh();
+      },
+      (submitError) => {
+        setActionError(mutationMessage(submitError, 'Could not send this comment.'));
+      },
+      () => {
+        submittingCommentRef.current = false;
+        setSubmittingComment(false);
+      },
+    );
   };
 
-  const postAuthorName = normalized?.authorName ?? 'Unknown';
+  const postAuthorName = normalized?.authorName ?? 'Member';
   const postAuthorAvatar = normalized?.authorAvatar;
-  const postContent = normalized?.content ?? '';
-  const postTitle = normalized?.title;
-  const postCreatedAt = normalized?.createdAt ?? '';
-  const postImageUrl = normalized?.imageUrl;
-  const postVideoUrl = normalized?.videoUrl;
-  const initials = postAuthorAvatar?.slice(0, 2) ?? postAuthorName.slice(0, 2).toUpperCase();
-  const error =
-    actionError ??
-    (status === 'error'
-      ? ((loadError as ServiceError | null)?.message ?? 'Failed to load comments.')
-      : null);
 
   return {
     post,
     postAuthorName,
     postAuthorAvatar,
-    postContent,
-    postTitle,
-    postCreatedAt,
-    postImageUrl,
-    postVideoUrl,
-    initials,
+    postContent: normalized?.content ?? '',
+    postTitle: normalized?.title,
+    postCreatedAt: normalized?.createdAt ?? '',
+    postImageUrl: normalized?.imageUrl,
+    postVideoUrl: normalized?.videoUrl,
+    initials: postAuthorAvatar?.slice(0, 2) ?? postAuthorName.slice(0, 2).toUpperCase(),
     currentUser,
     flatItems,
-    loading: status === 'loading',
-    status,
-    pendingState,
-    showSectionSkeleton,
-    isPending,
-    error,
-    postLoading,
-    postError,
-    refreshing,
-    onRefresh,
-    retry,
+    totalCommentCount,
+    status: screen.status,
+    loading: screen.status === 'loading',
+    loadError: screen.error,
+    refreshing: screen.refreshing,
+    onRefresh: screen.onRefresh,
+    retry: screen.retry,
+    isPending: screen.isPending,
+    actionError,
+    clearActionError: () => setActionError(null),
     newComment,
-    setNewComment,
+    handleCommentChange,
     replyingTo,
     liked,
     likeCount,
-    totalCommentCount,
-    loadComments: retry,
-    handleRefresh: onRefresh,
+    postReactionPending,
+    pendingCommentIds,
+    submittingComment,
     handleLikePost,
     handleLikeComment,
     handleReply,
     handleCancelReply,
     handleDeleteComment,
     handleSubmitComment,
-  } satisfies {
-    post: Post | ClubFeedPost | null;
-    postAuthorName: string;
-    postAuthorAvatar: string | undefined;
-    postContent: string;
-    postTitle: string | undefined;
-    postCreatedAt: string;
-    postImageUrl: string | undefined;
-    postVideoUrl: string | undefined;
-    initials: string;
-    currentUser: ReturnType<typeof useAuth>['currentUser'];
-    flatItems: FlatItem[];
-    loading: boolean;
-    status: ScreenStatus;
-    pendingState: UseScreenResult<CommentThread[]>['pendingState'];
-    showSectionSkeleton: boolean;
-    isPending: boolean;
-    error: string | null;
-    postLoading: boolean;
-    postError: string | null;
-    refreshing: boolean;
-    onRefresh: () => void;
-    retry: () => void;
-    newComment: string;
-    setNewComment: (value: string) => void;
-    replyingTo: { commentId: string; authorName: string } | null;
-    liked: boolean;
-    likeCount: number;
-    totalCommentCount: number;
-    loadComments: () => void;
-    handleRefresh: () => void;
-    handleLikePost: () => Promise<void>;
-    handleLikeComment: (commentId: string) => Promise<void>;
-    handleReply: (commentId: string, authorName: string) => void;
-    handleCancelReply: () => void;
-    handleDeleteComment: (commentId: string) => Promise<void>;
-    handleSubmitComment: () => Promise<void>;
   };
 }

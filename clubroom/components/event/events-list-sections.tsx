@@ -14,14 +14,14 @@ export type EventFilter = 'upcoming' | 'past' | 'all';
 
 type HeaderProps = {
   colors: ThemeColors;
-  isCoach: boolean;
+  canCreateEvent: boolean;
   onBack: () => void;
   onCreate: () => void;
 };
 
 export const EventsHeader = function EventsHeader({
   colors,
-  isCoach,
+  canCreateEvent,
   onBack,
   onCreate,
 }: HeaderProps) {
@@ -35,7 +35,7 @@ export const EventsHeader = function EventsHeader({
           Club Events
         </ThemedText>
       </Row>
-      {isCoach ? (
+      {canCreateEvent ? (
         <Clickable
           accessibilityLabel="Create event"
           onPress={onCreate}
@@ -91,14 +91,14 @@ export const EventsFilterTabs = renderEventsFilterTabs;
 type EmptyProps = {
   colors: ThemeColors;
   filter: EventFilter;
-  isCoach: boolean;
+  canCreateEvent: boolean;
   onCreate: () => void;
 };
 
 const renderEventsListEmptyState = function renderEventsListEmptyState({
   colors,
   filter,
-  isCoach,
+  canCreateEvent,
   onCreate,
 }: EmptyProps) {
   return (
@@ -116,7 +116,7 @@ const renderEventsListEmptyState = function renderEventsListEmptyState({
             ? 'No past events to show.'
             : 'No events have been created yet.'}
       </ThemedText>
-      {isCoach ? (
+      {canCreateEvent ? (
         <Button onPress={onCreate} style={styles.emptyButton} label="Create Event" />
       ) : null}
     </View>

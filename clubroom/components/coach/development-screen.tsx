@@ -5,14 +5,10 @@
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { NotificationBell } from '@/components/ui/notification-bell';
-import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing } from '@/constants/theme';
-import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
-import { router } from 'expo-router';
 
 import { useCoachDevelopment } from '@/hooks/use-coach-development';
-import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 import {
   QuickActions,
   CompletionCard,
@@ -35,12 +31,6 @@ export function CoachDevelopmentScreen() {
     athleteDirectory,
     logger,
   } = useCoachDevelopment();
-  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
-  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    currentUser?.id,
-    walkthrough,
-  );
-
   if (!currentUser) return null;
 
   const header = (
@@ -79,21 +69,16 @@ export function CoachDevelopmentScreen() {
       refreshing={refreshing}
       onRefresh={onRefresh}
     >
-      {visibleWalkthrough ? (
-        <DemoWalkthroughCard
-          walkthrough={visibleWalkthrough}
-          onPressStep={(step) => router.push(step.route)}
-          onDismiss={dismissWalkthrough}
-        />
-      ) : null}
       <QuickActions />
       <CompletionCard bookings={awaitingCompletion} />
       <AttentionSection athletes={attentionAthletes} logger={logger} />
-      <RecentSessionsSection
-        sessions={recentSessions}
-        athleteDirectory={athleteDirectory}
-        logger={logger}
-      />
+      {recentSessions.length > 0 ? (
+        <RecentSessionsSection
+          sessions={recentSessions}
+          athleteDirectory={athleteDirectory}
+          logger={logger}
+        />
+      ) : null}
     </PageContainer>
   );
 }

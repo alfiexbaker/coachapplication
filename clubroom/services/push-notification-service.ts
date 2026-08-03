@@ -69,7 +69,7 @@ export const pushNotificationService = {
 
     // Must be a physical device for push notifications
     if (Device && !Device.isDevice) {
-      logger.warn('Push notifications require a physical device');
+      logger.info('Push notifications unavailable on simulator');
       return null;
     }
 

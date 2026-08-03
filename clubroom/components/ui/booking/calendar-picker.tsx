@@ -1,6 +1,5 @@
-import { View, StyleSheet } from 'react-native';
+import { ScrollView, View, StyleSheet } from 'react-native';
 import { toDateStr } from '@/utils/format';
-import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
@@ -11,28 +10,32 @@ interface CalendarPickerProps {
   selectedDate?: string;
   onSelect: (iso: string) => void;
   availabilityByDate?: Record<string, AvailabilitySlot[]>;
-  daysToShow?: number;
 }
 
 export function CalendarPicker({
   selectedDate,
   onSelect,
   availabilityByDate,
-  daysToShow = 14,
 }: CalendarPickerProps) {
   const { colors: palette } = useTheme();
 
-  const days = Array.from({ length: daysToShow }).map((_, idx) => {
+  const days = Array.from({ length: 14 }).map((_, idx) => {
     const date = new Date();
     date.setDate(date.getDate() + idx);
     return date;
   });
 
   return (
-    <Row wrap gap="sm">
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.days}
+    >
+      {/* react-doctor-disable-next-line react-doctor/rn-no-scrollview-mapped-list -- booking always renders one bounded 14-day strip. */}
       {days.map((date) => {
         const iso = toDateStr(date);
         const active = selectedDate === iso;
+        const weekday = date.toLocaleDateString('en-GB', { weekday: 'short' });
 
         // Check if this date has available slots
         const slotsForDate = availabilityByDate?.[iso] || [];
@@ -47,6 +50,12 @@ export function CalendarPicker({
             key={iso}
             onPress={() => !isDisabled && onSelect(iso)}
             disabled={isDisabled}
+            accessibilityLabel={`${weekday} ${date.getDate()}, ${
+              isDisabled
+                ? 'unavailable'
+                : `${totalAvailableSlots} ${totalAvailableSlots === 1 ? 'slot' : 'slots'} available`
+            }`}
+            accessibilityState={{ disabled: Boolean(isDisabled), selected: active }}
             style={[
               styles.day,
               {
@@ -56,12 +65,12 @@ export function CalendarPicker({
               },
             ]}
           >
-            <ThemedText type="defaultSemiBold">
-              {date.toLocaleDateString('en-GB', { weekday: 'short' })}
+            <ThemedText type="defaultSemiBold" numberOfLines={1}>
+              {weekday}
             </ThemedText>
             <ThemedText style={{ color: palette.muted }}>{date.getDate()}</ThemedText>
             {availabilityByDate && (
-              <Row align="center" gap="xxs" style={styles.indicator}>
+              <View style={styles.indicator}>
                 {hasAvailableSlots ? (
                   <View style={[styles.dot, { backgroundColor: palette.tint }]} />
                 ) : (
@@ -72,25 +81,34 @@ export function CalendarPicker({
                     {totalAvailableSlots}
                   </ThemedText>
                 )}
-              </Row>
+              </View>
             )}
           </Clickable>
         );
       })}
-    </Row>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  // row replaced by Row primitive
+  days: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   day: {
-    width: '22%',
-    padding: Spacing.md,
+    width: 72,
+    minHeight: 96,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
     gap: Spacing.xxs,
+    alignItems: 'center',
   },
   indicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
     marginTop: Spacing.micro,
   },
   dot: {

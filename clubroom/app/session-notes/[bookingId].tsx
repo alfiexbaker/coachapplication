@@ -11,6 +11,7 @@ import { SectionSkeleton, ErrorState, EmptyState } from '@/components/ui/screen-
 import { Spacing, Radii } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { Clickable } from '@/components/primitives/clickable';
+import { PageHeader } from '@/components/primitives/page-header';
 import { useSessionNote } from '@/hooks/use-session-note';
 import { SessionNoteFields } from '@/services/progress-service';
 import { ok } from '@/types/result';
@@ -41,7 +42,7 @@ export default function SessionNotesScreen() {
     try {
       await persist(data);
       setMode('view');
-      uiFeedback.showToast('Parents can now see these inside booking details.', 'success');
+      uiFeedback.showToast('Notes saved.', 'success');
     } catch {
       uiFeedback.showToast('Please retry in a moment.', 'error');
     }
@@ -64,8 +65,10 @@ export default function SessionNotesScreen() {
 
     return null;
   })();
+  const screenTitle = isCoach ? 'Session notes' : 'Coach notes';
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+      <PageHeader title={screenTitle} showBack />
       {content}
     </SafeAreaView>
   );
@@ -73,7 +76,6 @@ export default function SessionNotesScreen() {
   if (loading && !note) {
     return renderShell(
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="title">{isCoach ? 'Session notes' : 'Coach notes'}</ThemedText>
         <SectionSkeleton variant="form" titleWidth="34%" />
       </ScrollView>,
     );
@@ -96,8 +98,6 @@ export default function SessionNotesScreen() {
   return renderShell(
     <>
       <ScrollView contentContainerStyle={styles.content}>
-        <ThemedText type="title">{isCoach ? 'Session notes' : 'Coach notes'}</ThemedText>
-
         {header}
 
         {mode === 'view' && note ? (

@@ -88,6 +88,20 @@ describe('eventRsvpService', () => {
       } as unknown as ClubEvent;
       assert.equal(eventRsvpService.isEventFull(event), true);
     });
+
+    test('uses authoritative RSVP summary capacity including guests', () => {
+      const event = {
+        maxAttendees: 3,
+        rsvpSummary: {
+          going: 2,
+          maybe: 0,
+          notGoing: 0,
+          totalGuests: 1,
+        },
+      } as unknown as ClubEvent;
+
+      assert.equal(eventRsvpService.isEventFull(event), true);
+    });
   });
 
   describe('rsvp', () => {

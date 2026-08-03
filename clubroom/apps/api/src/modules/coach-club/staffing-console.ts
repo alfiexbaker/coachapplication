@@ -5,120 +5,60 @@ import {
   canUseClubCapability,
   isClubStaffRole,
   parseOrganizationRole,
+  staffingConsoleResponseSchema,
+  workAssignmentUpdateRequestSchema,
+  workAssignmentUpdateResponseSchema,
   type ClubRole,
+  type StaffingClub,
+  type StaffingConsoleData,
+  type StaffingMembership,
+  type StaffingStatus,
+  type StaffingStaffMember,
+  type StaffingWorkItem,
+  type WorkAssignmentUpdateResponse,
 } from '@clubroom/shared-contracts';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  ApiProblemError,
+  badRequest,
+  forbidden,
+  isZodValidationError,
+  notFound,
+} from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 
-type StaffingStatus = 'active' | 'cancelled' | 'completed' | 'full';
-type StaffingSessionType = '1on1' | 'group';
+type AssignmentMutationResult = Omit<
+  WorkAssignmentUpdateResponse,
+  'clubId' | 'assignmentId' | 'requestId'
+>;
 
-interface StaffingClub {
+type OwnershipHistoryAction = 'ASSIGNED' | 'REASSIGNED' | 'UPDATED';
+type OwnershipHistoryActorRole = 'COACH' | 'USER' | 'PARENT' | 'ADMIN';
+
+interface OwnershipHistoryEvent {
   id: string;
-  name: string;
-  city: string;
-  memberCount: number;
-  coachCount: number;
-  squadCount: number;
-  ownerId: string;
-  inviteCode: string;
-  tagline?: string;
-  photoUrl?: string;
-  profilePhotoUrl?: string;
-  coverPhotoUrl?: string;
+  action: OwnershipHistoryAction;
+  timestamp: string;
+  actorUserId?: string;
+  actorName?: string;
+  actorRole?: OwnershipHistoryActorRole;
+  fromCoachId?: string;
+  toCoachId: string;
 }
 
-interface StaffingMembership {
+export interface WorkAssignmentHistory {
   clubId: string;
-  userId: string;
-  role: ClubRole;
-  status: 'active' | 'pending';
-  joinSource: 'invite' | 'created';
-  squadIds?: string[];
-  canPostAsClub?: boolean;
-}
-
-interface StaffingStaffMember {
-  userId: string;
-  label: string;
-  role: ClubRole;
-  status: 'active' | 'pending';
-  canTakeAssignments: boolean;
-  assignedToday: number;
-  upcomingLoad: number;
-  nextSessionAt?: string;
-}
-
-interface StaffingWorkItem {
-  offeringId: string;
-  title: string;
-  scheduledAt: string;
-  location: string;
-  status: StaffingStatus;
-  sessionType: StaffingSessionType;
-  currentParticipants: number;
-  maxParticipants: number;
-  createdByName?: string;
-  createdByRole?: string;
-  ownerCoachId?: string;
-  ownerCoachName?: string;
-  assigneeCoachId?: string;
-  assigneeCoachName?: string;
-  linkedBookingCount: number;
-  isRecurring: boolean;
-}
-
-export interface StaffingConsoleData {
-  club: StaffingClub;
-  viewerMembership: StaffingMembership;
-  canManageAssignments: boolean;
-  canPostAsClub: boolean;
-  staff: StaffingStaffMember[];
-  unassignedWork: StaffingWorkItem[];
-  assignedWork: StaffingWorkItem[];
-  summary: {
-    activeOrgSessions: number;
-    assignedToday: number;
-    upcomingAssignedLoad: number;
-    unassignedCount: number;
-  };
-}
-
-interface AssignmentOffering {
-  id: string;
-  source: 'group';
-  sourceEntityId: string;
-  coachId: string;
-  clubId: string;
-  actingAs: 'club';
-  ownerCoachId: string;
-  assigneeCoachId: string;
-  title: string;
-  description?: string;
-  sessionType: StaffingSessionType;
-  maxParticipants: number;
-  location: string;
-  scheduledAt: string;
-  isRecurring: boolean;
-  recurrenceType: 'none' | 'weekly';
-  status: StaffingStatus;
-  registrations: [];
-  createdAt: string;
-}
-
-interface AssignmentMutationResult {
-  offering: AssignmentOffering;
-  updatedBookingIds: string[];
-  previousCoachUserId: string | null;
-  assigneeCoachId: string;
+  assignmentId: string;
+  events: OwnershipHistoryEvent[];
+  total: number;
+  truncated: boolean;
 }
 
 interface SessionProjection {
@@ -143,18 +83,12 @@ interface ScheduleEntry {
   endsAt?: string;
 }
 
-const clubParamsSchema = z.object({
-  clubId: z.string().min(1),
-});
+const clubParamsSchema = z.object({ clubId: z.string().min(1) }).strict();
 
-const workAssignmentParamsSchema = z.object({
-  clubId: z.string().min(1),
-  assignmentId: z.string().min(1),
-});
-
-const workAssignmentBodySchema = z
+const workAssignmentParamsSchema = z
   .object({
-    assigneeCoachId: z.string().min(1),
+    clubId: z.string().min(1),
+    assignmentId: z.string().min(1),
   })
   .strict();
 
@@ -171,7 +105,10 @@ const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
+const asRecord = (value: unknown): SeedRow | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const ownershipHistoryLimit = 100;
 
 function requireAuthUserId(authUserId: string | undefined): string {
   if (!authUserId) {
@@ -189,6 +126,29 @@ function toIso(value: unknown): string | undefined {
 
 function toRole(value: unknown): ClubRole {
   return parseOrganizationRole(value) ?? 'MEMBER';
+}
+
+function toOwnershipActorRole(value: unknown): OwnershipHistoryActorRole | undefined {
+  switch (asString(value)?.trim().toLowerCase()) {
+    case 'admin':
+    case 'club_admin':
+    case 'security_admin':
+    case 'super_admin':
+      return 'ADMIN';
+    case 'coach':
+    case 'owner':
+    case 'head_coach':
+    case 'assistant':
+      return 'COACH';
+    case 'parent':
+    case 'guardian':
+      return 'PARENT';
+    case 'athlete':
+    case 'user':
+      return 'USER';
+    default:
+      return undefined;
+  }
 }
 
 function canReadStaffing(role: ClubRole | null): boolean {
@@ -215,12 +175,6 @@ function canChangeAssignment(
   return canUseClubCapability(
     role,
     isReassignment ? 'reassign_session_coach' : 'assign_session_coach',
-  );
-}
-
-function canPostAsClub(role: ClubRole | null): boolean {
-  return Boolean(
-    role && canUseClubCapability(role, 'post_as_org', { hasGrant: role === 'COACH' }),
   );
 }
 
@@ -253,7 +207,7 @@ function parseScheduleEntries(value: unknown): ScheduleEntry[] {
     : [];
 }
 
-function pickScheduledAt(session: SessionProjection): string {
+function pickScheduledAt(session: SessionProjection): string | null {
   const entries = parseScheduleEntries(session.scheduleJson)
     .flatMap((entry) => {
       const startsAt = asString(entry.startsAt);
@@ -263,30 +217,26 @@ function pickScheduledAt(session: SessionProjection): string {
     })
     .sort((left, right) => left.time - right.time);
   const now = Date.now();
-  return (
-    entries.find((entry) => entry.time >= now)?.startsAt ??
-    entries[0]?.startsAt ??
-    toIso(session.createdAt) ??
-    new Date(0).toISOString()
-  );
+  return entries.find((entry) => entry.time >= now)?.startsAt ?? entries[0]?.startsAt ?? null;
 }
 
-function isToday(iso: string): boolean {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-  const now = new Date();
-  return date.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
-}
-
-function isUpcoming(iso: string): boolean {
+function isUpcoming(iso: string | null): boolean {
+  if (!iso) return false;
   const time = new Date(iso).getTime();
   return Number.isFinite(time) && time >= Date.now();
 }
 
+function compareScheduledAt(left: string | null, right: string | null): number {
+  if (left === right) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  return left.localeCompare(right);
+}
+
 function readAuditResult(error: unknown): 'DENY' | 'ERROR' {
-  return error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR';
+  return isZodValidationError(error) || (error instanceof ApiProblemError && error.status < 500)
+    ? 'DENY'
+    : 'ERROR';
 }
 
 async function recordStaffingReadAudit(params: {
@@ -302,8 +252,25 @@ async function recordStaffingReadAudit(params: {
     resourceId: params.clubId,
     subjectUserId: params.request.auth?.userId ?? null,
     result: params.result,
+    sensitiveRead: true,
     metadata: params.metadata,
   });
+}
+
+function parseStaffingConsoleResponse(payload: unknown) {
+  const parsed = staffingConsoleResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Staffing console response invalid');
+  }
+  return parsed.data;
+}
+
+function parseWorkAssignmentUpdateResponse(payload: unknown) {
+  const parsed = workAssignmentUpdateResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Work assignment response invalid');
+  }
+  return parsed.data;
 }
 
 async function recordAssignmentAudit(params: {
@@ -328,86 +295,103 @@ async function recordAssignmentAudit(params: {
   });
 }
 
+async function recordAssignmentHistoryReadAudit(params: {
+  request: FastifyRequest;
+  clubId: string;
+  assignmentId: string;
+  result: 'SUCCESS' | 'DENY' | 'ERROR';
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: 'club_work_assignment.history.read',
+    resourceType: 'group_session',
+    resourceId: params.assignmentId,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    sensitiveRead: true,
+    metadata: {
+      clubId: params.clubId,
+      ...params.metadata,
+    },
+  });
+}
+
+function mapOwnershipHistoryEvent(
+  row: SeedRow,
+  actorNameByUserId: Map<string, string>,
+): OwnershipHistoryEvent | null {
+  const id = asString(row.id);
+  const timestamp = toIso(row.occurredAt);
+  const metadata = asRecord(row.metadataJson);
+  const toCoachId = asString(metadata?.assigneeCoachId);
+  if (!id || !timestamp || !toCoachId) {
+    return null;
+  }
+  const fromCoachId = asString(metadata?.previousCoachUserId);
+  const actorUserId = asString(row.actorUserId);
+  const actorRole = toOwnershipActorRole(row.actingRole);
+  const action: OwnershipHistoryAction = !fromCoachId
+    ? 'ASSIGNED'
+    : fromCoachId === toCoachId
+      ? 'UPDATED'
+      : 'REASSIGNED';
+  return {
+    id,
+    action,
+    timestamp,
+    ...(actorUserId ? { actorUserId } : {}),
+    ...(actorUserId && actorNameByUserId.has(actorUserId)
+      ? { actorName: actorNameByUserId.get(actorUserId) }
+      : {}),
+    ...(actorRole ? { actorRole } : {}),
+    ...(fromCoachId ? { fromCoachId } : {}),
+    toCoachId,
+  };
+}
+
 function toWorkItem(params: {
   session: SessionProjection;
-  scheduledAt: string;
+  scheduledAt: string | null;
   labelByUserId: Map<string, string>;
   linkedBookingCount: number;
 }): StaffingWorkItem {
-  const coachUserId = params.session.coachUserId ?? undefined;
-  const createdByUserId = params.session.createdByUserId ?? undefined;
+  const coachUserId = params.session.coachUserId ?? null;
+  const createdByUserId = params.session.createdByUserId;
+  if (!createdByUserId) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Staffing work creator is missing');
+  }
   const scheduleCount = parseScheduleEntries(params.session.scheduleJson).length;
-  const coachName = coachUserId ? params.labelByUserId.get(coachUserId) : undefined;
+  const coachName = coachUserId ? (params.labelByUserId.get(coachUserId) ?? null) : null;
   return {
     offeringId: params.session.id,
     title: params.session.title,
     scheduledAt: params.scheduledAt,
-    location: params.session.isVirtual
-      ? 'Online'
-      : (params.session.location ?? 'Club training ground'),
+    location: params.session.location ?? null,
+    isVirtual: params.session.isVirtual === true,
     status: mapSessionStatus(params.session.status),
     sessionType: 'group',
     currentParticipants: params.session.currentParticipants,
     maxParticipants: params.session.maxParticipants,
-    ...(createdByUserId && params.labelByUserId.get(createdByUserId)
-      ? {
-          createdByName: params.labelByUserId.get(createdByUserId),
-        }
-      : {}),
-    ...(coachUserId
-      ? {
-          ownerCoachId: coachUserId,
-          ownerCoachName: coachName,
-          assigneeCoachId: coachUserId,
-          assigneeCoachName: coachName,
-        }
-      : {}),
+    createdByUserId,
+    createdByName: params.labelByUserId.get(createdByUserId) ?? null,
+    assigneeCoachId: coachUserId,
+    assigneeCoachName: coachName,
     linkedBookingCount: params.linkedBookingCount,
     isRecurring: scheduleCount > 1,
   };
 }
 
-function toAssignmentOffering(params: {
-  session: SessionProjection & { description?: string | null };
-  scheduledAt?: string;
-}): AssignmentOffering {
-  const scheduledAt = params.scheduledAt ?? pickScheduledAt(params.session);
-  const scheduleCount = parseScheduleEntries(params.session.scheduleJson).length;
-  const coachId = params.session.coachUserId ?? '';
-  return {
-    id: params.session.id,
-    source: 'group',
-    sourceEntityId: params.session.id,
-    coachId,
-    clubId: params.session.clubId ?? '',
-    actingAs: 'club',
-    ownerCoachId: coachId,
-    assigneeCoachId: coachId,
-    title: params.session.title,
-    ...(params.session.description ? { description: params.session.description } : {}),
-    sessionType: 'group',
-    maxParticipants: params.session.maxParticipants,
-    location: params.session.isVirtual
-      ? 'Online'
-      : (params.session.location ?? 'Club training ground'),
-    scheduledAt,
-    isRecurring: scheduleCount > 1,
-    recurrenceType: scheduleCount > 1 ? 'weekly' : 'none',
-    status: mapSessionStatus(params.session.status),
-    registrations: [],
-    createdAt: toIso(params.session.createdAt) ?? new Date(0).toISOString(),
-  };
-}
-
 function buildConsole(params: {
   club: StaffingClub;
-  viewerMembership: StaffingMembership;
-  viewerRole: ClubRole;
+  viewerMembership: StaffingMembership | null;
+  viewerRole: ClubRole | null;
+  privilegedAdminAccess: boolean;
   staffMemberships: Array<{
     userId: string;
     userName: string;
     role: ClubRole;
-    status: 'active' | 'pending';
+    status: 'active';
     joinedAt: string;
   }>;
   sessions: SessionProjection[];
@@ -422,7 +406,7 @@ function buildConsole(params: {
       session,
       scheduledAt: pickScheduledAt(session),
     }))
-    .sort((left, right) => left.scheduledAt.localeCompare(right.scheduledAt));
+    .sort((left, right) => compareScheduledAt(left.scheduledAt, right.scheduledAt));
   const workItems = sessionsWithSchedule.map((entry) =>
     toWorkItem({
       session: entry.session,
@@ -433,10 +417,10 @@ function buildConsole(params: {
   );
   const assignedWork = workItems
     .filter((item) => Boolean(item.assigneeCoachId))
-    .sort((left, right) => left.scheduledAt.localeCompare(right.scheduledAt));
+    .sort((left, right) => compareScheduledAt(left.scheduledAt, right.scheduledAt));
   const unassignedWork = workItems
     .filter((item) => !item.assigneeCoachId)
-    .sort((left, right) => left.scheduledAt.localeCompare(right.scheduledAt));
+    .sort((left, right) => compareScheduledAt(left.scheduledAt, right.scheduledAt));
   const staff = params.staffMemberships.map((membership) => {
     const assignedSessions = sessionsWithSchedule.filter(
       (entry) => entry.session.coachUserId === membership.userId,
@@ -448,24 +432,21 @@ function buildConsole(params: {
       role: membership.role,
       status: membership.status,
       canTakeAssignments: membership.status === 'active' && isClubStaffRole(membership.role),
-      assignedToday: assignedSessions.filter((entry) => isToday(entry.scheduledAt)).length,
       upcomingLoad: upcomingAssigned.length,
-      ...(upcomingAssigned[0]?.scheduledAt ? { nextSessionAt: upcomingAssigned[0].scheduledAt } : {}),
-    };
+      nextSessionAt: upcomingAssigned[0]?.scheduledAt ?? null,
+    } satisfies StaffingStaffMember;
   });
   return {
     club: params.club,
     viewerMembership: params.viewerMembership,
-    canManageAssignments: canManageAssignments(params.viewerRole),
-    canPostAsClub: canPostAsClub(params.viewerRole),
+    privilegedAdminAccess: params.privilegedAdminAccess,
+    canManageAssignments:
+      params.privilegedAdminAccess || canManageAssignments(params.viewerRole),
     staff,
     unassignedWork,
     assignedWork,
     summary: {
       activeOrgSessions: activeSessions.length,
-      assignedToday: sessionsWithSchedule.filter(
-        (entry) => Boolean(entry.session.coachUserId) && isToday(entry.scheduledAt),
-      ).length,
       upcomingAssignedLoad: sessionsWithSchedule.filter(
         (entry) => Boolean(entry.session.coachUserId) && isUpcoming(entry.scheduledAt),
       ).length,
@@ -485,30 +466,11 @@ function getSeedUserName(tables: SeedTables, userId: string): string {
 }
 
 function buildSeedClubPayload(params: {
-  tables: SeedTables;
   club: SeedRow;
-  memberships: SeedRow[];
 }): StaffingClub {
-  const ownerMembership = params.memberships.find((membership) => toRole(membership.role) === 'OWNER');
-  const staffCount = params.memberships.filter((membership) => isClubStaffRole(toRole(membership.role))).length;
   return {
     id: asString(params.club.id) ?? '',
     name: asString(params.club.name) ?? 'Club',
-    city: asString(params.club.city) ?? '',
-    tagline: asString(params.club.tagline),
-    photoUrl: asString(params.club.badgeUrl),
-    profilePhotoUrl: asString(params.club.badgeUrl),
-    coverPhotoUrl: asString(params.club.coverPhotoUrl),
-    memberCount: params.memberships.length,
-    coachCount: staffCount,
-    squadCount: asRows(params.tables.squads).filter(
-      (row) => asString(row.clubId) === asString(params.club.id) && !asString(row.deletedAt),
-    ).length,
-    ownerId:
-      asString(ownerMembership?.userId) ??
-      asString(params.club.createdByUserId) ??
-      '',
-    inviteCode: asString(params.club.inviteCode) ?? '',
   };
 }
 
@@ -533,7 +495,7 @@ function buildSeedStaffingConsole(params: {
   const viewerMembershipRow = activeMemberships.find(
     (membership) => asString(membership.userId) === params.authUserId,
   );
-  const viewerRole = params.isPrivilegedAdmin ? 'OWNER' : toRole(viewerMembershipRow?.role);
+  const viewerRole = viewerMembershipRow ? toRole(viewerMembershipRow.role) : null;
   if (!params.isPrivilegedAdmin && (!viewerMembershipRow || !canReadStaffing(viewerRole))) {
     throw forbidden('You do not have permission to view club staffing');
   }
@@ -586,26 +548,96 @@ function buildSeedStaffingConsole(params: {
     }
     linkedBookingCounts.set(sessionId, (linkedBookingCounts.get(sessionId) ?? 0) + 1);
   }
-  const viewerMembership: StaffingMembership = {
-    clubId: params.clubId,
-    userId: params.authUserId,
-    role: viewerRole,
-    status: 'active',
-    joinSource: viewerMembershipRow ? 'invite' : 'created',
-    canPostAsClub: canPostAsClub(viewerRole),
-  };
+  const viewerMembership: StaffingMembership | null = viewerMembershipRow
+    ? {
+        clubId: params.clubId,
+        userId: params.authUserId,
+        role: viewerRole ?? 'MEMBER',
+        status: 'active',
+      }
+    : null;
   return buildConsole({
     club: buildSeedClubPayload({
-      tables: params.tables,
       club,
-      memberships: activeMemberships,
     }),
     viewerMembership,
     viewerRole,
+    privilegedAdminAccess: params.isPrivilegedAdmin,
     staffMemberships,
     sessions,
     linkedBookingCounts,
   });
+}
+
+function buildSeedWorkAssignmentHistory(params: {
+  tables: SeedTables;
+  clubId: string;
+  assignmentId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): WorkAssignmentHistory {
+  const club = asRows(params.tables.clubs).find(
+    (row) => asString(row.id) === params.clubId && !asString(row.deletedAt),
+  );
+  if (!club) {
+    throw notFound('Club not found');
+  }
+  const viewerMembership = asRows(params.tables.clubMemberships).find(
+    (row) =>
+      asString(row.clubId) === params.clubId &&
+      asString(row.userId) === params.authUserId &&
+      row.active !== false &&
+      !asString(row.deletedAt),
+  );
+  const viewerRole = params.isPrivilegedAdmin ? 'OWNER' : toRole(viewerMembership?.role);
+  if (!params.isPrivilegedAdmin && (!viewerMembership || !canReadStaffing(viewerRole))) {
+    throw forbidden('You do not have permission to view club work assignment history');
+  }
+  const assignment = asRows(params.tables.groupSessions).find(
+    (row) =>
+      asString(row.id) === params.assignmentId &&
+      asString(row.clubId) === params.clubId &&
+      !asString(row.deletedAt),
+  );
+  if (!assignment) {
+    throw notFound('Club work assignment not found', {
+      clubId: params.clubId,
+      assignmentId: params.assignmentId,
+    });
+  }
+
+  const matchingEvents = asRows(params.tables.auditEvents)
+    .filter(
+      (row) =>
+        asString(row.action) === 'club_work_assignment.update' &&
+        asString(row.resourceType) === 'group_session' &&
+        asString(row.resourceId) === params.assignmentId &&
+        asString(row.result) === 'SUCCESS',
+    )
+    .sort((left, right) => {
+      const occurredAtOrder =
+        (toIso(right.occurredAt) ?? '').localeCompare(toIso(left.occurredAt) ?? '');
+      return occurredAtOrder || (asString(right.id) ?? '').localeCompare(asString(left.id) ?? '');
+    });
+  const selectedEvents = matchingEvents.slice(0, ownershipHistoryLimit);
+  const actorNameByUserId = new Map<string, string>();
+  for (const row of selectedEvents) {
+    const actorUserId = asString(row.actorUserId);
+    if (actorUserId) {
+      actorNameByUserId.set(actorUserId, getSeedUserName(params.tables, actorUserId));
+    }
+  }
+  const events = selectedEvents
+    .map((row) => mapOwnershipHistoryEvent(row, actorNameByUserId))
+    .filter((event): event is OwnershipHistoryEvent => Boolean(event))
+    .reverse();
+  return {
+    clubId: params.clubId,
+    assignmentId: params.assignmentId,
+    events,
+    total: events.length,
+    truncated: matchingEvents.length > ownershipHistoryLimit,
+  };
 }
 
 function requireSeedActiveStaffMembership(params: {
@@ -773,24 +805,6 @@ function mutateSeedWorkAssignment(params: {
   }
 
   return {
-    offering: toAssignmentOffering({
-      session: {
-        id: asString(session.id) ?? '',
-        coachUserId: asString(session.coachUserId) ?? null,
-        clubId: asString(session.clubId) ?? null,
-        createdByUserId: asString(session.createdByUserId) ?? null,
-        description: asString(session.description) ?? null,
-        title: asString(session.title) ?? 'Training session',
-        sessionType: asString(session.sessionType),
-        maxParticipants: asNumber(session.maxParticipants) ?? 0,
-        currentParticipants: asNumber(session.currentParticipants) ?? 0,
-        location: asString(session.location),
-        isVirtual: asBoolean(session.isVirtual),
-        status: asString(session.status),
-        scheduleJson: session.scheduleJson,
-        createdAt: asString(session.createdAt),
-      },
-    }),
     updatedBookingIds,
     previousCoachUserId: currentCoachUserId ?? null,
     assigneeCoachId: params.assigneeCoachId,
@@ -811,10 +825,6 @@ async function buildDbStaffingConsole(params: {
     select: {
       id: true,
       name: true,
-      tagline: true,
-      badgeUrl: true,
-      coverPhotoUrl: true,
-      createdByUserId: true,
       memberships: {
         where: {
           active: true,
@@ -836,14 +846,6 @@ async function buildDbStaffingConsole(params: {
           createdAt: 'asc',
         },
       },
-      squads: {
-        where: {
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-        },
-      },
     },
   });
   if (!club) {
@@ -852,7 +854,7 @@ async function buildDbStaffingConsole(params: {
   const viewerMembership = club.memberships.find(
     (membership) => membership.userId === params.authUserId,
   );
-  const viewerRole = params.isPrivilegedAdmin ? 'OWNER' : toRole(viewerMembership?.role);
+  const viewerRole = viewerMembership ? toRole(viewerMembership.role) : null;
   if (!params.isPrivilegedAdmin && (!viewerMembership || !canReadStaffing(viewerRole))) {
     throw forbidden('You do not have permission to view club staffing');
   }
@@ -919,28 +921,17 @@ async function buildDbStaffingConsole(params: {
     club: {
       id: club.id,
       name: club.name,
-      city: '',
-      tagline: club.tagline ?? undefined,
-      photoUrl: club.badgeUrl ?? undefined,
-      profilePhotoUrl: club.badgeUrl ?? undefined,
-      coverPhotoUrl: club.coverPhotoUrl ?? undefined,
-      memberCount: club.memberships.length,
-      coachCount: staffMemberships.length,
-      squadCount: club.squads.length,
-      ownerId:
-        club.memberships.find((membership) => toRole(membership.role) === 'OWNER')?.userId ??
-        club.createdByUserId,
-      inviteCode: '',
     },
-    viewerMembership: {
-      clubId: club.id,
-      userId: params.authUserId,
-      role: viewerRole,
-      status: 'active',
-      joinSource: viewerMembership ? 'invite' : 'created',
-      canPostAsClub: canPostAsClub(viewerRole),
-    },
+    viewerMembership: viewerMembership
+      ? {
+          clubId: club.id,
+          userId: params.authUserId,
+          role: viewerRole ?? 'MEMBER',
+          status: 'active',
+        }
+      : null,
     viewerRole,
+    privilegedAdminAccess: params.isPrivilegedAdmin,
     staffMemberships,
     sessions: sessions.map((session) => ({
       id: session.id,
@@ -958,6 +949,112 @@ async function buildDbStaffingConsole(params: {
     })),
     linkedBookingCounts,
   });
+}
+
+async function buildDbWorkAssignmentHistory(params: {
+  clubId: string;
+  assignmentId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<WorkAssignmentHistory> {
+  const prisma = getPrismaClientOrThrow();
+  const club = await prisma.club.findFirst({
+    where: {
+      id: params.clubId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      memberships: {
+        where: {
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          role: true,
+        },
+        take: 1,
+      },
+    },
+  });
+  if (!club) {
+    throw notFound('Club not found');
+  }
+  const viewerMembership = club.memberships[0];
+  const viewerRole = params.isPrivilegedAdmin ? 'OWNER' : toRole(viewerMembership?.role);
+  if (!params.isPrivilegedAdmin && (!viewerMembership || !canReadStaffing(viewerRole))) {
+    throw forbidden('You do not have permission to view club work assignment history');
+  }
+  const assignment = await prisma.groupSession.findFirst({
+    where: {
+      id: params.assignmentId,
+      clubId: params.clubId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+  if (!assignment) {
+    throw notFound('Club work assignment not found', {
+      clubId: params.clubId,
+      assignmentId: params.assignmentId,
+    });
+  }
+
+  const matchingEvents = await prisma.auditEvent.findMany({
+    where: {
+      action: 'club_work_assignment.update',
+      resourceType: 'group_session',
+      resourceId: params.assignmentId,
+      result: 'SUCCESS',
+    },
+    select: {
+      id: true,
+      occurredAt: true,
+      actorUserId: true,
+      actingRole: true,
+      metadataJson: true,
+    },
+    orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+    take: ownershipHistoryLimit + 1,
+  });
+  const selectedEvents = matchingEvents.slice(0, ownershipHistoryLimit);
+  const actorUserIds = Array.from(
+    new Set(selectedEvents.flatMap((row) => (row.actorUserId ? [row.actorUserId] : []))),
+  );
+  const actors =
+    actorUserIds.length > 0
+      ? await prisma.user.findMany({
+          where: {
+            id: {
+              in: actorUserIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        })
+      : [];
+  const actorNameByUserId = new Map(
+    actors.map((actor) => [actor.id, actor.name || actor.email || actor.id] as const),
+  );
+  const events = selectedEvents
+    .map((row) =>
+      mapOwnershipHistoryEvent(row as unknown as SeedRow, actorNameByUserId),
+    )
+    .filter((event): event is OwnershipHistoryEvent => Boolean(event))
+    .reverse();
+  return {
+    clubId: params.clubId,
+    assignmentId: params.assignmentId,
+    events,
+    total: events.length,
+    truncated: matchingEvents.length > ownershipHistoryLimit,
+  };
 }
 
 async function mutateDbWorkAssignment(params: {
@@ -991,18 +1088,7 @@ async function mutateDbWorkAssignment(params: {
       select: {
         id: true,
         coachUserId: true,
-        clubId: true,
-        createdByUserId: true,
-        title: true,
-        description: true,
-        sessionType: true,
-        maxParticipants: true,
-        currentParticipants: true,
-        location: true,
-        isVirtual: true,
         status: true,
-        scheduleJson: true,
-        createdAt: true,
       },
     });
     if (!session) {
@@ -1154,13 +1240,6 @@ async function mutateDbWorkAssignment(params: {
     }
 
     return {
-      offering: toAssignmentOffering({
-        session: {
-          ...session,
-          coachUserId: params.assigneeCoachId,
-          status: String(session.status),
-        },
-      }),
       updatedBookingIds,
       previousCoachUserId: session.coachUserId,
       assigneeCoachId: params.assigneeCoachId,
@@ -1178,6 +1257,22 @@ export async function resolveStaffingConsole(params: {
   }
   const store = getApiDataBackend() === 'db' ? getDbFixtureStore() : getMarketplaceSeedStore();
   return buildSeedStaffingConsole({
+    tables: store.tables as SeedTables,
+    ...params,
+  });
+}
+
+export async function resolveWorkAssignmentHistory(params: {
+  clubId: string;
+  assignmentId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<WorkAssignmentHistory> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    return buildDbWorkAssignmentHistory(params);
+  }
+  const store = getApiDataBackend() === 'db' ? getDbFixtureStore() : getMarketplaceSeedStore();
+  return buildSeedWorkAssignmentHistory({
     tables: store.tables as SeedTables,
     ...params,
   });
@@ -1203,28 +1298,35 @@ async function mutateWorkAssignment(params: {
 
 export function registerClubStaffingRoutes(app: FastifyInstance): void {
   app.get('/clubs/:clubId/staffing-console', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = clubParamsSchema.parse(request.params ?? {});
+    const rawClubId = asString((request.params as { clubId?: unknown } | undefined)?.clubId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = clubParamsSchema.parse(request.params ?? {});
       const consoleData = await resolveStaffingConsole({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       });
-      await recordStaffingReadAudit({
-        request,
-        clubId: params.clubId,
-        result: 'SUCCESS',
-      });
-      return reply.send({
+      const payload = parseStaffingConsoleResponse({
         ...consoleData,
         clubId: params.clubId,
         requestId: request.requestId,
       });
-    } catch (error) {
       await recordStaffingReadAudit({
         request,
         clubId: params.clubId,
+        result: 'SUCCESS',
+        metadata: {
+          activeStaffCount: payload.staff.length,
+          activeOrgSessions: payload.summary.activeOrgSessions,
+          unassignedCount: payload.summary.unassignedCount,
+        },
+      });
+      return reply.send(payload);
+    } catch (error) {
+      await recordStaffingReadAudit({
+        request,
+        clubId: rawClubId,
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
@@ -1234,17 +1336,67 @@ export function registerClubStaffingRoutes(app: FastifyInstance): void {
     }
   });
 
+  app.get(
+    '/clubs/:clubId/work-assignments/:assignmentId/history',
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = workAssignmentParamsSchema.parse(request.params ?? {});
+      try {
+        const history = await resolveWorkAssignmentHistory({
+          clubId: params.clubId,
+          assignmentId: params.assignmentId,
+          authUserId,
+          isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        });
+        await recordAssignmentHistoryReadAudit({
+          request,
+          clubId: params.clubId,
+          assignmentId: params.assignmentId,
+          result: 'SUCCESS',
+        });
+        return reply.send({
+          ...history,
+          requestId: request.requestId,
+        });
+      } catch (error) {
+        await recordAssignmentHistoryReadAudit({
+          request,
+          clubId: params.clubId,
+          assignmentId: params.assignmentId,
+          result: readAuditResult(error),
+          metadata: {
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          },
+        });
+        throw error;
+      }
+    },
+  );
+
   app.patch('/clubs/:clubId/work-assignments/:assignmentId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = workAssignmentParamsSchema.parse(request.params ?? {});
-    const body = workAssignmentBodySchema.parse(request.body ?? {});
+    const rawParams = request.params as
+      | { clubId?: unknown; assignmentId?: unknown }
+      | undefined;
+    const rawBody = request.body as { assigneeCoachId?: unknown } | undefined;
+    const rawClubId = asString(rawParams?.clubId) ?? '';
+    const rawAssignmentId = asString(rawParams?.assignmentId) ?? '';
+    const rawAssigneeCoachId = asString(rawBody?.assigneeCoachId) ?? null;
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = workAssignmentParamsSchema.parse(request.params ?? {});
+      const body = workAssignmentUpdateRequestSchema.parse(request.body ?? {});
       const result = await mutateWorkAssignment({
         clubId: params.clubId,
         assignmentId: params.assignmentId,
         assigneeCoachId: body.assigneeCoachId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        requestId: request.requestId,
+      });
+      const payload = parseWorkAssignmentUpdateResponse({
+        ...result,
+        clubId: params.clubId,
+        assignmentId: params.assignmentId,
         requestId: request.requestId,
       });
       await recordAssignmentAudit({
@@ -1259,21 +1411,16 @@ export function registerClubStaffingRoutes(app: FastifyInstance): void {
           updatedBookingIds: result.updatedBookingIds,
         },
       });
-      return reply.send({
-        ...result,
-        clubId: params.clubId,
-        assignmentId: params.assignmentId,
-        requestId: request.requestId,
-      });
+      return reply.send(payload);
     } catch (error) {
       await recordAssignmentAudit({
         request,
-        clubId: params.clubId,
-        assignmentId: params.assignmentId,
-        subjectUserId: body.assigneeCoachId,
+        clubId: rawClubId,
+        assignmentId: rawAssignmentId,
+        subjectUserId: rawAssigneeCoachId,
         result: readAuditResult(error),
         metadata: {
-          assigneeCoachId: body.assigneeCoachId,
+          assigneeCoachId: rawAssigneeCoachId,
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
         },
       });

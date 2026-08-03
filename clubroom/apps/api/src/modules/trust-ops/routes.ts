@@ -23,6 +23,7 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { resolveSafeguardingRepository } from '../../repositories/p0/safeguarding-repository.js';
+import { resolveBookingRepository } from '../../repositories/p0/booking-repository.js';
 import { resolveUserBlockRepository } from '../../repositories/p0/user-block-repository.js';
 
 type SeedRow = Record<string, unknown>;
@@ -542,6 +543,7 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({
         blocks: list.blocks,
         blockedUserIds: list.blockedUserIds,
+        blockedUsers: list.blockedUsers,
         total: list.total,
         status,
         seedVersion: list.dataVersion,
@@ -647,11 +649,52 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
       athleteId = body.athleteId ?? null;
       bookingId = body.bookingId ?? null;
       category = body.category;
-      await assertCanCreateSafeguardingIncident(request, athleteId);
       const reportedByUserId = ensureAuthUserId(request.auth?.userId);
+      await assertCanCreateSafeguardingIncident(request, bookingId ? null : athleteId);
+      if (bookingId) {
+        const booking = await resolveBookingRepository().getVisibleBookingById({
+          authUserId: reportedByUserId,
+          bookingId,
+        });
+        if (
+          athleteId &&
+          !booking.participants.some((participant) => participant.athleteId === athleteId)
+        ) {
+          throw forbidden('Athlete is not part of this booking');
+        }
+      }
+
       const repository = resolveSafeguardingRepository();
       const incident = await repository.createIncident(body, reportedByUserId);
-      const notificationCount = await createSupportIssueNotifications(incident, reportedByUserId);
+      let notificationCount = 0;
+      let notificationStatus: 'sent' | 'not_required' | 'failed' = 'not_required';
+      try {
+        notificationCount = await createSupportIssueNotifications(incident, reportedByUserId);
+        notificationStatus = notificationCount > 0 ? 'sent' : 'not_required';
+      } catch (notificationError) {
+        notificationStatus = 'failed';
+        request.log.error(
+          { err: notificationError, incidentId: incident.id },
+          'Safeguarding incident saved but support notification routing failed',
+        );
+        try {
+          await recordAuditEvent({
+            request,
+            action: 'safeguarding_incident.notification',
+            resourceType: 'safeguarding_incident',
+            resourceId: incident.id,
+            result: 'ERROR',
+            metadata: {
+              errorCode: 'NOTIFICATION_DELIVERY_FAILED',
+            },
+          });
+        } catch (auditError) {
+          request.log.error(
+            { err: auditError, incidentId: incident.id },
+            'Failed to audit safeguarding notification routing error',
+          );
+        }
+      }
       await recordAuditEvent({
         request,
         action: 'safeguarding_incident.create',
@@ -659,10 +702,11 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
         resourceId: incident.id,
         result: 'SUCCESS',
         metadata: {
-          athleteId: incident.athleteId,
-          bookingId: incident.bookingId,
+          hasAthlete: Boolean(incident.athleteId),
+          hasBooking: Boolean(incident.bookingId),
           category: incident.category,
           notificationCount,
+          notificationStatus,
         },
       });
 
@@ -674,8 +718,8 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
         resourceType: 'safeguarding_incident',
         result: auditErrorResult(error),
         metadata: {
-          athleteId,
-          bookingId,
+          hasAthlete: Boolean(athleteId),
+          hasBooking: Boolean(bookingId),
           category,
           errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
         },
@@ -706,11 +750,10 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
         reportedByUserId: query.reportedBy === 'me' ? actorUserId : undefined,
         limit: query.limit,
       });
-      const incidents: SafeguardingIncidentResponse[] = [];
-      for (const incident of candidates) {
-        await assertCanAccessSafeguardingIncident(request, incident);
-        incidents.push(incident);
-      }
+      await Promise.all(
+        candidates.map((incident) => assertCanAccessSafeguardingIncident(request, incident)),
+      );
+      const incidents: SafeguardingIncidentResponse[] = candidates;
 
       await recordAuditEvent({
         request,

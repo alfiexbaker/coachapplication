@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { beforeEach, describe, it } from 'node:test';
 
-import type { RosterEntry, RosterNote } from '@/constants/types';
+import type { RosterEntry, RosterNote, User } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { type RemovalReason, rosterService } from '@/services/roster-service';
@@ -15,7 +15,11 @@ function nextSuffix(): string {
   return `${sequence}`;
 }
 
-function buildRosterInput(coachId: string, athleteId: string, parentId: string): Omit<RosterEntry, 'id'> {
+function buildRosterInput(
+  coachId: string,
+  athleteId: string,
+  parentId: string,
+): Omit<RosterEntry, 'id'> {
   return {
     coachId,
     athleteId,
@@ -61,6 +65,15 @@ describe('rosterService', () => {
     assert.ok(source.includes('this.mockData = USE_MOCK ? [...MOCK_ROSTER] : []'));
   });
 
+  it('documents roster authority as /v1, not legacy /api routes', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'services/roster-service.ts'), 'utf8');
+
+    assert.doesNotMatch(source, /GET \/api\/coaches\/:id\/roster/);
+    assert.match(source, /GET \/v1\/coaches\/:coachId\/roster/);
+    assert.match(source, /GET \/v1\/coaches\/:coachId\/roster\/removals/);
+    assert.match(source, /POST \/v1\/coaches\/:coachId\/roster\/removals\/:removalId\/undo/);
+  });
+
   it('creates entry and returns it in getRoster (happy path)', async () => {
     const suffix = nextSuffix();
     const coachId = `coach-roster-${suffix}`;
@@ -73,7 +86,10 @@ describe('rosterService', () => {
     assert.equal(createResult.success, true);
 
     const roster = await rosterService.getRoster(coachId);
-    assert.equal(roster.some((entry) => entry.athleteId === athleteId), true);
+    assert.equal(
+      roster.some((entry) => entry.athleteId === athleteId),
+      true,
+    );
   });
 
   it('returns empty roster search results when query does not match (empty path)', async () => {
@@ -88,8 +104,83 @@ describe('rosterService', () => {
     assert.deepEqual(filtered, []);
   });
 
+  it('hydrates mock roster detail display names consistently with the roster list', async () => {
+    const suffix = nextSuffix();
+    const coachId = `coach-roster-${suffix}`;
+    const athleteId = `athlete-roster-${suffix}`;
+    const parentId = `parent-roster-${suffix}`;
+    const existingUsers = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+
+    try {
+      await apiClient.set(STORAGE_KEYS.USERS, [
+        ...existingUsers,
+        {
+          id: athleteId,
+          name: 'Named Athlete',
+          email: '',
+          postcode: '',
+          dateOfBirth: '',
+          role: 'USER',
+        },
+        {
+          id: parentId,
+          name: 'Named Parent',
+          email: '',
+          postcode: '',
+          dateOfBirth: '',
+          role: 'USER',
+        },
+      ]);
+      await rosterService.create(buildRosterInput(coachId, athleteId, parentId));
+
+      const entry = await rosterService.getRosterEntry(coachId, athleteId);
+
+      assert.equal(entry?.athleteName, 'Named Athlete');
+      assert.equal(entry?.parentName, 'Named Parent');
+    } finally {
+      await apiClient.set(STORAGE_KEYS.USERS, existingUsers);
+    }
+  });
+
+  it('uses the authenticated family identity for the seeded roster player', async () => {
+    const existingUsers = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+
+    try {
+      await apiClient.set(STORAGE_KEYS.USERS, [
+        ...existingUsers,
+        {
+          id: 'user2',
+          name: 'Maisie Barton',
+          email: '',
+          postcode: '',
+          dateOfBirth: '',
+          role: 'USER',
+        },
+        {
+          id: 'user4',
+          name: 'Chris Barton',
+          email: '',
+          postcode: '',
+          dateOfBirth: '',
+          role: 'USER',
+        },
+      ]);
+
+      const entry = await rosterService.getRosterEntry('coach1', 'user2');
+
+      assert.equal(entry?.athleteName, 'Maisie Barton');
+      assert.equal(entry?.parentName, 'Chris Barton');
+    } finally {
+      await apiClient.set(STORAGE_KEYS.USERS, existingUsers);
+    }
+  });
+
   it('returns err when updating status for missing athlete (error path)', async () => {
-    const result = await rosterService.updateStatus('coach-roster-missing', 'athlete-missing', 'PAUSED');
+    const result = await rosterService.updateStatus(
+      'coach-roster-missing',
+      'athlete-missing',
+      'PAUSED',
+    );
 
     assert.equal(result.success, false);
     if (result.success) return;
@@ -102,9 +193,7 @@ describe('rosterService', () => {
     const coachId = `coach-roster-${suffix}`;
     const athleteId = `athlete-roster-${suffix}`;
 
-    await rosterService.create(
-      buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`),
-    );
+    await rosterService.create(buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`));
 
     const noteResult = await rosterService.addNote(coachId, athleteId, 'Initial note');
     assert.equal(noteResult.success, true);
@@ -112,7 +201,12 @@ describe('rosterService', () => {
     const note = noteResult.data;
     assert.equal(note.content, 'Initial note');
 
-    const updateResult = await rosterService.updateNote(coachId, athleteId, note.id, 'Updated note');
+    const updateResult = await rosterService.updateNote(
+      coachId,
+      athleteId,
+      note.id,
+      'Updated note',
+    );
     assert.equal(updateResult.success, true);
     if (updateResult.success) {
       assert.equal(updateResult.data.content, 'Updated note');
@@ -131,9 +225,7 @@ describe('rosterService', () => {
     const coachId = `coach-roster-${suffix}`;
     const athleteId = `athlete-roster-${suffix}`;
 
-    await rosterService.create(
-      buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`),
-    );
+    await rosterService.create(buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`));
 
     const removeResult = await rosterService.removeAthlete(coachId, athleteId, 'INACTIVE', {
       archive: true,
@@ -161,9 +253,7 @@ describe('rosterService', () => {
     const coachId = `coach-roster-${suffix}`;
     const athleteId = `athlete-roster-${suffix}`;
 
-    await rosterService.create(
-      buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`),
-    );
+    await rosterService.create(buildRosterInput(coachId, athleteId, `parent-roster-${suffix}`));
 
     const removeResult = await rosterService.removeAthlete(coachId, athleteId, 'INACTIVE', {
       archive: false,
@@ -200,9 +290,7 @@ describe('rosterService', () => {
     const athleteId = `athlete-roster-${suffix}`;
     const parentId = `parent-roster-${suffix}`;
 
-    const createResult = await rosterService.create(
-      buildRosterInput(coachId, athleteId, parentId),
-    );
+    const createResult = await rosterService.create(buildRosterInput(coachId, athleteId, parentId));
     assert.equal(createResult.success, true);
 
     const originalFetch = globalThis.fetch;
@@ -264,11 +352,7 @@ describe('rosterService', () => {
       if (method === 'POST' && url.endsWith(`/v1/coaches/${coachId}/roster`)) {
         const body = JSON.parse(String(init?.body ?? '{}')) as Partial<RosterEntry>;
         const createdEntry: RosterEntry = {
-          ...buildRosterInput(
-            coachId,
-            body.athleteId ?? `athlete-api-created-${suffix}`,
-            parentId,
-          ),
+          ...buildRosterInput(coachId, body.athleteId ?? `athlete-api-created-${suffix}`, parentId),
           id: `roster-api-created-${suffix}`,
           status: body.status ?? 'ACTIVE',
           tags: body.tags ?? [],
@@ -394,10 +478,10 @@ describe('rosterService', () => {
         url.endsWith(`/v1/coaches/${coachId}/roster/removals/${removalRecord.id}/undo`)
       ) {
         removalRecord = null;
-        return new Response(
-          JSON.stringify({ entry: apiEntry, requestId: 'req_roster_undo_api' }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
+        return new Response(JSON.stringify({ entry: apiEntry, requestId: 'req_roster_undo_api' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
 
       return new Response(JSON.stringify({ code: 'NOT_FOUND', message: url }), {
@@ -408,90 +492,90 @@ describe('rosterService', () => {
 
     try {
       await withApiMode(async () => {
-      const apiRoster = await rosterService.getRoster(coachId);
-      assert.equal(apiRoster.length, 1);
-      assert.equal(apiRoster[0].athleteName, 'API Athlete');
+        const apiRoster = await rosterService.getRoster(coachId);
+        assert.equal(apiRoster.length, 1);
+        assert.equal(apiRoster[0].athleteName, 'API Athlete');
 
-      const apiDetail = await rosterService.getRosterEntry(coachId, athleteId);
-      assert.equal(apiDetail?.athleteId, athleteId);
+        const apiDetail = await rosterService.getRosterEntry(coachId, athleteId);
+        assert.equal(apiDetail?.athleteId, athleteId);
 
-      const apiCreate = await rosterService.create(
-        buildRosterInput(coachId, `athlete-api-${suffix}`, `parent-api-${suffix}`),
-      );
-      assert.equal(apiCreate.success, true);
-      if (apiCreate.success) {
-        assert.equal(apiCreate.data.athleteId, `athlete-api-${suffix}`);
-      }
+        const apiCreate = await rosterService.create(
+          buildRosterInput(coachId, `athlete-api-${suffix}`, `parent-api-${suffix}`),
+        );
+        assert.equal(apiCreate.success, true);
+        if (apiCreate.success) {
+          assert.equal(apiCreate.data.athleteId, `athlete-api-${suffix}`);
+        }
 
-      const note = await rosterService.addNote(coachId, athleteId, 'API note');
-      assert.equal(note.success, true);
-      if (!note.success) return;
-      assert.equal(note.data.content, 'API note');
+        const note = await rosterService.addNote(coachId, athleteId, 'API note');
+        assert.equal(note.success, true);
+        if (!note.success) return;
+        assert.equal(note.data.content, 'API note');
 
-      const updatedNote = await rosterService.updateNote(
-        coachId,
-        athleteId,
-        note.data.id,
-        'Updated API note',
-      );
-      assert.equal(updatedNote.success, true);
-      if (!updatedNote.success) return;
-      assert.equal(updatedNote.data.content, 'Updated API note');
+        const updatedNote = await rosterService.updateNote(
+          coachId,
+          athleteId,
+          note.data.id,
+          'Updated API note',
+        );
+        assert.equal(updatedNote.success, true);
+        if (!updatedNote.success) return;
+        assert.equal(updatedNote.data.content, 'Updated API note');
 
-      const deletedNote = await rosterService.deleteNote(coachId, athleteId, note.data.id);
-      assert.equal(deletedNote.success, true);
+        const deletedNote = await rosterService.deleteNote(coachId, athleteId, note.data.id);
+        assert.equal(deletedNote.success, true);
 
-      const status = await rosterService.updateStatus(coachId, athleteId, 'PAUSED');
-      assert.equal(status.success, true);
-      if (status.success) assert.equal(status.data.status, 'PAUSED');
+        const status = await rosterService.updateStatus(coachId, athleteId, 'PAUSED');
+        assert.equal(status.success, true);
+        if (status.success) assert.equal(status.data.status, 'PAUSED');
 
-      const tags = await rosterService.updateTags(coachId, athleteId, ['priority']);
-      assert.equal(tags.success, true);
-      if (tags.success) assert.deepEqual(tags.data.tags, ['priority']);
+        const tags = await rosterService.updateTags(coachId, athleteId, ['priority']);
+        assert.equal(tags.success, true);
+        if (tags.success) assert.deepEqual(tags.data.tags, ['priority']);
 
-      const focus = await rosterService.updatePrimaryFocus(coachId, athleteId, 'Finishing');
-      assert.equal(focus.success, true);
-      if (focus.success) assert.equal(focus.data.primaryFocus, 'Finishing');
+        const focus = await rosterService.updatePrimaryFocus(coachId, athleteId, 'Finishing');
+        assert.equal(focus.success, true);
+        if (focus.success) assert.equal(focus.data.primaryFocus, 'Finishing');
 
-      const removal = await rosterService.removeAthlete(coachId, athleteId, 'INACTIVE', {
-        customReason: 'No attendance',
-      });
-      assert.equal(removal.success, true);
-      if (!removal.success) return;
-      assert.equal(removal.data.reason, 'INACTIVE');
-      assert.equal(removal.data.customReason, 'No attendance');
+        const removal = await rosterService.removeAthlete(coachId, athleteId, 'INACTIVE', {
+          customReason: 'No attendance',
+        });
+        assert.equal(removal.success, true);
+        if (!removal.success) return;
+        assert.equal(removal.data.reason, 'INACTIVE');
+        assert.equal(removal.data.customReason, 'No attendance');
 
-      assert.equal(await rosterService.getRosterEntry(coachId, athleteId), null);
+        assert.equal(await rosterService.getRosterEntry(coachId, athleteId), null);
 
-      const history = await rosterService.getRemovalHistory(coachId);
-      assert.equal(history.length, 1);
-      assert.equal(history[0].id, removal.data.id);
+        const history = await rosterService.getRemovalHistory(coachId);
+        assert.equal(history.length, 1);
+        assert.equal(history[0].id, removal.data.id);
 
-      const undo = await rosterService.undoRemoval(coachId, removal.data.id);
-      assert.equal(undo.success, true);
-      if (undo.success) assert.equal(undo.data.athleteId, athleteId);
+        const undo = await rosterService.undoRemoval(coachId, removal.data.id);
+        assert.equal(undo.success, true);
+        if (undo.success) assert.equal(undo.data.athleteId, athleteId);
 
-      assert.ok(
-        requestedUrls.some((url) => url.endsWith(`/v1/coaches/${coachId}/roster/${athleteId}`)),
-      );
-      assert.equal(
-        requestedBodies.some(
-          (body) =>
-            (body as { reason?: string; customReason?: string }).reason === 'INACTIVE' &&
-            (body as { reason?: string; customReason?: string }).customReason === 'No attendance',
-        ),
-        true,
-      );
-      assert.equal(
-        requestedBodies.some((body) => (body as { content?: string }).content === 'API note'),
-        true,
-      );
-      assert.equal(
-        requestedBodies.some(
-          (body) => (body as { content?: string }).content === 'Updated API note',
-        ),
-        true,
-      );
+        assert.ok(
+          requestedUrls.some((url) => url.endsWith(`/v1/coaches/${coachId}/roster/${athleteId}`)),
+        );
+        assert.equal(
+          requestedBodies.some(
+            (body) =>
+              (body as { reason?: string; customReason?: string }).reason === 'INACTIVE' &&
+              (body as { reason?: string; customReason?: string }).customReason === 'No attendance',
+          ),
+          true,
+        );
+        assert.equal(
+          requestedBodies.some((body) => (body as { content?: string }).content === 'API note'),
+          true,
+        );
+        assert.equal(
+          requestedBodies.some(
+            (body) => (body as { content?: string }).content === 'Updated API note',
+          ),
+          true,
+        );
       });
     } finally {
       globalThis.fetch = originalFetch;
@@ -557,6 +641,76 @@ describe('rosterService', () => {
       });
     } finally {
       globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('fails inherited local roster storage aliases closed in API mode', async () => {
+    const suffix = nextSuffix();
+    const coachId = `coach-roster-api-boundary-${suffix}`;
+    const athleteId = `athlete-roster-api-boundary-${suffix}`;
+    const localEntry: RosterEntry = {
+      id: `local-roster-boundary-${suffix}`,
+      ...buildRosterInput(coachId, athleteId, `parent-roster-api-boundary-${suffix}`),
+      athleteName: 'Local Boundary Athlete',
+    };
+
+    await apiClient.set(STORAGE_KEYS.ROSTER, [localEntry]);
+
+    const client = apiClient as unknown as {
+      get: typeof apiClient.get;
+      set: typeof apiClient.set;
+      remove: typeof apiClient.remove;
+    };
+    const original = {
+      get: client.get,
+      set: client.set,
+      remove: client.remove,
+    };
+
+    client.get = async () => {
+      throw new Error('local roster reads should not run in API mode');
+    };
+    client.set = async () => {
+      throw new Error('local roster writes should not run in API mode');
+    };
+    client.remove = async () => {
+      throw new Error('local roster deletes should not run in API mode');
+    };
+
+    try {
+      await withApiMode(async () => {
+        const results = await Promise.all([
+          rosterService.getAll(),
+          rosterService.getPaged(),
+          rosterService.getById(localEntry.id),
+          rosterService.update(localEntry.id, { status: 'PAUSED' }),
+          rosterService.delete(localEntry.id),
+          rosterService.hardDelete(localEntry.id),
+          rosterService.restore(localEntry.id),
+          rosterService.count({ coachId }),
+          rosterService.findOne({ coachId, athleteId }),
+          rosterService.createMany([
+            buildRosterInput(
+              coachId,
+              `athlete-create-many-${suffix}`,
+              `parent-create-many-${suffix}`,
+            ),
+          ]),
+          rosterService.deleteMany([localEntry.id]),
+          rosterService.clear(),
+        ]);
+
+        for (const result of results) {
+          assert.equal(result.success, false);
+          assert.equal(!result.success && result.error.code, 'UNSUPPORTED');
+        }
+
+        assert.equal(await rosterService.exists(localEntry.id), false);
+      });
+    } finally {
+      client.get = original.get;
+      client.set = original.set;
+      client.remove = original.remove;
     }
   });
 });

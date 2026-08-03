@@ -16,9 +16,8 @@ import { Column } from '@/components/primitives/column';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHomeScreen } from '@/hooks/use-home-screen';
-import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
+import { useCanCreateChild } from '@/hooks/use-add-child';
 import { Routes } from '@/navigation/routes';
-import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
 import { SubmitProgressState } from '@/components/ui/screen-states';
 import {
   Skeleton,
@@ -27,7 +26,6 @@ import {
   SkeletonPill,
   SkeletonText,
 } from '@/components/ui/skeleton';
-import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
 import {
   StatsRow,
   StreakCard,
@@ -283,6 +281,7 @@ function HomeDataSkeleton({
 
 export function UserHomeScreen() {
   const { colors: palette } = useTheme();
+  const { canCreateChild } = useCanCreateChild();
   const {
     currentUser,
     refreshing,
@@ -311,17 +310,6 @@ export function UserHomeScreen() {
   const hasChildReferences = (currentUser?.children?.length ?? 0) > 0;
   const isNewParent = hasChildReferences && !hasChildProfiles && contextChildren.length === 0;
   const showChildCard = Boolean(selectedChild);
-  const walkthrough =
-    !currentUser || hasChildProfiles || hasChildReferences
-      ? null
-      : buildPrimaryDemoWalkthrough({
-          user: currentUser,
-          hasChildProfiles,
-        });
-  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    currentUser?.id,
-    walkthrough,
-  );
 
   if (!currentUser) return null;
 
@@ -353,9 +341,6 @@ export function UserHomeScreen() {
           <View style={styles.headerCopy}>
             <ThemedText type="title" style={styles.title}>
               Hey, {currentUser.name?.split(' ')[0] || 'Athlete'}
-            </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Your training journey
             </ThemedText>
           </View>
           <NotificationBell size={20} />
@@ -420,7 +405,7 @@ export function UserHomeScreen() {
           </Row>
         )}
 
-        {isNewParent ? (
+        {isNewParent && canCreateChild ? (
           <SurfaceCard style={[styles.onboardingCard, { borderColor: palette.border }]}>
             <Column gap="sm">
               <ThemedText type="subtitle">Welcome to Clubroom</ThemedText>
@@ -451,14 +436,6 @@ export function UserHomeScreen() {
               </Clickable>
             </Column>
           </SurfaceCard>
-        ) : null}
-
-        {visibleWalkthrough ? (
-          <DemoWalkthroughCard
-            walkthrough={visibleWalkthrough}
-            onPressStep={(step) => router.push(step.route)}
-            onDismiss={dismissWalkthrough}
-          />
         ) : null}
 
         {isProfileTransitionPending ? (
@@ -508,7 +485,6 @@ const styles = StyleSheet.create({
   header: { marginBottom: Spacing.xs },
   headerCopy: { flex: 1, minWidth: 0, gap: Spacing.xs },
   title: { ...Typography.display, letterSpacing: -0.6 },
-  subtitle: { ...Typography.bodySmall, fontWeight: '500' },
   errorContainer: { padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1 },
   errorText: { ...Typography.bodySmall, flex: 1 },
   onboardingCard: {

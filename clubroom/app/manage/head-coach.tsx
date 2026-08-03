@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -51,7 +50,8 @@ function formatActionStamp(iso?: string | null): string {
   })}`;
 }
 
-function formatDueLabel(iso: string): string {
+function formatDueLabel(iso?: string | null): string {
+  if (!iso) return 'No due date';
   const dueTs = new Date(iso).getTime();
   if (Number.isNaN(dueTs)) return 'Due TBC';
   const diffMs = dueTs - Date.now();
@@ -305,8 +305,8 @@ export default function HeadCoachOversightScreen() {
       <PageContainer
         header={
           <PageHeader
-            title="Head Coach Oversight"
-            subtitle="Delivery health and standards"
+            title="Coach oversight"
+            subtitle="Completion, follow-up and standards"
             showBack
           />
         }
@@ -326,8 +326,8 @@ export default function HeadCoachOversightScreen() {
       <PageContainer
         header={
           <PageHeader
-            title="Head Coach Oversight"
-            subtitle="Completion health, watchlists, standards"
+            title="Coach oversight"
+            subtitle="Completion, follow-up and standards"
             showBack
           />
         }
@@ -342,8 +342,8 @@ export default function HeadCoachOversightScreen() {
       <PageContainer
         header={
           <PageHeader
-            title="Head Coach Oversight"
-            subtitle="Completion health, watchlists, standards"
+            title="Coach oversight"
+            subtitle="Completion, follow-up and standards"
             showBack
           />
         }
@@ -363,8 +363,8 @@ export default function HeadCoachOversightScreen() {
       <PageContainer
         header={
           <PageHeader
-            title="Head Coach Oversight"
-            subtitle="Completion health, watchlists, standards"
+            title="Coach oversight"
+            subtitle="Completion, follow-up and standards"
             showBack
           />
         }
@@ -372,8 +372,8 @@ export default function HeadCoachOversightScreen() {
       >
         <EmptyState
           icon="shield-checkmark-outline"
-          title="No oversight scope found"
-          message="Join a club as owner, admin, or head coach to use this runtime surface."
+          title="No club oversight available"
+          message="Ask a club owner to assign you as an admin or head coach."
         />
       </PageContainer>
     );
@@ -383,8 +383,8 @@ export default function HeadCoachOversightScreen() {
     <PageContainer
       header={
         <PageHeader
-          title="Head Coach Oversight"
-          subtitle="Completion health, watchlists, and standards"
+          title="Coach oversight"
+          subtitle="Completion, follow-up and standards"
           showBack
         />
       }
@@ -392,7 +392,12 @@ export default function HeadCoachOversightScreen() {
       onRefresh={oversight.handleRefresh}
     >
       <SurfaceCard style={styles.sectionCard}>
-        <ThemedText style={styles.sectionTitle}>Scope</ThemedText>
+        <Row justify="between" align="center" gap="sm">
+          <ThemedText style={styles.sectionTitle}>{oversight.data.club.name}</ThemedText>
+          <ThemedText style={[styles.hint, { color: colors.muted }]}>
+            {formatRole(oversight.selectedClubRole)}
+          </ThemedText>
+        </Row>
         {oversight.clubs.length > 1 ? (
           <View style={styles.inlineList}>
             {oversight.clubs.map((club) => {
@@ -421,25 +426,11 @@ export default function HeadCoachOversightScreen() {
               );
             })}
           </View>
-        ) : (
-          <ThemedText style={[styles.scopeClubName, { color: colors.text }]}>
-            {oversight.data.club.name}
-          </ThemedText>
-        )}
+        ) : null}
 
-        <Row align="center" gap="sm" style={styles.scopeMetaRow}>
-          <View style={[styles.scopeBadge, { backgroundColor: withAlpha(colors.tint, 0.1) }]}>
-            <Ionicons name="eye-outline" size={16} color={colors.tint} />
-          </View>
-          <View style={styles.flex1}>
-            <ThemedText style={styles.scopeLabel}>
-              {formatRole(oversight.selectedClubRole)} view
-            </ThemedText>
-            <ThemedText style={[styles.hint, { color: colors.muted }]}>
-              {oversight.data.scope.label}
-            </ThemedText>
-          </View>
-        </Row>
+        <ThemedText style={[styles.hint, { color: colors.muted }]}>
+          {oversight.data.scope.label}
+        </ThemedText>
 
         {scopeSquadNames.length > 0 ? (
           <View style={styles.scopeChipRow}>
@@ -454,15 +445,11 @@ export default function HeadCoachOversightScreen() {
               </View>
             ))}
           </View>
-        ) : (
-          <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            Oversight stays on one club at a time so head-coach review is scoped, not org-global.
-          </ThemedText>
-        )}
+        ) : null}
       </SurfaceCard>
 
       <SurfaceCard style={styles.sectionCard}>
-        <ThemedText style={styles.sectionTitle}>Oversight Snapshot</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Overview</ThemedText>
         <View style={styles.metricGrid}>
           <MetricTile
             label="Needs completion"
@@ -637,7 +624,7 @@ export default function HeadCoachOversightScreen() {
         <Row justify="between" align="center">
           <ThemedText style={styles.sectionTitle}>Standards Checklist</ThemedText>
           <ThemedText style={[styles.hint, { color: colors.muted }]}>
-            Program expectations that stay visible in product
+            Club coaching standards
           </ThemedText>
         </Row>
 
@@ -646,7 +633,6 @@ export default function HeadCoachOversightScreen() {
           value={standardTitle}
           onChangeText={setStandardTitle}
           placeholder="Example: Squad debrief posted by 19:00"
-          helperText="Use this for a club or squad standard you want visible in the runtime surface."
         />
         <Input
           value={standardDescription}
@@ -695,22 +681,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.bodySemiBold,
   },
-  scopeClubName: {
-    ...Typography.subheading,
-  },
-  scopeMetaRow: {
-    marginTop: Spacing.xxs,
-  },
-  scopeBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: Radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scopeLabel: {
-    ...Typography.smallSemiBold,
-  },
   inlineList: {
     gap: Spacing.xs,
   },
@@ -742,7 +712,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   metricTile: {
-    minWidth: 132,
+    minWidth: 0,
+    flexBasis: '45%',
     flexGrow: 1,
     borderWidth: 1,
     borderRadius: Radii.lg,

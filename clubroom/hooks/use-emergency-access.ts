@@ -16,23 +16,34 @@ export function useEmergencyAccess() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? null;
+  const hasVerifiedCoachAccess =
+    Boolean(coachId) && currentUser?.role === 'COACH' && currentUser.isVerified;
 
   const loadData = async () => {
     if (!athleteId) {
       return ok<AthleteEmergencyQuickView | null>(null);
     }
-    if (!coachId) {
-      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view emergency information.'));
+    if (!hasVerifiedCoachAccess || !coachId) {
+      return err(
+        serviceError(
+          'UNAUTHORIZED',
+          'A verified coach account is required to view emergency information.',
+        ),
+      );
     }
 
     try {
       const entry = await rosterService.getRosterEntry(coachId, athleteId);
+      if (!entry) {
+        return err(serviceError('NOT_FOUND', 'Emergency information is unavailable.'));
+      }
       const dataResult = await safetyService.getAthleteEmergency(
         athleteId,
-        entry ? getRosterAthleteName(entry) : undefined,
+        { requestorId: coachId, requestorRole: 'coach', isVerifiedCoach: true },
+        getRosterAthleteName(entry),
       );
       if (!dataResult.success) {
-        return err(serviceError('UNKNOWN', dataResult.error.message, dataResult.error));
+        return err(dataResult.error);
       }
 
       return ok<AthleteEmergencyQuickView | null>(dataResult.data);
@@ -51,10 +62,13 @@ export function useEmergencyAccess() {
     retry,
   } = useScreen<AthleteEmergencyQuickView | null>({
     load: loadData,
-    deps: [athleteId, coachId],
+    deps: [athleteId, coachId, currentUser?.role, currentUser?.isVerified],
     isEmpty: (value) => !value,
     refetchOnFocus: true,
-    dataKey: `emergency:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
+    dataKey:
+      hasVerifiedCoachAccess && athleteId
+        ? `emergency:${coachId}:verified:${athleteId}`
+        : 'emergency:unavailable',
   });
 
   const handleCallContact = async (phone: string, name: string) => {

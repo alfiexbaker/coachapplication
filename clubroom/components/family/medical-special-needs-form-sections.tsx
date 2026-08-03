@@ -21,11 +21,13 @@ const MAX_TAGS = 10;
 /* ---------- Tag Input Helper ---------- */
 
 function TagInput({
+  label,
   tags,
   onChange,
   placeholder,
   palette,
 }: {
+  label: string;
   tags: string[];
   onChange: (tags: string[]) => void;
   placeholder: string;
@@ -61,6 +63,8 @@ function TagInput({
             <Clickable
               key={tag}
               onPress={() => removeTag(tag)}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${tag} from ${label}`}
               style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
             >
               <ThemedText style={[Typography.caption, { color: palette.tint }]}>{tag}</ThemedText>
@@ -72,17 +76,19 @@ function TagInput({
       <Row style={styles.tagInputRow}>
         <TextInput
           style={[styles.tagInput, { borderColor: palette.border, color: palette.text }]}
+          accessibilityLabel={label}
           placeholder={placeholder}
           placeholderTextColor={palette.muted}
           value={input}
           onChangeText={setInput}
           onSubmitEditing={addTag}
           returnKeyType="done"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
         <Clickable
           onPress={addTag}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${label}`}
           style={[styles.tagAddButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
         >
           <Ionicons name="add" size={18} color={palette.tint} />
@@ -135,41 +141,85 @@ export const DisabilitySelector = function DisabilitySelector({
   onAddDisability,
   palette,
 }: DisabilitySelectorProps) {
+  const [isAdding, setIsAdding] = useState(Boolean(selectedDisabilityType));
+  const availableTypes = DISABILITY_TYPES.filter(
+    (type) => !disabilities.some((disability) => disability.type === type),
+  );
+
+  const cancelAdd = () => {
+    onSelectedDisabilityTypeChange(null);
+    setIsAdding(false);
+  };
+
+  const confirmAdd = () => {
+    onAddDisability();
+    setIsAdding(false);
+  };
+
   return (
     <View style={styles.field}>
-      <ThemedText style={styles.label}>Disabilities</ThemedText>
-      <ThemedText style={[styles.hint, { color: palette.muted }]}>Select any that apply</ThemedText>
-      <Row style={styles.optionGrid}>
-        {DISABILITY_TYPES.map((type) => {
-          const isSelected = disabilities.some((d) => d.type === type);
-          return (
-            <Clickable
-              key={type}
-              onPress={() => {
-                if (isSelected) {
-                  onDisabilitiesChange(disabilities.filter((d) => d.type !== type));
-                } else {
-                  onSelectedDisabilityTypeChange(type);
-                }
-              }}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              {isSelected && <Ionicons name="checkmark" size={14} color={palette.tint} />}
-              <ThemedText
-                style={[styles.optionText, { color: isSelected ? palette.tint : palette.text }]}
+      <ThemedText style={styles.label}>Conditions and access needs</ThemedText>
+      <ThemedText style={[styles.hint, { color: palette.muted }]}>
+        Record anything that changes how sessions should be run.
+      </ThemedText>
+
+      {disabilities.map((disability) => (
+        <Row
+          key={disability.id}
+          align="center"
+          justify="space-between"
+          style={[styles.savedItem, { borderColor: palette.border }]}
+        >
+          <ThemedText style={Typography.bodySemiBold}>{disability.type}</ThemedText>
+          <Clickable
+            onPress={() =>
+              onDisabilitiesChange(disabilities.filter((item) => item.id !== disability.id))
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${disability.type}`}
+            style={styles.removeAction}
+          >
+            <Ionicons name="close-circle" size={20} color={palette.error} />
+          </Clickable>
+        </Row>
+      ))}
+
+      {!isAdding && availableTypes.length > 0 ? (
+        <Button onPress={() => setIsAdding(true)} variant="outline" label="Add condition" />
+      ) : null}
+
+      {isAdding && !selectedDisabilityType ? (
+        <>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Choose a condition
+          </ThemedText>
+          <Row style={styles.optionGrid}>
+            {availableTypes.map((type) => (
+              <Clickable
+                key={type}
+                onPress={() => onSelectedDisabilityTypeChange(type)}
+                accessibilityRole="radio"
+                accessibilityLabel={type}
+                accessibilityState={{ checked: false }}
+                style={[
+                  styles.optionChip,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                ]}
               >
-                {type}
-              </ThemedText>
-            </Clickable>
-          );
-        })}
-      </Row>
+                <ThemedText style={[styles.optionText, { color: palette.text }]}>{type}</ThemedText>
+              </Clickable>
+            ))}
+          </Row>
+          <Clickable
+            onPress={cancelAdd}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel condition"
+            style={styles.cancelLink}
+          >
+            <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
+          </Clickable>
+        </>
+      ) : null}
 
       {selectedDisabilityType && (
         <View
@@ -182,19 +232,20 @@ export const DisabilitySelector = function DisabilitySelector({
 
           <TextInput
             style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Add any details that would help coaches (optional)"
+            accessibilityLabel={`${selectedDisabilityType} notes, optional`}
+            placeholder="Notes for the coach (optional)"
             placeholderTextColor={palette.muted}
             value={disabilityDescription}
             onChangeText={onDisabilityDescriptionChange}
             multiline
             numberOfLines={2}
-
             maxLength={500}
           />
 
           <TextInput
             style={[styles.smallInput, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Diagnosis year (e.g. 2020)"
+            accessibilityLabel="Diagnosis year, optional"
+            placeholder="Diagnosis year (optional)"
             placeholderTextColor={palette.muted}
             value={diagnosisDate}
             onChangeText={onDiagnosisDateChange}
@@ -204,13 +255,13 @@ export const DisabilitySelector = function DisabilitySelector({
 
           <TextInput
             style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Support required (e.g. clear short instructions, regular breaks)"
+            accessibilityLabel="Support required, optional"
+            placeholder="Support required (optional)"
             placeholderTextColor={palette.muted}
             value={supportRequired}
             onChangeText={onSupportRequiredChange}
             multiline
             numberOfLines={2}
-
             maxLength={500}
           />
 
@@ -219,6 +270,7 @@ export const DisabilitySelector = function DisabilitySelector({
               Communication preferences
             </ThemedText>
             <TagInput
+              label="communication preference"
               tags={commPrefs}
               onChange={onCommPrefsChange}
               placeholder="e.g. Visual cues"
@@ -231,6 +283,7 @@ export const DisabilitySelector = function DisabilitySelector({
               Triggers to avoid
             </ThemedText>
             <TagInput
+              label="trigger"
               tags={triggers}
               onChange={onTriggersChange}
               placeholder="e.g. Loud whistles"
@@ -243,6 +296,7 @@ export const DisabilitySelector = function DisabilitySelector({
               Calming strategies
             </ThemedText>
             <TagInput
+              label="calming strategy"
               tags={calmingStrategies}
               onChange={onCalmingStrategiesChange}
               placeholder="e.g. Counting to 10"
@@ -251,10 +305,14 @@ export const DisabilitySelector = function DisabilitySelector({
           </View>
 
           <Row style={styles.addButtonRow}>
-            <Clickable onPress={() => onSelectedDisabilityTypeChange(null)}>
+            <Clickable
+              onPress={cancelAdd}
+              accessibilityRole="button"
+              accessibilityLabel={`Cancel ${selectedDisabilityType}`}
+            >
               <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
             </Clickable>
-            <Button onPress={onAddDisability} size="small" label="Add" />
+            <Button onPress={confirmAdd} size="small" label="Add condition" />
           </Row>
         </View>
       )}
@@ -278,13 +336,14 @@ export interface SpecialNeedEntrySectionProps {
   snSeverity: SpecialNeed['severity'] | undefined;
   snAccommodations: string[];
   snParentHints: string;
-  onSnCategoryChange: (v: SpecialNeed['category']) => void;
+  onSnCategoryChange: (v: SpecialNeed['category'] | null) => void;
   onSnNameChange: (v: string) => void;
   onSnDescriptionChange: (v: string) => void;
   onSnSeverityChange: (v: SpecialNeed['severity']) => void;
   onSnAccommodationsChange: (v: string[]) => void;
   onSnParentHintsChange: (v: string) => void;
   onAddSpecialNeed: () => void;
+  onCancelSpecialNeed: () => void;
   onRemoveSpecialNeed: (id: string) => void;
   palette: ThemeColors;
 }
@@ -304,59 +363,103 @@ export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
   onSnAccommodationsChange,
   onSnParentHintsChange,
   onAddSpecialNeed,
+  onCancelSpecialNeed,
   onRemoveSpecialNeed,
   palette,
 }: SpecialNeedEntrySectionProps) {
+  const [isAdding, setIsAdding] = useState(Boolean(snCategory));
+
+  const cancelAdd = () => {
+    onCancelSpecialNeed();
+    setIsAdding(false);
+  };
+
+  const confirmAdd = () => {
+    onAddSpecialNeed();
+    setIsAdding(false);
+  };
+
   return (
     <View style={styles.field}>
-      <ThemedText style={styles.label}>Special Needs & Accommodations</ThemedText>
+      <ThemedText style={styles.label}>Session adjustments</ThemedText>
       <ThemedText style={[styles.hint, { color: palette.muted }]}>
-        What accommodations does your child need? (optional)
+        Add changes coaches should make during sessions.
       </ThemedText>
 
       {/* Existing special needs as cards */}
       {specialNeeds.map((sn) => (
         <View
           key={sn.id}
-          style={[styles.snCard, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border }]}
+          style={[
+            styles.snCard,
+            { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border },
+          ]}
         >
           <Row align="center" justify="space-between">
             <ThemedText style={Typography.bodySemiBold}>{sn.name}</ThemedText>
-            <Clickable onPress={() => onRemoveSpecialNeed(sn.id)}>
+            <Clickable
+              onPress={() => onRemoveSpecialNeed(sn.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${sn.name}`}
+              style={styles.removeAction}
+            >
               <Ionicons name="close-circle" size={20} color={palette.error} />
             </Clickable>
           </Row>
           {sn.severity && (
-            <ThemedText style={[Typography.caption, { color: palette.muted }]}>{sn.severity}</ThemedText>
+            <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+              {sn.severity}
+            </ThemedText>
           )}
         </View>
       ))}
 
-      {/* Category picker */}
-      <Row style={styles.optionGrid}>
-        {SPECIAL_NEEDS_CATEGORIES.map((cat) => {
-          const isActive = snCategory === cat.id;
-          return (
+      {!isAdding ? (
+        <Button onPress={() => setIsAdding(true)} variant="outline" label="Add adjustment" />
+      ) : (
+        <>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Choose an adjustment type
+          </ThemedText>
+          <Row style={styles.optionGrid}>
+            {SPECIAL_NEEDS_CATEGORIES.map((cat) => {
+              const isActive = snCategory === cat.id;
+              return (
+                <Clickable
+                  key={cat.id}
+                  onPress={() => onSnCategoryChange(cat.id)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={cat.label}
+                  accessibilityState={{ selected: isActive, checked: isActive }}
+                  style={[
+                    styles.optionChip,
+                    {
+                      backgroundColor: isActive ? withAlpha(palette.tint, 0.09) : palette.surface,
+                      borderColor: isActive ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.optionText, { color: isActive ? palette.tint : palette.text }]}
+                  >
+                    {cat.label}
+                  </ThemedText>
+                </Clickable>
+              );
+            })}
+          </Row>
+          {!snCategory ? (
             <Clickable
-              key={cat.id}
-              onPress={() => onSnCategoryChange(cat.id)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: isActive ? withAlpha(palette.tint, 0.09) : palette.surface,
-                  borderColor: isActive ? palette.tint : palette.border,
-                },
-              ]}
+              onPress={cancelAdd}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel adjustment"
+              style={styles.cancelLink}
             >
-              <ThemedText
-                style={[styles.optionText, { color: isActive ? palette.tint : palette.text }]}
-              >
-                {cat.label}
-              </ThemedText>
+              <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
             </Clickable>
-          );
-        })}
-      </Row>
+          ) : null}
+        </>
+      )}
 
       {/* Detail panel when category selected */}
       {snCategory && (
@@ -368,23 +471,23 @@ export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
         >
           <TextInput
             style={[styles.smallInput, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Name (e.g. Noise Sensitivity)"
+            accessibilityLabel="Adjustment name"
+            placeholder="Adjustment name"
             placeholderTextColor={palette.muted}
             value={snName}
             onChangeText={onSnNameChange}
-
             maxLength={50}
           />
 
           <TextInput
             style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
+            accessibilityLabel="Adjustment description, optional"
             placeholder="Description (optional)"
             placeholderTextColor={palette.muted}
             value={snDescription}
             onChangeText={onSnDescriptionChange}
             multiline
             numberOfLines={2}
-
             maxLength={500}
           />
 
@@ -397,12 +500,13 @@ export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
                   <Clickable
                     key={opt.key}
                     onPress={() => onSnSeverityChange(opt.key)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={opt.label}
+                    accessibilityState={{ selected: isActive, checked: isActive }}
                     style={[
                       styles.severityChip,
                       {
-                        backgroundColor: isActive
-                          ? withAlpha(palette.tint, 0.12)
-                          : palette.surface,
+                        backgroundColor: isActive ? withAlpha(palette.tint, 0.12) : palette.surface,
                         borderColor: isActive ? palette.tint : palette.border,
                       },
                     ]}
@@ -426,6 +530,7 @@ export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
               Accommodations needed
             </ThemedText>
             <TagInput
+              label="accommodation"
               tags={snAccommodations}
               onChange={onSnAccommodationsChange}
               placeholder="e.g. Visual timers"
@@ -435,25 +540,29 @@ export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
 
           <TextInput
             style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Tips for coaches (e.g. Give 5-min warning before transitions)"
+            accessibilityLabel="Tips for coaches, optional"
+            placeholder="Tips for coaches (optional)"
             placeholderTextColor={palette.muted}
             value={snParentHints}
             onChangeText={onSnParentHintsChange}
             multiline
             numberOfLines={2}
-
             maxLength={500}
           />
 
           <Row style={styles.addButtonRow}>
-            <Clickable onPress={() => onSnCategoryChange(snCategory)}>
+            <Clickable
+              onPress={cancelAdd}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel adjustment"
+            >
               <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
             </Clickable>
             <Button
-              onPress={onAddSpecialNeed}
+              onPress={confirmAdd}
               size="small"
               disabled={!snName.trim()}
-              label="Add"
+              label="Add adjustment"
             />
           </Row>
         </View>
@@ -470,14 +579,33 @@ const styles = StyleSheet.create({
   hint: { ...Typography.small },
   optionGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   optionChip: {
+    minHeight: 44,
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1.5,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
   },
   optionText: { ...Typography.small, fontWeight: '500' },
+  savedItem: {
+    minHeight: 48,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  removeAction: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelLink: {
+    minHeight: 44,
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
+  },
   addDescriptionBox: {
     padding: Spacing.md,
     borderRadius: Radii.md,
@@ -486,13 +614,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   smallInput: {
-    borderWidth: 1.5,
+    minHeight: 48,
+    borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
   },
   textArea: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
@@ -518,15 +647,16 @@ const styles = StyleSheet.create({
   tagInputRow: { gap: Spacing.xs, alignItems: 'center' },
   tagInput: {
     flex: 1,
+    minHeight: 44,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.xs,
     ...Typography.small,
   },
   tagAddButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.pill,
+    width: 44,
+    height: 44,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },

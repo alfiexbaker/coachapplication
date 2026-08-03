@@ -24,6 +24,8 @@ export function useTrainingSchedule() {
   const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
@@ -35,11 +37,17 @@ export function useTrainingSchedule() {
   useEffect(() => {
     const loadData = async () => {
       if (!currentUserId) {
+        setClubName('');
+        setSquads([]);
+        setTrainingSessions([]);
+        setSelectedSquadId(null);
         setLoading(false);
+        setError(null);
         return;
       }
 
       setLoading(true);
+      setError(null);
 
       return await runAsyncTryCatchFinally(
         async () => {
@@ -73,6 +81,11 @@ export function useTrainingSchedule() {
         },
         async (error) => {
           logger.error('Failed to load training sessions', error);
+          setClubName('');
+          setSquads([]);
+          setTrainingSessions([]);
+          setSelectedSquadId(null);
+          setError(error instanceof Error ? error.message : 'Failed to load training schedule.');
         },
         () => {
           setLoading(false);
@@ -83,7 +96,7 @@ export function useTrainingSchedule() {
     startTransition(() => {
       void loadData();
     });
-  }, [currentUserId, isCoach]);
+  }, [currentUserId, isCoach, reloadKey]);
 
   const filteredSessions = selectedSquadId
     ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
@@ -91,6 +104,8 @@ export function useTrainingSchedule() {
 
   return {
     loading,
+    error,
+    retry: () => setReloadKey((key) => key + 1),
     viewMode,
     setViewMode,
     selectedSquadId,

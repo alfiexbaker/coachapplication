@@ -20,6 +20,7 @@ const validRoles = new Set<ActingRole>([
   'security_admin',
 ]);
 const privilegedAdminRoles: GrantedRole[] = ['club_admin', 'admin', 'security_admin'];
+const systemAdminRoles: GrantedRole[] = ['admin', 'security_admin'];
 const staffInviteRoles: GrantedRole[] = ['coach', 'club_admin', 'admin', 'security_admin'];
 const authzCacheKey = Symbol('clubroom.authz-cache');
 
@@ -177,6 +178,10 @@ export function isClubAdminAuth(auth: FastifyRequest['auth'] | undefined): boole
 
 export function isPrivilegedAdminAuth(auth: FastifyRequest['auth'] | undefined): boolean {
   return hasAnyGrantedRole(auth, privilegedAdminRoles);
+}
+
+export function isSystemAdminAuth(auth: FastifyRequest['auth'] | undefined): boolean {
+  return hasAnyGrantedRole(auth, systemAdminRoles);
 }
 
 export function canUseStaffInviteLinks(auth: FastifyRequest['auth'] | undefined): boolean {

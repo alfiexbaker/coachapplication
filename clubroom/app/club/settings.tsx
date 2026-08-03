@@ -1,4 +1,4 @@
-import { RefreshControl, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +23,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
 import { Routes } from '@/navigation/routes';
 import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
+
+const MOCK_API_MODE = api.useMock;
 
 export default function ClubSettingsScreen() {
   const { colors } = useTheme();
@@ -69,7 +71,7 @@ export default function ClubSettingsScreen() {
     : SETTINGS_SECTIONS.filter(
         (section) => section.key === 'details' || section.key === 'branding',
       );
-  const membershipActionLabel = api.useMock ? 'Club Hub' : 'My Clubs';
+  const membershipActionLabel = MOCK_API_MODE ? 'Club Hub' : 'My Clubs';
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -156,22 +158,17 @@ export default function ClubSettingsScreen() {
       >
         {!canManageClub && (
           <SurfaceCard style={[styles.readOnlyCard, { borderColor: colors.border }]}>
-            <ThemedText style={Typography.smallSemiBold}>Read-only access</ThemedText>
-            <ThemedText style={[Typography.small, { color: colors.muted }]}>
-              Club leaders (Owner/Admin/Head Coach) can edit settings, invites, and member controls.
-            </ThemedText>
+            <ThemedText style={Typography.smallSemiBold}>View only</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               {membership
-                ? `Your role: ${formatOrganizationRoleLabel(
-                    membership.role,
-                  )}. Use ${membershipActionLabel} for membership actions.`
-                : `You are not a manager in this club. Use ${membershipActionLabel} to join, leave, or switch clubs.`}
+                ? `Your ${formatOrganizationRoleLabel(membership.role)} role cannot change club settings.`
+                : 'You cannot change this club’s settings.'}
             </ThemedText>
             <Clickable
               style={[styles.readOnlyCta, { borderColor: colors.border }]}
               onPress={() =>
                 router.push(
-                  api.useMock
+                  MOCK_API_MODE
                     ? Routes.clubHub(clubId ? { clubId } : undefined)
                     : Routes.MY_CLUBS,
                 )
@@ -180,7 +177,7 @@ export default function ClubSettingsScreen() {
               <Row align="center" justify="center" gap="xs">
                 <Ionicons name="people-outline" size={16} color={colors.tint} />
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-                  Open {membershipActionLabel}
+                  {membershipActionLabel}
                 </ThemedText>
               </Row>
             </Clickable>
@@ -191,6 +188,7 @@ export default function ClubSettingsScreen() {
             editName={editName}
             editTagline={editTagline}
             editCity={editCity}
+            canEdit={canManageClub}
             colors={colors}
             onNameChange={setEditName}
             onTaglineChange={setEditTagline}

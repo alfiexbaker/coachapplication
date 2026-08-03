@@ -3,7 +3,12 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
+import {
+  VERIFICATION_DOCUMENT_PICKER_TYPES,
+  validateVerificationDocumentSelection,
+  verificationService,
+  type VerificationDocumentUploadInput,
+} from '@/services/verification-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
@@ -69,19 +74,24 @@ export function useInsuranceVerification() {
 
   const handleUpload = async () => {
     const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/*'],
+      type: VERIFICATION_DOCUMENT_PICKER_TYPES,
       copyToCacheDirectory: true,
       multiple: false,
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    setSelectedDocument({
+    const selection = validateVerificationDocumentSelection({
       uri: asset.uri,
       fileName: asset.name || 'insurance-certificate',
       contentType: asset.mimeType,
       sizeBytes: asset.size,
       label: 'Public liability insurance certificate',
     });
+    if (!selection.success) {
+      uiFeedback.showToast(selection.error.message, 'error');
+      return;
+    }
+    setSelectedDocument(selection.data);
   };
 
   const handleSubmit = async () => {

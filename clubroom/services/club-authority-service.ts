@@ -1,5 +1,11 @@
 import { api } from '@/constants/config';
-import type { Club, ClubInvite, ClubMembership, ClubRole } from '@/constants/types';
+import type {
+  Club,
+  ClubInvite,
+  ClubMembership,
+  ClubRole,
+  OrganizationJoinPolicy,
+} from '@/constants/types';
 import { apiFetch } from '@/services/api-client';
 import {
   buildApiAuthHeaders,
@@ -20,6 +26,9 @@ import { err, notFound, ok, serviceError, type Result, type ServiceError } from 
 const logger = createLogger('ClubAuthorityService');
 
 type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin' | 'member' | 'admin';
+type ClubDetailsPatch = Partial<
+  Pick<Club, 'name' | 'tagline' | 'city' | 'visibility' | 'joinPolicy'>
+>;
 
 interface ApiClubMembership {
   id: string;
@@ -39,12 +48,16 @@ interface ApiClub {
   tagline?: string | null;
   slug?: string;
   visibility?: string;
+  joinPolicy?: string | null;
   commercialMode?: string | null;
   createdByUserId?: string;
   inviteCode?: string | null;
-  memberships: ApiClubMembership[];
+  memberCount?: number;
+  coachCount?: number;
+  memberships?: ApiClubMembership[];
   squads?: Array<{ id: string }>;
   viewerMembership?: ApiClubMembership | null;
+  canManageMatches?: boolean;
 }
 
 interface ApiClubsResponse {
@@ -83,6 +96,7 @@ interface ClubJoinPreview {
   clubName: string;
   clubSlug?: string;
   visibility?: string;
+  joinPolicy?: string | null;
   inviteCode: string;
   role: ClubRole;
   joinFlow: 'direct_join' | 'invite_review';
@@ -103,12 +117,12 @@ export interface PendingClubInvite {
   targetEmailHint?: string;
   inviteCode: string;
   role: ClubRole;
-  invitedByUserId?: string;
+  invitedByUserId: string;
   invitedByLabel: string;
   status: 'pending' | 'accepted' | 'declined';
   createdAt: string;
   expiresAt: string;
-  respondedAt?: string | null;
+  respondedAt: string | null;
 }
 
 export interface ClubInviteEmailDeliverySummary {
@@ -121,7 +135,14 @@ export interface ClubInviteEmailDeliverySummary {
 
 interface ApiClubInvitesResponse {
   invites: PendingClubInvite[];
+  requestId: string;
+}
+
+interface ApiCreateClubInvitesResponse {
+  invites: PendingClubInvite[];
+  total: number;
   emailDelivery?: ClubInviteEmailDeliverySummary;
+  requestId: string;
 }
 
 interface JoinClubResponse {
@@ -139,14 +160,9 @@ interface JoinClubResponse {
 
 interface RespondToClubInviteResponse {
   invite: PendingClubInvite;
-  membership?: ApiClubMembership | null;
-  club?: {
-    id: string;
-    name: string;
-    slug?: string;
-    visibility?: string;
-    inviteCode: string;
-  } | null;
+  membership: ApiClubMembership | null;
+  club: ApiClub;
+  requestId: string;
 }
 
 function toContractRole(role: string): ClubRole {
@@ -237,8 +253,16 @@ function mapClub(club: ApiClub): Club {
     country: club.country ?? undefined,
     badge: club.name.slice(0, 2).toUpperCase(),
     tagline: club.tagline ?? undefined,
-    memberCount: memberships.length,
-    coachCount: coaches.length,
+    visibility:
+      club.visibility === 'public' || club.visibility === 'private' ? club.visibility : undefined,
+    joinPolicy:
+      club.joinPolicy === 'INVITE_ONLY' ||
+      club.joinPolicy === 'REQUEST_TO_JOIN' ||
+      club.joinPolicy === 'OPEN'
+        ? (club.joinPolicy as OrganizationJoinPolicy)
+        : undefined,
+    memberCount: club.memberCount ?? memberships.length,
+    coachCount: club.coachCount ?? coaches.length,
     squadCount: club.squads?.length ?? 0,
     ownerId:
       memberships.find((membership) => toContractRole(membership.role) === 'OWNER')?.userId ??
@@ -249,6 +273,7 @@ function mapClub(club: ApiClub): Club {
       club.commercialMode === 'ORG_OWNED' || club.commercialMode === 'COACH_OWNED'
         ? club.commercialMode
         : undefined,
+    canManageMatches: club.canManageMatches === true,
   };
 }
 
@@ -272,6 +297,7 @@ class ClubAuthorityService {
         country: input.country,
         tagline: input.tagline,
         badge: input.badge,
+        joinPolicy: input.joinPolicy,
         commercialMode: input.commercialMode,
         firstStaffRole: input.firstStaffRole,
       }),
@@ -357,21 +383,64 @@ class ClubAuthorityService {
       return club ? ok(club) : err(notFound('Club', clubId));
     }
 
-    const result = await this.listClubs();
-    if (!result.success) {
-      return result;
+    const headersResult = await resolveHeaders();
+    if (!headersResult.success) {
+      return headersResult;
     }
 
-    const club = result.data.clubs.find((candidate) => candidate.id === clubId);
-    return club ? ok(club) : err(notFound('Club', clubId));
+    const result = await apiFetch<ApiClubResponse>(`/v1/clubs/${encodeURIComponent(clubId)}`, {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+    if (!result.success) {
+      logger.warn('Failed to load club via API', { clubId, error: result.error });
+      return err(result.error);
+    }
+
+    const currentUser = await authService.getCurrentUser();
+    const currentUserId = currentUser?.id ? toApiUserId(currentUser.id) : null;
+    const club = mapClub(result.data.club);
+    await socialFeedService.syncAuthorityClubs([
+      {
+        ...club,
+        memberships: mapApiClubViewerMemberships(result.data.club, currentUserId),
+      },
+    ]);
+    return ok(club);
   }
 
   async updateClubDetails(
     clubId: string,
-    changes: Pick<Club, 'name' | 'tagline' | 'city'>,
+    changes: ClubDetailsPatch,
   ): Promise<Result<Club, ServiceError>> {
     if (api.useMock) {
-      return socialFeedService.updateClubDetails(clubId, changes);
+      const current = await socialFeedService.getClub(clubId);
+      if (!current) {
+        return err(notFound('Club', clubId));
+      }
+      const result = await socialFeedService.updateClubDetails(clubId, {
+        name: changes.name ?? current.name,
+        tagline: changes.tagline ?? current.tagline,
+        city: changes.city ?? current.city,
+      });
+      return result.success
+        ? ok({
+            ...result.data,
+            visibility: changes.visibility ?? result.data.visibility,
+            joinPolicy: changes.joinPolicy ?? result.data.joinPolicy,
+          })
+        : result;
+    }
+
+    const body = {
+      ...(changes.name !== undefined ? { name: changes.name } : {}),
+      ...(changes.tagline !== undefined ? { tagline: changes.tagline } : {}),
+      ...(changes.city !== undefined ? { city: changes.city } : {}),
+      ...(changes.visibility !== undefined ? { visibility: changes.visibility } : {}),
+      ...(changes.joinPolicy !== undefined ? { joinPolicy: changes.joinPolicy } : {}),
+    };
+    if (Object.keys(body).length === 0) {
+      return err(serviceError('VALIDATION', 'At least one club field is required'));
     }
 
     const headersResult = await resolveHeaders();
@@ -382,7 +451,7 @@ class ClubAuthorityService {
     const result = await apiFetch<ApiClubResponse>(`/v1/clubs/${clubId}`, {
       method: 'PATCH',
       headers: headersResult.data,
-      body: JSON.stringify(changes),
+      body: JSON.stringify(body),
     });
     if (!result.success) {
       return err(result.error);
@@ -392,7 +461,7 @@ class ClubAuthorityService {
     await socialFeedService.syncAuthorityClubs([
       {
         ...club,
-        memberships: (result.data.club.memberships ?? []).map(mapMembership),
+        memberships: mapApiClubViewerMemberships(result.data.club),
       },
     ]);
     return ok(club);
@@ -424,7 +493,7 @@ class ClubAuthorityService {
     await socialFeedService.syncAuthorityClubs([
       {
         ...club,
-        memberships: (result.data.club.memberships ?? []).map(mapMembership),
+        memberships: mapApiClubViewerMemberships(result.data.club),
       },
     ]);
     return ok(club);
@@ -537,7 +606,6 @@ class ClubAuthorityService {
     if (!nextInviteCodes.success) {
       logger.warn('Invite code revoked but local invite-code refresh failed', {
         clubId,
-        code,
         error: nextInviteCodes.error,
       });
     }
@@ -700,7 +768,7 @@ class ClubAuthorityService {
       return headersResult;
     }
 
-    const result = await apiFetch<ApiClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
+    const result = await apiFetch<ApiCreateClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
       method: 'POST',
       headers: headersResult.data,
       body: JSON.stringify({
@@ -749,7 +817,7 @@ class ClubAuthorityService {
       return headersResult;
     }
 
-    const result = await apiFetch<ApiClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
+    const result = await apiFetch<ApiCreateClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
       method: 'POST',
       headers: headersResult.data,
       body: JSON.stringify({
@@ -795,7 +863,7 @@ class ClubAuthorityService {
     }
 
     const membership = result.data.membership ? mapMembership(result.data.membership) : null;
-    if (membership && result.data.club) {
+    if (membership) {
       await socialFeedService.syncJoinedClub(
         {
           id: result.data.club.id,
@@ -805,7 +873,7 @@ class ClubAuthorityService {
           coachCount: 0,
           squadCount: 0,
           ownerId: '',
-          inviteCode: result.data.club.inviteCode,
+          inviteCode: result.data.club.inviteCode ?? result.data.invite.inviteCode,
         },
         membership,
       );

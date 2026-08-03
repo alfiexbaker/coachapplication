@@ -90,6 +90,8 @@ export interface AuthResult {
 
 export interface UserProfile {
   id: string;
+  athleteId?: string;
+  athleteName?: string;
   email: string;
   phone?: string;
   accountType: AccountType;
@@ -117,12 +119,12 @@ export interface UserProfile {
   // For parents
   childrenCount?: number;
   hasChildren?: boolean;
-  children?: Array<{
+  children?: {
     childId: string;
     childName: string;
     relationshipType: 'PARENT_CHILD' | 'GUARDIAN';
     addedAt: string;
-  }>;
+  }[];
 
   // For coaches
   isOrganization?: boolean;
@@ -220,6 +222,21 @@ function generateMockTokens(): AuthTokens {
   };
 }
 
+function emailLogFields(email: string): {
+  emailProvided: boolean;
+  emailLength: number;
+  emailDomainLength: number;
+} {
+  const normalized = email.trim().toLowerCase();
+  const domainStart = normalized.lastIndexOf('@') + 1;
+  const domainLength = domainStart > 0 ? normalized.slice(domainStart).length : 0;
+  return {
+    emailProvided: normalized.length > 0,
+    emailLength: normalized.length,
+    emailDomainLength: domainLength,
+  };
+}
+
 // ============================================================================
 // API FETCH HELPER (for real API mode)
 // ============================================================================
@@ -264,7 +281,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<
 
 export const authService = {
   async login(email: string, password: string): Promise<Result<AuthData, ServiceError>> {
-    logger.info('Login attempt', { email });
+    logger.info('Login attempt', emailLogFields(email));
 
     if (USE_MOCK) {
       return this._mockLogin(email, password);
@@ -276,7 +293,7 @@ export const authService = {
     });
 
     if (!result.success) {
-      logger.warn('Login failed', { email, error: result.error.message });
+      logger.warn('Login failed', { ...emailLogFields(email), error: result.error.message });
       return result;
     }
 
@@ -292,7 +309,10 @@ export const authService = {
   },
 
   async register(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
-    logger.info('Registration attempt', { email: input.email, accountType: input.accountType });
+    logger.info('Registration attempt', {
+      ...emailLogFields(input.email),
+      accountType: input.accountType,
+    });
 
     // Age validation for self-registration
     if (input.dateOfBirth) {
@@ -315,7 +335,10 @@ export const authService = {
     );
 
     if (!result.success) {
-      logger.warn('Registration failed', { email: input.email, error: result.error.message });
+      logger.warn('Registration failed', {
+        ...emailLogFields(input.email),
+        error: result.error.message,
+      });
       return result;
     }
 
@@ -487,21 +510,23 @@ export const authService = {
     return err(refreshResult.error);
   },
 
-  async forgotPassword(email: string): Promise<void> {
-    logger.info('Password reset requested', { email });
+  async forgotPassword(email: string): Promise<Result<void, ServiceError>> {
+    logger.info('Password reset requested', emailLogFields(email));
 
     if (USE_MOCK) {
       const user = usersCache.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (user) {
         logger.info('Password reset email would be sent', { userId: user.id });
       }
-      return;
+      return ok(undefined);
     }
 
-    await apiFetch(AUTH_ENDPOINTS.forgotPassword, {
+    const result = await apiFetch<void>(AUTH_ENDPOINTS.forgotPassword, {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
+
+    return result.success ? ok(undefined) : err(result.error);
   },
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -530,12 +555,13 @@ export const authService = {
   // ============================================================================
 
   async getCurrentUser(): Promise<UserProfile | null> {
-    if (currentUser) return currentUser;
+    if (USE_MOCK && currentUser) return currentUser;
 
     try {
       if (!USE_MOCK) {
         let tokens = await this.getTokens();
         if (!tokens) {
+          currentUser = null;
           return null;
         }
 
@@ -562,6 +588,7 @@ export const authService = {
         logger.warn('Auth me lookup failed during current user lookup', {
           error: meResult.error.message,
         });
+        currentUser = null;
         return null;
       }
 
@@ -572,6 +599,9 @@ export const authService = {
       }
     } catch (error) {
       logger.error('Failed to get current user', error);
+      if (!USE_MOCK) {
+        currentUser = null;
+      }
     }
 
     return null;
@@ -685,15 +715,6 @@ export const authService = {
     return complete === true;
   },
 
-  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.forgotPassword(email);
-      return { success: true };
-    } catch {
-      return { success: true };
-    }
-  },
-
   async verifyEmail(code: string): Promise<Result<AuthData, ServiceError>> {
     if (!currentUser) {
       return err(unauthorized('Not authenticated'));
@@ -741,7 +762,14 @@ export const authService = {
     const result = await apiFetch<{ available: boolean }>(
       `${AUTH_ENDPOINTS.checkEmail}?email=${encodeURIComponent(email)}`,
     );
-    return result.success ? result.data.available : true;
+    if (!result.success) {
+      logger.warn('Email availability check failed', {
+        ...emailLogFields(email),
+        error: result.error.message,
+      });
+      return false;
+    }
+    return result.data.available;
   },
 
   // ============================================================================
@@ -799,7 +827,7 @@ export const authService = {
     );
 
     if (!user) {
-      logger.warn('Login failed: Invalid credentials', { email });
+      logger.warn('Login failed: Invalid credentials', emailLogFields(email));
       return err(unauthorized('Invalid email or password'));
     }
 
@@ -818,7 +846,7 @@ export const authService = {
   async _mockRegister(input: RegisterInput): Promise<Result<AuthData, ServiceError>> {
     const existing = usersCache.find((u) => u.email.toLowerCase() === input.email.toLowerCase());
     if (existing) {
-      logger.warn('Registration failed: Email exists', { email: input.email });
+      logger.warn('Registration failed: Email exists', emailLogFields(input.email));
       return err(conflictError('An account with this email already exists'));
     }
 

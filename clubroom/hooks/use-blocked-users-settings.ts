@@ -4,20 +4,23 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { blockService } from '@/services/block-service';
 import { uiFeedback } from '@/services/ui-feedback';
-import { userService } from '@/services/user-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 export interface BlockedUserItem {
   id: string;
   name: string;
-  role: string;
-  email: string;
-  subtitle: string;
-  missingProfile: boolean;
+  blockedLabel: string;
 }
 
-function toRoleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+function blockedDateLabel(value: string | null): string {
+  if (!value) return 'Blocked';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Blocked';
+  return `Blocked ${date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })}`;
 }
 
 export function useBlockedUsersSettings() {
@@ -30,52 +33,18 @@ export function useBlockedUsersSettings() {
       return err(serviceError('UNAUTHORIZED', 'No user available.'));
     }
 
-    const blockedResult = await blockService.getBlockedUsers(userId);
+    const blockedResult = await blockService.getBlockedUserSummaries(userId);
     if (!blockedResult.success) {
       return err(blockedResult.error);
     }
 
-    const blockedIds = blockedResult.data;
-    if (blockedIds.length === 0) {
-      return ok([] as BlockedUserItem[]);
-    }
-
-    const usersResult = await userService.getUsersByIds(blockedIds);
-    if (!usersResult.success) {
-      return err(usersResult.error);
-    }
-
-    const usersById = new Map(usersResult.data.map((user) => [user.id, user] as const));
-    const items = blockedIds.map<BlockedUserItem>((blockedId) => {
-      const user = usersById.get(blockedId);
-      if (!user) {
-        return {
-          id: blockedId,
-          name: 'Unknown user',
-          role: 'Account',
-          email: blockedId,
-          subtitle: 'Profile record is unavailable, but the block is still active.',
-          missingProfile: true,
-        };
-      }
-
-      const roleLabel = toRoleLabel(user.role || 'user');
-      const subtitleParts = [roleLabel];
-      if (user.postcode) {
-        subtitleParts.push(user.postcode);
-      }
-
-      return {
-        id: blockedId,
-        name: user.name || 'Unknown user',
-        role: roleLabel,
-        email: user.email || blockedId,
-        subtitle: subtitleParts.join(' • '),
-        missingProfile: false,
-      };
-    });
-
-    return ok(items);
+    return ok(
+      blockedResult.data.map((user) => ({
+        id: user.id,
+        name: user.name?.trim() || 'Blocked account',
+        blockedLabel: blockedDateLabel(user.blockedAt),
+      })),
+    );
   };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen({
@@ -93,8 +62,8 @@ export function useBlockedUsersSettings() {
     if (!userId || pendingUserId) return;
 
     const confirmed = await uiFeedback.confirm({
-      title: 'Unblock user?',
-      message: `${user.name} will be able to message you, appear in discovery, and be invited again.`,
+      title: 'Unblock account?',
+      message: `${user.name} may be able to find and contact you again.`,
       confirmText: 'Unblock',
       cancelText: 'Keep blocked',
       destructive: false,
@@ -105,14 +74,20 @@ export function useBlockedUsersSettings() {
     }
 
     setPendingUserId(user.id);
-    const result = await blockService.unblockUser(userId, user.id);
-    if (result.success) {
-      uiFeedback.showToast(`${user.name} has been unblocked.`, 'success');
-      onRefresh();
-    } else {
-      uiFeedback.showToast(result.error.message || 'Failed to unblock user.', 'error');
-    }
-    setPendingUserId(null);
+    await blockService
+      .unblockUser(userId, user.id)
+      .then((result) => {
+        if (!result.success) {
+          uiFeedback.showToast(result.error.message || 'Account was not unblocked.', 'error');
+          return;
+        }
+        uiFeedback.showToast('Account unblocked.', 'success');
+        onRefresh();
+      })
+      .catch(() => {
+        uiFeedback.showToast('Account was not unblocked. Try again.', 'error');
+      })
+      .finally(() => setPendingUserId(null));
   };
 
   return {

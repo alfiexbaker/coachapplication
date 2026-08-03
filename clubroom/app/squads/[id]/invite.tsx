@@ -114,7 +114,8 @@ export default function SquadInviteScreen() {
         <View style={styles.bannerInfo}>
           <ThemedText type="defaultSemiBold">{s.squad.name}</ThemedText>
           <ThemedText style={[styles.bannerMeta, { color: palette.muted }]}>
-            {s.members.length} athletes {'\u2022'} {s.squad.level}
+            {s.members.length} athletes
+            {s.squad.level ? ` \u2022 ${s.squad.level}` : ''}
           </ThemedText>
         </View>
       </Row>

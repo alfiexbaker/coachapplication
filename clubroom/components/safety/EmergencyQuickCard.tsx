@@ -10,19 +10,16 @@ import type { EmergencyContact } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
 import {
-  MedicalItemChips,
   EmergencyCallSection,
   NoContactWarning,
 } from './emergency-quick-card-sections';
 
 // Re-export extracted components for backward compat
 export {
-  MedicalItemChips,
   EmergencyCallSection,
   NoContactWarning,
 } from './emergency-quick-card-sections';
 export type {
-  MedicalItemChipsProps,
   EmergencyCallSectionProps,
   NoContactWarningProps,
 } from './emergency-quick-card-sections';
@@ -32,9 +29,6 @@ type AlertLevel = 'none' | 'low' | 'medium' | 'high';
 interface EmergencyQuickCardProps {
   athleteName: string;
   alertLevel: AlertLevel;
-  allergies: string[];
-  conditions: string[];
-  medications: string[];
   primaryContact: EmergencyContact | null;
   onCallPrimary?: () => void;
   onPress?: () => void;
@@ -43,9 +37,6 @@ interface EmergencyQuickCardProps {
 export function EmergencyQuickCard({
   athleteName,
   alertLevel,
-  allergies,
-  conditions,
-  medications,
   primaryContact,
   onCallPrimary,
   onPress,
@@ -55,15 +46,6 @@ export function EmergencyQuickCard({
   const alertColor = safetyService.getAlertLevelColor(alertLevel);
   const alertLabel = safetyService.getAlertLevelLabel(alertLevel);
   const hasAlerts = alertLevel !== 'none';
-
-  const topItems = [
-    ...allergies.slice(0, 2).map((a) => ({ label: a, type: 'allergy' as const })),
-    ...conditions.slice(0, 2).map((c) => ({ label: c, type: 'condition' as const })),
-    ...medications.slice(0, 1).map((m) => ({ label: m, type: 'medication' as const })),
-  ].slice(0, 3);
-
-  const totalItems = allergies.length + conditions.length + medications.length;
-  const remainingCount = totalItems - topItems.length;
 
   return (
     <SurfaceCard
@@ -93,10 +75,6 @@ export function EmergencyQuickCard({
           </Row>
         </View>
       </Row>
-
-      {hasAlerts && (
-        <MedicalItemChips topItems={topItems} remainingCount={remainingCount} palette={palette} />
-      )}
 
       {primaryContact ? (
         <EmergencyCallSection contact={primaryContact} onCall={onCallPrimary} palette={palette} />

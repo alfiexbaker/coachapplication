@@ -1,7 +1,5 @@
-import { Platform, StyleSheet, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { StyleSheet, View } from 'react-native';
 
-import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -25,6 +23,7 @@ export interface CommentCardProps {
   onLike: (commentId: string) => void;
   onReply: (commentId: string, authorName: string) => void;
   onDelete: (commentId: string) => void;
+  pending?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,6 +37,7 @@ function CommentCardInner({
   onLike,
   onReply,
   onDelete,
+  pending = false,
 }: CommentCardProps) {
   const { colors: palette } = useTheme();
 
@@ -45,23 +45,15 @@ function CommentCardInner({
   const likeCount = comment.likeCount ?? comment.likes.length;
   const isOwnComment = comment.authorId === currentUserId;
   const isDeleted = comment.isDeleted;
-  const initials = comment.authorAvatar ?? comment.authorName?.slice(0, 2).toUpperCase() ?? '??';
-
-  const handleLongPress = () => {
-    if (!isOwnComment || isDeleted) return;
-    if (Platform.OS !== 'web') {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    onDelete(comment.id);
-  };
+  const initials = comment.authorName?.slice(0, 2).toUpperCase() ?? '??';
 
   return (
-    <Clickable
-      onLongPress={handleLongPress}
-      delayLongPress={500}
-      style={[styles.container, isReply && styles.replyContainer]}
-      accessibilityLabel={`Comment by ${comment.authorName}`}
-      accessibilityRole="button"
+    <View
+      style={[
+        styles.container,
+        isReply && styles.replyContainer,
+        { borderBottomColor: palette.border },
+      ]}
     >
       <View
         style={[
@@ -102,19 +94,28 @@ function CommentCardInner({
             isLiked={isLiked}
             likeCount={likeCount}
             isReply={isReply}
+            isOwnComment={isOwnComment}
+            pending={pending}
             onLike={onLike}
             onReply={onReply}
+            onDelete={onDelete}
             palette={palette}
           />
         )}
       </View>
-    </Clickable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', gap: Spacing.xs, paddingVertical: Spacing.xs },
-  replyContainer: { paddingLeft: Spacing.xl },
+  container: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  replyContainer: { paddingLeft: Spacing['2xl'] },
   avatar: {
     width: 32,
     height: 32,

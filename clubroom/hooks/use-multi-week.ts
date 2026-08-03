@@ -3,7 +3,7 @@
  * Manages week loading from availability, selection, and series booking creation.
  */
 
-import { useCallback, useState, useEffect, startTransition } from 'react';
+import { useCallback, useState, useEffect, useRef, startTransition } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -21,10 +21,10 @@ import { err, ok, serviceError } from '@/types/result';
 import type { WeekRow } from '@/components/bookings/multi-week-picker';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
+import { resolveAuthoritativeScreenState } from '@/hooks/use-authoritative-screen-state';
+import { selectRecurringWeekSlots } from '@/utils/multi-week-availability';
 const logger = createLogger('MultiWeekScreen');
 export const WEEKS_TO_SHOW = 8;
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const multiWeekSnapshots = new Map<string, WeekRow[]>();
 const EMPTY_WEEK_ROWS: WeekRow[] = [];
 export function useMultiWeek() {
   const { coachId, weeks: weeksParam } = useLocalSearchParams<{
@@ -37,11 +37,14 @@ export function useMultiWeek() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedWeeks, setSelectedWeeks] = useState<Set<string>>(new Set());
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const selectionSeedKeyRef = useRef<string | null>(null);
   const coachName = draft.coachName || 'Coach';
   const sessionType = draft.sessionTypeLabel || draft.sessionType || 'Session';
-  const sessionPrice = typeof draft.price === 'number' ? draft.price : 0;
+  const sessionPrice =
+    typeof draft.price === 'number' && Number.isFinite(draft.price) ? draft.price : 0;
   const sessionDuration = draft.duration ?? 60;
-  const snapshotKey = `${coachId}:${sessionDuration}`;
+  const preferredLocation = draft.locationText?.trim();
+  const availabilityKey = `${coachId}:${sessionDuration}:${sessionPrice}:${draft.date ?? ''}:${draft.slot ?? ''}:${preferredLocation ?? ''}`;
   const requestedWeeks = (() => {
     const parsed = Number.parseInt(weeksParam ?? '', 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
@@ -64,67 +67,70 @@ export function useMultiWeek() {
           applySchedulingRules: true,
         },
       );
-      const weekMap = new Map<string, WeekRow>();
-      for (const slot of slots) {
-        const slotDate = new Date(slot.date + 'T00:00:00');
-        const dayOfWeek = slotDate.getDay();
-        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        const monday = new Date(slotDate);
-        monday.setDate(slotDate.getDate() + mondayOffset);
-        const weekKey = toDateStr(monday);
-        if (!weekMap.has(weekKey) || (!weekMap.get(weekKey)!.available && slot.isAvailable)) {
-          const dateObj = new Date(slot.date + 'T00:00:00');
-          weekMap.set(weekKey, {
-            weekDate: slot.date,
-            dayName: DAY_NAMES[dateObj.getDay()],
-            dateLabel: dateObj.toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-            }),
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            location: slot.location ?? '',
-            price: sessionPrice,
-            available: slot.isAvailable,
-            unavailableReason: !slot.isAvailable ? 'Fully booked' : undefined,
-          });
-        }
-      }
-      const sortedWeeks = Array.from(weekMap.values())
-        .sort((a, b) => a.weekDate.localeCompare(b.weekDate))
-        .slice(0, WEEKS_TO_SHOW);
-      return ok(sortedWeeks);
+      return ok(
+        selectRecurringWeekSlots(slots, sessionPrice, WEEKS_TO_SHOW, {
+          date: draft.date,
+          startTime: draft.slot,
+          location: preferredLocation,
+        }),
+      );
     } catch (loadError) {
       logger.error('Failed to load weeks', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load multi-week availability.', loadError));
     }
-  }, [coachId, sessionDuration, sessionPrice]);
-  const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<WeekRow[]>({
+  }, [coachId, draft.date, draft.slot, preferredLocation, sessionDuration, sessionPrice]);
+  const {
+    data,
+    status,
+    error,
+    silentError,
+    refreshing,
+    onRefresh,
+    retry,
+    colors,
+    isPending,
+    hasRequestedTruthfulFrame,
+  } = useScreen<WeekRow[]>({
     load: loadWeeks,
     deps: [loadWeeks],
     isEmpty: (rows) => rows.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
+    dataKey: availabilityKey,
   });
-  useEffect(() => {
-    if (data) {
-      multiWeekSnapshots.set(snapshotKey, data);
-    }
-  }, [data, snapshotKey]);
-  const weekRows = data ?? multiWeekSnapshots.get(snapshotKey) ?? EMPTY_WEEK_ROWS;
+  const { blocked: availabilityBlocked, status: visibleStatus } = resolveAuthoritativeScreenState({
+    status,
+    isPending,
+    hasRequestedTruthfulFrame,
+    hasSilentError: Boolean(silentError),
+  });
+  const weekRows = availabilityBlocked ? EMPTY_WEEK_ROWS : (data ?? EMPTY_WEEK_ROWS);
+  const selectionSeedKey = `${availabilityKey}:${requestedWeeks}`;
   useEffect(() => {
     if (weekRows.length === 0) {
+      selectionSeedKeyRef.current = null;
       startTransition(() => {
-        setSelectedWeeks(new Set());
+        setSelectedWeeks((current) => (current.size === 0 ? current : new Set()));
       });
       return;
     }
     const availableWeeks = weekRows.flatMap((week) => (week.available ? [week.weekDate] : []));
-    const initialSelectionCount = requestedWeeks > 0 ? requestedWeeks : 1;
+    if (selectionSeedKeyRef.current !== selectionSeedKey) {
+      selectionSeedKeyRef.current = selectionSeedKey;
+      const initialSelectionCount = requestedWeeks > 0 ? requestedWeeks : 1;
+      startTransition(() => {
+        setSelectedWeeks(new Set(availableWeeks.slice(0, initialSelectionCount)));
+      });
+      return;
+    }
+    const availableWeekSet = new Set(availableWeeks);
     startTransition(() => {
-      setSelectedWeeks(new Set(availableWeeks.slice(0, initialSelectionCount)));
+      setSelectedWeeks((current) => {
+        const next = new Set([...current].filter((weekDate) => availableWeekSet.has(weekDate)));
+        return next.size === current.size ? current : next;
+      });
     });
-  }, [requestedWeeks, weekRows]);
+  }, [requestedWeeks, selectionSeedKey, weekRows]);
   const handleToggleWeek = (weekDate: string) => {
     setSelectedWeeks((prev) => {
       const next = new Set(prev);
@@ -136,13 +142,17 @@ export function useMultiWeek() {
   const selectedWeekRows = weekRows.filter((w) => selectedWeeks.has(w.weekDate));
   const primaryLocation = selectedWeekRows[0]?.location ?? '';
   const handleShowConfirmation = () => {
-    if (selectedWeeks.size === 0) return;
+    if (availabilityBlocked || selectedWeekRows.length === 0) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowConfirmation(true);
   };
   const handleCancelConfirmation = () => setShowConfirmation(false);
   const handleConfirm = async () => {
     if (!coachId || !currentUser) return;
+    if (availabilityBlocked) {
+      uiFeedback.showToast('Refresh availability before booking these weeks.', 'error');
+      return;
+    }
     const selectedAthleteName = selectedAthlete?.name;
     if (!selectedAthlete?.id || !selectedAthleteName) {
       uiFeedback.showToast('Please choose who this booking is for.', 'error');
@@ -175,7 +185,7 @@ export function useMultiWeek() {
           selectedWeeks: selectedWeekRows.map((w) => w.weekDate),
           startTime: selectedWeekRows[0]?.startTime ?? draft.slot ?? '10:00',
           duration: sessionDuration,
-          location: primaryLocation || draft.locationText || '',
+          location: preferredLocation || primaryLocation,
           patternLabel: `${selectedWeekRows.length} weeks`,
           sessionSource: draft.sessionSource,
           sessionSourceEntityId: draft.sessionSourceEntityId,
@@ -209,13 +219,13 @@ export function useMultiWeek() {
   };
   return {
     coachId,
-    status,
-    error,
+    status: visibleStatus,
+    error: error ?? silentError,
     refreshing,
     onRefresh,
     retry,
     colors,
-    loading: status === 'loading' && weekRows.length === 0,
+    loading: visibleStatus === 'loading' && weekRows.length === 0,
     submitting,
     weeks: weekRows,
     selectedWeeks,

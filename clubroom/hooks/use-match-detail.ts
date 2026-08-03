@@ -3,7 +3,7 @@
  */
 import { useState } from 'react';
 
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { matchService } from '@/services/match-service';
@@ -33,11 +33,12 @@ export interface UseMatchDetailResult {
   retry: () => void;
   showLineupSelector: boolean;
   isSubmitting: boolean;
-  isCoach: boolean;
+  canManageMatch: boolean;
   currentPlayerInfo: Match['selectedPlayers'][number] | undefined;
   isUpcoming: boolean;
-  isComplete: boolean;
   isCancelled: boolean;
+  canRecordResult: boolean;
+  canCancelMatch: boolean;
   setShowLineupSelector: (value: boolean) => void;
   handleSetLineup: (
     lineup: { athleteId: string; position?: string; jerseyNumber?: number; isReserve?: boolean }[],
@@ -53,8 +54,6 @@ export function useMatchDetail() {
 
   const [showLineupSelector, setShowLineupSelector] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const loadMatch = async () => {
     try {
@@ -82,9 +81,12 @@ export function useMatchDetail() {
 
   const match = data?.match ?? null;
   const loading = status === 'loading';
-  const currentPlayerInfo = match?.selectedPlayers.find(
-    (player) => player.parentId === currentUser?.id,
-  );
+  const canManageMatch = match?.canManageMatch === true;
+  const currentPlayerInfo =
+    match?.selectedPlayers.find((player) => player.parentId === currentUser?.id) ??
+    (!canManageMatch && currentUser?.accountType === 'ATHLETE'
+      ? match?.selectedPlayers[0]
+      : undefined);
 
   const handleSetLineup = async (
     lineup: {
@@ -94,7 +96,7 @@ export function useMatchDetail() {
       isReserve?: boolean;
     }[],
   ) => {
-    if (!match) return;
+    if (!match || !canManageMatch) return;
     setIsSubmitting(true);
 
     return await runAsyncTryCatchFinally(async () => {
@@ -106,7 +108,7 @@ export function useMatchDetail() {
       }
       onRefresh();
       setShowLineupSelector(false);
-      uiFeedback.showToast('The lineup has been confirmed and players notified.');
+      uiFeedback.showToast('Lineup saved.');
     }, async error => {
       logger.error('Failed to set lineup:', error);
       uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
@@ -141,6 +143,7 @@ export function useMatchDetail() {
   };
 
   const handleRecordResult = () => {
+    if (!match || !canManageMatch) return;
     uiFeedback.prompt(
       'Record Result',
       'Enter the final score (home-away, e.g., 3-1)',
@@ -149,12 +152,15 @@ export function useMatchDetail() {
         {
           text: 'Save',
           onPress: async (score: string | undefined) => {
-            if (!score || !match) return;
-            const [home, away] = score.split('-').map(Number);
-            if (isNaN(home) || isNaN(away)) {
-              uiFeedback.showToast('Please enter a valid score like 3-1', 'error');
+            if (!score) return;
+            const parsedScore = score.trim().match(/^(\d{1,2})-(\d{1,2})$/);
+            if (!parsedScore) {
+              uiFeedback.showToast('Enter a score from 0-0 to 99-99.', 'error');
               return;
             }
+            const [, homeScore, awayScore] = parsedScore;
+            const home = Number(homeScore);
+            const away = Number(awayScore);
             try {
               const result = await matchService.recordResult(match.id, { home, away });
               if (!result.success) {
@@ -162,7 +168,7 @@ export function useMatchDetail() {
                 return;
               }
               onRefresh();
-              uiFeedback.showToast('The match result has been saved.');
+              uiFeedback.showToast('Result saved.');
             } catch {
               uiFeedback.showToast('Failed to record result.', 'error');
             }
@@ -174,6 +180,7 @@ export function useMatchDetail() {
   };
 
   const handleCancelMatch = () => {
+    if (!match || !canManageMatch) return;
     uiFeedback.alert(
       'Cancel Match',
       'Are you sure you want to cancel this match? All players will be notified.',
@@ -183,7 +190,6 @@ export function useMatchDetail() {
           text: 'Cancel Match',
           style: 'destructive',
           onPress: async () => {
-            if (!match) return;
             try {
               const result = await matchService.cancelMatch(match.id);
               if (!result.success) {
@@ -191,6 +197,7 @@ export function useMatchDetail() {
                 return;
               }
               onRefresh();
+              uiFeedback.showToast('Match cancelled.');
             } catch {
               uiFeedback.showToast('Failed to cancel match.', 'error');
             }
@@ -201,8 +208,9 @@ export function useMatchDetail() {
   };
 
   const isUpcoming = match?.status === 'SCHEDULED' || match?.status === 'LINEUP_SET';
-  const isComplete = match?.status === 'COMPLETED';
   const isCancelled = match?.status === 'CANCELLED';
+  const canRecordResult = canManageMatch && !isCancelled && !match?.result;
+  const canCancelMatch = canManageMatch && isUpcoming;
 
   return {
     match,
@@ -214,11 +222,12 @@ export function useMatchDetail() {
     retry,
     showLineupSelector,
     isSubmitting,
-    isCoach,
+    canManageMatch,
     currentPlayerInfo,
     isUpcoming,
-    isComplete,
     isCancelled,
+    canRecordResult,
+    canCancelMatch,
     setShowLineupSelector,
     handleSetLineup,
     handlePlayerResponse,

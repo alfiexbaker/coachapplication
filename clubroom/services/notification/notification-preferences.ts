@@ -16,11 +16,25 @@ import type {
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { api } from '@/constants/config';
-import { communityMediaAuthorityService } from '../community-media-authority-service';
+import { notificationAuthorityService } from './notification-authority-service';
 import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('NotificationPreferences');
 const USE_MOCK = api.useMock;
+
+function isServiceError(error: unknown): error is ServiceError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error &&
+    typeof (error as ServiceError).message === 'string'
+  );
+}
+
+function notificationPreferencesError(error: unknown, fallbackMessage: string): ServiceError {
+  return isServiceError(error) ? error : storageError(fallbackMessage);
+}
 
 class NotificationPreferencesService {
   /**
@@ -80,9 +94,9 @@ class NotificationPreferencesService {
    */
   private async getPreferencesValue(userId: string): Promise<EnhancedNotificationPreferences> {
     if (!USE_MOCK) {
-      const authoritativeResult = await communityMediaAuthorityService.getNotificationPreferences();
+      const authoritativeResult = await notificationAuthorityService.getNotificationPreferences();
       if (!authoritativeResult.success) {
-        throw new Error(authoritativeResult.error.message);
+        throw authoritativeResult.error;
       }
 
       return authoritativeResult.data;
@@ -111,7 +125,7 @@ class NotificationPreferencesService {
       return ok(await this.getPreferencesValue(userId));
     } catch (error) {
       logger.error('Failed to get notification preferences', { userId, error });
-      return err(storageError('Failed to load notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to load notification preferences'));
     }
   }
 
@@ -124,7 +138,8 @@ class NotificationPreferencesService {
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const updatedResult = await communityMediaAuthorityService.updateNotificationPreferences(updates);
+        const updatedResult =
+          await notificationAuthorityService.updateNotificationPreferences(updates);
         if (!updatedResult.success) {
           return updatedResult;
         }
@@ -145,7 +160,7 @@ class NotificationPreferencesService {
       return ok(updated);
     } catch (error) {
       logger.error('Failed to update notification preferences', { userId, error });
-      return err(storageError('Failed to update notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to update notification preferences'));
     }
   }
 
@@ -176,7 +191,7 @@ class NotificationPreferencesService {
       });
     } catch (error) {
       logger.error('Failed to toggle quiet hours', { userId, enabled, error });
-      return err(storageError('Failed to update quiet hours'));
+      return err(notificationPreferencesError(error, 'Failed to update quiet hours'));
     }
   }
 
@@ -198,7 +213,7 @@ class NotificationPreferencesService {
       });
     } catch (error) {
       logger.error('Failed to toggle notification channel', { userId, channel, enabled, error });
-      return err(storageError('Failed to update notification channel'));
+      return err(notificationPreferencesError(error, 'Failed to update notification channel'));
     }
   }
 
@@ -225,7 +240,7 @@ class NotificationPreferencesService {
       });
     } catch (error) {
       logger.error('Failed to toggle notification type', { userId, type, enabled, error });
-      return err(storageError('Failed to update notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to update notification preferences'));
     }
   }
 
@@ -252,7 +267,7 @@ class NotificationPreferencesService {
       });
     } catch (error) {
       logger.error('Failed to set notification type channels', { userId, type, error });
-      return err(storageError('Failed to update notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to update notification preferences'));
     }
   }
 
@@ -293,7 +308,7 @@ class NotificationPreferencesService {
       return ok(updatedResult.data);
     } catch (error) {
       logger.error('Failed to mute coach', { userId, coachId, error });
-      return err(storageError('Failed to update notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to update notification preferences'));
     }
   }
 
@@ -317,7 +332,7 @@ class NotificationPreferencesService {
       return ok(updatedResult.data);
     } catch (error) {
       logger.error('Failed to unmute coach', { userId, coachId, error });
-      return err(storageError('Failed to update notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to update notification preferences'));
     }
   }
 
@@ -443,7 +458,7 @@ class NotificationPreferencesService {
       return ok(defaults);
     } catch (error) {
       logger.error('Failed to reset notification preferences', { userId, error });
-      return err(storageError('Failed to reset notification preferences'));
+      return err(notificationPreferencesError(error, 'Failed to reset notification preferences'));
     }
   }
 }

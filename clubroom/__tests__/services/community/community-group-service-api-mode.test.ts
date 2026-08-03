@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 import type { Result, ServiceError } from '@/types/result';
@@ -12,6 +14,10 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
 async function seedLocalStorageValue(key: string, value: unknown): Promise<void> {
@@ -37,6 +43,14 @@ function expectUnsupported(
 }
 
 describe('CommunityGroupService API mode', () => {
+  it('does not retain stale base community-group API blocker text', () => {
+    const source = readProjectFile('services/community/community-group-service.ts');
+
+    assert.doesNotMatch(source, /function communityGroupApiUnsupported/);
+    assert.doesNotMatch(source, /needs a \/v1 community group API before it can run in API mode/);
+    assert.doesNotMatch(source, /missingAuthority: 'community_groups'/);
+  });
+
   it('does not merge local group overlays into API-mode reads', async () => {
     const [
       { authService },

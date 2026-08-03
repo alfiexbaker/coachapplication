@@ -1,17 +1,17 @@
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Column } from '@/components/primitives/column';
-import { Row } from '@/components/primitives/row';
+import { Button } from '@/components/primitives/button';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
+import { VerificationStatusCard } from '@/components/verification/verification-status-card';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useBackgroundCheck } from '@/hooks/use-background-check';
 import { useTheme } from '@/hooks/useTheme';
-import { useBackgroundCheck, BG_CHECK_STEPS } from '@/hooks/use-background-check';
 
 export default function BackgroundCheckScreen() {
   const { colors } = useTheme();
@@ -22,10 +22,17 @@ export default function BackgroundCheckScreen() {
     refreshing,
     onRefresh,
     retry,
+    submitting,
+    uploaded,
     isVerified,
     isPending,
+    handleUpload,
+    handleSubmit,
+    setUploaded,
   } = useBackgroundCheck();
-  const header = <PageHeader title="Background Check" showBack onBackPress={() => router.back()} />;
+  const header = <PageHeader title="DBS certificate" showBack onBackPress={() => router.back()} />;
+  const item = status?.backgroundCheck;
+  const verifiedAt = item?.verifiedAt;
 
   return (
     <VerificationScreenState
@@ -45,114 +52,108 @@ export default function BackgroundCheckScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {isVerified ? (
-          <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
-              <Ionicons name="shield-checkmark" size={48} color={colors.success} />
-            </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-              Background Check Complete
-            </ThemedText>
-            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-              Your enhanced DBS check was completed on{' '}
-              {status?.backgroundCheck.verifiedAt
-                ? new Date(status.backgroundCheck.verifiedAt).toLocaleDateString()
-                : 'N/A'}
-            </ThemedText>
-            {status?.backgroundCheck.expiresAt && (
-              <Row
-                align="center"
-                gap="xs"
-                style={[styles.expiryBadge, { backgroundColor: withAlpha(colors.success, 0.06) }]}
-              >
-                <Ionicons name="calendar" size={16} color={colors.success} />
-                <ThemedText style={{ color: colors.success, ...Typography.small }}>
-                  Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}
-                </ThemedText>
-              </Row>
-            )}
-          </SurfaceCard>
+          <VerificationStatusCard
+            colors={colors}
+            icon="shield-checkmark"
+            tone={colors.success}
+            title="DBS verified"
+            detail={
+              verifiedAt
+                ? `Verified on ${new Date(verifiedAt).toLocaleDateString()}`
+                : 'Your enhanced DBS status is verified.'
+            }
+            footer={
+              item?.expiresAt ? (
+                <Row
+                  align="center"
+                  gap="xs"
+                  style={[styles.expiry, { backgroundColor: withAlpha(colors.success, 0.07) }]}
+                >
+                  <Ionicons name="calendar-outline" size={15} color={colors.success} />
+                  <ThemedText style={[styles.small, { color: colors.success }]}>
+                    Valid until {new Date(item.expiresAt).toLocaleDateString()}
+                  </ThemedText>
+                </Row>
+              ) : undefined
+            }
+          />
         ) : isPending ? (
-          <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
-              <Ionicons name="hourglass" size={48} color={colors.warning} />
-            </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-              Check In Progress
-            </ThemedText>
-            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-              Your background check is being processed. This typically takes 2-5 business days.
-            </ThemedText>
-          </SurfaceCard>
+          <VerificationStatusCard
+            colors={colors}
+            icon="time"
+            tone={colors.warning}
+            title="Under review"
+            detail="Your DBS certificate is awaiting review."
+          />
         ) : (
           <>
+            {item?.status === 'EXPIRED' ? (
+              <VerificationStatusCard
+                colors={colors}
+                icon="alert-circle"
+                tone={colors.error}
+                title="DBS expired"
+                detail="Submit a current certificate."
+              />
+            ) : item?.status === 'FAILED' ? (
+              <VerificationStatusCard
+                colors={colors}
+                icon="close-circle"
+                tone={colors.error}
+                title="DBS not approved"
+                detail="Check the document and submit it again."
+              />
+            ) : null}
+
             <ThemedText style={{ color: colors.muted }}>
-              Complete an enhanced DBS (Disclosure and Barring Service) check to verify your
-              suitability to work with children and young people.
+              Select a PDF, JPG, PNG, WebP or HEIC file up to 20 MB.
             </ThemedText>
 
-            <SurfaceCard style={styles.infoCard}>
-              <InfoRow
-                icon="shield"
-                title="Enhanced DBS Check"
-                subtitle="Required for working with children"
-                colors={colors}
-              />
-              <InfoRow
-                icon="time"
-                title="Processing Time"
-                subtitle="2-5 business days on average"
-                colors={colors}
-              />
-              <InfoRow
-                icon="card"
-                title="Cost"
-                subtitle="Handled outside the app for now"
-                colors={colors}
-              />
-            </SurfaceCard>
-
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold">How it works</ThemedText>
-              <View style={styles.stepsContainer}>
-                {BG_CHECK_STEPS.map((step, index) => (
-                  <Row key={step.id} gap="md" style={styles.stepRow}>
-                    <View style={styles.stepIndicator}>
-                      <View style={[styles.stepNumber, { backgroundColor: colors.tint }]}>
-                        <ThemedText style={[styles.stepNumberText, { color: colors.onPrimary }]}>
-                          {step.id}
-                        </ThemedText>
-                      </View>
-                      {index < BG_CHECK_STEPS.length - 1 && (
-                        <View style={[styles.stepLine, { backgroundColor: colors.border }]} />
-                      )}
-                    </View>
-                    <View style={styles.stepContent}>
-                      <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
-                      <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                        {step.description}
-                      </ThemedText>
-                    </View>
-                  </Row>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.requirements}>
-              <ThemedText type="defaultSemiBold">You will need</ThemedText>
+              <ThemedText type="defaultSemiBold">Requirements</ThemedText>
               {[
-                'Valid government-issued ID',
-                'Proof of address (utility bill, bank statement)',
-                'National Insurance number',
-                '5 years of address history',
-              ].map((req, i) => (
-                <Row key={i} align="center" gap="sm">
-                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <ThemedText style={{ color: colors.muted, ...Typography.bodySmall, flex: 1 }}>
-                    {req}
+                'Enhanced DBS certificate',
+                'Name and certificate number visible',
+                'Issue date visible',
+                'All text clearly readable',
+              ].map((requirement) => (
+                <Row key={requirement} align="flex-start" gap="sm">
+                  <Ionicons name="checkmark" size={16} color={colors.success} />
+                  <ThemedText style={[styles.small, { color: colors.muted, flex: 1 }]}>
+                    {requirement}
                   </ThemedText>
                 </Row>
               ))}
             </View>
+
+            {uploaded ? (
+              <SurfaceCard>
+                <Row align="center" gap="sm">
+                  <Ionicons name="document-text" size={22} color={colors.success} />
+                  <ThemedText type="defaultSemiBold" style={styles.selectedDocument}>
+                    Certificate selected
+                  </ThemedText>
+                  <Button
+                    onPress={() => setUploaded(false)}
+                    disabled={submitting}
+                    variant="outline"
+                    label="Remove"
+                  />
+                </Row>
+              </SurfaceCard>
+            ) : null}
+
+            <Button
+              onPress={handleUpload}
+              disabled={submitting}
+              variant="outline"
+              label={uploaded ? 'Choose different document' : 'Choose document'}
+            />
+            <Button
+              onPress={handleSubmit}
+              disabled={!uploaded || submitting}
+              label={submitting ? 'Submitting...' : 'Submit for review'}
+            />
           </>
         )}
       </ScrollView>
@@ -160,60 +161,15 @@ export default function BackgroundCheckScreen() {
   );
 }
 
-function InfoRow({
-  icon,
-  title,
-  subtitle,
-  colors,
-}: {
-  icon: string;
-  title: string;
-  subtitle: string;
-  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
-}) {
-  return (
-    <Row align="center" gap="md">
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.tint} />
-      <Column flex>
-        <ThemedText type="defaultSemiBold">{title}</ThemedText>
-        <ThemedText style={{ color: colors.muted, ...Typography.small }}>{subtitle}</ThemedText>
-      </Column>
-    </Row>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
-  statusIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusTitle: { ...Typography.heading },
-  statusText: { textAlign: 'center', ...Typography.bodySmall, paddingHorizontal: Spacing.md },
-  expiryBadge: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.pill,
-    marginTop: Spacing.xs,
-  },
-  infoCard: { gap: Spacing.md },
   section: { gap: Spacing.sm },
-  stepsContainer: { gap: 0 },
-  stepRow: {},
-  stepIndicator: { alignItems: 'center', width: 32 },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
+  small: { ...Typography.small },
+  expiry: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
   },
-  stepNumberText: { ...Typography.bodySmallSemiBold },
-  stepLine: { width: 2, flex: 1, minHeight: 24, marginVertical: Spacing.xxs },
-  stepContent: { flex: 1, paddingBottom: Spacing.md, gap: Spacing.micro },
-  requirements: { gap: Spacing.sm },
+  selectedDocument: { flex: 1 },
 });

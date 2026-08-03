@@ -1,610 +1,110 @@
 import React from 'react';
-import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
-import { Column } from '@/components/primitives/column';
+import { StyleSheet, View } from 'react-native';
+
 import { Clickable } from '@/components/primitives/clickable';
-import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import type { ThemeColors } from '@/hooks/useTheme';
-import type { ClubPostType, FeedType, ClubEvent } from '@/constants/types';
 import { POST_TYPES } from '@/hooks/use-create-club-post';
-
-interface FeedTypeSelectorProps {
-  feedType: FeedType;
-  canTargetClub?: boolean;
-  onSelect: (ft: FeedType) => void;
-}
-
-export const FeedTypeSelector = function FeedTypeSelector({
-  feedType,
-  canTargetClub = false,
-  onSelect,
-}: FeedTypeSelectorProps) {
-  const { colors: palette } = useTheme();
-  const opts: { key: FeedType; label: string; icon: string; color: string }[] = [
-    {
-      key: 'PERSONAL',
-      label: 'My Personal Feed',
-      icon: 'person-circle-outline',
-      color: palette.success,
-    },
-    ...(canTargetClub
-      ? [
-          {
-            key: 'CLUB' as FeedType,
-            label: 'Club Feed',
-            icon: 'shield-outline',
-            color: palette.tint,
-          },
-          {
-            key: 'BOTH' as FeedType,
-            label: 'Personal + Club',
-            icon: 'globe-outline',
-            color: palette.warning,
-          },
-        ]
-      : []),
-  ];
-  const distributionCopy: Record<
-    FeedType,
-    { description: string; recommended?: boolean; caution?: string }
-  > = {
-    PERSONAL: {
-      description: 'Only people following your personal coaching feed will see this.',
-    },
-    CLUB: {
-      description: 'Visible to active members in this club.',
-      recommended: true,
-    },
-    BOTH: {
-      description: 'Visible on your personal feed and in the club feed.',
-      caution: 'This may reach people outside the club if they follow your personal feed.',
-    },
-  };
-
-  return (
-    <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Distribution</ThemedText>
-      <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-        Who can see this post?
-      </ThemedText>
-      <Row wrap gap="xs">
-        {opts.map((o) => (
-          <Clickable
-            key={o.key}
-            style={[
-              styles.chip,
-              { borderColor: feedType === o.key ? o.color : palette.border },
-              (o.key === 'CLUB' || o.key === 'BOTH') && !canTargetClub
-                ? { opacity: 0.45 }
-                : undefined,
-              feedType === o.key ? { backgroundColor: withAlpha(o.color, 0.06) } : undefined,
-            ]}
-            disabled={(o.key === 'CLUB' || o.key === 'BOTH') && !canTargetClub}
-            onPress={() => onSelect(o.key)}
-          >
-            <Ionicons
-              name={o.icon as keyof typeof Ionicons.glyphMap}
-              size={18}
-              color={feedType === o.key ? o.color : palette.muted}
-            />
-            <ThemedText
-              style={{
-                color: feedType === o.key ? o.color : palette.text,
-                ...Typography.smallSemiBold,
-              }}
-              numberOfLines={1}
-            >
-              {o.label}
-            </ThemedText>
-          </Clickable>
-        ))}
-      </Row>
-      <View
-        style={[
-          styles.distributionHelperCard,
-          { borderColor: palette.border, backgroundColor: withAlpha(palette.tint, 0.035) },
-        ]}
-      >
-        <Row align="start" gap="xs">
-          <Ionicons name="information-circle-outline" size={16} color={palette.tint} />
-          <Column flex>
-            <Row align="center" gap="xs" wrap>
-              <ThemedText style={[Typography.caption, { color: palette.text }]}>
-                {distributionCopy[feedType].description}
-              </ThemedText>
-              {distributionCopy[feedType].recommended ? (
-                <View
-                  style={[
-                    styles.recommendedPill,
-                    { backgroundColor: withAlpha(palette.success, 0.12) },
-                  ]}
-                >
-                  <ThemedText style={[Typography.micro, { color: palette.success }]}>
-                    Recommended
-                  </ThemedText>
-                </View>
-              ) : null}
-            </Row>
-            {distributionCopy[feedType].caution ? (
-              <ThemedText
-                style={[Typography.caption, { color: palette.warning, marginTop: Spacing.micro }]}
-              >
-                {distributionCopy[feedType].caution}
-              </ThemedText>
-            ) : null}
-          </Column>
-        </Row>
-      </View>
-    </View>
-  );
-};
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import type { ClubPostType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PostTypeSelectorProps {
   postType: ClubPostType;
-  onSelect: (pt: ClubPostType) => void;
+  onSelect: (postType: ClubPostType) => void;
 }
 
-export const PostTypeSelector = function PostTypeSelector({
-  postType,
-  onSelect,
-}: PostTypeSelectorProps) {
-  const { colors: palette } = useTheme();
-  const postTypeItems = getPostTypeItems(postType, onSelect, palette);
+export function PostTypeSelector({ postType, onSelect }: PostTypeSelectorProps) {
+  const { colors } = useTheme();
 
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post Type</ThemedText>
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={postTypeItems}
-        keyExtractor={keyPostTypeItem}
-        renderItem={renderPostTypeItem}
-        contentContainerStyle={styles.eventRow}
-      />
+      <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>Type</ThemedText>
+      <Row gap="sm">
+        {POST_TYPES.map((type) => {
+          const selected = postType === type.key;
+          return (
+            <Clickable
+              key={type.key}
+              accessibilityLabel={`${type.label} post`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              onPress={() => onSelect(type.key)}
+              style={[
+                styles.option,
+                {
+                  borderColor: selected ? colors.tint : colors.border,
+                  backgroundColor: selected ? withAlpha(colors.tint, 0.08) : colors.background,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.optionLabel, { color: selected ? colors.tint : colors.text }]}
+              >
+                {type.label}
+              </ThemedText>
+            </Clickable>
+          );
+        })}
+      </Row>
     </View>
   );
-};
+}
 
 interface PostAsSelectorProps {
   postAs: 'self' | 'club';
-  onSelect: (pa: 'self' | 'club') => void;
+  onSelect: (postAs: 'self' | 'club') => void;
 }
 
-export const PostAsSelector = function PostAsSelector({ postAs, onSelect }: PostAsSelectorProps) {
-  const { colors: palette } = useTheme();
+export function PostAsSelector({ postAs, onSelect }: PostAsSelectorProps) {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post As</ThemedText>
+      <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>Author</ThemedText>
       <Row gap="sm">
-        {(['self', 'club'] as const).map((pa) => (
-          <Clickable
-            key={pa}
-            style={[
-              styles.twoColOption,
-              { borderColor: postAs === pa ? palette.tint : palette.border },
-              postAs === pa ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined,
-            ]}
-            onPress={() => onSelect(pa)}
-          >
-            <Ionicons
-              name={pa === 'self' ? 'person-outline' : 'shield-outline'}
-              size={18}
-              color={postAs === pa ? palette.tint : palette.muted}
-            />
-            <ThemedText style={{ color: postAs === pa ? palette.tint : palette.text }}>
-              {pa === 'self' ? 'Yourself' : 'Club'}
-            </ThemedText>
-          </Clickable>
-        ))}
+        {(['club', 'self'] as const).map((value) => {
+          const selected = postAs === value;
+          const label = value === 'club' ? 'Club' : 'You';
+          return (
+            <Clickable
+              key={value}
+              accessibilityLabel={`Post as ${label.toLowerCase()}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              onPress={() => onSelect(value)}
+              style={[
+                styles.option,
+                {
+                  borderColor: selected ? colors.tint : colors.border,
+                  backgroundColor: selected ? withAlpha(colors.tint, 0.08) : colors.background,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[styles.optionLabel, { color: selected ? colors.tint : colors.text }]}
+              >
+                {label}
+              </ThemedText>
+            </Clickable>
+          );
+        })}
       </Row>
     </View>
-  );
-};
-
-interface AudienceSelectorProps {
-  audienceType: 'club' | 'squad';
-  selectedSquadId: string | null;
-  squads: { id: string; name: string; memberCount: number }[];
-  onSelectClub: () => void;
-  onSelectSquad: () => void;
-  onSelectSquadId: (id: string) => void;
-}
-
-export const AudienceSelector = function AudienceSelector({
-  audienceType,
-  selectedSquadId,
-  squads,
-  onSelectClub,
-  onSelectSquad,
-  onSelectSquadId,
-}: AudienceSelectorProps) {
-  const { colors: palette } = useTheme();
-  const hasSquads = squads.length > 0;
-  const squadItems = getAudienceSquadItems(squads, selectedSquadId, onSelectSquadId, palette);
-
-  return (
-    <View style={styles.section}>
-      <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
-      <Row gap="sm">
-        <Clickable
-          style={[
-            styles.twoColOption,
-            { borderColor: audienceType === 'club' ? palette.tint : palette.border },
-            audienceType === 'club'
-              ? { backgroundColor: withAlpha(palette.tint, 0.06) }
-              : undefined,
-          ]}
-          onPress={onSelectClub}
-        >
-          <Ionicons
-            name="people-outline"
-            size={18}
-            color={audienceType === 'club' ? palette.tint : palette.muted}
-          />
-          <ThemedText style={{ color: audienceType === 'club' ? palette.tint : palette.text }}>
-            All Members
-          </ThemedText>
-        </Clickable>
-        <Clickable
-          style={[
-            styles.twoColOption,
-            !hasSquads ? { opacity: 0.45 } : undefined,
-            { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
-            audienceType === 'squad'
-              ? { backgroundColor: withAlpha(palette.tint, 0.06) }
-              : undefined,
-          ]}
-          disabled={!hasSquads}
-          onPress={onSelectSquad}
-        >
-          <Ionicons
-            name="grid-outline"
-            size={18}
-            color={audienceType === 'squad' ? palette.tint : palette.muted}
-          />
-          <ThemedText style={{ color: audienceType === 'squad' ? palette.tint : palette.text }}>
-            Specific Group
-          </ThemedText>
-        </Clickable>
-      </Row>
-      {audienceType === 'squad' && hasSquads && (
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={squadItems}
-          keyExtractor={keyAudienceSquadItem}
-          renderItem={renderAudienceSquadItem}
-          contentContainerStyle={[styles.row, { marginTop: Spacing.sm }]}
-        />
-      )}
-      {audienceType === 'squad' && !hasSquads && (
-        <ThemedText style={[styles.noSquadsHint, { color: palette.muted }]}>
-          No teams yet. Create a squad to target a team post.
-        </ThemedText>
-      )}
-    </View>
-  );
-};
-
-interface EventAttachSelectorProps {
-  events: ClubEvent[];
-  selectedEventId: string | null;
-  onSelectEvent: (id: string) => void;
-  onClear: () => void;
-}
-
-export const EventAttachSelector = function EventAttachSelector({
-  events,
-  selectedEventId,
-  onSelectEvent,
-  onClear,
-}: EventAttachSelectorProps) {
-  const { colors: palette } = useTheme();
-  const eventItems = getEventAttachItems(events, selectedEventId, onSelectEvent, palette);
-
-  if (events.length === 0) return null;
-
-  return (
-    <View style={styles.section}>
-      <Row align="center" justify="space-between" style={styles.eventHeader}>
-        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-          Attach Existing Event
-        </ThemedText>
-        {selectedEventId ? (
-          <Clickable onPress={onClear} accessibilityLabel="Clear attached event">
-            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear</ThemedText>
-          </Clickable>
-        ) : null}
-      </Row>
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={eventItems}
-        keyExtractor={keyEventAttachItem}
-        renderItem={renderEventAttachItem}
-        contentContainerStyle={styles.eventRow}
-      />
-    </View>
-  );
-};
-
-type PostTypeOption = (typeof POST_TYPES)[number];
-
-interface PostTypeItem {
-  key: ClubPostType;
-  type: PostTypeOption;
-  isSelected: boolean;
-  palette: ThemeColors;
-  onSelect: () => void;
-}
-
-function getPostTypeItems(
-  postType: ClubPostType,
-  onSelect: (postType: ClubPostType) => void,
-  palette: ThemeColors,
-): PostTypeItem[] {
-  return POST_TYPES.map((type) => ({
-    key: type.key,
-    type,
-    isSelected: postType === type.key,
-    palette,
-    onSelect: () => onSelect(type.key),
-  }));
-}
-
-function keyPostTypeItem(item: PostTypeItem): string {
-  return item.key;
-}
-
-function renderPostTypeItem({ item }: ListRenderItemInfo<PostTypeItem>) {
-  return (
-    <Clickable
-      style={[
-        styles.chip,
-        { borderColor: item.isSelected ? item.palette.tint : item.palette.border },
-        item.isSelected ? { backgroundColor: withAlpha(item.palette.tint, 0.06) } : undefined,
-      ]}
-      onPress={item.onSelect}
-    >
-      <Ionicons
-        name={item.type.icon as keyof typeof Ionicons.glyphMap}
-        size={20}
-        color={item.isSelected ? item.palette.tint : item.palette.muted}
-      />
-      <ThemedText
-        style={[
-          styles.chipLabel,
-          { color: item.isSelected ? item.palette.tint : item.palette.text },
-        ]}
-      >
-        {item.type.label}
-      </ThemedText>
-    </Clickable>
-  );
-}
-
-interface AudienceSquad {
-  id: string;
-  name: string;
-  memberCount: number;
-}
-
-interface AudienceSquadItem {
-  key: string;
-  squad: AudienceSquad;
-  isSelected: boolean;
-  palette: ThemeColors;
-  onSelect: () => void;
-}
-
-function getAudienceSquadItems(
-  squads: AudienceSquad[],
-  selectedSquadId: string | null,
-  onSelectSquadId: (id: string) => void,
-  palette: ThemeColors,
-): AudienceSquadItem[] {
-  return squads.map((squad) => ({
-    key: squad.id,
-    squad,
-    isSelected: selectedSquadId === squad.id,
-    palette,
-    onSelect: () => onSelectSquadId(squad.id),
-  }));
-}
-
-function keyAudienceSquadItem(item: AudienceSquadItem): string {
-  return item.key;
-}
-
-function renderAudienceSquadItem({ item }: ListRenderItemInfo<AudienceSquadItem>) {
-  return (
-    <Clickable
-      style={[
-        styles.squadOption,
-        {
-          borderColor: item.isSelected ? item.palette.success : item.palette.border,
-          backgroundColor: item.isSelected
-            ? withAlpha(item.palette.success, 0.06)
-            : item.palette.surface,
-        },
-      ]}
-      onPress={item.onSelect}
-    >
-      <View
-        style={[
-          styles.squadBadge,
-          {
-            backgroundColor: item.isSelected ? item.palette.success : item.palette.muted,
-          },
-        ]}
-      >
-        <ThemedText style={{ color: item.palette.onPrimary, ...Typography.micro }}>
-          {item.squad.name.slice(0, 2).toUpperCase()}
-        </ThemedText>
-      </View>
-      <Column flex>
-        <ThemedText style={{ ...Typography.smallSemiBold }}>{item.squad.name}</ThemedText>
-        <ThemedText style={{ color: item.palette.muted, ...Typography.caption }}>
-          {item.squad.memberCount} members
-        </ThemedText>
-      </Column>
-      {item.isSelected ? (
-        <Ionicons name="checkmark-circle" size={18} color={item.palette.success} />
-      ) : null}
-    </Clickable>
-  );
-}
-
-interface EventAttachItem {
-  key: string;
-  event: ClubEvent;
-  isSelected: boolean;
-  palette: ThemeColors;
-  onSelect: () => void;
-}
-
-function getEventAttachItems(
-  events: ClubEvent[],
-  selectedEventId: string | null,
-  onSelectEvent: (id: string) => void,
-  palette: ThemeColors,
-): EventAttachItem[] {
-  return events.map((event) => ({
-    key: event.id,
-    event,
-    isSelected: selectedEventId === event.id,
-    palette,
-    onSelect: () => onSelectEvent(event.id),
-  }));
-}
-
-function keyEventAttachItem(item: EventAttachItem): string {
-  return item.key;
-}
-
-function renderEventAttachItem({ item }: ListRenderItemInfo<EventAttachItem>) {
-  return (
-    <Clickable
-      style={[
-        styles.eventOption,
-        {
-          borderColor: item.isSelected ? item.palette.tint : item.palette.border,
-          backgroundColor: item.isSelected
-            ? withAlpha(item.palette.tint, 0.06)
-            : item.palette.surface,
-        },
-      ]}
-      onPress={item.onSelect}
-    >
-      <ThemedText
-        style={[
-          styles.eventTitle,
-          { color: item.isSelected ? item.palette.tint : item.palette.text },
-        ]}
-        numberOfLines={1}
-      >
-        {item.event.title}
-      </ThemedText>
-      <ThemedText style={[styles.eventMeta, { color: item.palette.muted }]} numberOfLines={1}>
-        {new Date(`${item.event.date}T00:00:00`).toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-        })}{' '}
-        · {item.event.venue}
-      </ThemedText>
-    </Clickable>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
-  eventHeader: {
-    marginBottom: Spacing.sm,
-  },
-  sectionLabel: {
-    ...Typography.caption,
-    marginBottom: Spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  helperText: {
-    ...Typography.caption,
-    marginBottom: Spacing.xs,
-  },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  eventRow: { flexDirection: 'row', gap: Spacing.md, paddingBottom: Spacing.sm },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
-  chipLabel: { ...Typography.smallSemiBold },
-  // twoCol replaced by Row primitive
-  twoColOption: {
+  section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.lg },
+  sectionLabel: { ...Typography.caption, marginBottom: Spacing.xs },
+  option: {
     flex: 1,
-    flexDirection: 'row',
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  squadOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
+    borderRadius: Radii.sm,
     borderWidth: 1,
-    minWidth: 180,
   },
-  squadBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eventOption: {
-    minWidth: 232,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
-  eventTitle: {
-    ...Typography.smallSemiBold,
-  },
-  eventMeta: {
-    ...Typography.caption,
-  },
-  clearText: {
-    ...Typography.smallSemiBold,
-  },
-  noSquadsHint: {
-    ...Typography.caption,
-    marginTop: Spacing.sm,
-  },
-  distributionHelperCard: {
-    marginTop: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-  },
-  recommendedPill: {
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.micro,
-  },
+  optionLabel: { ...Typography.bodySmallSemiBold },
 });

@@ -6,13 +6,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { injuryService } from '@/services/injury-service';
-import {
-  buildProfileSubjectOptions,
-  resolveProfileSubjectId,
-} from '@/utils/profile-subject';
+import { buildProfileSubjectOptions, resolveProfileSubjectId } from '@/utils/profile-subject';
 import type { Injury } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 const logger = createLogger('useHealthHub');
 
@@ -27,7 +25,7 @@ export function useHealthHub() {
   const explicitSubjectId = (() => {
     const raw = subjectIdParam ?? childIdParam;
     if (!raw) return null;
-    return Array.isArray(raw) ? raw[0] ?? null : raw;
+    return Array.isArray(raw) ? (raw[0] ?? null) : raw;
   })();
 
   const subjectOptions = buildProfileSubjectOptions({
@@ -38,13 +36,15 @@ export function useHealthHub() {
 
   const selectedSubjectId = resolveProfileSubjectId({
     explicitSubjectId,
-    currentUserId: currentUser?.id,
+    currentUserId: resolveSelfAthleteId(currentUser),
     profileMode,
     profileSubjectId,
     subjectOptions,
   });
 
-  const selectedChildId = (children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null);
+  const selectedChildId = children.some((child) => child.id === selectedSubjectId)
+    ? selectedSubjectId
+    : null;
 
   const selectedChild = children.find((child) => child.id === selectedChildId) ?? null;
   const selectedSubjectName = (() => {

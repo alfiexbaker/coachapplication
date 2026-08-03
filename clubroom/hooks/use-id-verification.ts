@@ -4,7 +4,13 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
+import {
+  VERIFICATION_DOCUMENT_PICKER_TYPES,
+  validateVerificationDocumentSelection,
+  verificationService,
+  type VerificationDocumentUploadInput,
+} from '@/services/verification-service';
+import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -14,9 +20,9 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('useIdVerification');
 
 export const ID_TYPES = [
-  { id: 'passport', label: 'Passport', icon: 'book' },
-  { id: 'driving-license', label: 'Driving License', icon: 'car' },
-  { id: 'national-id', label: 'National ID Card', icon: 'id-card' },
+  { id: 'passport', label: 'Passport' },
+  { id: 'driving-licence', label: 'Driving licence' },
+  { id: 'national-id', label: 'National ID card' },
 ];
 
 export interface UseIdVerificationResult {
@@ -43,7 +49,9 @@ export function useIdVerification() {
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(
+    null,
+  );
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -79,41 +87,50 @@ export function useIdVerification() {
   const handleUpload = async () => {
     if (!selectedType) return;
     const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/*'],
+      type: VERIFICATION_DOCUMENT_PICKER_TYPES,
       copyToCacheDirectory: true,
       multiple: false,
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    setSelectedDocument({
+    const selection = validateVerificationDocumentSelection({
       uri: asset.uri,
       fileName: asset.name || `id-document-${selectedType}`,
       contentType: asset.mimeType,
       sizeBytes: asset.size,
       label: ID_TYPES.find((type) => type.id === selectedType)?.label ?? selectedType,
     });
+    if (!selection.success) {
+      uiFeedback.showToast(selection.error.message, 'error');
+      return;
+    }
+    setSelectedDocument(selection.data);
   };
 
   const handleSubmit = async () => {
     if (!selectedType || !selectedDocument || !coachId) return;
     setSubmitting(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const result = await verificationService.submitIdVerification(
-        coachId,
-        selectedDocument,
-      );
-      if (result.success) {
-        onRefresh();
-        router.back();
-      } else {
-        logger.error('Failed to submit ID:', result.error);
-      }
-    }, async error => {
-      logger.error('Failed to submit ID:', error);
-    }, () => {
-      setSubmitting(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await verificationService.submitIdVerification(coachId, selectedDocument);
+        if (result.success) {
+          uiFeedback.showToast('ID document submitted for review.', 'success');
+          onRefresh();
+          router.back();
+        } else {
+          logger.error('Failed to submit ID:', result.error);
+          uiFeedback.showToast(result.error.message, 'error');
+        }
+      },
+      async (error) => {
+        logger.error('Failed to submit ID:', error);
+        uiFeedback.showToast('Failed to submit ID document.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   const isVerified = status?.identity.status === 'VERIFIED';

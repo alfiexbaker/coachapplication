@@ -8,11 +8,10 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { safetyService } from '../../services/safety-service';
-import type {
-  EmergencyContact,
-  MedicalInfo,
-} from '../../constants/types';
+import { safetyService, type EmergencyAccessContext } from '../../services/safety-service';
+import { apiClient } from '../../services/api-client';
+import { STORAGE_KEYS } from '../../constants/storage-keys';
+import type { EmergencyContact, MedicalInfo } from '../../constants/types';
 import type { Result, ServiceError } from '../../types/result';
 
 const expectOk = <T>(result: Result<T, ServiceError>): T => {
@@ -20,6 +19,11 @@ const expectOk = <T>(result: Result<T, ServiceError>): T => {
     throw new Error(`Expected success but got error: ${result.error.message}`);
   }
   return result.data;
+};
+
+const TEST_ADMIN_CONTEXT: EmergencyAccessContext = {
+  requestorId: 'admin1',
+  requestorRole: 'admin',
 };
 
 // Reset to mock data before each test
@@ -51,8 +55,76 @@ describe('Safety Service', () => {
   });
 
   describe('getAthleteEmergency', () => {
+    test('requires a verified coach assigned to this athlete before returning emergency data', async (t) => {
+      const originalRoster = await apiClient.get<{ athleteId: string; coachId: string }[]>(
+        STORAGE_KEYS.ROSTER,
+        [],
+      );
+      await apiClient.set(STORAGE_KEYS.ROSTER, [{ athleteId: 'athlete1', coachId: 'coach1' }]);
+      t.after(async () => {
+        await apiClient.set(STORAGE_KEYS.ROSTER, originalRoster);
+      });
+
+      const unverified = await safetyService.getAthleteEmergency(
+        'athlete1',
+        {
+          requestorId: 'coach1',
+          requestorRole: 'coach',
+          isVerifiedCoach: false,
+        },
+        'Test Athlete',
+      );
+      assert.equal(unverified.success, false);
+      if (!unverified.success) {
+        assert.equal(unverified.error.code, 'UNAUTHORIZED');
+      }
+
+      const unassigned = await safetyService.getAthleteEmergency(
+        'athlete1',
+        {
+          requestorId: 'coach2',
+          requestorRole: 'coach',
+          isVerifiedCoach: true,
+        },
+        'Test Athlete',
+      );
+      assert.equal(unassigned.success, false);
+      if (!unassigned.success) {
+        assert.equal(unassigned.error.code, 'UNAUTHORIZED');
+      }
+
+      const verified = expectOk(
+        await safetyService.getAthleteEmergency(
+          'athlete1',
+          {
+            requestorId: 'coach1',
+            requestorRole: 'coach',
+            isVerifiedCoach: true,
+          },
+          'Test Athlete',
+        ),
+      );
+      assert.equal(verified.primaryContact?.name, 'Sarah Henderson');
+
+      const unverifiedAfterCache = await safetyService.getAthleteEmergency(
+        'athlete1',
+        {
+          requestorId: 'coach1',
+          requestorRole: 'coach',
+          isVerifiedCoach: false,
+        },
+        'Test Athlete',
+      );
+      assert.equal(unverifiedAfterCache.success, false);
+      if (!unverifiedAfterCache.success) {
+        assert.equal(unverifiedAfterCache.error.code, 'UNAUTHORIZED');
+      }
+    });
+
     test('should return quick view data for an athlete', async () => {
-      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1', 'Test Athlete'));
+      const quickView = expectOk(
+        await safetyService.getAthleteEmergency('athlete1', TEST_ADMIN_CONTEXT, 'Test Athlete'),
+      );
 
       assert.ok(quickView);
       assert.strictEqual(quickView.athleteId, 'athlete1');
@@ -67,7 +139,9 @@ describe('Safety Service', () => {
     });
 
     test('should include primary contact if available', async () => {
-      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
+      const quickView = expectOk(
+        await safetyService.getAthleteEmergency('athlete1', TEST_ADMIN_CONTEXT),
+      );
 
       assert.ok(quickView.primaryContact);
       assert.ok(quickView.primaryContact.name);
@@ -75,15 +149,19 @@ describe('Safety Service', () => {
     });
 
     test('should include all contacts', async () => {
-      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
+      const quickView = expectOk(
+        await safetyService.getAthleteEmergency('athlete1', TEST_ADMIN_CONTEXT),
+      );
 
       assert.ok(quickView.allContacts.length >= 1);
-      assert.ok(quickView.allContacts.every(c => c.name && c.phone));
+      assert.ok(quickView.allContacts.every((c) => c.name && c.phone));
     });
 
     test('should correctly identify alert level based on medical info', async () => {
       // athlete1 has medical alerts in mock data
-      const quickView = expectOk(await safetyService.getAthleteEmergency('athlete1'));
+      const quickView = expectOk(
+        await safetyService.getAthleteEmergency('athlete1', TEST_ADMIN_CONTEXT),
+      );
 
       assert.ok(quickView.hasAlerts);
       assert.notStrictEqual(quickView.alertLevel, 'none');
@@ -97,7 +175,9 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
+      const sessionInfo = expectOk(
+        await safetyService.getSessionSafetyInfo('session_1', attendees, TEST_ADMIN_CONTEXT),
+      );
 
       assert.ok(sessionInfo);
       assert.strictEqual(sessionInfo.sessionId, 'session_1');
@@ -114,7 +194,9 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
+      const sessionInfo = expectOk(
+        await safetyService.getSessionSafetyInfo('session_1', attendees, TEST_ADMIN_CONTEXT),
+      );
 
       assert.ok(typeof sessionInfo.athletesWithAlerts === 'number');
       assert.ok(sessionInfo.athletesWithAlerts >= 0);
@@ -122,11 +204,11 @@ describe('Safety Service', () => {
     });
 
     test('should aggregate unique allergies and conditions', async () => {
-      const attendees = [
-        { athleteId: 'athlete1', athleteName: 'Athlete One' },
-      ];
+      const attendees = [{ athleteId: 'athlete1', athleteName: 'Athlete One' }];
 
-      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
+      const sessionInfo = expectOk(
+        await safetyService.getSessionSafetyInfo('session_1', attendees, TEST_ADMIN_CONTEXT),
+      );
 
       // Allergies should be sorted alphabetically
       for (let i = 0; i < sessionInfo.allAllergies.length - 1; i++) {
@@ -135,18 +217,20 @@ describe('Safety Service', () => {
     });
 
     test('should track athletes missing emergency info', async () => {
-      const attendees = [
-        { athleteId: 'non_existent', athleteName: 'No Contact Athlete' },
-      ];
+      const attendees = [{ athleteId: 'non_existent', athleteName: 'No Contact Athlete' }];
 
-      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', attendees));
+      const sessionInfo = expectOk(
+        await safetyService.getSessionSafetyInfo('session_1', attendees, TEST_ADMIN_CONTEXT),
+      );
 
       // Non-existent athlete should be in missingEmergencyInfo
       assert.ok(sessionInfo.missingEmergencyInfo.includes('No Contact Athlete'));
     });
 
     test('should handle empty attendee list', async () => {
-      const sessionInfo = expectOk(await safetyService.getSessionSafetyInfo('session_1', []));
+      const sessionInfo = expectOk(
+        await safetyService.getSessionSafetyInfo('session_1', [], TEST_ADMIN_CONTEXT),
+      );
 
       assert.strictEqual(sessionInfo.totalAthletes, 0);
       assert.strictEqual(sessionInfo.athletes.length, 0);
@@ -164,18 +248,20 @@ describe('Safety Service', () => {
 
     test('should return first contact if no primary is set', async () => {
       // Create athlete with non-primary contacts
-      expectOk(await safetyService.updateEmergencyInfo('test_athlete', {
-        contacts: [
-          {
-            id: 'c1',
-            name: 'Contact One',
-            relationship: 'Parent',
-            phone: '123456789',
-            isPrimary: false,
-            canPickup: true,
-          },
-        ],
-      }));
+      expectOk(
+        await safetyService.updateEmergencyInfo('test_athlete', {
+          contacts: [
+            {
+              id: 'c1',
+              name: 'Contact One',
+              relationship: 'Parent',
+              phone: '123456789',
+              isPrimary: false,
+              canPickup: true,
+            },
+          ],
+        }),
+      );
 
       const contact = expectOk(await safetyService.getPrimaryContact('test_athlete'));
 
@@ -382,14 +468,16 @@ describe('Safety Service', () => {
 
     test('should return false for athlete without alerts', async () => {
       // Create athlete without alerts
-      expectOk(await safetyService.updateEmergencyInfo('no_alerts', {
-        medical: {
-          conditions: [],
-          allergies: [],
-          medications: [],
-          restrictions: [],
-        },
-      }));
+      expectOk(
+        await safetyService.updateEmergencyInfo('no_alerts', {
+          medical: {
+            conditions: [],
+            allergies: [],
+            medications: [],
+            restrictions: [],
+          },
+        }),
+      );
 
       const hasAlerts = expectOk(await safetyService.hasAlerts('no_alerts'));
 
@@ -414,9 +502,11 @@ describe('Safety Service', () => {
 
   describe('updateEmergencyInfo', () => {
     test('should update medical info', async () => {
-      const updated = expectOk(await safetyService.updateMedicalInfo('athlete1', {
-        allergies: ['New Allergy'],
-      }));
+      const updated = expectOk(
+        await safetyService.updateMedicalInfo('athlete1', {
+          allergies: ['New Allergy'],
+        }),
+      );
 
       assert.ok(updated.medical.allergies.includes('New Allergy'));
     });
@@ -432,18 +522,15 @@ describe('Safety Service', () => {
 
       const updated = expectOk(await safetyService.addContact('athlete1', newContact));
 
-      assert.ok(updated.contacts.some(c => c.name === 'New Contact'));
+      assert.ok(updated.contacts.some((c) => c.name === 'New Contact'));
     });
 
     test('should update consent', async () => {
-      const updated = expectOk(await safetyService.updateConsent(
-        'athlete1',
-        'PHOTO',
-        true,
-        'Test Parent'
-      ));
+      const updated = expectOk(
+        await safetyService.updateConsent('athlete1', 'PHOTO', true, 'Test Parent'),
+      );
 
-      const photoConsent = updated.consents.find(c => c.type === 'PHOTO');
+      const photoConsent = updated.consents.find((c) => c.type === 'PHOTO');
       assert.ok(photoConsent);
       assert.strictEqual(photoConsent.granted, true);
       assert.strictEqual(photoConsent.grantedBy, 'Test Parent');
@@ -463,7 +550,7 @@ describe('Safety Service', () => {
         { athleteId: 'athlete2', athleteName: 'Athlete Two' },
       ];
 
-      expectOk(await safetyService.preCacheSessionEmergencyInfo(attendees));
+      expectOk(await safetyService.preCacheSessionEmergencyInfo(attendees, TEST_ADMIN_CONTEXT));
       // Should not throw
       assert.ok(true);
     });

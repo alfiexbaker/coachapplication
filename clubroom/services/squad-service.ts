@@ -381,25 +381,21 @@ export const squadService = {
   async createSquad(input: {
     clubId: string;
     name: string;
-    level: string;
-    description?: string;
-    meetingLocation?: string;
+    level?: string;
     ageGroup?: string;
     skillLevel?: string;
-    focusAreas?: string[];
   }): Promise<ClubSquad> {
-    const newSquad: ClubSquad = {
-      id: `squad_${Date.now()}`,
-      clubId: input.clubId,
-      name: input.name,
-      level: input.level,
-      memberCount: 0,
-      description: input.description,
-      meetLocation: input.meetingLocation ?? 'TBD',
-      primaryCoach: 'coach1',
-    };
-
     if (USE_MOCK) {
+      const mockCreatorId = 'coach1';
+      const newSquad: ClubSquad = {
+        id: `squad_${Date.now()}`,
+        clubId: input.clubId,
+        name: input.name,
+        level: resolveInputLevel(input) ?? '',
+        memberCount: 0,
+        meetLocation: 'TBD',
+        primaryCoach: mockCreatorId,
+      };
       const custom = await loadCustomSquads();
       custom.push(newSquad);
       await saveCustomSquads(custom);
@@ -409,7 +405,7 @@ export const squadService = {
         squadId: newSquad.id,
         clubId: newSquad.clubId,
         squadName: newSquad.name,
-        createdBy: newSquad.primaryCoach,
+        createdBy: mockCreatorId,
       });
 
       return newSquad;
@@ -422,11 +418,8 @@ export const squadService = {
         body: JSON.stringify({
           name: input.name,
           level: input.level,
-          description: input.description,
-          meetingLocation: input.meetingLocation,
           ageGroup: input.ageGroup,
           skillLevel: input.skillLevel,
-          focusAreas: input.focusAreas,
         }),
       },
     );
@@ -435,13 +428,6 @@ export const squadService = {
       throw new Error(response.error.message);
     }
     const created = response.data.squad;
-
-    emitTyped(ServiceEvents.SQUAD_CREATED, {
-      squadId: created.id,
-      clubId: created.clubId,
-      squadName: created.name,
-      createdBy: created.primaryCoach,
-    });
 
     return created;
   },
@@ -653,8 +639,9 @@ export const squadService = {
   /**
    * Get age group label from squad level
    */
-  getAgeGroupLabel(squad: ClubSquad): string {
+  getAgeGroupLabel(squad: ClubSquad): string | null {
     // Extract age group from level string (e.g., "U15 · Competitive" -> "U15")
+    if (!squad.level) return null;
     const match = squad.level.match(/U\d+/);
     return match ? match[0] : squad.level.split('·')[0].trim();
   },

@@ -59,16 +59,18 @@ export const Routes = {
 
   // ─── Tabs ──────────────────────────────────────────────────────
   HOME: '/(tabs)' as Href,
-  HOME_INDEX: '/(tabs)/index' as Href,
   FEED: '/(tabs)/feed' as Href,
   BOOKINGS: '/(tabs)/bookings' as Href,
   ATHLETES: '/(tabs)/athletes' as Href,
   SETTINGS: '/settings' as Href,
   SETTINGS_TAB: '/(tabs)/settings' as Href,
+  // Compatibility link only. Product navigation uses the canonical profile editor.
   COACH_PROFILE: '/(tabs)/coach-profile' as Href,
   EDIT_PROFILE: '/(tabs)/edit-profile' as Href,
+  // Legacy external route only. Product navigation uses the canonical Schedule segment below.
   AVAILABILITY: '/(tabs)/availability' as Href,
   CHILDREN: '/(tabs)/children' as Href,
+  // Mock compatibility and already-issued links only. API-mode callers use My Clubs or Club Detail.
   CLUB_HUB: '/(tabs)/club-hub' as Href,
   clubHub: (params?: { clubId?: string; inviteCode?: string }) =>
     ({
@@ -83,6 +85,7 @@ export const Routes = {
   NOTIFICATIONS: '/(tabs)/notifications' as Href,
   ROSTER: '/(tabs)/roster' as Href,
   SCHEDULE: '/(tabs)/schedule' as Href,
+  SCHEDULE_AVAILABILITY: '/(tabs)/schedule?segment=availability' as Href,
   manageBookings: (params?: { clubId?: string }) =>
     ({
       pathname: '/manage/bookings',
@@ -106,21 +109,14 @@ export const Routes = {
       pathname: '/(tabs)/bookings/report-problem',
       params: params ?? {},
     }) as Href,
-  ADMIN_INVITE_CODES: '/(tabs)/admin/invite-codes' as Href,
-
   // ─── Modals ────────────────────────────────────────────────────
   MODAL_ADD_CHILD: '/(modal)/add-child' as Href,
   MODAL_CREATE_CLUB_POST: '/(modal)/create-club-post' as Href,
-  modalCreateClubPost: (params?: {
-    clubId?: string;
-    audience?: 'club' | 'squad';
-    squadId?: string;
-  }) =>
+  modalCreateClubPost: (params?: { clubId?: string }) =>
     ({
       pathname: '/(modal)/create-club-post',
       params: params ?? {},
     }) as Href,
-  MODAL_CREATE_SQUAD: '/(modal)/create-squad' as Href,
   MODAL_EDIT_CHILD_SEN: '/(modal)/edit-child-sen' as Href,
   modalEditChildSen: (childId: string) =>
     ({
@@ -190,30 +186,19 @@ export const Routes = {
     }) as Href,
 
   // ─── Booking (non-tab) ────────────────────────────────────────
-  bookingCancel: (id: string, mode?: 'coach' | 'parent') =>
+  bookingCancel: (id: string) =>
     ({
       pathname: '/booking/[id]/cancel',
-      params: mode ? { id, mode } : { id },
+      params: { id },
     }) as Href,
   BOOKINGS_SUBSCRIBE: '/bookings/subscribe' as Href,
-  sessionFeedback: (params: {
-    bookingId: string;
-    athleteId?: string;
-    athleteName?: string;
-    athleteObjectives?: string;
-  }) =>
-    ({
-      pathname: '/bookings/session-feedback',
-      params,
-    }) as Href,
-
   // ─── Chat ──────────────────────────────────────────────────────
   chat: (threadId: string) =>
     ({
       pathname: '/chat/[threadId]',
       params: { threadId },
     }) as Href,
-  messagesWith: (params: { coachId?: string; athleteId?: string }) =>
+  messagesWith: (params: { coachId?: string; athleteId?: string; bookingId?: string }) =>
     ({
       pathname: '/(tabs)/messages',
       params,

@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { safetyService } from '@/services/safety-service';
+import { childService } from '@/services/child-service';
 import { createLogger } from '@/utils/logger';
 import type { MedicalInfo, Consent, ConsentType } from '@/constants/types';
 import { useScreen } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -15,8 +17,17 @@ interface MedicalInfoData {
   loadedAt: string;
 }
 
+const addItem = (setter: Dispatch<SetStateAction<string[]>>) => (item: string) => {
+  setter((previous) => [...previous, item]);
+};
+
+const removeItem = (setter: Dispatch<SetStateAction<string[]>>) => (index: number) => {
+  setter((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+};
+
 export function useMedicalInfo() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { currentUser } = useAuth();
 
   const [saving, setSaving] = useState(false);
 
@@ -37,6 +48,19 @@ export function useMedicalInfo() {
     }
 
     try {
+      const accessResult = await childService.canManageChildProfile(id, currentUser);
+      if (!accessResult.success) {
+        return accessResult;
+      }
+      if (!accessResult.data) {
+        return err(
+          serviceError(
+            'UNAUTHORIZED',
+            'You do not have permission to manage this player’s health information.',
+          ),
+        );
+      }
+
       const result = await safetyService.getEmergencyInfo(id);
       if (!result.success) {
         logger.error('Failed to load medical info', result.error);
@@ -60,13 +84,28 @@ export function useMedicalInfo() {
     }
   };
 
+  const canManageMedicalInfo = async () => {
+    if (!id) return false;
+
+    const accessResult = await childService.canManageChildProfile(id, currentUser);
+    if (!accessResult.success || !accessResult.data) {
+      logger.warn('Blocked medical profile update without current authority', {
+        childId: id,
+        userId: currentUser?.id,
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const { status, error, refreshing, onRefresh, retry } = useScreen<MedicalInfoData>({
     load: loadInfo,
-    deps: [id],
+    deps: [id, currentUser?.id, currentUser?.children?.map((child) => child.childId).join(',')],
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: id ? `child-medical:${id}` : 'child-medical:missing',
+    dataKey: id ? `child-medical:${currentUser?.id ?? 'anonymous'}:${id}` : 'child-medical:missing',
   });
 
   const handleConsentToggle = (type: ConsentType, granted: boolean) => {
@@ -90,6 +129,8 @@ export function useMedicalInfo() {
 
     return await runAsyncTryCatchFinally(
       async () => {
+        if (!(await canManageMedicalInfo())) return;
+
         const medicalUpdate: Partial<MedicalInfo> = {
           conditions,
           allergies,
@@ -129,15 +170,6 @@ export function useMedicalInfo() {
       },
     );
   };
-
-  const addItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
-    setter((prev) => [...prev, item]);
-  };
-
-  const removeItem =
-    (setter: React.Dispatch<React.SetStateAction<string[]>>) => (index: number) => {
-      setter((prev) => prev.filter((_, i) => i !== index));
-    };
 
   return {
     loading: status === 'loading',

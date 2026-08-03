@@ -12,7 +12,7 @@ function readSource(relativePath: string): string {
 test('session detail reassignment gates use backend staffing authority', () => {
   const source = readSource('hooks/use-session-detail-modal.ts');
   const canReassignBlock = source.match(
-    /const canReassignOwnership = Boolean\(([\s\S]*?)\);\n  const contextChildrenSignature/,
+    /const canReassignOwnership = Boolean\(([\s\S]*?)\);\n  const children = useMemo/,
   );
 
   assert.ok(canReassignBlock, 'expected canReassignOwnership block');

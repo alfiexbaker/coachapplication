@@ -20,7 +20,6 @@ import type {
   ClubFeedPost,
   ClubInvite,
   ClubMembership,
-  ClubRole,
   ClubSquad,
   Match,
   GroupSession,
@@ -149,10 +148,9 @@ export function useClubHub(): ClubHubState {
 
   const userClubs = useMemo(
     () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
-    [currentUser?.id],
+    [currentUser],
   );
 
-  const availableUserClubKey = availableUsers.map((user) => user.id).join('|');
   const knownClubs = useMemo(() => {
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
@@ -164,7 +162,7 @@ export function useClubHub(): ClubHubState {
       });
     });
     return Array.from(deduped.values());
-  }, [availableUserClubKey, userClubs]);
+  }, [availableUsers, userClubs]);
 
   // ─── Core state ────────────────────────────────────────────────
   const [membership, setMembership] = useState<ClubMembership | undefined>(undefined);
@@ -415,7 +413,6 @@ export function useClubHub(): ClubHubState {
       event: allPosts.filter((p) => p.postType === 'event').length,
       achievement: allPosts.filter((p) => p.postType === 'achievement').length,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- feed triggers recomputation when posts are modified
   })();
 
   // ─── Handlers ──────────────────────────────────────────────────

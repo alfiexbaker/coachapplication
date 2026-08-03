@@ -112,6 +112,33 @@ describe('availabilityService API mode', () => {
       if (url.pathname === '/v1/coaches/delegated_coach/availability/overrides/ovr_delegated') {
         return new Response(null, { status: method === 'DELETE' ? 204 : 405 });
       }
+      if (url.pathname === '/v1/coaches/delegated_coach/availability/conflicts') {
+        assert.equal(url.searchParams.get('dates'), '2026-01-01');
+        return new Response(
+          JSON.stringify({
+            coachId: 'delegated_coach',
+            bookingCount: 1,
+            holdCount: 1,
+            bookings: [
+              {
+                id: 'booking_conflict',
+                date: '2026-01-01',
+                time: '10:00',
+                location: 'Pitch A',
+                athleteName: 'Casey',
+              },
+            ],
+            holds: [
+              {
+                date: '2026-01-01',
+                time: '11:00',
+                inviteId: 'invite_conflict',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       return new Response(JSON.stringify({ message: 'unexpected route' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
@@ -148,10 +175,24 @@ describe('availabilityService API mode', () => {
       },
     ]);
     assert.deepEqual(await availabilityService.checkConflicts('delegated_coach', ['2026-01-01']), {
-      bookingCount: 0,
-      holdCount: 0,
-      bookings: [],
-      holds: [],
+      bookingCount: 1,
+      holdCount: 1,
+      bookings: [
+        {
+          id: 'booking_conflict',
+          date: '2026-01-01',
+          time: '10:00',
+          location: 'Pitch A',
+          athleteName: 'Casey',
+        },
+      ],
+      holds: [
+        {
+          date: '2026-01-01',
+          time: '11:00',
+          inviteId: 'invite_conflict',
+        },
+      ],
     });
     await assert.doesNotReject(() =>
       availabilityService.removeLegacyBlockedDate('delegated_coach', '2026-01-01'),
@@ -187,6 +228,7 @@ describe('availabilityService API mode', () => {
       [
         'GET /v1/coaches/delegated_coach/availability/templates',
         'GET /v1/coaches/delegated_coach/availability/overrides',
+        'GET /v1/coaches/delegated_coach/availability/conflicts',
         'POST /v1/coaches/delegated_coach/availability/templates',
         'POST /v1/coaches/delegated_coach/availability/overrides',
         'DELETE /v1/coaches/delegated_coach/availability/templates/tmpl_delegated_saved',
@@ -300,6 +342,49 @@ describe('availabilityService API mode', () => {
         'GET /v1/coaches/delegated_down/availability/templates',
         'GET /v1/coaches/delegated_down/availability/overrides',
       ],
+    );
+  });
+
+  it('fails closed when availability conflict authority is unavailable in API mode', async (t) => {
+    const [{ availabilityService }, { authService }] = await Promise.all([
+      import('@/services/availability-service'),
+      import('@/services/auth-service'),
+    ]);
+
+    const auth = authService as unknown as {
+      getCurrentUser: typeof authService.getCurrentUser;
+    };
+    const original = {
+      getCurrentUser: auth.getCurrentUser,
+      fetch: globalThis.fetch,
+    };
+    auth.getCurrentUser = async () =>
+      ({
+        id: 'signed_in_coach',
+        accountType: 'COACH',
+      }) as Awaited<ReturnType<typeof authService.getCurrentUser>>;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/v1/coaches/delegated_down/availability/conflicts') {
+        return new Response(JSON.stringify({ message: 'conflict authority down' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ message: 'unexpected route' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    t.after(() => {
+      auth.getCurrentUser = original.getCurrentUser;
+      globalThis.fetch = original.fetch;
+    });
+
+    await assert.rejects(
+      () => availabilityService.checkConflicts('delegated_down', ['2026-01-01']),
+      /conflict authority down/,
     );
   });
 

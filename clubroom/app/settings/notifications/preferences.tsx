@@ -1,11 +1,9 @@
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsScreenState } from '@/components/settings';
 import { ThemedText } from '@/components/themed-text';
-import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
 import {
   QuietHoursSelector,
@@ -16,6 +14,7 @@ import {
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useNotificationPrefs } from '@/hooks/use-notification-prefs';
+import { Routes } from '@/navigation/routes';
 
 export default function NotificationPreferencesScreen() {
   const { colors } = useTheme();
@@ -41,7 +40,21 @@ export default function NotificationPreferencesScreen() {
   return (
     <SettingsScreenState
       colors={colors}
-      header={<Header colors={colors} />}
+      header={
+        <PageHeader
+          title="Notifications"
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace(Routes.SETTINGS);
+          }}
+          centerTitle
+        />
+      }
       status={shellStatus}
       errorMessage={error ?? 'Failed to load notification preferences.'}
       onRetry={retry}
@@ -64,13 +77,6 @@ export default function NotificationPreferencesScreen() {
             ) : null}
 
             <View style={styles.section}>
-              <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
-                QUIET HOURS
-              </ThemedText>
-              <ThemedText style={[styles.sectionDescription, { color: colors.muted }]}>
-                Quiet hours pause push notifications only. In-app notifications still appear when
-                you open the app.
-              </ThemedText>
               <QuietHoursSelector
                 value={preferences.quietHours}
                 onChange={handleQuietHoursChange}
@@ -137,28 +143,7 @@ export default function NotificationPreferencesScreen() {
   );
 }
 
-function Header({
-  colors,
-}: {
-  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
-}) {
-  return (
-    <Row justify="space-between" align="center" style={styles.header}>
-      <Clickable onPress={() => router.back()} hitSlop={8}>
-        <Ionicons name="arrow-back" size={24} color={colors.text} />
-      </Clickable>
-      <ThemedText type="title" style={styles.headerTitle}>
-        Notification Preferences
-      </ThemedText>
-      <View style={styles.headerSpacer} />
-    </Row>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  headerTitle: { ...Typography.heading },
-  headerSpacer: { width: 24 },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'] },
   submitProgress: { marginBottom: Spacing.lg },
   section: { marginBottom: Spacing.xl },

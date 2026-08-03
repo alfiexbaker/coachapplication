@@ -2,7 +2,7 @@
  * Create Club Screen
  *
  * Form for creating a new club with name, tagline, city,
- * country, and badge. Includes live preview and feature list.
+ * country, badge, commercial model, and optional first staff invite.
  */
 
 import {
@@ -25,7 +25,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useCreateClub, CLUB_FEATURES } from '@/hooks/use-create-club';
+import { useCreateClub } from '@/hooks/use-create-club';
 import { COMMERCIAL_MODE_CHOICES } from '@/utils/organization-commercial-mode';
 import { ORGANIZATION_ROLE_LABELS } from '@/contracts/club-governance';
 
@@ -63,6 +63,8 @@ export default function CreateClubScreen() {
     setTagline,
     city,
     setCity,
+    handleCityBlur,
+    cityError,
     country,
     setCountry,
     badge,
@@ -74,9 +76,6 @@ export default function CreateClubScreen() {
     isSubmitting,
     isValid,
     handleCreate,
-    previewBadge,
-    previewName,
-    previewLocation,
   } = useCreateClub();
 
   return (
@@ -102,24 +101,9 @@ export default function CreateClubScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Info Card */}
-          <SurfaceCard style={styles.infoCard}>
-            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-              <Ionicons name="people" size={32} color={palette.tint} />
-            </View>
-            <ThemedText type="defaultSemiBold" style={styles.infoTitle}>
-              Start Your Club Community
-            </ThemedText>
-            <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-              Create a space for your athletes and parents. Share updates, manage squads, and track
-              progress all in one place.
-            </ThemedText>
-          </SurfaceCard>
-
-          {/* Form */}
           <View style={styles.formSection}>
             <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
-              Club Details
+              Club
             </ThemedText>
             <FormInput
               label="Club Name *"
@@ -145,8 +129,10 @@ export default function CreateClubScreen() {
                   placeholder="e.g., London"
                   value={city}
                   onChangeText={setCity}
+                  onBlur={handleCityBlur}
                   palette={palette}
                   autoCapitalize="words"
+                  errorText={cityError}
                 />
               </View>
               <Column flex>
@@ -174,10 +160,10 @@ export default function CreateClubScreen() {
 
           <SurfaceCard style={styles.setupCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
-              Billing Setup
+              Commercial model
             </ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
-              Choose who families are booking and billing with for new club sessions.
+              Choose who families book and pay through for club sessions.
             </ThemedText>
             <View style={styles.choiceList}>
               {COMMERCIAL_MODE_CHOICES.map((option) => {
@@ -215,10 +201,10 @@ export default function CreateClubScreen() {
 
           <SurfaceCard style={styles.setupCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
-              First Staff Invite
+              First staff invite
             </ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
-              Generate the first staff invite code during setup or skip it for now.
+              Create an invite code now, or do it later from club settings.
             </ThemedText>
             <View style={styles.choiceList}>
               {FIRST_STAFF_ROLE_OPTIONS.map((option) => {
@@ -253,61 +239,6 @@ export default function CreateClubScreen() {
               })}
             </View>
           </SurfaceCard>
-
-          {/* Preview */}
-          <SurfaceCard style={styles.previewCard}>
-            <ThemedText type="defaultSemiBold" style={Typography.small}>
-              Preview
-            </ThemedText>
-            <Row gap="md" align="center">
-              <View
-                style={[styles.previewBadge, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
-              >
-                <ThemedText style={[Typography.subheading, { color: palette.tint }]}>
-                  {previewBadge}
-                </ThemedText>
-              </View>
-              <Column flex style={{ gap: Spacing.micro }}>
-                <ThemedText type="defaultSemiBold" style={Typography.subheading}>
-                  {previewName}
-                </ThemedText>
-                {tagline ? (
-                  <ThemedText style={[Typography.small, { color: palette.muted }]}>
-                    {tagline}
-                  </ThemedText>
-                ) : null}
-                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                  {previewLocation}
-                </ThemedText>
-                <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                  {
-                    COMMERCIAL_MODE_CHOICES.find((option) => option.value === commercialMode)
-                      ?.title
-                  }
-                </ThemedText>
-              </Column>
-            </Row>
-          </SurfaceCard>
-
-          {/* Features */}
-          <View style={styles.features}>
-            <ThemedText
-              type="defaultSemiBold"
-              style={{ ...Typography.body, marginBottom: Spacing.xs }}
-            >
-              What you&apos;ll get
-            </ThemedText>
-            {CLUB_FEATURES.map((item) => (
-              <Row key={item.text} gap="sm" align="center">
-                <Ionicons
-                  name={item.icon as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={palette.tint}
-                />
-                <ThemedText style={Typography.bodySmall}>{item.text}</ThemedText>
-              </Row>
-            ))}
-          </View>
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
@@ -366,10 +297,10 @@ function FormInput({
           inputStyle,
         ]}
         placeholderTextColor={palette.muted}
+        maxLength={100}
+        accessibilityLabel={label.replace('*', '').trim()}
         {...inputProps}
-
-            maxLength={100}
-          />
+      />
       {errorText ? (
         <ThemedText style={[Typography.caption, { color: palette.error }]}>{errorText}</ThemedText>
       ) : null}
@@ -381,16 +312,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.lg },
-  infoCard: { alignItems: 'center', gap: Spacing.sm, padding: Spacing.lg },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoTitle: { ...Typography.heading, textAlign: 'center' },
-  infoText: { textAlign: 'center', ...Typography.bodySmall },
   formSection: { gap: Spacing.md },
   setupCard: { gap: Spacing.sm },
   sectionLabel: { ...Typography.subheading, marginBottom: Spacing.xs },
@@ -409,15 +330,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
-  previewCard: { gap: Spacing.sm },
-  previewBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  features: { gap: Spacing.sm },
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,

@@ -34,6 +34,7 @@ export default function FamilySharingScreen() {
     onRefresh,
     retry,
     family,
+    canManageFamily,
     showInviteModal,
     setShowInviteModal,
     inviteEmail,
@@ -102,9 +103,7 @@ export default function FamilySharingScreen() {
       <EmptyState
         icon="people-outline"
         title="Family account unavailable"
-        message="Set up your family account to invite guardians and share schedule access."
-        actionLabel="Retry"
-        onPressAction={retry}
+        message="You need a linked family account to manage sharing."
       />,
     );
   }
@@ -122,33 +121,41 @@ export default function FamilySharingScreen() {
             <Ionicons name="people-circle" size={40} color={colors.tint} />
           </View>
           <ThemedText type="subtitle" style={{ textAlign: 'center' }}>
-            Share access with family members
+            Family access
           </ThemedText>
           <ThemedText style={[Typography.bodySmall, { color: colors.muted, textAlign: 'center' }]}>
-            Invite your partner, grandparents, or caregivers to view schedules, book sessions, and
-            track your children&apos;s progress.
+            Invite trusted guardians to view schedules and book sessions for your children.
           </ThemedText>
         </SurfaceCard>
 
         {family?.guardians && (
-          <SharingGuardiansSection guardians={family.guardians} onRemove={handleRemoveGuardian} />
+          <SharingGuardiansSection
+            guardians={family.guardians}
+            onRemove={canManageFamily ? handleRemoveGuardian : undefined}
+          />
         )}
 
         {family?.pendingInvites && (
-          <SharingPendingInvites invites={family.pendingInvites} onCancel={handleCancelInvite} />
+          <SharingPendingInvites
+            invites={family.pendingInvites}
+            onCancel={canManageFamily ? handleCancelInvite : undefined}
+          />
         )}
 
-        <Clickable
-          style={[styles.inviteButton, { backgroundColor: colors.tint }]}
-          onPress={() => setShowInviteModal(true)}
-        >
-          <Row align="center" justify="center" gap="sm">
-            <Ionicons name="person-add" size={22} color={colors.onPrimary} />
-            <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-              Invite Family Member
-            </ThemedText>
-          </Row>
-        </Clickable>
+        {canManageFamily ? (
+          <Clickable
+            accessibilityLabel="Invite guardian"
+            style={[styles.inviteButton, { backgroundColor: colors.tint }]}
+            onPress={() => setShowInviteModal(true)}
+          >
+            <Row align="center" justify="center" gap="sm">
+              <Ionicons name="person-add" size={22} color={colors.onPrimary} />
+              <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
+                Invite guardian
+              </ThemedText>
+            </Row>
+          </Clickable>
+        ) : null}
       </ScrollView>
 
       <SharingInviteModal

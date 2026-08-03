@@ -60,7 +60,11 @@ export default function MedicalInfoScreen() {
   } = useMedicalInfo();
   const header = (
     <Row gap="sm" align="center" style={styles.header}>
-      <Clickable onPress={() => router.back()} style={styles.backButton}>
+      <Clickable
+        accessibilityLabel="Go back"
+        onPress={() => router.back()}
+        style={styles.backButton}
+      >
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
       <ThemedText type="title">Medical Information</ThemedText>
@@ -81,12 +85,14 @@ export default function MedicalInfoScreen() {
   }
 
   if (status === 'error') {
+    const accessDenied = error?.code === 'UNAUTHORIZED';
     return (
       <ChildScreenState
         colors={colors}
         status="error"
         errorMessage={error?.message ?? 'Failed to load medical information.'}
-        onRetry={retry}
+        errorTitle={accessDenied ? 'Medical information unavailable' : undefined}
+        onRetry={accessDenied ? undefined : retry}
         header={header}
         loadingVariant="form"
       />
@@ -110,16 +116,15 @@ export default function MedicalInfoScreen() {
         }
       >
         <ThemedText style={{ color: colors.muted }}>
-          Keep medical information up to date for the safety of your child during sessions.
+          Keep this current for your child’s safety.
         </ThemedText>
 
         <SurfaceCard style={styles.noticeCard}>
           <Row gap="sm" align="start">
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.tint} />
             <ThemedText style={[styles.noticeText, { color: colors.muted }]}>
-              This information is shared for active coaching and safety only. Assigned coaches can
-              view the relevant medical snapshot for active bookings, and supervising club staff
-              should only see it when they need to support delivery, a handoff, or an emergency.
+              Shared only with assigned coaches and authorised staff when needed for active
+              coaching, a safe handover or an emergency.
             </ThemedText>
           </Row>
         </SurfaceCard>
@@ -166,9 +171,8 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={doctorName}
               onChangeText={setDoctorName}
-
-            maxLength={20}
-          />
+              maxLength={20}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Doctor Phone</ThemedText>
@@ -179,9 +183,8 @@ export default function MedicalInfoScreen() {
               value={doctorPhone}
               onChangeText={setDoctorPhone}
               keyboardType="phone-pad"
-
-            maxLength={20}
-          />
+              maxLength={20}
+            />
           </View>
         </SurfaceCard>
 
@@ -195,9 +198,8 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={insuranceProvider}
               onChangeText={setInsuranceProvider}
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
           </View>
           <View style={styles.field}>
             <ThemedText style={Typography.bodySmallSemiBold}>Policy Number</ThemedText>
@@ -207,9 +209,8 @@ export default function MedicalInfoScreen() {
               placeholderTextColor={colors.muted}
               value={insuranceNumber}
               onChangeText={setInsuranceNumber}
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
           </View>
         </SurfaceCard>
 
@@ -223,7 +224,6 @@ export default function MedicalInfoScreen() {
             onChangeText={setNotes}
             multiline
             numberOfLines={4}
-
             maxLength={500}
           />
         </SurfaceCard>
@@ -244,7 +244,11 @@ export default function MedicalInfoScreen() {
           ))}
         </SurfaceCard>
 
-        <Button onPress={handleSave} disabled={saving} label={saving ? 'Saving...' : 'Save Medical Information'} />
+        <Button
+          onPress={handleSave}
+          disabled={saving}
+          label={saving ? 'Saving...' : 'Save Medical Information'}
+        />
       </ScrollView>
     </ChildScreenState>
   );

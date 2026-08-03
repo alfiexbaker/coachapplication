@@ -44,10 +44,10 @@ import { eventCrudService, loadEvents, saveEvents } from './event-crud-service';
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventRsvpService');
 
-function eventRsvpUnsupportedError(action: string, details?: unknown): ServiceError {
+function eventRsvpByIdUnsupportedError(): ServiceError {
   return unsupportedError(
-    `${action} needs a /v1 event RSVP API before it can run in API mode.`,
-    details,
+    'Updating event RSVPs by RSVP id is unsupported in API mode. Use submitRSVP with the event id so /v1/events/:eventId/rsvp owns the write.',
+    { missingAuthority: 'event_rsvp_by_id_update' },
   );
 }
 
@@ -172,6 +172,10 @@ let rsvpsCache: EventRSVP[] = USE_MOCK ? [...MOCK_RSVPS] : [];
 // ============================================================================
 
 export async function loadRSVPs(): Promise<EventRSVP[]> {
+  if (!USE_MOCK) {
+    return [];
+  }
+
   try {
     const stored = await apiClient.get<EventRSVP[] | null>(STORAGE_KEYS.EVENT_RSVPS, null);
     if (stored) return stored;
@@ -181,6 +185,10 @@ export async function loadRSVPs(): Promise<EventRSVP[]> {
   return USE_MOCK ? [...MOCK_RSVPS] : [];
 }
 export async function saveRSVPs(rsvps: EventRSVP[]): Promise<void> {
+  if (!USE_MOCK) {
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.EVENT_RSVPS, rsvps);
     rsvpsCache = rsvps;
@@ -192,6 +200,10 @@ export function getRsvpsCache(): EventRSVP[] {
   return rsvpsCache;
 }
 export function setRsvpsCache(rsvps: EventRSVP[]): void {
+  if (!USE_MOCK) {
+    return;
+  }
+
   rsvpsCache = rsvps;
 }
 
@@ -225,11 +237,12 @@ export const eventRsvpService = {
       if (!event) return err(notFound('Event', eventId));
 
       // Update or add attendee
-      const existingIndex = event.attendees.findIndex((a) => a.userId === userId);
+      const attendees = (event.attendees ??= []);
+      const existingIndex = attendees.findIndex((a) => a.userId === userId);
       if (existingIndex >= 0) {
-        event.attendees[existingIndex] = attendee;
+        attendees[existingIndex] = attendee;
       } else {
-        event.attendees.push(attendee);
+        attendees.push(attendee);
       }
       await saveEvents(eventsCache);
 
@@ -283,7 +296,7 @@ export const eventRsvpService = {
   /**
    * Get attendee counts by status
    */
-  getAttendeeCounts(attendees: EventAttendee[]): {
+  getAttendeeCounts(attendees: EventAttendee[] = []): {
     going: number;
     maybe: number;
     notGoing: number;
@@ -329,8 +342,8 @@ export const eventRsvpService = {
    */
   isEventFull(event: ClubEvent): boolean {
     if (!event.maxAttendees) return false;
-    const { going } = this.getAttendeeCounts(event.attendees);
-    return going >= event.maxAttendees;
+    const { going, totalGuests } = event.rsvpSummary ?? this.getAttendeeCounts(event.attendees);
+    return going + totalGuests >= event.maxAttendees;
   },
   // ============================================================================
   // ENHANCED RSVP MANAGEMENT
@@ -395,6 +408,7 @@ export const eventRsvpService = {
       const eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === input.eventId);
       if (event) {
+        const attendees = (event.attendees ??= []);
         const attendee: EventAttendee = {
           userId: input.userId,
           userRole: input.userRole,
@@ -402,11 +416,11 @@ export const eventRsvpService = {
           guestCount: input.guestCount ?? 0,
           respondedAt: rsvp.respondedAt,
         };
-        const attendeeIndex = event.attendees.findIndex((a) => a.userId === input.userId);
+        const attendeeIndex = attendees.findIndex((a) => a.userId === input.userId);
         if (attendeeIndex >= 0) {
-          event.attendees[attendeeIndex] = attendee;
+          attendees[attendeeIndex] = attendee;
         } else {
-          event.attendees.push(attendee);
+          attendees.push(attendee);
         }
         await saveEvents(eventsCache);
       }
@@ -467,7 +481,7 @@ export const eventRsvpService = {
       const eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === rsvp.eventId);
       if (event) {
-        const attendee = event.attendees.find((a) => a.userId === rsvp.userId);
+        const attendee = event.attendees?.find((a) => a.userId === rsvp.userId);
         if (attendee) {
           attendee.status = status;
           if (guestCount !== undefined) {
@@ -488,7 +502,7 @@ export const eventRsvpService = {
     void rsvpId;
     void status;
     void guestCount;
-    return err(eventRsvpUnsupportedError('Updating event RSVPs'));
+    return err(eventRsvpByIdUnsupportedError());
   },
   /**
    * Get all RSVPs for an event

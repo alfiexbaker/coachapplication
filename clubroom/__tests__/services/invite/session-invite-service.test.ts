@@ -8,6 +8,8 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { bookingService } from '@/services/booking';
 import {
   getInvitesCache,
+  loadFromStorage,
+  saveToStorage,
   sessionInviteService,
   setInvitesCache,
 } from '@/services/invite/session-invite-service';
@@ -346,6 +348,41 @@ describe('sessionInviteService', () => {
     const stored = await sessionInviteService.getInvite(invite.id);
     assert.equal(stored?.status, 'PENDING');
     assert.equal(stored?.bookingId, undefined);
+  });
+
+  it('keeps exported invite cache helpers inert in API mode', async () => {
+    const invite: SessionInvite = {
+      id: 'inv_api_helper_local',
+      coachId: 'coach_api_helper',
+      athleteIds: ['athlete_api_helper'],
+      parentId: 'parent_api_helper',
+      proposedSlots: [
+        {
+          date: '2030-05-01',
+          startTime: '10:00',
+          endTime: '11:00',
+          location: 'Main Pitch',
+        },
+      ],
+      sessionType: '1:1 Coaching',
+      focus: 'Passing',
+      status: 'PENDING',
+      expiresAt: '2030-05-10T23:59:59.000Z',
+      createdAt: '2030-04-20T09:00:00.000Z',
+    };
+
+    setApiMockMode(false);
+
+    const saveResult = await saveToStorage([invite]);
+    setInvitesCache([invite]);
+
+    assert.equal(saveResult.success, false);
+    if (!saveResult.success) {
+      assert.equal(saveResult.error.code, 'UNSUPPORTED');
+      assert.deepEqual(saveResult.error.details, { authority: '/v1/invites' });
+    }
+    assert.deepEqual(await loadFromStorage(), []);
+    assert.deepEqual(getInvitesCache(), []);
   });
 
   it('fails closed for pending invite reads without parent context in API mode', async () => {

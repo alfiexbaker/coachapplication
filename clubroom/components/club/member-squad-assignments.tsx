@@ -65,7 +65,8 @@ export const MemberSquadAssignments = function MemberSquadAssignments({
               <View style={{ flex: 1, gap: Spacing.micro }}>
                 <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                 <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                  {squad.level} -- {squad.memberCount} members
+                  {squad.level ? `${squad.level} -- ` : ''}
+                  {squad.memberCount} members
                 </ThemedText>
               </View>
               <View

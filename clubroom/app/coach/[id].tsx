@@ -106,6 +106,7 @@ export default function CoachProfileScreen() {
           profileSummary={p.relationshipDisplay.profileSummary}
           offeringSummary={p.offeringSummary}
           isBlocked={p.isBlocked}
+          actionsUnavailable={p.profileActionsBlocked}
           onFollow={p.handleFollow}
           onMessage={p.handleMessage}
         />
@@ -233,7 +234,12 @@ export default function CoachProfileScreen() {
               £{p.coach.minPrice}
             </ThemedText>
           </View>
-          <Button onPress={p.handleBook} style={{ flex: 1 }} disabled={p.isBlocked} label="Book Session" />
+          <Button
+            onPress={p.handleBook}
+            style={{ flex: 1 }}
+            disabled={p.profileActionsBlocked}
+            label="Book Session"
+          />
         </Row>
       )}
     </>,

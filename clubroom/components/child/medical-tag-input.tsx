@@ -38,6 +38,7 @@ export const MedicalTagInput = function MedicalTagInput({
       <ThemedText style={Typography.bodySmallSemiBold}>{label}</ThemedText>
       <Row gap="xs">
         <TextInput
+          accessibilityLabel={label}
           style={[styles.input, { borderColor: colors.border, color: colors.text, flex: 1 }]}
           placeholder={placeholder}
           placeholderTextColor={colors.muted}
@@ -48,7 +49,7 @@ export const MedicalTagInput = function MedicalTagInput({
           maxLength={100}
         />
         <Clickable
-          accessibilityLabel="Add medical tag"
+          accessibilityLabel={`Add ${label.toLowerCase()}`}
           onPress={handleAdd}
           style={[styles.addButton, { backgroundColor: colors.tint }]}
         >
@@ -66,7 +67,10 @@ export const MedicalTagInput = function MedicalTagInput({
               ]}
             >
               <ThemedText style={Typography.small}>{item}</ThemedText>
-              <Clickable onPress={() => onRemove(index)}>
+              <Clickable
+                accessibilityLabel={`Remove ${item} from ${label.toLowerCase()}`}
+                onPress={() => onRemove(index)}
+              >
                 <Ionicons name="close" size={16} color={colors.muted} />
               </Clickable>
             </Row>

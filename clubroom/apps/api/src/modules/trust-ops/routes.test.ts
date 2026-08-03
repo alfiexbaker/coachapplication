@@ -37,7 +37,6 @@ describe('trust-ops safeguarding routes', () => {
       headers: parentHeaders,
       payload: {
         athleteId: 'ath_user1',
-        bookingId: 'bok_booking1a',
         category: 'booking_issue_safety',
         severity: 'high',
         summary: 'Parent reported unsafe conduct after session',
@@ -335,25 +334,52 @@ describe('trust-ops safeguarding routes', () => {
       deletedAt: null,
       deletedByUserId: null,
     });
+    asRows(tables.bookingParticipants).push({
+      id: 'bpt_booking-issue-2',
+      bookingId,
+      athleteId: 'ath_user2',
+      guardianUserId: 'usr_parent1',
+      status: 'confirmed',
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    });
 
-    const denied = await app.inject({
+    const deniedBookingOnly = await app.inject({
+      method: 'POST',
+      url: '/v1/safeguarding/incidents',
+      headers: {
+        'x-auth-user-id': 'usr_athlete99',
+        'x-auth-roles': 'athlete',
+        'x-acting-role': 'athlete',
+      },
+      payload: {
+        bookingId,
+        category: 'other',
+        severity: 'medium',
+        summary: 'Unrelated actor tried a booking-only support report.',
+      },
+    });
+    assert.equal(deniedBookingOnly.statusCode, 403);
+
+    const deniedMismatchedAthlete = await app.inject({
       method: 'POST',
       url: '/v1/safeguarding/incidents',
       headers: {
         'x-auth-user-id': 'usr_parent1',
         'x-auth-roles': 'parent',
         'x-acting-role': 'parent',
-        'x-guardian-athlete-ids': 'ath_user1',
+        'x-guardian-athlete-ids': 'ath_user2,ath_user3',
       },
       payload: {
         athleteId: 'ath_user3',
-        bookingId: 'bok_booking-issue-1',
+        bookingId,
         category: 'booking_issue_safety',
         severity: 'high',
-        summary: 'Safety report from bookings/report-problem for unrelated child.',
+        summary: 'Visible booking with a mismatched athlete.',
       },
     });
-    assert.equal(denied.statusCode, 403);
+    assert.equal(deniedMismatchedAthlete.statusCode, 403);
 
     const allowed = await app.inject({
       method: 'POST',
@@ -381,6 +407,95 @@ describe('trust-ops safeguarding routes', () => {
     );
     assert.equal(asString(supportNotification?.userId), 'usr_coach1');
     assert.equal(asString(supportNotification?.type), 'SUPPORT_UPDATE');
+
+    const createAudit = auditRows(tables, 'safeguarding_incident.create', 'SUCCESS').find(
+      (row) => asString(row.resourceId) === incident.id,
+    );
+    const metadata = (createAudit?.metadataJson ?? {}) as SeedRow;
+    assert.deepEqual(Object.keys(metadata).sort(), [
+      'category',
+      'hasAthlete',
+      'hasBooking',
+      'notificationCount',
+      'notificationStatus',
+    ]);
+    assert.equal(metadata.hasAthlete, true);
+    assert.equal(metadata.hasBooking, true);
+    assert.equal(metadata.notificationCount, 1);
+    assert.equal(metadata.notificationStatus, 'sent');
+  });
+
+  it('keeps an accepted booking report successful when notification routing fails', async () => {
+    const tables = getMarketplaceSeedStore().tables as Record<string, SeedRow[]>;
+    const now = new Date().toISOString();
+    const suffix = uniqueSuffix();
+    const bookingId = `bok_notification-failure-${suffix}`;
+    asRows(tables.bookings).push({
+      id: bookingId,
+      coachUserId: 'usr_coach1',
+      bookedByUserId: 'usr_parent1',
+      clubId: null,
+      status: 'CONFIRMED',
+      scheduledAt: now,
+      durationMinutes: 60,
+      location: 'Test pitch',
+      serviceType: 'Notification failure test',
+      groupSessionId: null,
+      createdByUserId: 'usr_parent1',
+      updatedByUserId: 'usr_parent1',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+
+    const previousNotifications = asRows(tables.notifications);
+    tables.notifications = Object.freeze([...previousNotifications]) as unknown as SeedRow[];
+
+    let response;
+    try {
+      response = await app.inject({
+        method: 'POST',
+        url: '/v1/safeguarding/incidents',
+        headers: {
+          'x-auth-user-id': 'usr_parent1',
+          'x-auth-roles': 'parent',
+          'x-acting-role': 'parent',
+        },
+        payload: {
+          bookingId,
+          category: 'other',
+          severity: 'medium',
+          summary: 'The report must survive a notification routing failure.',
+        },
+      });
+    } finally {
+      tables.notifications = [...previousNotifications];
+    }
+
+    assert.equal(response.statusCode, 201);
+    const incident = response.json() as { id: string };
+    assert.equal(
+      asRows(tables.safeguardingIncidents).some((row) => asString(row.id) === incident.id),
+      true,
+    );
+
+    const notificationErrorAudit = auditRows(
+      tables,
+      'safeguarding_incident.notification',
+      'ERROR',
+    ).find((row) => asString(row.resourceId) === incident.id);
+    assert.deepEqual(notificationErrorAudit?.metadataJson, {
+      errorCode: 'NOTIFICATION_DELIVERY_FAILED',
+    });
+
+    const createAudit = auditRows(tables, 'safeguarding_incident.create', 'SUCCESS').find(
+      (row) => asString(row.resourceId) === incident.id,
+    );
+    const metadata = (createAudit?.metadataJson ?? {}) as SeedRow;
+    assert.equal(metadata.notificationCount, 0);
+    assert.equal(metadata.notificationStatus, 'failed');
   });
 
   it('one-to-one raise concern path enforces coach assignment and verification', async () => {
@@ -439,5 +554,20 @@ describe('trust-ops safeguarding routes', () => {
       },
     });
     assert.equal(allowed.statusCode, 201);
+
+    const allowedIncident = allowed.json() as { id: string };
+    const tables = getMarketplaceSeedStore().tables as Record<string, SeedRow[]>;
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.create', 'DENY').filter(
+        (row) => asString(row.actorUserId) === 'usr_coach1',
+      ).length >= 2,
+      true,
+    );
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.create', 'SUCCESS').some(
+        (row) => asString(row.resourceId) === allowedIncident.id,
+      ),
+      true,
+    );
   });
 });

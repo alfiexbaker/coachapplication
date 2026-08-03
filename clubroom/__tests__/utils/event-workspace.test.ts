@@ -15,6 +15,7 @@ function makeEvent(overrides: Partial<ClubEvent> = {}): ClubEvent {
     date: '2099-03-20',
     startTime: '18:00',
     endTime: '19:30',
+    timeZone: 'Europe/London',
     venue: 'Clubhouse',
     isVirtual: false,
     targetAudience: 'ALL',

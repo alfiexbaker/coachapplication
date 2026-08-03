@@ -10,7 +10,7 @@
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from './api-client';
-import { BaseService } from './base-service';
+import { BaseService, type PagedResult, type QueryOptions } from './base-service';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { notificationService } from './notification-service';
 import { reportService } from './report-service';
@@ -184,9 +184,7 @@ function mapApiIncidentToConcern(incident: SafeguardingIncident): AthleteConcern
   };
 }
 
-function actionTypeForConcernStatus(
-  status: ConcernStatus,
-): ApiSafeguardingAction['actionType'] {
+function actionTypeForConcernStatus(status: ConcernStatus): ApiSafeguardingAction['actionType'] {
   switch (status) {
     case 'RESOLVED':
       return 'close_case';
@@ -207,6 +205,101 @@ function actionTypeForConcernStatus(
 class ConcernServiceImpl extends BaseService<AthleteConcern> {
   protected storageKey = STORAGE_KEYS.CONCERNS;
   protected entityName = 'Concern';
+
+  private unsupportedGenericStorageMethod(method: string): Result<never, ServiceError> {
+    return err(
+      serviceError(
+        'UNSUPPORTED',
+        `Concern ${method} is mock-only. Use the safeguarding /v1 concern methods in API mode.`,
+      ),
+    );
+  }
+
+  override async getAll(
+    options?: QueryOptions<AthleteConcern>,
+  ): Promise<Result<AthleteConcern[], ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getAll');
+    return super.getAll(options);
+  }
+
+  override async getPaged(
+    options?: QueryOptions<AthleteConcern>,
+  ): Promise<Result<PagedResult<AthleteConcern>, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getPaged');
+    return super.getPaged(options);
+  }
+
+  override async getById(id: string): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getById');
+    return super.getById(id);
+  }
+
+  override async create(
+    input: Omit<AthleteConcern, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('create');
+    return super.create(input);
+  }
+
+  override async update(
+    id: string,
+    updates: Partial<AthleteConcern>,
+  ): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('update');
+    return super.update(id, updates);
+  }
+
+  override async delete(id: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('delete');
+    return super.delete(id);
+  }
+
+  override async hardDelete(id: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('hardDelete');
+    return super.hardDelete(id);
+  }
+
+  override async restore(id: string): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('restore');
+    return super.restore(id);
+  }
+
+  override async exists(id: string): Promise<boolean> {
+    if (!apiClient.isMockMode) {
+      void this.unsupportedGenericStorageMethod('exists');
+      return false;
+    }
+    return super.exists(id);
+  }
+
+  override async count(filter?: Partial<AthleteConcern>): Promise<Result<number, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('count');
+    return super.count(filter);
+  }
+
+  override async findOne(
+    filter: Partial<AthleteConcern>,
+  ): Promise<Result<AthleteConcern | null, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('findOne');
+    return super.findOne(filter);
+  }
+
+  override async createMany(
+    inputs: Omit<AthleteConcern, 'id' | 'createdAt' | 'updatedAt'>[],
+  ): Promise<Result<AthleteConcern[], ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('createMany');
+    return super.createMany(inputs);
+  }
+
+  override async deleteMany(ids: string[]): Promise<Result<number, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('deleteMany');
+    return super.deleteMany(ids);
+  }
+
+  override async clear(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('clear');
+    return super.clear();
+  }
 
   private shouldAutoEscalate(type: ConcernType, severity: ConcernSeverity): boolean {
     if (severity === 'URGENT') return true;
@@ -407,10 +500,12 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
       if (!result.success) {
         return result;
       }
-      return ok(result.data.incidents.flatMap((incident) => {
-        const concern = mapApiIncidentToConcern(incident);
-        return concern ? [concern] : [];
-      }));
+      return ok(
+        result.data.incidents.flatMap((incident) => {
+          const concern = mapApiIncidentToConcern(incident);
+          return concern ? [concern] : [];
+        }),
+      );
     }
 
     return this.getAll({

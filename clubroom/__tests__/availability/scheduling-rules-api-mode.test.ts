@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
@@ -14,11 +16,58 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as Response;
 }
 
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
+
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
 describe('schedulingRulesService API mode', () => {
+  it('builds a minimal patch from backend-confirmed scheduling rules', async () => {
+    const { diffCoachSchedulingRules } = await import('@/services/scheduling-rules-service');
+    const current = {
+      id: 'rules-self',
+      coachId: 'coach-self',
+      minimumAdvanceBookingHours: 24,
+      maxAdvanceBookingDays: 30,
+      bufferMinutesDefault: 15,
+      maxConcurrentDefault: 1,
+      allowSameDayBookings: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    assert.deepEqual(
+      diffCoachSchedulingRules(current, {
+        ...current,
+        bufferMinutesDefault: 20,
+        allowSameDayBookings: true,
+      }),
+      {
+        bufferMinutesDefault: 20,
+        allowSameDayBookings: true,
+      },
+    );
+    assert.deepEqual(diffCoachSchedulingRules(current, current), {});
+  });
+
+  it('does not log raw scheduling-rule update payloads on failures', () => {
+    const source = readProjectFile('services/scheduling-rules-service.ts');
+
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to update scheduling rules',\s*\{\s*coachId,\s*updates,/,
+      'scheduling-rule update failure logs must not include the full updates payload',
+    );
+    assert.match(
+      source,
+      /changedFields,\s*\n\s*changedFieldCount: changedFields\.length/,
+      'scheduling-rule diagnostics should log changed field names and counts instead of raw values',
+    );
+  });
+
   it('fails closed for non-self scheduling writes', async () => {
     const { schedulingRulesService } = await import('@/services/scheduling-rules-service');
 
@@ -81,6 +130,40 @@ describe('schedulingRulesService API mode', () => {
           requestId: 'req_rules',
         });
       }
+      if (url.pathname === '/v1/coaches/me/scheduling-rules') {
+        return jsonResponse({
+          rules: {
+            id: 'api-rules-self',
+            coachId: 'coach-self',
+            minimumAdvanceBookingHours: 24,
+            maxAdvanceBookingDays: 30,
+            bufferMinutesDefault: 15,
+            maxConcurrentDefault: 1,
+            allowSameDayBookings: false,
+            createdAt: '2026-01-03T00:00:00.000Z',
+            updatedAt: '2026-01-03T00:00:00.000Z',
+          },
+          cancellationPolicy: {
+            id: 'api-policy-self',
+            coachId: 'coach-self',
+            name: 'Self API policy',
+            description: 'Loaded from backend self route',
+            tiers: [
+              {
+                hoursBeforeSession: 12,
+                refundPercentage: 50,
+                description: 'Half refund',
+              },
+            ],
+            minimumNoticeHours: 0,
+            allowCancellations: true,
+            isDefault: true,
+            createdAt: '2026-01-03T00:00:00.000Z',
+            updatedAt: '2026-01-03T00:00:00.000Z',
+          },
+          requestId: 'req_self_rules',
+        });
+      }
       return jsonResponse({ message: `Unhandled ${url.pathname}` }, 500);
     }) as typeof fetch;
 
@@ -133,10 +216,31 @@ describe('schedulingRulesService API mode', () => {
     const allPoliciesResult = await schedulingRulesService.loadPolicies();
     assert.equal(allPoliciesResult.success, true);
     if (!allPoliciesResult.success) return;
-    assert.deepEqual(allPoliciesResult.data, []);
+    assert.equal(allPoliciesResult.data.length, 1);
+    assert.equal(allPoliciesResult.data[0].name, 'Self API policy');
     assert.deepEqual(calls, [
       '/v1/coaches/other-coach/scheduling-rules',
       '/v1/coaches/other-coach/scheduling-rules',
+      '/v1/coaches/me/scheduling-rules',
     ]);
+  });
+
+  it('fails closed when API-mode cancellation policy listing cannot reach authority', async () => {
+    const { schedulingRulesService } = await import('@/services/scheduling-rules-service');
+
+    globalThis.fetch = (async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/v1/coaches/me/scheduling-rules') {
+        return jsonResponse({ message: 'rules api down' }, 503);
+      }
+      return jsonResponse({ message: `Unhandled ${url.pathname}` }, 500);
+    }) as typeof fetch;
+
+    schedulingRulesService.clearCache();
+
+    const result = await schedulingRulesService.loadPolicies();
+    assert.equal(result.success, false);
+    if (result.success) return;
+    assert.match(result.error.message, /rules api down|503/);
   });
 });

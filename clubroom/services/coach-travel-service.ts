@@ -21,13 +21,35 @@ export interface CoachTravelSettings {
   updatedAt: string;
 }
 
-type CoachTravelSettingsPatch = Pick<
+export type CoachTravelSettingsPatch = Pick<
   Partial<CoachTravelSettings>,
   'radiusMiles' | 'acceptsTravelSessions' | 'acceptsRemoteSessions'
 >;
 
+export function diffCoachTravelSettings(
+  current: CoachTravelSettings,
+  next: CoachTravelSettings,
+): CoachTravelSettingsPatch {
+  return {
+    ...(current.radiusMiles !== next.radiusMiles ? { radiusMiles: next.radiusMiles } : {}),
+    ...(current.acceptsTravelSessions !== next.acceptsTravelSessions
+      ? { acceptsTravelSessions: next.acceptsTravelSessions }
+      : {}),
+    ...(current.acceptsRemoteSessions !== next.acceptsRemoteSessions
+      ? { acceptsRemoteSessions: next.acceptsRemoteSessions }
+      : {}),
+  };
+}
+
 interface CoachTravelSettingsResponse {
   settings: CoachTravelSettings;
+}
+
+function changedFieldNames(input: Partial<CoachTravelSettings>): string[] {
+  return Object.entries(input)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key)
+    .sort();
 }
 
 class CoachTravelService {
@@ -60,9 +82,7 @@ class CoachTravelService {
 
   private async getValue(coachId: string): Promise<CoachTravelSettings> {
     if (!apiClient.isMockMode) {
-      const result = await apiFetch<CoachTravelSettingsResponse>(
-        '/v1/coaches/me/travel-settings',
-      );
+      const result = await apiFetch<CoachTravelSettingsResponse>('/v1/coaches/me/travel-settings');
       if (!result.success) {
         throw new Error(result.error.message);
       }
@@ -91,7 +111,7 @@ class CoachTravelService {
 
   async updateSettings(
     coachId: string,
-    updates: Partial<CoachTravelSettings>,
+    updates: CoachTravelSettingsPatch,
   ): Promise<Result<CoachTravelSettings, ServiceError>> {
     if (!apiClient.isMockMode) {
       const body: CoachTravelSettingsPatch = {};
@@ -107,17 +127,16 @@ class CoachTravelService {
       if (Object.keys(body).length === 0) {
         return err(serviceError('VALIDATION', 'Add at least one travel setting before saving.'));
       }
-      const result = await apiFetch<CoachTravelSettingsResponse>(
-        '/v1/coaches/me/travel-settings',
-        {
-          method: 'PATCH',
-          body: JSON.stringify(body),
-        },
-      );
+      const result = await apiFetch<CoachTravelSettingsResponse>('/v1/coaches/me/travel-settings', {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
       if (!result.success) {
+        const changedFields = changedFieldNames(body);
         logger.warn('Failed to update coach travel settings via API', {
           coachId,
-          updates: body,
+          changedFields,
+          changedFieldCount: changedFields.length,
           error: result.error,
         });
         return err(result.error);
@@ -136,7 +155,13 @@ class CoachTravelService {
       await this.saveOne(coachId, updated);
       return ok(updated);
     } catch (error) {
-      logger.error('Failed to update coach travel settings', { coachId, updates, error });
+      const changedFields = changedFieldNames(updates);
+      logger.error('Failed to update coach travel settings', {
+        coachId,
+        changedFields,
+        changedFieldCount: changedFields.length,
+        error,
+      });
       return err(storageError('Failed to update coach travel settings'));
     }
   }

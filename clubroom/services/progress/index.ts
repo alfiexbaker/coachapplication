@@ -63,7 +63,11 @@ export type {
   SelfAssessmentEntry,
   SubmitSelfAssessmentInput,
 } from './progress-self-assessment-service';
-export type { PracticeLogEntry, LogPracticeInput } from './progress-practice-log-service';
+export type {
+  PracticeLogEntry,
+  PracticeLogTodaySummary,
+  LogPracticeInput,
+} from './progress-practice-log-service';
 export type {
   PracticeTask,
   PracticeTaskRecord,

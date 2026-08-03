@@ -31,6 +31,7 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 import {
   attachLiveSquadMemberships,
   reconcileChildren,
+  scopeChildrenToCurrentUser,
   shouldLoadFamilyChildren,
 } from './child-context-helpers';
 
@@ -49,30 +50,45 @@ interface ChildProviderProps {
 
 interface ChildLoaderTargets {
   mountedRef: MutableRefObject<boolean>;
+  activeUserIdRef: MutableRefObject<string | undefined>;
   setChildInfos: (value: ChildInfo[]) => void;
+  setChildInfosOwnerUserId: (value: string | null) => void;
   setActiveChildIdState: (value: string | null) => void;
   setLoading: (value: boolean) => void;
+  setError: (value: string | null) => void;
 }
 
 async function loadChildrenIntoState({
   userId,
   childRefs,
   mountedRef,
+  activeUserIdRef,
   setChildInfos,
+  setChildInfosOwnerUserId,
   setActiveChildIdState,
   setLoading,
+  setError,
 }: {
   userId: string | undefined;
   childRefs: ChildReference[];
 } & ChildLoaderTargets) {
+  const isActiveUser = () => mountedRef.current && activeUserIdRef.current === userId;
+
+  if (!isActiveUser()) {
+    return;
+  }
+
   if (!userId) {
     setChildInfos([]);
+    setChildInfosOwnerUserId(null);
     setActiveChildIdState(null);
+    setError(null);
     setLoading(false);
     return;
   }
 
   setLoading(true);
+  setError(null);
 
   return await runAsyncTryCatchFinally(
     async () => {
@@ -81,7 +97,7 @@ async function loadChildrenIntoState({
         childService.getActiveChildId(),
       ]);
 
-      if (mountedRef.current) {
+      if (isActiveUser()) {
         // Reconcile
         const reconciled = reconcileChildren(childRefs, profiles);
         const membershipTargets = Array.from(
@@ -101,20 +117,18 @@ async function loadChildrenIntoState({
           membershipTargets.map(async (athleteId) => {
             const result = await childService.getSquadMemberships(athleteId);
             if (!result.success) {
-              logger.warn('Failed to load child squad memberships', {
-                athleteId,
-                error: result.error.message,
-              });
-              return;
+              throw new Error(result.error.message);
             }
             membershipsByAthleteId.set(athleteId, result.data);
           }),
         );
-        if (!mountedRef.current) {
+        if (!isActiveUser()) {
           return;
         }
         const withMembership = attachLiveSquadMemberships(reconciled, membershipsByAthleteId);
+        setError(null);
         setChildInfos(withMembership);
+        setChildInfosOwnerUserId(userId);
 
         // Validate and set active child
         if (storedActiveId && withMembership.some((c) => c.id === storedActiveId)) {
@@ -134,15 +148,15 @@ async function loadChildrenIntoState({
       } else {
         logger.error('Failed to load children', error);
       }
-      if (!mountedRef.current) return;
+      if (!isActiveUser()) return;
 
-      // Degraded mode: build from refs only
-      const fallback = reconcileChildren(childRefs, []);
-      setChildInfos(fallback);
+      setError(error instanceof Error ? error.message : 'Failed to load children.');
+      setChildInfos([]);
+      setChildInfosOwnerUserId(null);
       setActiveChildIdState(null);
     },
     () => {
-      if (mountedRef.current) {
+      if (isActiveUser()) {
         setLoading(false);
       }
     },
@@ -152,26 +166,41 @@ async function loadChildrenIntoState({
 export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const { currentUser } = useAuth();
   const [childInfos, setChildInfos] = useState<ChildInfo[]>([]);
+  const [childInfosOwnerUserId, setChildInfosOwnerUserId] = useState<string | null>(null);
   const [activeChildId, setActiveChildIdState] = useState<string | null>(null);
   const [profileModeState, setProfileModeState] = useState<'self' | 'child'>('child');
   const [profileChildIdState, setProfileChildIdState] = useState<string | null>(null);
   const [selfProfileSelectionEnabled, setSelfProfileSelectionEnabled] = useState(false);
   const [selfProfileSelectionLoaded, setSelfProfileSelectionLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
   const childRefs = currentUser?.children ?? EMPTY_CHILD_REFS;
   const userId = currentUser?.id;
+  const activeUserIdRef = useRef<string | undefined>(userId);
   const isParentUser = shouldLoadFamilyChildren(currentUser);
+  const scopedChildInfos = scopeChildrenToCurrentUser({
+    children: childInfos,
+    ownerUserId: childInfosOwnerUserId,
+    currentUserId: userId,
+    isParentUser,
+  });
 
   // Load on mount and when user changes
   useEffect(() => {
     mountedRef.current = true;
+    activeUserIdRef.current = userId;
     if (!isParentUser) {
       setChildInfos([]);
+      setChildInfosOwnerUserId(null);
       setActiveChildIdState(null);
+      setError(null);
       setLoading(false);
       return () => {
+        if (activeUserIdRef.current === userId) {
+          activeUserIdRef.current = undefined;
+        }
         mountedRef.current = false;
       };
     }
@@ -180,11 +209,17 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       userId,
       childRefs,
       mountedRef,
+      activeUserIdRef,
       setChildInfos,
+      setChildInfosOwnerUserId,
       setActiveChildIdState,
       setLoading,
+      setError,
     });
     return () => {
+      if (activeUserIdRef.current === userId) {
+        activeUserIdRef.current = undefined;
+      }
       mountedRef.current = false;
     };
   }, [childRefs, isParentUser, userId]);
@@ -289,9 +324,12 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
         userId,
         childRefs,
         mountedRef,
+        activeUserIdRef,
         setChildInfos,
+        setChildInfosOwnerUserId,
         setActiveChildIdState,
         setLoading,
+        setError,
       });
     });
     return unsub;
@@ -316,7 +354,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       setProfileChildIdState(childId);
     }
 
-    const childInfo = childId ? childInfos.find((c) => c.id === childId) : undefined;
+    const childInfo = childId ? scopedChildInfos.find((c) => c.id === childId) : undefined;
     try {
       await childService.setActiveChildId(childId, childInfo?.name);
     } catch (error) {
@@ -327,7 +365,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   // Derived values
   const childByIdMap = (() => {
     const map = new Map<string, ChildInfo>();
-    for (const c of childInfos) {
+    for (const c of scopedChildInfos) {
       map.set(c.id, c);
     }
     return map;
@@ -335,7 +373,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
   const childByRefIdMap = (() => {
     const map = new Map<string, ChildInfo>();
-    for (const c of childInfos) {
+    for (const c of scopedChildInfos) {
       map.set(c.referenceId, c);
     }
     return map;
@@ -351,23 +389,24 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     return childByIdMap.has(candidate) ? candidate : null;
   };
 
-  const familyAthleteIds = new Set(childInfos.map((c) => c.referenceId));
+  const familyAthleteIds = new Set(scopedChildInfos.map((c) => c.referenceId));
 
-  const canSelectSelfProfile = childInfos.length === 0 || selfProfileSelectionEnabled;
+  const canSelectSelfProfile = scopedChildInfos.length === 0 || selfProfileSelectionEnabled;
 
   const activeChild = activeChildId ? (childByIdMap.get(activeChildId) ?? null) : null;
+  const scopedActiveChildId = activeChild?.id ?? null;
 
-  const isMultiChild = childInfos.length >= 2;
+  const isMultiChild = scopedChildInfos.length >= 2;
 
   const profileResolution = (() => {
     const validProfileChildId = resolveValidChildId(profileChildIdState);
     const validActiveChildId = resolveValidChildId(activeChildId);
-    const selfProfileAllowed = childInfos.length === 0 || selfProfileSelectionEnabled;
+    const selfProfileAllowed = scopedChildInfos.length === 0 || selfProfileSelectionEnabled;
 
     if (profileModeState === 'self') {
       if (!selfProfileAllowed) {
         const fallbackChildId =
-          validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+          validProfileChildId ?? validActiveChildId ?? scopedChildInfos[0]?.id ?? null;
         if (fallbackChildId) {
           return {
             mode: 'child' as const,
@@ -386,7 +425,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       }
 
       const fallbackChildId =
-        validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+        validProfileChildId ?? validActiveChildId ?? scopedChildInfos[0]?.id ?? null;
       if (fallbackChildId) {
         return {
           mode: 'child' as const,
@@ -402,7 +441,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       };
     }
 
-    const childId = validProfileChildId ?? validActiveChildId ?? childInfos[0]?.id ?? null;
+    const childId = validProfileChildId ?? validActiveChildId ?? scopedChildInfos[0]?.id ?? null;
     if (childId) {
       return {
         mode: 'child' as const,
@@ -431,7 +470,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     let nextMode: 'self' | 'child' = next.mode;
     let subjectId: string | null = null;
     let fallbackReason: string | null = null;
-    const selfProfileAllowed = childInfos.length === 0 || selfProfileSelectionEnabled;
+    const selfProfileAllowed = scopedChildInfos.length === 0 || selfProfileSelectionEnabled;
 
     if (next.mode === 'self') {
       if (!selfProfileAllowed) {
@@ -439,7 +478,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
           resolveValidChildId(next.childId) ??
           resolveValidChildId(profileChildIdState) ??
           resolveValidChildId(activeChildId) ??
-          childInfos[0]?.id ??
+          scopedChildInfos[0]?.id ??
           null;
         if (fallbackChildId) {
           nextMode = 'child';
@@ -469,7 +508,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
           resolveValidChildId(next.childId) ??
           resolveValidChildId(profileChildIdState) ??
           resolveValidChildId(activeChildId) ??
-          childInfos[0]?.id ??
+          scopedChildInfos[0]?.id ??
           null;
         if (fallbackChildId) {
           nextMode = 'child';
@@ -492,7 +531,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
         resolveValidChildId(next.childId) ??
         resolveValidChildId(profileChildIdState) ??
         resolveValidChildId(activeChildId) ??
-        childInfos[0]?.id ??
+        scopedChildInfos[0]?.id ??
         null;
 
       if (resolvedChildId) {
@@ -552,7 +591,9 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   const refresh = async () => {
     if (!isParentUser) {
       setChildInfos([]);
+      setChildInfosOwnerUserId(null);
       setActiveChildIdState(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -561,15 +602,18 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       userId,
       childRefs,
       mountedRef,
+      activeUserIdRef,
       setChildInfos,
+      setChildInfosOwnerUserId,
       setActiveChildIdState,
       setLoading,
+      setError,
     });
   };
 
   const value = {
-    children: childInfos,
-    activeChildId,
+    children: scopedChildInfos,
+    activeChildId: scopedActiveChildId,
     activeChild,
     setActiveChildId,
     profileMode: profileResolution.mode,
@@ -578,11 +622,12 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     selfProfileSelectionLoaded,
     setProfileScope,
     isMultiChild,
-    isParent: isParentUser || childInfos.length > 0,
+    isParent: isParentUser || scopedChildInfos.length > 0,
     getChildById,
     getChildByReferenceId,
     familyAthleteIds,
     loading,
+    error,
     refresh,
   };
 

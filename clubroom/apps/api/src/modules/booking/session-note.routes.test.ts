@@ -129,14 +129,13 @@ describe('booking session-note routes', () => {
       ),
       true,
     );
-    assert.equal(
-      auditEvents.some(
-        (row) =>
-          asString(row.action) === 'booking_session_note.read' &&
-          asString(row.resourceId) === bookingId &&
-          asString(row.result) === 'SUCCESS',
-      ),
-      true,
+    const readAudit = auditEvents.find(
+      (row) =>
+        asString(row.action) === 'booking_session_note.read' &&
+        asString(row.resourceId) === bookingId &&
+        asString(row.result) === 'SUCCESS',
     );
+    assert.equal(readAudit?.sensitiveRead, true);
+    assert.deepEqual(readAudit?.metadataJson, { hasNote: true });
   });
 });

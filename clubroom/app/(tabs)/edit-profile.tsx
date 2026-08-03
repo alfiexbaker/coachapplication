@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { SocialLinksEditor } from '@/components/profile/social-links-editor';
-import { EditPhotoSection } from '@/components/profile/edit-photo-section';
 import { EditBasicInfo } from '@/components/profile/edit-basic-info';
 import { EditContactInfo } from '@/components/profile/edit-contact-info';
 
@@ -27,11 +26,6 @@ export default function EditProfileScreen() {
   const { colors } = useTheme();
   const { currentUser, isLoading: authLoading, error: authError, logout } = useAuth();
   const profile = useEditProfile();
-
-  const coverPhotoUrl = profile.userIsCoach ? profile.coach?.coverPhotoUrl : undefined;
-  const profilePhotoUrl = profile.userIsCoach
-    ? profile.coach?.profilePhotoUrl
-    : profile.user?.profilePhotoUrl;
 
   if (authLoading) {
     return (
@@ -98,7 +92,10 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader
         title="Edit Profile"
         showBack
@@ -109,7 +106,12 @@ export default function EditProfileScreen() {
             accessibilityLabel="Save profile"
             style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs }}
           >
-            <ThemedText style={[Typography.smallSemiBold, { color: profile.canSave ? colors.text : colors.muted }]}>
+            <ThemedText
+              style={[
+                Typography.smallSemiBold,
+                { color: profile.canSave ? colors.text : colors.muted },
+              ]}
+            >
               Save
             </ThemedText>
           </Clickable>
@@ -132,13 +134,6 @@ export default function EditProfileScreen() {
               onDismiss={profile.clearFormMessage}
             />
           ) : null}
-          <EditPhotoSection
-            colors={colors}
-            userIsCoach={profile.userIsCoach}
-            coverPhotoUrl={coverPhotoUrl}
-            profilePhotoUrl={profilePhotoUrl}
-          />
-
           <EditBasicInfo
             colors={colors}
             userIsCoach={profile.userIsCoach}
@@ -146,17 +141,6 @@ export default function EditProfileScreen() {
             onChangeName={profile.setFullName}
             bio={profile.bio}
             onChangeBio={profile.setBio}
-          />
-
-          <EditContactInfo
-            colors={colors}
-            userIsCoach={profile.userIsCoach}
-            email={profile.email}
-            onChangeEmail={profile.setEmail}
-            phone={profile.phone}
-            onChangePhone={profile.setPhone}
-            website={profile.website}
-            onChangeWebsite={profile.setWebsite}
           />
 
           {profile.userIsAthlete && (
@@ -173,6 +157,13 @@ export default function EditProfileScreen() {
 
           {profile.userIsCoach && (
             <>
+              <EditSpecialtiesSection
+                colors={colors}
+                objectives={profile.footballObjectives}
+                selectedFocuses={profile.selectedFocuses}
+                onToggleFocus={profile.toggleFocus}
+              />
+
               <EditPricingSection
                 colors={colors}
                 priceMin={profile.priceMin}
@@ -180,13 +171,6 @@ export default function EditProfileScreen() {
                 priceMax={profile.priceMax}
                 onChangeMax={profile.setPriceMax}
                 priceError={profile.priceRangeError}
-              />
-
-              <EditSpecialtiesSection
-                colors={colors}
-                objectives={profile.footballObjectives}
-                selectedFocuses={profile.selectedFocuses}
-                onToggleFocus={profile.toggleFocus}
               />
 
               <EditExperienceSection
@@ -202,13 +186,24 @@ export default function EditProfileScreen() {
                 modalError={profile.experienceValidationMessage}
               />
 
+              <EditCertificationsSection
+                colors={colors}
+                certifications={profile.certifications}
+                onOpenModal={profile.openCertificationModal}
+                onRemove={profile.removeCertification}
+                modalVisible={profile.isCertificationModalVisible}
+                draft={profile.certificationDraft}
+                onDraftChange={profile.setCertificationDraft}
+                onSave={profile.saveCertification}
+                onCloseModal={() => profile.setCertificationModalVisible(false)}
+                modalError={profile.certificationValidationMessage}
+              />
+
               <EditLanguagesSection
                 colors={colors}
                 languages={profile.languages}
                 onOpenModal={profile.openLanguageModal}
                 onRemove={profile.removeLanguage}
-                onQuickAdd={profile.quickAddLanguage}
-                languageOptions={profile.languageOptions}
                 proficiencyOptions={profile.proficiencyOptions}
                 modalVisible={profile.isLanguageModalVisible}
                 draft={profile.languageDraft}
@@ -224,21 +219,20 @@ export default function EditProfileScreen() {
                   onChange={profile.setSocialLinks}
                 />
               </SurfaceCard>
-
-              <EditCertificationsSection
-                colors={colors}
-                certifications={profile.certifications}
-                onOpenModal={profile.openCertificationModal}
-                onRemove={profile.removeCertification}
-                modalVisible={profile.isCertificationModalVisible}
-                draft={profile.certificationDraft}
-                onDraftChange={profile.setCertificationDraft}
-                onSave={profile.saveCertification}
-                onCloseModal={() => profile.setCertificationModalVisible(false)}
-                modalError={profile.certificationValidationMessage}
-              />
             </>
           )}
+
+          <EditContactInfo
+            colors={colors}
+            userIsCoach={profile.userIsCoach}
+            email={profile.email}
+            onChangeEmail={profile.setEmail}
+            phone={profile.phone}
+            onChangePhone={profile.setPhone}
+            website={profile.website}
+            onChangeWebsite={profile.setWebsite}
+            websiteError={profile.websiteError}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -248,6 +242,10 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   wrapper: { flex: 1 },
-  scrollContent: { padding: Spacing.lg, gap: Spacing.md },
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing['3xl'] + Spacing.lg,
+    gap: Spacing.md,
+  },
   section: { gap: Spacing.md },
 });

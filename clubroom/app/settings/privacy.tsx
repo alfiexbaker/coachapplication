@@ -24,7 +24,6 @@ export default function PrivacySettingsScreen() {
   const {
     settings,
     blockedUsersCount,
-    isCoach,
     status,
     error,
     refreshing,
@@ -79,78 +78,13 @@ export default function PrivacySettingsScreen() {
           disabled={savingKey === 'showLocation'}
           onValueChange={(value) => handleToggle('showLocation', value)}
         />
-        <SettingsToggleRow
-          icon="ellipse"
-          iconColor={palette.success}
-          title="Online Status"
-          subtitle="Show when you're active in the app"
-          value={settings.showOnlineStatus}
-          disabled={savingKey === 'showOnlineStatus'}
-          onValueChange={(value) => handleToggle('showOnlineStatus', value)}
-        />
-        <SettingsToggleRow
-          icon="pulse"
-          title="Activity Status"
-          subtitle="Show recent activity on your profile"
-          value={settings.showActivityStatus}
-          disabled={savingKey === 'showActivityStatus'}
-          onValueChange={(value) => handleToggle('showActivityStatus', value)}
-        />
-      </SettingsSection>
-
-      {isCoach ? (
-        <SettingsSection title="Coach Profile">
-          <SettingsToggleRow
-            icon="wallet"
-            title="Show Earnings"
-            subtitle="Display your earnings publicly"
-            value={settings.showEarnings}
-            disabled={savingKey === 'showEarnings'}
-            onValueChange={(value) => handleToggle('showEarnings', value)}
-          />
-          <SettingsToggleRow
-            icon="people"
-            title="Show Client Count"
-            subtitle="Display number of clients you've coached"
-            value={settings.showClientList}
-            disabled={savingKey === 'showClientList'}
-            onValueChange={(value) => handleToggle('showClientList', value)}
-          />
-        </SettingsSection>
-      ) : null}
-
-      <SettingsSection title="Data & Analytics">
-        <SettingsToggleRow
-          icon="analytics"
-          title="Share Analytics"
-          subtitle="Help improve the app with usage data"
-          value={settings.shareAnalytics}
-          disabled={savingKey === 'shareAnalytics'}
-          onValueChange={(value) => handleToggle('shareAnalytics', value)}
-        />
-        <SettingsToggleRow
-          icon="megaphone"
-          title="Personalized Ads"
-          subtitle="Allow personalized advertising"
-          value={settings.personalizedAds}
-          disabled={savingKey === 'personalizedAds'}
-          onValueChange={(value) => handleToggle('personalizedAds', value)}
-        />
-        <SettingsToggleRow
-          icon="share-social"
-          title="Share with Partners"
-          subtitle="Share data with trusted partners"
-          value={settings.shareWithPartners}
-          disabled={savingKey === 'shareWithPartners'}
-          onValueChange={(value) => handleToggle('shareWithPartners', value)}
-        />
       </SettingsSection>
 
       <SettingsSection title="Your Data">
         <SettingsRow
           icon="download"
           title="Request Data Export"
-          subtitle="Support handles exports by email in this build"
+          subtitle="Request a copy of your Clubroom data"
           onPress={() => {
             logger.press('DownloadData');
             void openExternalUrl(
@@ -189,12 +123,6 @@ export default function PrivacySettingsScreen() {
           icon="document"
           title="Terms of Service"
           onPress={() => router.push(Routes.SETTINGS_TERMS)}
-        />
-        <SettingsRow
-          icon="shield"
-          title="Cookie & Tracking"
-          subtitle="Covered in the privacy policy for this build"
-          onPress={() => router.push(Routes.SETTINGS_PRIVACY_POLICY)}
         />
       </SettingsSection>
 

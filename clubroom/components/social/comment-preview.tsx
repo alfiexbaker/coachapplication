@@ -25,23 +25,28 @@ export interface CommentPreviewProps {
 
 function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewProps) {
   const { colors: palette } = useTheme();
-  const [latestComment, setLatestComment] = useState<ThreadedComment | null>(null);
+  const [resolvedPreview, setResolvedPreview] = useState<{
+    postId: string;
+    commentCount: number;
+    comment: ThreadedComment | null;
+  } | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadLatest() {
-      const result = await commentService.getLatestComment(postId);
-      if (!cancelled && result.success && result.data) {
-        setLatestComment(result.data);
-      }
-    }
+    const controller = new AbortController();
     if (commentCount > 0) {
-      loadLatest();
+      void commentService.getLatestComment(postId).then((result) => {
+        if (!controller.signal.aborted && result.success) {
+          setResolvedPreview({ postId, commentCount, comment: result.data });
+        }
+      });
     }
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [postId, commentCount]);
+
+  const latestComment =
+    resolvedPreview?.postId === postId && resolvedPreview.commentCount === commentCount
+      ? resolvedPreview.comment
+      : null;
 
   const handlePress = () => {
     onPress();

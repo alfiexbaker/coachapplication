@@ -54,6 +54,8 @@ npm run db:test-accounts:reset:staging
 
 That command resets `@clubroom.demo` DB credentials, verifies salted scrypt hashes and at least one attached coach account, and writes ignored DB-derived credentials to `TEST_ACCOUNTS.staging.local.txt`.
 
+The staging UI flow runner reads its linked coach, parent, athlete, and club-admin credentials from that owner-only file. It fails closed when the file is missing, has broader than `0600` permissions, or lacks the expected club/family/athlete relationships.
+
 ## Move Later
 
 This is executable fixture data, not documentation. A later migration should move it out of `docs/` and update all import/test paths in the same commit.

@@ -20,7 +20,7 @@ import { rosterService } from '@/services/roster-service';
 import { concernService, type ConcernType, type ConcernSeverity } from '@/services/concern-service';
 import { createLogger } from '@/utils/logger';
 import { getRosterAthleteName } from '@/utils/roster-display';
-import { err, ok, serviceError } from '@/types/result';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { RaiseConcernHeader } from '@/components/roster/raise-concern-header';
 import { RaiseConcernForm } from '@/components/roster/raise-concern-form';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -28,6 +28,16 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('RaiseConcern');
+
+function toConcernLoadError(error: unknown): ServiceError {
+  if (error && typeof error === 'object') {
+    const candidate = error as { code?: unknown; message?: unknown; details?: unknown };
+    if (typeof candidate.code === 'string' && typeof candidate.message === 'string') {
+      return candidate as ServiceError;
+    }
+  }
+  return serviceError('UNKNOWN', 'Failed to load athlete details.', error);
+}
 
 export default function RaiseConcernScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
@@ -42,35 +52,42 @@ export default function RaiseConcernScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const coachId = currentUser?.id ?? null;
+  const hasVerifiedCoachAccess =
+    Boolean(coachId) && currentUser?.role === 'COACH' && currentUser.isVerified;
   const { data, status, error, retry } = useScreen<{
     athleteName: string | null;
     parentId: string | null;
   }>({
     load: async () => {
-      if (!coachId) {
-        return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to raise a concern.'));
+      if (!coachId || !hasVerifiedCoachAccess) {
+        return err(
+          serviceError(
+            'UNAUTHORIZED',
+            'A verified coach account is required to raise a concern for a player.',
+          ),
+        );
       }
 
       try {
         if (!athleteId) {
-          return ok<{ athleteName: string | null; parentId: string | null }>({
-            athleteName: null,
-            parentId: null,
-          });
+          return err(serviceError('NOT_FOUND', 'This player is not available from your roster.'));
         }
         const entry = await rosterService.getRosterEntry(coachId, athleteId);
+        if (!entry) {
+          return err(serviceError('NOT_FOUND', 'This player is not available from your roster.'));
+        }
         return ok<{ athleteName: string | null; parentId: string | null }>({
-          athleteName: entry ? getRosterAthleteName(entry) : null,
-          parentId: entry?.parentId ?? null,
+          athleteName: getRosterAthleteName(entry),
+          parentId: entry.parentId ?? null,
         });
       } catch (loadError) {
-        return err(serviceError('UNKNOWN', 'Failed to load athlete details.', loadError));
+        return err(toConcernLoadError(loadError));
       }
     },
-    deps: [coachId, athleteId],
+    deps: [coachId, athleteId, currentUser?.role, currentUser?.isVerified],
     isEmpty: (value) => !value.athleteName,
     refetchOnFocus: true,
-    dataKey: `raise-concern:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
+    dataKey: `raise-concern:${coachId ?? 'missing'}:${currentUser?.isVerified ? 'verified' : 'unverified'}:${athleteId ?? 'missing'}`,
   });
 
   const athleteName = data?.athleteName || '';
@@ -95,8 +112,11 @@ export default function RaiseConcernScreen() {
 
   const handleSubmit = async () => {
     if (!canSubmit || !type) return;
-    if (!coachId || !athleteId) {
-      uiFeedback.showToast('Sign in as a coach before submitting a concern.', 'error');
+    if (!coachId || !hasVerifiedCoachAccess || !athleteId) {
+      uiFeedback.showToast(
+        'A verified coach account is required to raise a concern for a player.',
+        'error',
+      );
       return;
     }
     if (isEscalationRisk && actionTaken.trim().length < 8) {
@@ -153,16 +173,30 @@ export default function RaiseConcernScreen() {
   }
 
   if (status === 'error') {
+    const terminalAccessError = error?.code === 'NOT_FOUND' || error?.code === 'UNAUTHORIZED';
     return renderShell(
       '',
-      <ErrorState message={error?.message || 'Failed to load athlete details.'} onRetry={retry} />,
+      <ErrorState
+        title={terminalAccessError ? 'Concern access unavailable' : undefined}
+        message={
+          error?.code === 'UNAUTHORIZED'
+            ? 'A verified coach account is required to raise a concern for a player.'
+            : terminalAccessError
+              ? 'This player is not available from your roster.'
+              : error?.message || 'Failed to load player details.'
+        }
+        onRetry={terminalAccessError ? undefined : retry}
+      />,
     );
   }
 
   if (status === 'empty') {
     return renderShell(
       '',
-      <ErrorState message="Athlete not found in your roster." onRetry={retry} />,
+      <ErrorState
+        title="Concern access unavailable"
+        message="This player is not available from your roster."
+      />,
     );
   }
 

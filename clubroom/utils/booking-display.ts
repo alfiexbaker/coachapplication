@@ -7,7 +7,7 @@ export interface BookingRelationshipContext {
   deliveredByLabel: string;
   billingLabel: string;
   supportLabel: string;
-  commercialMode: OrganizationCommercialMode;
+  commercialMode: OrganizationCommercialMode | null;
   paymentSummary: string;
   supportSummary: string;
   reassignmentSummary: string;
@@ -20,6 +20,7 @@ const INTERNAL_ID_PATTERN = /^(?:usr|ath|clb|sqd)_[0-9a-z][0-9a-z-]{6,}$/i;
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   '1on1': '1-on-1 session',
   '1-on-1': '1-on-1 session',
+  '1-on-1 session': '1-on-1 session',
   '1-to-1': '1-on-1 session',
   one_to_one: '1-on-1 session',
   small_group: 'Small-group session',
@@ -159,7 +160,27 @@ export function getBookingRelationshipContext(input: {
   const deliveredByLabel = safeDisplayLabel(input.deliveredByLabel, coachLabel);
   const organizationLabel =
     input.actingAs === 'club' ? safeDisplayLabel(input.organizationLabel, 'Organization') : null;
-  const commercialMode = input.commercialMode ?? 'COACH_OWNED';
+  const commercialMode = input.commercialMode ?? (organizationLabel ? null : 'COACH_OWNED');
+
+  if (organizationLabel && !commercialMode) {
+    return {
+      organizationLabel,
+      bookedWithLabel: 'Organization billing unavailable',
+      deliveredByLabel,
+      billingLabel: 'Organization billing unavailable',
+      supportLabel: 'Organization billing unavailable',
+      commercialMode,
+      paymentSummary: 'Billing details are unavailable. Try again before confirming.',
+      supportSummary: 'Booking support is unavailable until billing details load.',
+      reassignmentSummary:
+        'Coach reassignment is blocked until the organization context is available.',
+      visibilitySummary:
+        'Booking visibility is limited until the organization context is available.',
+      sharedHealthSummary:
+        'Shared health information is not widened to organization staff until the organization context is available.',
+      reportProblemLabel: 'Report booking issue',
+    };
+  }
 
   if (organizationLabel && commercialMode === 'ORG_OWNED') {
     return {
@@ -169,7 +190,7 @@ export function getBookingRelationshipContext(input: {
       billingLabel: organizationLabel,
       supportLabel: organizationLabel,
       commercialMode,
-      paymentSummary: `Payment instructions are shared by ${organizationLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${organizationLabel}.`,
+      paymentSummary: `Pay ${organizationLabel} after the booking is confirmed. Contact ${organizationLabel} about payment changes.`,
       supportSummary: `${organizationLabel} is responsible for booking support, billing questions, and delivery issues for this session.`,
       reassignmentSummary: `If the delivery coach changes, ${organizationLabel} is responsible for telling you and handling the handoff.`,
       visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} and supervising ${organizationLabel} staff when they need to support delivery or resolve a problem.`,
@@ -186,7 +207,7 @@ export function getBookingRelationshipContext(input: {
       billingLabel: deliveredByLabel,
       supportLabel: deliveredByLabel,
       commercialMode,
-      paymentSummary: `Payment is arranged directly with ${deliveredByLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${deliveredByLabel}.`,
+      paymentSummary: `Pay ${deliveredByLabel} after the booking is confirmed. Contact ${deliveredByLabel} about payment changes.`,
       supportSummary: `${deliveredByLabel} is your main contact for booking support and payment follow-up, even though this session sits under ${organizationLabel}.`,
       reassignmentSummary: `If ${organizationLabel} needs to move this session to another coach, ${deliveredByLabel} or ${organizationLabel} should tell you before the handoff.`,
       visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} and supervising ${organizationLabel} staff when they need to support delivery or resolve a problem.`,
@@ -202,7 +223,7 @@ export function getBookingRelationshipContext(input: {
     billingLabel: deliveredByLabel,
     supportLabel: deliveredByLabel,
     commercialMode,
-    paymentSummary: `Payment is arranged directly with ${deliveredByLabel} outside the app once the booking is confirmed. Billing questions and any payment adjustments are handled by ${deliveredByLabel}.`,
+    paymentSummary: `Pay ${deliveredByLabel} after the booking is confirmed. Contact ${deliveredByLabel} about payment changes.`,
     supportSummary: `${deliveredByLabel} is responsible for booking support, payment follow-up, and delivery issues for this session.`,
     reassignmentSummary: `If this session needs to change, ${deliveredByLabel} should tell you directly before anything is reassigned.`,
     visibilitySummary: `Your child's booking details are visible to ${deliveredByLabel} for this active booking.`,

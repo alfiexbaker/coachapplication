@@ -331,9 +331,11 @@ describe('coach earnings route', () => {
     assert.equal(auditCount(tables, 'DENY'), 2);
   });
 
-  it('uses the db fixture store for the same invoice-derived contract', async () => {
+  it('fails closed for coach earnings in db mode when Prisma is unavailable', async () => {
     const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
     env.API_DATA_BACKEND = 'db';
+    env.DATABASE_URL = undefined;
 
     try {
       const tables = getDbFixtureStore().tables as SeedTables;
@@ -351,18 +353,154 @@ describe('coach earnings route', () => {
         url: '/v1/coaches/me/earnings?period=week',
         headers: authHeaders(coachUserId),
       });
-      assert.equal(response.statusCode, 200);
-      const payload = response.json() as {
-        earnings: { coachId: string; totalEarned: number };
-        summary: { period: string; totalEarned: number };
-      };
-      assert.equal(payload.earnings.coachId, coachUserId);
-      assert.equal(payload.earnings.totalEarned, expectedPaidTotal(tables, coachUserId));
-      assert.equal(payload.summary.period, 'week');
-      assert.ok(payload.summary.totalEarned >= 73);
-      assert.equal(auditCount(tables, 'SUCCESS'), 1);
+      assert.equal(response.statusCode, 503);
+      assert.match(response.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(response.body.includes('invoice_earnings_db_fixture'), false);
+      assert.equal(auditCount(tables, 'ERROR'), 1);
+      const audit = auditRows(tables, 'coach_earnings.read', 'ERROR')[0];
+      assert.equal(audit?.sensitiveRead, true);
+      assert.equal(asString(asRecord(audit?.metadataJson)?.errorCode), 'SERVICE_UNAVAILABLE');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
+      resetDbFixtureStoreForTests();
+      resetMarketplaceSeedStoreForTests();
+    }
+  });
+
+  it('fails closed for payout methods and withdrawals in db mode when Prisma is unavailable', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
+    env.API_DATA_BACKEND = 'db';
+    env.DATABASE_URL = undefined;
+
+    try {
+      const tables = getDbFixtureStore().tables as SeedTables;
+      const { coachUserId } = findActors(tables);
+      const now = new Date().toISOString();
+      const fixtureMethodId = 'pm_db_fixture_payout_should_not_leak';
+      const fixtureWithdrawalId = 'wd_db_fixture_payout_should_not_leak';
+      const rawBankName = 'Raw DB Failure Bank';
+      const rawSortCode = '66-66-66';
+      ensureTable(tables, 'coachPayoutMethods').push({
+        id: fixtureMethodId,
+        coachUserId,
+        type: 'BANK_ACCOUNT',
+        isDefault: true,
+        isVerified: true,
+        bankName: 'Fixture Bank Secret',
+        accountLastFour: '9999',
+        provider: 'simulated',
+        providerRef: 'simpm_fixture_should_not_leak',
+        createdAt: now,
+        updatedAt: now,
+        verifiedAt: now,
+        deletedAt: null,
+      });
+      ensureTable(tables, 'coachWithdrawals').push({
+        id: fixtureWithdrawalId,
+        coachUserId,
+        amountMinor: 2500,
+        currency: 'GBP',
+        feeMinor: 0,
+        netAmountMinor: 2500,
+        payoutMethodId: fixtureMethodId,
+        payoutMethodType: 'BANK_ACCOUNT',
+        status: 'PENDING',
+        requestedAt: now,
+        provider: 'simulated',
+        providerRef: 'simwd_fixture_should_not_leak',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const requests = [
+        app.inject({
+          method: 'GET',
+          url: '/v1/coaches/me/payout-methods',
+          headers: authHeaders(coachUserId),
+        }),
+        app.inject({
+          method: 'POST',
+          url: '/v1/coaches/me/payout-methods',
+          headers: authHeaders(coachUserId),
+          payload: {
+            type: 'BANK_ACCOUNT',
+            bankName: rawBankName,
+            accountLastFour: '1234',
+            sortCode: rawSortCode,
+            nickname: 'Raw failure account',
+          },
+        }),
+        app.inject({
+          method: 'DELETE',
+          url: `/v1/coaches/me/payout-methods/${fixtureMethodId}`,
+          headers: authHeaders(coachUserId),
+        }),
+        app.inject({
+          method: 'PATCH',
+          url: `/v1/coaches/me/payout-methods/${fixtureMethodId}/default`,
+          headers: authHeaders(coachUserId),
+        }),
+        app.inject({
+          method: 'GET',
+          url: '/v1/coaches/me/withdrawals?status=pending',
+          headers: authHeaders(coachUserId),
+        }),
+        app.inject({
+          method: 'POST',
+          url: '/v1/coaches/me/withdrawals',
+          headers: authHeaders(coachUserId),
+          payload: {
+            amount: 10,
+            payoutMethodId: fixtureMethodId,
+          },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/coaches/me/withdrawals/${fixtureWithdrawalId}/cancel`,
+          headers: authHeaders(coachUserId),
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/coaches/me/withdrawals/${fixtureWithdrawalId}/complete`,
+          headers: authHeaders(coachUserId),
+        }),
+      ];
+
+      const responses = await Promise.all(requests);
+      for (const response of responses) {
+        assert.equal(response.statusCode, 503);
+        assert.match(response.body, /DATABASE_URL is not configured for db backend/);
+        assert.equal(response.body.includes(fixtureMethodId), false);
+        assert.equal(response.body.includes(fixtureWithdrawalId), false);
+        assert.equal(response.body.includes('Fixture Bank Secret'), false);
+        assert.equal(response.body.includes(rawBankName), false);
+        assert.equal(response.body.includes(rawSortCode), false);
+      }
+
+      for (const action of [
+        'coach_payout_methods.read',
+        'coach_payout_methods.create',
+        'coach_payout_methods.remove',
+        'coach_payout_methods.set_default',
+        'coach_withdrawals.read',
+        'coach_withdrawals.create',
+        'coach_withdrawals.cancel',
+        'coach_withdrawals.complete',
+      ]) {
+        const events = auditRows(tables, action, 'ERROR');
+        assert.equal(events.length, 1, `expected one ERROR audit for ${action}`);
+        assert.equal(asString(asRecord(events[0]?.metadataJson)?.errorCode), 'SERVICE_UNAVAILABLE');
+      }
+
+      const serializedAudits = JSON.stringify(auditRows(tables, 'coach_payout_methods.create', 'ERROR'));
+      assert.doesNotMatch(serializedAudits, /Raw DB Failure Bank/);
+      assert.doesNotMatch(serializedAudits, /66-66-66/);
+      assert.doesNotMatch(serializedAudits, /9999/);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
       resetDbFixtureStoreForTests();
       resetMarketplaceSeedStoreForTests();
     }
@@ -540,6 +678,17 @@ describe('coach earnings route', () => {
     });
     assert.equal(overdrawnWithdrawal.statusCode, 400);
 
+    const subPennyWithdrawal = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/withdrawals',
+      headers: authHeaders(coachUserId),
+      payload: {
+        amount: 0.001,
+        payoutMethodId,
+      },
+    });
+    assert.equal(subPennyWithdrawal.statusCode, 400);
+
     const requestWithdrawal = await app.inject({
       method: 'POST',
       url: '/v1/coaches/me/withdrawals',
@@ -679,7 +828,7 @@ describe('coach earnings route', () => {
     assert.equal(auditRows(tables, 'coach_payout_methods.remove', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'coach_withdrawals.read', 'SUCCESS').length, 3);
     assert.equal(auditRows(tables, 'coach_withdrawals.create', 'SUCCESS').length, 2);
-    assert.equal(auditRows(tables, 'coach_withdrawals.create', 'DENY').length, 1);
+    assert.equal(auditRows(tables, 'coach_withdrawals.create', 'DENY').length, 2);
     assert.equal(auditRows(tables, 'coach_withdrawals.complete', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'coach_withdrawals.cancel', 'SUCCESS').length, 1);
 

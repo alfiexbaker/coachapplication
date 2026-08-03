@@ -1,0 +1,47 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T11:47:42.062Z",
+  "meta": {
+    "roles": [
+      "guardian"
+    ],
+    "profiles": [
+      "create-squad-audit"
+    ],
+    "role": "guardian",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 250
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "guardian_squad_create_denied",
+      "role": "guardian",
+      "title": "guardian is denied the squad creator",
+      "path": "/club/squad/create?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/club/squad/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/create-squad-audit-final-2/guardian__guardian_squad_create_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 2750
+    }
+  ]
+}

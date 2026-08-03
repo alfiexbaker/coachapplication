@@ -11,14 +11,17 @@ import {
   withSequence,
   withTiming,
   withDelay,
-  runOnJS,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { availabilityService } from '@/services/availability-service';
-import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import {
+  diffCoachSchedulingRules,
+  schedulingRulesService,
+} from '@/services/scheduling-rules-service';
 import { coachTravelService, type CoachTravelSettings } from '@/services/coach-travel-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { err, ok, type ServiceError } from '@/types/result';
@@ -37,15 +40,19 @@ export function useCoachingSettings() {
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [travelSettings, setTravelSettings] = useState<CoachTravelSettings | null>(null);
   const [blockedDateCount, setBlockedDateCount] = useState(0);
-  const [policySummary, setPolicySummary] = useState('Standard cancellation policy');
+  const [policySummary, setPolicySummary] = useState('Standard');
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Toast state
   const [showSaved, setShowSaved] = useState(false);
   const toastOpacity = useSharedValue(0);
 
-  // Debounce timer ref
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const draftRules = useRef<CoachSchedulingRules | null>(null);
+  const persistedRules = useRef<CoachSchedulingRules | null>(null);
 
   const loadRules = async () => {
     if (!coachId) {
@@ -76,11 +83,11 @@ export function useCoachingSettings() {
   });
 
   useEffect(() => {
-    if (data) {
+    if (data && !savingRef.current && !saveTimer.current) {
+      draftRules.current = data;
+      persistedRules.current = data;
       startTransition(() => {
         setRules(data);
-      });
-      startTransition(() => {
         setSaveError(null);
       });
     }
@@ -88,6 +95,7 @@ export function useCoachingSettings() {
 
   useEffect(() => {
     if (!coachId) return;
+    let active = true;
     void (async () => {
       const [travelResult, policyResult, overrides] = await Promise.all([
         coachTravelService.getSettings(coachId),
@@ -95,14 +103,21 @@ export function useCoachingSettings() {
         availabilityService.getOverrides(coachId),
       ]);
 
+      if (!active) return;
       if (travelResult.success) {
         setTravelSettings(travelResult.data);
       }
       if (policyResult.success) {
-        setPolicySummary(schedulingRulesService.getCancellationPolicySummary(policyResult.data));
+        setPolicySummary(policyResult.data?.name ?? 'Not set');
       }
       setBlockedDateCount(overrides.filter((override) => override.isBlocked).length);
-    })();
+    })().catch(() => {
+      // These summaries are secondary. Their routes still load authoritative state when opened.
+    });
+
+    return () => {
+      active = false;
+    };
   }, [coachId]);
 
   // Show "Saved" toast
@@ -114,47 +129,69 @@ export function useCoachingSettings() {
         withDelay(
           1200,
           withTiming(0, { duration: 300 }, (finished) => {
-            if (finished) runOnJS(setShowSaved)(false);
+            if (finished) scheduleOnRN(setShowSaved, false);
           }),
         ),
       ),
     );
   };
 
-  // Debounced save
-  const persistRules = (updated: CoachSchedulingRules) => {
-    if (!coachId) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        const result = await schedulingRulesService.updateCoachRules(coachId, updated);
-        if (!result.success) {
-          setSaveError(result.error.message);
-          return;
-        }
-        setRules(result.data);
-        setSaveError(null);
-        flashSaved();
-      } catch {
-        setSaveError('Failed to save coaching settings.');
-      }
-    }, 500);
-  };
-
-  // Generic updater
   const update = <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => {
-    setRules((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, [key]: value };
-      setSaveError(null);
-      persistRules(next);
-      return next;
-    });
+    const current = draftRules.current;
+    const persisted = persistedRules.current;
+    if (!coachId || savingRef.current || !current || !persisted) return;
+
+    const next = { ...current, [key]: value };
+    draftRules.current = next;
+    setRules(next);
+    setSaveError(null);
+
+    clearSaveTimer(saveTimer);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      const serverRules = persistedRules.current ?? persisted;
+      const patch = diffCoachSchedulingRules(serverRules, draftRules.current ?? next);
+      if (Object.keys(patch).length === 0) return;
+
+      savingRef.current = true;
+      setSaving(true);
+      const rollback = (message: string) => {
+        const restored = persistedRules.current ?? persisted;
+        draftRules.current = restored;
+        setRules(restored);
+        setSaveError(message);
+      };
+
+      void schedulingRulesService
+        .updateCoachRules(coachId, patch)
+        .then(
+          (result) => {
+            if (!mountedRef.current) return;
+            if (!result.success) {
+              rollback('Not saved. Previous settings restored.');
+              return;
+            }
+            persistedRules.current = result.data;
+            draftRules.current = result.data;
+            setRules(result.data);
+            setSaveError(null);
+            flashSaved();
+          },
+          () => {
+            if (mountedRef.current) rollback('Not saved. Previous settings restored.');
+          },
+        )
+        .finally(() => {
+          savingRef.current = false;
+          if (mountedRef.current) setSaving(false);
+        });
+    }, 300);
   };
 
-  // Cleanup timer on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       clearSaveTimer(saveTimer);
     };
   }, []);
@@ -176,6 +213,7 @@ export function useCoachingSettings() {
     travelSettings,
     blockedDateCount,
     policySummary,
+    saving,
     showSaved,
     toastOpacity,
     update,
@@ -191,6 +229,7 @@ export function useCoachingSettings() {
     travelSettings: CoachTravelSettings | null;
     blockedDateCount: number;
     policySummary: string;
+    saving: boolean;
     showSaved: boolean;
     toastOpacity: SharedValue<number>;
     update: <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => void;

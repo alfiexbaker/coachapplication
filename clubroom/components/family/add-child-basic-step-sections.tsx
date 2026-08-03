@@ -7,10 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { withAlpha } from '@/constants/theme';
-import { POSITION_OPTIONS_WITH_ROTATE } from '@/constants/position-skills';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { Gender, Relationship } from '@/services/child-service';
-import type { PositionRole } from '@/types/progress-types';
 import { Row } from '@/components/primitives';
 import { styles } from './add-child-basic-step-styles';
 
@@ -28,29 +25,31 @@ export const PhotoUploadSection = function PhotoUploadSection({
   palette,
 }: PhotoUploadSectionProps) {
   return (
-    <View style={styles.photoSection}>
-      <Clickable
-        accessibilityLabel="Upload photo"
-        onPress={onPickImage}
-        style={styles.photoPickerContainer}
-      >
+    <Clickable
+      accessibilityRole="button"
+      accessibilityLabel={photoUri ? 'Change player photo' : 'Add player photo'}
+      onPress={onPickImage}
+      style={[styles.photoSection, { borderColor: palette.border }]}
+    >
+      <View style={styles.photoPickerContainer}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.photo} />
         ) : (
           <View
             style={[styles.photoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
           >
-            <Ionicons name="camera" size={32} color={palette.tint} />
+            <Ionicons name="camera-outline" size={22} color={palette.tint} />
           </View>
         )}
-        <View style={[styles.photoEditBadge, { backgroundColor: palette.tint }]}>
-          <Ionicons name="add" size={16} color={palette.onPrimary} />
-        </View>
-      </Clickable>
-      <ThemedText style={[styles.photoHint, { color: palette.muted }]}>
-        Add a photo (optional)
+      </View>
+      <View style={styles.photoCopy}>
+        <ThemedText style={styles.label}>Player photo</ThemedText>
+        <ThemedText style={[styles.photoHint, { color: palette.muted }]}>Optional</ThemedText>
+      </View>
+      <ThemedText style={[styles.photoAction, { color: palette.tint }]}>
+        {photoUri ? 'Change' : 'Add'}
       </ThemedText>
-    </View>
+    </Clickable>
   );
 };
 
@@ -77,46 +76,44 @@ export const NameFieldsRow = function NameFieldsRow({
 }: NameFieldsRowProps) {
   return (
     <>
-      <Row style={styles.row}>
-        <View style={styles.halfField}>
-          <ThemedText style={styles.label}>First Name *</ThemedText>
-          <TextInput
-            style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-            placeholder="First name"
-            placeholderTextColor={palette.muted}
-            value={firstName}
-            onChangeText={onFirstNameChange}
-            autoCapitalize="words"
-
-            maxLength={50}
-          />
-        </View>
-        <View style={styles.halfField}>
-          <ThemedText style={styles.label}>Last Name *</ThemedText>
-          <TextInput
-            style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-            placeholder="Last name"
-            placeholderTextColor={palette.muted}
-            value={lastName}
-            onChangeText={onLastNameChange}
-            autoCapitalize="words"
-
-            maxLength={50}
-          />
-        </View>
-      </Row>
-
       <View style={styles.field}>
-        <ThemedText style={styles.label}>Nickname (optional)</ThemedText>
+        <ThemedText style={styles.label}>First name *</ThemedText>
         <TextInput
           style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-          placeholder="What do they like to be called?"
+          accessibilityLabel="First name"
+          placeholder="First name"
+          placeholderTextColor={palette.muted}
+          value={firstName}
+          onChangeText={onFirstNameChange}
+          autoCapitalize="words"
+          maxLength={50}
+        />
+      </View>
+      <View style={styles.field}>
+        <ThemedText style={styles.label}>Last name *</ThemedText>
+        <TextInput
+          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
+          accessibilityLabel="Last name"
+          placeholder="Last name"
+          placeholderTextColor={palette.muted}
+          value={lastName}
+          onChangeText={onLastNameChange}
+          autoCapitalize="words"
+          maxLength={50}
+        />
+      </View>
+
+      <View style={styles.field}>
+        <ThemedText style={styles.label}>Preferred name</ThemedText>
+        <TextInput
+          style={[styles.input, { borderColor: palette.border, color: palette.text }]}
+          accessibilityLabel="Preferred name, optional"
+          placeholder="Optional"
           placeholderTextColor={palette.muted}
           value={nickname}
           onChangeText={onNicknameChange}
-
-            maxLength={50}
-          />
+          maxLength={50}
+        />
       </View>
     </>
   );
@@ -144,8 +141,10 @@ export const DateOfBirthField = function DateOfBirthField({
   const [today] = useState(() => new Date());
   return (
     <View style={styles.field}>
-      <ThemedText style={styles.label}>Date of Birth (optional)</ThemedText>
+      <ThemedText style={styles.label}>Date of birth</ThemedText>
       <Clickable
+        accessibilityRole="button"
+        accessibilityLabel="Date of birth, optional"
         onPress={() => onShowDatePicker(true)}
         style={[styles.input, styles.dateInput, { borderColor: palette.border }]}
       >
@@ -161,19 +160,31 @@ export const DateOfBirthField = function DateOfBirthField({
         <Ionicons name="calendar-outline" size={20} color={palette.muted} />
       </Clickable>
       {showDatePicker && (
-        <DateTimePicker
-          value={dateOfBirth || new Date(2015, 0, 1)}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          textColor={palette.text}
-          themeVariant={isDark ? 'dark' : 'light'}
-          maximumDate={today}
-          minimumDate={new Date(2000, 0, 1)}
-          onChange={(event, selectedDate) => {
-            onShowDatePicker(Platform.OS === 'ios');
-            if (selectedDate) onDateOfBirthChange(selectedDate);
-          }}
-        />
+        <View style={[styles.datePickerPanel, { borderColor: palette.border }]}>
+          <DateTimePicker
+            value={dateOfBirth || new Date(2015, 0, 1)}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            textColor={palette.text}
+            themeVariant={isDark ? 'dark' : 'light'}
+            maximumDate={today}
+            minimumDate={new Date(2000, 0, 1)}
+            onChange={(event, selectedDate) => {
+              onShowDatePicker(Platform.OS === 'ios');
+              if (selectedDate) onDateOfBirthChange(selectedDate);
+            }}
+          />
+          {Platform.OS === 'ios' ? (
+            <Clickable
+              accessibilityRole="button"
+              accessibilityLabel="Done selecting date of birth"
+              onPress={() => onShowDatePicker(false)}
+              style={styles.datePickerDone}
+            >
+              <ThemedText style={[styles.photoAction, { color: palette.tint }]}>Done</ThemedText>
+            </Clickable>
+          ) : null}
+        </View>
       )}
     </View>
   );
@@ -204,6 +215,9 @@ export const OptionChipGrid = function OptionChipGrid<T extends string>({
           <Clickable
             key={opt.id}
             onPress={() => onSelect(opt.id)}
+            accessibilityRole="radio"
+            accessibilityLabel={opt.label}
+            accessibilityState={{ selected: selected === opt.id, checked: selected === opt.id }}
             style={[
               styles.optionChip,
               {
@@ -226,71 +240,3 @@ export const OptionChipGrid = function OptionChipGrid<T extends string>({
     </View>
   );
 } as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
-
-interface PositionOptionGridProps {
-  selected: PositionRole | null;
-  onSelect: (position: PositionRole | null) => void;
-  palette: ThemeColors;
-}
-
-export const PositionOptionGrid = function PositionOptionGrid({
-  selected,
-  onSelect,
-  palette,
-}: PositionOptionGridProps) {
-  const toDisplayLabel = (key: PositionRole | null): string => {
-    if (key === null) {
-      return 'They rotate';
-    }
-    if (key === 'ATT') {
-      return 'Striker';
-    }
-    return key;
-  };
-
-  return (
-    <View style={styles.field}>
-      <ThemedText style={styles.label}>Primary Position</ThemedText>
-      <Row style={styles.optionGrid}>
-        {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
-          const isSelected = selected === option.key;
-          return (
-            <Clickable
-              key={option.key ?? 'rotate'}
-              onPress={() => onSelect(option.key)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: isSelected ? palette.tint : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={`Set primary position to ${option.label}`}
-              accessibilityState={{ selected: isSelected }}
-            >
-              <Row align="center" gap="xxs">
-                <Ionicons
-                  name={option.icon as keyof typeof Ionicons.glyphMap}
-                  size={14}
-                  color={isSelected ? palette.onPrimary : palette.muted}
-                />
-                <ThemedText
-                  style={[
-                    styles.optionText,
-                    { color: isSelected ? palette.onPrimary : palette.text },
-                  ]}
-                >
-                  {toDisplayLabel(option.key)}
-                </ThemedText>
-              </Row>
-            </Clickable>
-          );
-        })}
-      </Row>
-      <ThemedText style={[styles.photoHint, { color: palette.muted }]}>
-        Pick a default position for coaches. Choose rotate if they play multiple roles.
-      </ThemedText>
-    </View>
-  );
-};

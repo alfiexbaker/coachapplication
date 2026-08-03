@@ -3,7 +3,6 @@ import { View } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
 import type { Gender, Relationship } from '@/services/child-service';
-import type { PositionRole } from '@/types/progress-types';
 
 import {
   PhotoUploadSection,
@@ -23,7 +22,6 @@ export interface AddChildBasicStepProps {
   dateOfBirth: Date | null;
   gender: Gender | null;
   relationship: Relationship | null;
-  primaryPosition: PositionRole | null;
   photoUri: string | null;
   showDatePicker: boolean;
   onFirstNameChange: (value: string) => void;
@@ -32,7 +30,6 @@ export interface AddChildBasicStepProps {
   onDateOfBirthChange: (date: Date | null) => void;
   onGenderChange: (gender: Gender) => void;
   onRelationshipChange: (relationship: Relationship) => void;
-  onPrimaryPositionChange: (position: PositionRole | null) => void;
   onPickImage: () => void;
   onShowDatePicker: (show: boolean) => void;
 }
@@ -91,7 +88,7 @@ function AddChildBasicStepInner({
       />
 
       <OptionChipGrid
-        label="Relationship *"
+        label="Relationship to you *"
         options={RELATIONSHIPS}
         selected={relationship}
         onSelect={onRelationshipChange}

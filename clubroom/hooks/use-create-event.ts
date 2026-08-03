@@ -16,6 +16,7 @@ import { clubAuthorityService } from '@/services/club-authority-service';
 import { eventService, CreateEventInput } from '@/services/event-service';
 import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite';
+import { isClubStaffRole } from '@/contracts/club-governance';
 import { createLogger } from '@/utils/logger';
 import type {
   Club,
@@ -30,7 +31,11 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useCreateEvent');
 const USE_MOCK = api.useMock;
-const NO_CLUB_CONTEXT_MESSAGE = 'Create an event from a club you manage.';
+const NO_CLUB_CONTEXT_MESSAGE = 'You need event staff access to create a club event.';
+const SQUAD_CONTEXT_ERROR_MESSAGE =
+  'Failed to load squads for this club. Retry before choosing squad audience.';
+const SQUAD_SELECTION_ERROR_MESSAGE =
+  'Choose a squad from the live club squad list before creating this event.';
 
 export interface EventFormState {
   eventType: ClubEventType;
@@ -90,7 +95,6 @@ export const STEPS: WizardStep[] = ['type', 'details', 'schedule', 'audience', '
 
 type EventCreateParams = {
   clubId?: string | string[];
-  clubName?: string | string[];
   squadId?: string | string[];
 };
 
@@ -108,37 +112,49 @@ function isMembershipForUser(membership: ClubMembership, userId: string | undefi
   return membership.userId === userId || membership.userId === normalizedUserId;
 }
 
+function isActiveEventStaffMembership(
+  membership: ClubMembership,
+  userId: string | undefined,
+): boolean {
+  return (
+    membership.status === 'active' &&
+    isMembershipForUser(membership, userId) &&
+    isClubStaffRole(membership.role)
+  );
+}
+
 function resolveEventClub(
   clubs: Club[],
   memberships: ClubMembership[],
   userId: string | undefined,
   requestedClubId: string | undefined,
 ): Club | null {
-  if (requestedClubId) {
-    return clubs.find((club) => club.id === requestedClubId) ?? null;
+  const staffClubIds = new Set<string>();
+  for (const membership of memberships) {
+    if (isActiveEventStaffMembership(membership, userId)) {
+      staffClubIds.add(membership.clubId);
+    }
   }
 
-  const membershipClubIds = new Set(
-    memberships
-      .filter(
-        (membership) => membership.status === 'active' && isMembershipForUser(membership, userId),
-      )
-      .map((membership) => membership.clubId),
-  );
+  if (requestedClubId) {
+    return clubs.find((club) => club.id === requestedClubId && staffClubIds.has(club.id)) ?? null;
+  }
 
-  return clubs.find((club) => membershipClubIds.has(club.id)) ?? clubs[0] ?? null;
+  return clubs.find((club) => staffClubIds.has(club.id)) ?? null;
 }
 
 export function useCreateEvent() {
   const { currentUser } = useAuth();
   const routeParams = useLocalSearchParams<EventCreateParams>();
   const requestedClubId = getRouteParam(routeParams.clubId);
-  const requestedClubName = getRouteParam(routeParams.clubName);
   const routeSquadId = getRouteParam(routeParams.squadId);
   const [form, dispatch] = useReducer(eventFormReducer, initialState);
   const [step, setStep] = useState<WizardStep>('type');
   const [loading, setLoading] = useState(false);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
+  const [squadContextLoading, setSquadContextLoading] = useState(false);
+  const [squadContextError, setSquadContextError] = useState<string | null>(null);
+  const [squadContextVersion, setSquadContextVersion] = useState(0);
   const [clubContext, setClubContext] = useState({ clubId: '', clubName: '' });
   const [clubContextLoading, setClubContextLoading] = useState(true);
   const [clubContextError, setClubContextError] = useState<string | null>(null);
@@ -150,13 +166,12 @@ export function useCreateEvent() {
 
   useEffect(() => {
     let active = true;
+    setClubContextLoading(true);
+    setClubContextError(null);
 
-    const loadClubContext = async () => {
-      setClubContextLoading(true);
-      setClubContextError(null);
-
-      try {
-        const result = await clubAuthorityService.listClubs();
+    const clubsPromise = clubAuthorityService.listClubs();
+    void clubsPromise
+      .then((result) => {
         if (!active) return;
 
         if (!result.success) {
@@ -179,26 +194,25 @@ export function useCreateEvent() {
 
         setClubContext({
           clubId: resolvedClub.id,
-          clubName: requestedClubName ?? resolvedClub.name,
+          clubName: resolvedClub.name,
         });
-      } catch (error) {
+      })
+      .catch((error: unknown) => {
         if (!active) return;
         logger.error('Failed to resolve club for event creation:', error);
         setClubContext({ clubId: '', clubName: '' });
         setClubContextError('Failed to load club context for event creation.');
-      } finally {
+      })
+      .finally(() => {
         if (active) {
           setClubContextLoading(false);
         }
-      }
-    };
-
-    void loadClubContext();
+      });
 
     return () => {
       active = false;
     };
-  }, [clubContextVersion, currentUser?.id, requestedClubId, requestedClubName]);
+  }, [clubContextVersion, currentUser?.id, requestedClubId]);
 
   useEffect(() => {
     if (!routeSquadId) {
@@ -211,33 +225,50 @@ export function useCreateEvent() {
 
   useEffect(() => {
     if (!clubId) {
-      setSquads([]);
       return;
     }
 
     let active = true;
+    setSquadContextLoading(true);
+    setSquadContextError(null);
 
-    (async () => {
-      try {
-        const data = await squadService.getSquads(clubId);
+    const squadsPromise = squadService.getSquads(clubId);
+    void squadsPromise
+      .then((data) => {
         if (active) {
-          setSquads(data.filter((s) => !s.name.toLowerCase().includes('staff')));
+          setSquads(data.filter((squad) => !squad.name.toLowerCase().includes('staff')));
         }
-      } catch (error) {
+      })
+      .catch((error: unknown) => {
         logger.error('Failed to load squads:', error);
         if (active) {
           setSquads([]);
+          if (!USE_MOCK) {
+            setSquadContextError(SQUAD_CONTEXT_ERROR_MESSAGE);
+          }
         }
-      }
-    })();
+      })
+      .finally(() => {
+        if (active) {
+          setSquadContextLoading(false);
+        }
+      });
 
     return () => {
       active = false;
     };
-  }, [clubId]);
+  }, [clubId, squadContextVersion]);
 
   const setField = (field: string, value: unknown) =>
     dispatch({ type: 'SET_FIELD', field: field as keyof EventFormState, value });
+
+  const selectedSquadsHaveAuthority = (): boolean => {
+    if (USE_MOCK || form.targetAudience !== 'SQUADS') {
+      return true;
+    }
+    const liveSquadIds = new Set(squads.map((squad) => squad.id));
+    return form.selectedSquadIds.every((squadId) => liveSquadIds.has(squadId));
+  };
 
   const canProceed = (): boolean => {
     if (!clubId) {
@@ -252,7 +283,14 @@ export function useCreateEvent() {
       case 'schedule':
         return form.date.trim().length > 0;
       case 'audience':
-        if (form.targetAudience === 'SQUADS') return form.selectedSquadIds.length > 0;
+        if (form.targetAudience === 'SQUADS') {
+          return (
+            form.selectedSquadIds.length > 0 &&
+            !squadContextLoading &&
+            !squadContextError &&
+            selectedSquadsHaveAuthority()
+          );
+        }
         if (form.targetAudience === 'SPECIFIC_ATHLETES') return form.selectedAthleteIds.length > 0;
         return true;
       case 'review':
@@ -281,16 +319,17 @@ export function useCreateEvent() {
       uiFeedback.showToast(NO_CLUB_CONTEXT_MESSAGE, 'error');
       return;
     }
-    const createdByName = (
-      currentUser.name ||
-      currentUser.fullName ||
-      currentUser.username ||
-      ''
-    ).trim();
-    if (!createdByName) {
-      uiFeedback.showToast('Complete your account name before creating an event.', 'error');
-      return;
+    if (form.targetAudience === 'SQUADS') {
+      if (squadContextLoading || squadContextError) {
+        uiFeedback.showToast(SQUAD_CONTEXT_ERROR_MESSAGE, 'error');
+        return;
+      }
+      if (!selectedSquadsHaveAuthority()) {
+        uiFeedback.showToast(SQUAD_SELECTION_ERROR_MESSAGE, 'error');
+        return;
+      }
     }
+    const createdByName = (currentUser.name || currentUser.fullName || currentUser.username || '').trim();
 
     setLoading(true);
 
@@ -359,13 +398,29 @@ export function useCreateEvent() {
           };
           const event = await eventService.createEvent(input);
           if (publish) {
-            await eventService.publishEvent(event.id);
-            if (form.targetAudience === 'SQUADS') {
-              await eventService.inviteSquads(event.id, form.selectedSquadIds);
-            } else if (form.targetAudience === 'SPECIFIC_ATHLETES') {
-              await eventService.inviteAthletes(event.id, form.selectedAthleteIds);
-            } else {
-              await eventService.inviteClub(event.id);
+            const publishResult = await eventService.publishEvent(event.id);
+            if (!publishResult.success) {
+              uiFeedback.showToast(
+                `Draft saved. ${publishResult.error.message || 'The event could not be published.'}`,
+                'error',
+              );
+              router.replace(Routes.event(event.id));
+              return;
+            }
+            try {
+              if (form.targetAudience === 'SQUADS') {
+                await eventService.inviteSquads(event.id, form.selectedSquadIds);
+              } else if (form.targetAudience === 'SPECIFIC_ATHLETES') {
+                await eventService.inviteAthletes(event.id, form.selectedAthleteIds);
+              } else {
+                await eventService.inviteClub(event.id);
+              }
+            } catch (inviteError) {
+              logger.error('Event published without invitation delivery:', inviteError);
+              uiFeedback.showToast(
+                'Event published. Invitations were not sent. Open the event to send them again.',
+                'error',
+              );
             }
           }
           router.replace(Routes.event(event.id));
@@ -386,6 +441,8 @@ export function useCreateEvent() {
     step,
     loading,
     squads,
+    squadContextLoading,
+    squadContextError,
     clubId,
     clubName,
     clubContextLoading,
@@ -397,5 +454,6 @@ export function useCreateEvent() {
     goBack,
     handleCreate,
     retryClubContext: () => setClubContextVersion((version) => version + 1),
+    retrySquadContext: () => setSquadContextVersion((version) => version + 1),
   };
 }

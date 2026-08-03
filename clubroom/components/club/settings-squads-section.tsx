@@ -66,7 +66,8 @@ export const SettingsSquadsSection = function SettingsSquadsSection({
                     <View style={styles.squadInfo}>
                       <ThemedText type="defaultSemiBold" numberOfLines={1}>{squad.name}</ThemedText>
                       <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                        {squad.level} · {squad.memberCount} members
+                        {squad.level ? `${squad.level} · ` : ''}
+                        {squad.memberCount} members
                       </ThemedText>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={colors.muted} />

@@ -43,9 +43,14 @@ import {
   type PracticeTask,
   type TaskViewerRole,
 } from '@/services/progress/progress-practice-task-service';
+import {
+  progressPracticeLogService,
+  type PracticeLogEntry,
+} from '@/services/progress/progress-practice-log-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+import { coachService, type Coach } from '@/services/coach-service';
 import {
   buildProfileScopePayload,
   buildProfileSubjectOptions,
@@ -59,10 +64,14 @@ import type {
   SessionMedia,
 } from '@/types/progress-types';
 import type { SwitcherChild } from '@/components/family/child-switcher';
-import type { CoachDirectoryEntry } from '@/constants/relational-demo-seeds';
 import type { FamilyHighlightItem } from '@/components/progress/parent-value-summary';
 import type { CoachBadgeData } from '@/components/progress/coach-badge';
 import type { Booking } from '@/constants/app-types';
+import {
+  isSelfAthleteTarget,
+  resolveSelfAthleteId,
+  resolveSelfAthleteName,
+} from '@/utils/athlete-identity';
 const logger = createLogger('MyProgressScreen');
 
 async function listOptionalAttendanceBookings(): Promise<Booking[]> {
@@ -75,7 +84,7 @@ async function listOptionalAttendanceBookings(): Promise<Booking[]> {
     logger.warn('Optional progress attendance bookings unavailable', {
       error: result.error.message,
     });
-    return [];
+    throw new Error(result.error.message);
   }
 
   return result.data.map((booking) => mapApiBookingToBooking(booking));
@@ -103,6 +112,13 @@ interface HomeworkState {
   completion: Record<string, HomeworkCompletionRecord>;
   taskIdsByFeedbackId: Record<string, string>;
 }
+interface ProgressCoachProfile {
+  id: string;
+  name: string;
+  qualifications?: string[];
+  yearsExperience?: number;
+  dbsChecked?: boolean;
+}
 interface MyProgressData {
   progress: AthleteProgress | null;
   feedback: SessionFeedback[];
@@ -111,11 +127,13 @@ interface MyProgressData {
   mostPlayedPosition: PositionRole | null;
   streakInfo: StreakInfo | null;
   media: SessionMedia[];
-  coachDirectoryById: Record<string, CoachDirectoryEntry>;
+  coachDirectoryById: Record<string, ProgressCoachProfile>;
   familyHighlights: FamilyHighlightItem[];
   homeworkCompletion: Record<string, HomeworkCompletionRecord>;
   homeworkTaskIdsByFeedbackId: Record<string, string>;
   attendanceDates: string[];
+  todayPracticeMinutes: number;
+  weeklyPracticeMinutes: number;
 }
 function hasMeaningfulProgressData(value: MyProgressData): boolean {
   const totalGoals =
@@ -138,19 +156,70 @@ function sortNewest<
       new Date(right.createdAt ?? '').getTime() - new Date(left.createdAt ?? '').getTime(),
   );
 }
+
+function dateKeyDaysAgo(dateKey: string, days: number): string {
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function sumPracticeMinutesForDateWindow(
+  logs: Pick<PracticeLogEntry, 'dateKey' | 'minutes'>[],
+  throughDateKey: string,
+  days: number,
+): number {
+  const startDateKey = dateKeyDaysAgo(throughDateKey, days - 1);
+  return logs.reduce((total, entry) => {
+    if (entry.dateKey < startDateKey || entry.dateKey > throughDateKey) {
+      return total;
+    }
+    return total + entry.minutes;
+  }, 0);
+}
 function buildCoachDirectoryMap(
-  coaches: CoachDirectoryEntry[],
-): Record<string, CoachDirectoryEntry> {
-  return coaches.reduce<Record<string, CoachDirectoryEntry>>((acc, coach) => {
+  coaches: ProgressCoachProfile[],
+): Record<string, ProgressCoachProfile> {
+  return coaches.reduce<Record<string, ProgressCoachProfile>>((acc, coach) => {
     acc[coach.id] = coach;
     return acc;
   }, {});
 }
-export async function loadCoachDirectoryForProgress(): Promise<CoachDirectoryEntry[]> {
-  if (!apiClient.isMockMode) {
-    return [];
+function mapCoachToProgressProfile(coach: Coach): ProgressCoachProfile {
+  return {
+    id: coach.id,
+    name: coach.name,
+    qualifications: coach.certifications?.map((certification) => certification.name),
+  };
+}
+export async function loadCoachDirectoryForProgress(
+  coachIds: string[] = [],
+): Promise<ProgressCoachProfile[]> {
+  if (apiClient.isMockMode) {
+    return apiClient.get<ProgressCoachProfile[]>(STORAGE_KEYS.COACH_DIRECTORY, []);
   }
-  return apiClient.get<CoachDirectoryEntry[]>(STORAGE_KEYS.COACH_DIRECTORY, []);
+  const uniqueCoachIds = Array.from(
+    new Set(
+      coachIds.flatMap((coachId) => {
+        const trimmed = coachId.trim();
+        return trimmed ? [trimmed] : [];
+      }),
+    ),
+  );
+  const results = await Promise.all(
+    uniqueCoachIds.map(async (coachId) => ({
+      coachId,
+      result: await coachService.getCoach(coachId),
+    })),
+  );
+  return results.flatMap(({ coachId, result }) => {
+    if (result.success) {
+      return [mapCoachToProgressProfile(result.data)];
+    }
+    if (result.error.code === 'NOT_FOUND') {
+      return [];
+    }
+    throw new Error(`Failed to load coach profile ${coachId}: ${result.error.message}`);
+  });
 }
 function getMostImprovedSkill(progress: AthleteProgress): string | undefined {
   const improvingSkills = progress.skills
@@ -282,6 +351,8 @@ function getSkillVelocityHighlight(
 }
 export function useMyProgress() {
   const { currentUser } = useAuth();
+  const practiceLogInFlightRef = useRef(false);
+  const [isLoggingPractice, setIsLoggingPractice] = useState(false);
   const {
     children: contextChildren,
     activeChildId: contextActiveChildId,
@@ -316,15 +387,19 @@ export function useMyProgress() {
     includeSelf: !isParentContext || canSelectSelfProfile,
   });
   const hasMultipleChildren = isParentContext && switcherChildren.length > 1;
+  const selfAthleteId = resolveSelfAthleteId(currentUser);
   const explicitAthleteId = (() => {
     if (!athleteIdParam) return null;
     return Array.isArray(athleteIdParam) ? (athleteIdParam[0] ?? null) : athleteIdParam;
   })();
   const isExplicitAthleteIdValid = (() => {
     if (!explicitAthleteId || !currentUser?.id) return false;
-    if (explicitAthleteId === currentUser.id) return true;
+    if (isSelfAthleteTarget(currentUser, explicitAthleteId)) return true;
     return contextChildren.some((child) => child.id === explicitAthleteId);
   })();
+  const normalizedExplicitAthleteId = isSelfAthleteTarget(currentUser, explicitAthleteId)
+    ? selfAthleteId
+    : explicitAthleteId;
   const selectedAthleteId = (() => {
     if (!currentUser) {
       return null;
@@ -332,8 +407,8 @@ export function useMyProgress() {
     if (currentUser.role === 'COACH' && !isExplicitAthleteIdValid) {
       return null;
     }
-    if (isExplicitAthleteIdValid && explicitAthleteId) {
-      return explicitAthleteId;
+    if (isExplicitAthleteIdValid && normalizedExplicitAthleteId) {
+      return normalizedExplicitAthleteId;
     }
     if (
       isParentContext &&
@@ -350,7 +425,7 @@ export function useMyProgress() {
       if (isParentContext && contextChildren.length > 0 && !canSelectSelfProfile) {
         return null;
       }
-      return currentUser.id;
+      return selfAthleteId;
     }
     if (
       profileMode === 'child' &&
@@ -360,7 +435,7 @@ export function useMyProgress() {
       return profileSubjectId;
     }
     if (profileSubjectId) {
-      const isSelf = profileSubjectId === currentUser.id;
+      const isSelf = isSelfAthleteTarget(currentUser, profileSubjectId);
       const isChild = contextChildren.some((child) => child.id === profileSubjectId);
       if (
         isSelf &&
@@ -371,11 +446,11 @@ export function useMyProgress() {
         return null;
       }
       if (isSelf || isChild) {
-        return profileSubjectId;
+        return isSelf ? selfAthleteId : profileSubjectId;
       }
     }
     if (!isParentContext) {
-      return currentUser.id;
+      return selfAthleteId;
     }
     if (contextChildren.length === 0) {
       return null;
@@ -392,16 +467,15 @@ export function useMyProgress() {
     return contextChildren[0].id;
   })();
   const selectedChild = contextChildren.find((child) => child.id === selectedAthleteId) ?? null;
-  const selectedAthleteName =
-    currentUser?.id && selectedAthleteId === currentUser.id
-      ? currentUser.name || currentUser.fullName || 'Me'
-      : (selectedChild?.name ?? currentUser?.name ?? 'Child');
+  const isSelfSubject = isSelfAthleteTarget(currentUser, selectedAthleteId);
+  const selectedAthleteName = isSelfSubject
+    ? resolveSelfAthleteName(currentUser) || 'Me'
+    : (selectedChild?.name ?? currentUser?.name ?? 'Child');
   useEffect(() => {
     if (!selectedAthleteId || !currentUser?.id) {
       return;
     }
-    const isSelf = selectedAthleteId === currentUser.id;
-    if (isSelf) {
+    if (isSelfSubject) {
       if (profileMode !== 'self') {
         void setProfileScope({
           mode: 'self',
@@ -426,6 +500,7 @@ export function useMyProgress() {
     contextActiveChildId,
     contextChildren,
     currentUser?.id,
+    isSelfSubject,
     profileMode,
     profileSubjectId,
     selectedAthleteId,
@@ -450,6 +525,8 @@ export function useMyProgress() {
         homeworkCompletion: {},
         homeworkTaskIdsByFeedbackId: {},
         attendanceDates: [],
+        todayPracticeMinutes: 0,
+        weeklyPracticeMinutes: 0,
       });
     }
     try {
@@ -462,9 +539,10 @@ export function useMyProgress() {
         mostPlayedPositionResult,
         streakInfo,
         mediaResult,
-        coachDirectory,
         homeworkState,
         bookings,
+        practiceLogs,
+        todayPractice,
       ] = await Promise.all([
         progressService.getAthleteProgress(selectedAthleteId, viewerRole),
         progressService.getFeedbackForAthlete(selectedAthleteId, viewerRole),
@@ -473,10 +551,14 @@ export function useMyProgress() {
         progressPositionService.getMostPlayedPosition(selectedAthleteId),
         badgeService.getStreakInfo(selectedAthleteId),
         mediaService.listMediaForAthlete(selectedAthleteId),
-        loadCoachDirectoryForProgress(),
         loadHomeworkState(selectedAthleteId, viewerRole),
         listOptionalAttendanceBookings(),
+        progressPracticeLogService.listAthleteLogs(selectedAthleteId),
+        progressPracticeLogService.getTodaySummary(selectedAthleteId),
       ]);
+      const coachDirectory = await loadCoachDirectoryForProgress(
+        feedbackData.map((entry) => entry.coachId),
+      );
       const familyHighlights: FamilyHighlightItem[] =
         isParentContext && contextChildren.length > 1
           ? await Promise.all(
@@ -503,6 +585,11 @@ export function useMyProgress() {
         const mapped = booking.scheduledAt;
         return mapped?.trim().length > 0 ? [mapped] : [];
       });
+      const weeklyPracticeMinutes = sumPracticeMinutesForDateWindow(
+        practiceLogs,
+        todayPractice.dateKey,
+        7,
+      );
       const coachDirectoryById = buildCoachDirectoryMap(coachDirectory);
       if (!mediaResult.success) {
         logger.error('Failed to load athlete media for progress screen', {
@@ -512,6 +599,13 @@ export function useMyProgress() {
         return err(mediaResult.error);
       }
       const media = mediaResult.data;
+      if (!mostPlayedPositionResult.success) {
+        logger.error('Failed to load athlete position history for progress screen', {
+          athleteId: selectedAthleteId,
+          error: mostPlayedPositionResult.error,
+        });
+        return err(mostPlayedPositionResult.error);
+      }
       logger.info('My progress loaded', {
         userId: currentUser.id,
         athleteId: selectedAthleteId,
@@ -526,7 +620,7 @@ export function useMyProgress() {
         feedback: feedbackData,
         badges: visibleBadges,
         allBadges: allBadgesData,
-        mostPlayedPosition: mostPlayedPositionResult.success ? mostPlayedPositionResult.data : null,
+        mostPlayedPosition: mostPlayedPositionResult.data,
         streakInfo,
         media,
         coachDirectoryById,
@@ -534,6 +628,8 @@ export function useMyProgress() {
         homeworkCompletion: homeworkState.completion,
         homeworkTaskIdsByFeedbackId: homeworkState.taskIdsByFeedbackId,
         attendanceDates,
+        todayPracticeMinutes: todayPractice.log?.minutes ?? 0,
+        weeklyPracticeMinutes,
       });
     } catch (error) {
       logger.warn('Failed to load progress', error);
@@ -562,6 +658,33 @@ export function useMyProgress() {
   const homeworkCompletion = data?.homeworkCompletion ?? {};
   const homeworkTaskIdsByFeedbackId = data?.homeworkTaskIdsByFeedbackId ?? {};
   const attendanceDates = data?.attendanceDates ?? [];
+  const todayPracticeMinutes = data?.todayPracticeMinutes ?? 0;
+  const weeklyPracticeMinutes = data?.weeklyPracticeMinutes ?? 0;
+
+  const logPracticeMinutes = async (minutes: number) => {
+    if (!selectedAthleteId) {
+      return err(serviceError('VALIDATION', 'Select an athlete before logging practice.'));
+    }
+    if (practiceLogInFlightRef.current) {
+      return err(serviceError('RATE_LIMITED', 'Practice is already being logged.'));
+    }
+    practiceLogInFlightRef.current = true;
+    setIsLoggingPractice(true);
+    const result = await progressPracticeLogService
+      .logPractice({
+        athleteId: selectedAthleteId,
+        minutes,
+      })
+      .catch((error: unknown) =>
+        err(serviceError('UNKNOWN', 'Unable to log practice right now.', error)),
+      );
+    if (result.success) {
+      onRefresh();
+    }
+    practiceLogInFlightRef.current = false;
+    setIsLoggingPractice(false);
+    return result;
+  };
   const sortedFeedback = sortNewest(feedback);
   const latestFeedback = sortedFeedback[0] ?? null;
   const primaryPosition = selectedChild?.profile?.primaryPosition ?? null;
@@ -841,6 +964,10 @@ export function useMyProgress() {
     latestHomeworkProof,
     skillVelocityHighlight,
     attendanceDates,
+    todayPracticeMinutes,
+    weeklyPracticeMinutes,
+    logPracticeMinutes,
+    isLoggingPractice,
     markHomeworkDone,
     coachFocus,
     familyHighlights,
@@ -850,6 +977,7 @@ export function useMyProgress() {
     subjectOptions,
     selectedAthleteId,
     selectedAthleteName,
+    isSelfSubject,
     activeChildId: contextActiveChildId,
     handleSelectChild,
     handleSelectSubject,
@@ -891,6 +1019,10 @@ export function useMyProgress() {
     latestHomeworkProof: HomeworkCompletionRecord | null;
     skillVelocityHighlight: SkillVelocityHighlight | null;
     attendanceDates: string[];
+    todayPracticeMinutes: number;
+    weeklyPracticeMinutes: number;
+    logPracticeMinutes: (minutes: number) => Promise<Result<PracticeLogEntry, ServiceError>>;
+    isLoggingPractice: boolean;
     markHomeworkDone: (proof: { proofUri: string; proofType: 'photo' | 'video' }) => Promise<void>;
     coachFocus: ReturnType<typeof useCoachFocus>;
     familyHighlights: FamilyHighlightItem[];
@@ -900,6 +1032,7 @@ export function useMyProgress() {
     subjectOptions: ProfileSubjectOption[];
     selectedAthleteId: string | null;
     selectedAthleteName: string;
+    isSelfSubject: boolean;
     activeChildId: string | null;
     handleSelectChild: (childId: string) => void;
     handleSelectSubject: (subjectId: string) => void;

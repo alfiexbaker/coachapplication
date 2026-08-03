@@ -108,12 +108,10 @@ export const CoachSaysCard = function CoachSaysCard({
   }));
 
   const toggleHomework = () => {
-    setHomeworkExpanded((prev) => {
-      const next = !prev;
-      const key = feedbackId ?? 'none';
-      homeworkExpandedByFeedbackIdRef.current[key] = next;
-      return next;
-    });
+    const next = !homeworkExpanded;
+    const key = feedbackId ?? 'none';
+    homeworkExpandedByFeedbackIdRef.current[key] = next;
+    setHomeworkExpanded(next);
   };
 
   const trimmedImprovements = feedback?.improvements?.trim() ?? '';
@@ -408,9 +406,9 @@ export const CoachSaysCard = function CoachSaysCard({
           <Column gap="xxs">
             <ThemedText style={styles.sectionTitle}>Session badges</ThemedText>
             <Row wrap gap="xxs">
-              {sessionBadges.map((badge, index) => (
+              {sessionBadges.map((badge) => (
                 <Row
-                  key={`${badge}_${index}`}
+                  key={badge}
                   align="center"
                   gap="xxs"
                   style={[

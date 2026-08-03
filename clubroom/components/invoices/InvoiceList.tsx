@@ -69,6 +69,12 @@ export function InvoiceList({
     setShowDateFilter(false);
   };
 
+  const handleClearFilters = () => {
+    setSelectedStatus('ALL');
+    setDateRange({});
+    onFilterChange?.({});
+  };
+
   const filteredInvoices =
     selectedStatus === 'ALL' ? invoices : invoices.filter((inv) => inv.status === selectedStatus);
 
@@ -81,8 +87,8 @@ export function InvoiceList({
   const renderEmpty = () => (
     <InvoiceEmptyState
       message={emptyMessage}
-      hasFilter={selectedStatus !== 'ALL'}
-      onClearFilter={() => handleStatusFilter('ALL')}
+      hasFilter={selectedStatus !== 'ALL' || Boolean(dateRange.from || dateRange.to)}
+      onClearFilter={handleClearFilters}
       palette={palette}
     />
   );

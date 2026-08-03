@@ -11,7 +11,6 @@ export interface ClubDetailStatsProps {
   memberCount: number;
   squadCount: number;
   activityCount: number;
-  inviteCount: number;
   canExpand: boolean;
   isExpanded: boolean;
   onToggleMembers: () => void;
@@ -22,7 +21,6 @@ export const ClubDetailStats = function ClubDetailStats({
   memberCount,
   squadCount,
   activityCount,
-  inviteCount,
   canExpand,
   isExpanded,
   onToggleMembers,
@@ -30,21 +28,32 @@ export const ClubDetailStats = function ClubDetailStats({
 }: ClubDetailStatsProps) {
   return (
     <Row style={[styles.row, { borderColor: colors.border }]}>
-      <Clickable style={styles.item} onPress={onToggleMembers}>
-        <ThemedText type="title" style={Typography.heading}>
-          {memberCount}
-        </ThemedText>
-        <Row style={styles.labelRow}>
-          <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
-          {canExpand && (
+      {canExpand ? (
+        <Clickable
+          style={styles.item}
+          onPress={onToggleMembers}
+          accessibilityLabel={isExpanded ? 'Hide club members' : 'Show club members'}
+        >
+          <ThemedText type="title" style={Typography.heading}>
+            {memberCount}
+          </ThemedText>
+          <Row style={styles.labelRow}>
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
             <Ionicons
               name={isExpanded ? 'chevron-up' : 'chevron-down'}
               size={12}
               color={colors.muted}
             />
-          )}
-        </Row>
-      </Clickable>
+          </Row>
+        </Clickable>
+      ) : (
+        <View style={styles.item}>
+          <ThemedText type="title" style={Typography.heading}>
+            {memberCount}
+          </ThemedText>
+          <ThemedText style={[Typography.caption, { color: colors.muted }]}>Members</ThemedText>
+        </View>
+      )}
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
       <View style={styles.item}>
         <ThemedText type="title" style={Typography.heading}>
@@ -58,13 +67,6 @@ export const ClubDetailStats = function ClubDetailStats({
           {activityCount}
         </ThemedText>
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>Activities</ThemedText>
-      </View>
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
-      <View style={styles.item}>
-        <ThemedText type="title" style={Typography.heading}>
-          {inviteCount}
-        </ThemedText>
-        <ThemedText style={[Typography.caption, { color: colors.muted }]}>Invites</ThemedText>
       </View>
     </Row>
   );

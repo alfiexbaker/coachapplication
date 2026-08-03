@@ -85,14 +85,17 @@ function run() {
       }
 
       const topOnlyEdges = matchAllWithLine(source, /edges=\{\['top'\]\}/g);
-      for (const hit of topOnlyEdges) {
-        findings.medium.push({
-          file,
-          line: hit.line,
-          rule: 'top-only-safe-area',
-          detail:
-            'Top-only SafeAreaView can allow bottom controls/content to collide with the home indicator.',
-        });
+      const hasDedicatedBottomSafeArea = source.includes("edges={['bottom']}");
+      if (!hasDedicatedBottomSafeArea) {
+        for (const hit of topOnlyEdges) {
+          findings.medium.push({
+            file,
+            line: hit.line,
+            rule: 'top-only-safe-area',
+            detail:
+              'Top-only SafeAreaView can allow bottom controls/content to collide with the home indicator.',
+          });
+        }
       }
     }
 

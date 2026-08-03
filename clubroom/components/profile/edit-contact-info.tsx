@@ -39,6 +39,7 @@ interface EditContactInfoProps {
   onChangePhone: (text: string) => void;
   website: string;
   onChangeWebsite: (text: string) => void;
+  websiteError?: string | null;
 }
 
 export const EditContactInfo = function EditContactInfo({
@@ -50,6 +51,7 @@ export const EditContactInfo = function EditContactInfo({
   onChangePhone,
   website,
   onChangeWebsite,
+  websiteError,
 }: EditContactInfoProps) {
   const inputStyle = [
     styles.input,
@@ -64,7 +66,7 @@ export const EditContactInfo = function EditContactInfo({
 
   return (
     <SurfaceCard style={styles.section}>
-      <ThemedText type="subtitle">Contact Information</ThemedText>
+      <ThemedText type="subtitle">Contact</ThemedText>
 
       <View style={styles.fieldGroup}>
         <ThemedText style={styles.label}>Email</ThemedText>
@@ -77,9 +79,8 @@ export const EditContactInfo = function EditContactInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Email address"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -93,9 +94,8 @@ export const EditContactInfo = function EditContactInfo({
           placeholderTextColor={colors.muted}
           style={inputStyle}
           accessibilityLabel="Phone number"
-
-            maxLength={20}
-          />
+          maxLength={20}
+        />
       </View>
 
       {userIsCoach && (
@@ -110,9 +110,16 @@ export const EditContactInfo = function EditContactInfo({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Website URL"
-
-            maxLength={200}
+            maxLength={300}
           />
+          {websiteError ? (
+            <ThemedText
+              style={[Typography.caption, { color: colors.error }]}
+              accessibilityRole="alert"
+            >
+              {websiteError}
+            </ThemedText>
+          ) : null}
         </View>
       )}
     </SurfaceCard>
@@ -126,6 +133,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.subheading,

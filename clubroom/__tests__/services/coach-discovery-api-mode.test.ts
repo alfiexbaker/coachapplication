@@ -386,6 +386,45 @@ describe('Coach discovery API mode', () => {
     assert.ok(fetchCalls.includes('http://localhost:4000/v1/coaches/coach-1/reviews'));
   });
 
+  it('uses v1 coach search for text location filters in API mode', async () => {
+    await seedLocalCoachNoise();
+    const { coachService } = await import('@/services/coach-service');
+    const fetchCalls: string[] = [];
+    globalThis.fetch = (async (input) => {
+      const url = String(input);
+      fetchCalls.push(url);
+      if (url.startsWith('http://localhost:4000/v1/coaches/search?')) {
+        return jsonResponse(apiSearchResponse('usr_api_coach', richCoachProfile()));
+      }
+      return jsonResponse({ message: `Unexpected ${url}` }, 500);
+    }) as typeof fetch;
+
+    const result = await coachService.getCoaches({
+      location: 'API Public Pitch',
+      maxPrice: 100,
+      minRating: 4,
+    });
+
+    assert.equal(result.success, true);
+    if (!result.success) {
+      return;
+    }
+    assert.ok(
+      fetchCalls.some(
+        (url) =>
+          url.startsWith('http://localhost:4000/v1/coaches/search?') &&
+          url.includes('query=API+Public+Pitch') &&
+          url.includes('priceMax=100') &&
+          url.includes('rating=4') &&
+          url.includes('sports=Football') &&
+          url.includes('pageSize=100'),
+      ),
+    );
+    assert.equal(fetchCalls.some((url) => url.endsWith('/v1/coaches/offerings')), false);
+    assert.equal(result.data[0]?.id, 'usr_api_coach');
+    assert.equal(result.data.some((coach) => coach.id === 'coach-1'), false);
+  });
+
   it('toggles coach follows through the v1 follow API', async () => {
     const { coachService } = await import('@/services/coach-service');
     const calls: Array<{ method: string; path: string; body?: unknown }> = [];

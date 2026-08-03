@@ -230,8 +230,9 @@ export class MessagingService {
   }
 
   /**
-   * Check if a co-guardian has visibility into a thread.
-   * API Integration: GET /api/messages/threads/:threadId/access?userId=:userId
+   * Check if a co-guardian has visibility into a thread through backend-owned
+   * thread membership.
+   * API Integration: GET /v1/message-threads
    *
    * S-34: Co-guardians linked to the same child can view message history
    * for sessions involving that child.
@@ -250,8 +251,10 @@ export class MessagingService {
         return ok(false);
       }
 
-      // Check if the thread's subtitle (child name) matches any linked child
-      // In production, this would check the thread's associated childId
+      if (!USE_MOCK) {
+        return ok(true);
+      }
+
       const hasAccess = linkedChildIds.length > 0;
       return ok(hasAccess);
     } catch (error) {

@@ -1,0 +1,46 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T18:00:33.540Z",
+  "meta": {
+    "roles": [
+      "admin"
+    ],
+    "profiles": [
+      "add-child-authority"
+    ],
+    "role": "admin",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 700
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "admin_add_child_denied",
+      "role": "admin",
+      "title": "admin is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/add-child-authority-final/admin__admin_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2519
+    }
+  ]
+}

@@ -97,6 +97,7 @@ export function NextAvailableDisplay({ nextAvailable }: NextAvailableDisplayProp
 
 export interface MetaRowProps {
   distanceMiles?: number;
+  /** Session price in pounds. */
   pricePerHour?: number;
   showDivider?: boolean;
 }
@@ -126,7 +127,7 @@ export function MetaRow({ distanceMiles, pricePerHour, showDivider = true }: Met
       )}
       {hasPrice && (
         <ThemedText style={[styles.priceText, { color: palette.text }]}>
-          £{pricePerHour}/hr
+          £{pricePerHour}/session
         </ThemedText>
       )}
     </Row>

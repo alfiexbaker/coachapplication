@@ -23,8 +23,10 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { Colors, type ThemeName } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 import {
   createIdlePendingState,
+  createLatestScreenRequestCoordinator,
   deriveScreenPendingState,
   deriveScreenStatus,
   isTruthfulScreenStatus,
@@ -129,6 +131,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   );
   const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
   const [resolvedDataKey, setResolvedDataKey] = useState<string | null>(null);
+  const [requestCoordinator] = useState(createLatestScreenRequestCoordinator);
 
   // Theme
   const scheme: ThemeName = useColorScheme() ?? 'dark';
@@ -139,7 +142,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const hasLoadedOnceRef = useRef(false);
   const statusRef = useRef<ScreenStatus>('loading');
   const resolvedDataKeyRef = useRef<string | null>(null);
-  const snapshotCacheRef = useRef<Map<string, ScreenSnapshot<T>>>(new Map());
+  const snapshotCacheRef = useLazyRef(() => new Map<string, ScreenSnapshot<T>>());
   const loadRef = useRef(load);
   const isEmptyRef = useRef(isEmpty);
   const depsRef = useRef(deps);
@@ -166,18 +169,27 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, [resolvedDataKey]);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       markUnmounted(mountedRef);
     };
   }, []);
 
   const fetchData = async (mode: ScreenLoadMode = 'initial') => {
+    const request = requestCoordinator.begin(mode === 'silent' ? 'background' : 'foreground');
+    if (!request.isCurrent()) {
+      request.finish();
+      return;
+    }
+    const isCurrentRequest = () => mountedRef.current && request.isCurrent();
     const currentStatus = statusRef.current;
     const requestedDataKey = dataKey ?? null;
     const cachedSnapshot =
       requestedDataKey !== null ? (snapshotCacheRef.current.get(requestedDataKey) ?? null) : null;
     const hasVisibleTruthfulFrame =
-      isTruthfulScreenStatus(currentStatus) || cachedSnapshot !== null;
+      (isTruthfulScreenStatus(currentStatus) &&
+        (requestedDataKey === null || resolvedDataKeyRef.current === requestedDataKey)) ||
+      cachedSnapshot !== null;
     const hasRequestedTruthfulFrame =
       requestedDataKey === null ||
       resolvedDataKeyRef.current === requestedDataKey ||
@@ -222,7 +234,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       async () => {
         const timeoutResult = await withTimeout(loadRef.current(), loadTimeoutMs);
 
-        if (mountedRef.current) {
+        if (isCurrentRequest()) {
           // Timeout expired — treat as a network error
           if (!timeoutResult.success) {
             if (
@@ -285,7 +297,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
         }
       },
       async (loadError) => {
-        if (!mountedRef.current) return;
+        if (!isCurrentRequest()) return;
         const normalizedError = normalizeUnknownError(loadError);
         if (
           shouldSurfaceBackgroundFailure({
@@ -303,13 +315,12 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
         }
       },
       () => {
-        if (mode === 'refresh' && mountedRef.current) {
-          setRefreshing(false);
-        }
-        if (mountedRef.current) {
-          setPendingState(createIdlePendingState(loadingStrategy));
-          setHasResolvedOnce(true);
-        }
+        const wasCurrentRequest = isCurrentRequest();
+        request.finish();
+        if (!wasCurrentRequest) return;
+        setRefreshing(false);
+        setPendingState(createIdlePendingState(loadingStrategy));
+        setHasResolvedOnce(true);
         hasLoadedOnceRef.current = true;
       },
     );

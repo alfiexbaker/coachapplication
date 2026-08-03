@@ -36,6 +36,45 @@ export interface ScreenFailureStateOptions extends ScreenPendingStateOptions {
   pendingState: ScreenPendingState;
 }
 
+export interface ScreenRequestTicket {
+  isCurrent: () => boolean;
+  finish: () => void;
+}
+
+export interface ScreenRequestCoordinator {
+  begin: (kind?: 'foreground' | 'background') => ScreenRequestTicket;
+}
+
+export function createLatestScreenRequestCoordinator(): ScreenRequestCoordinator {
+  let nextRequestId = 0;
+  let activeRequestId = 0;
+  let activeForegroundRequestId: number | null = null;
+
+  return {
+    begin: (kind = 'foreground') => {
+      const requestId = ++nextRequestId;
+      const blockedByForeground =
+        kind === 'background' && activeForegroundRequestId !== null;
+
+      if (!blockedByForeground) {
+        activeRequestId = requestId;
+        if (kind === 'foreground') {
+          activeForegroundRequestId = requestId;
+        }
+      }
+
+      return {
+        isCurrent: () => !blockedByForeground && requestId === activeRequestId,
+        finish: () => {
+          if (!blockedByForeground && activeForegroundRequestId === requestId) {
+            activeForegroundRequestId = null;
+          }
+        },
+      };
+    },
+  };
+}
+
 export function createIdlePendingState(
   strategy: ScreenLoadingStrategy = 'cold-first',
 ): ScreenPendingState {

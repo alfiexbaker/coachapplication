@@ -13,7 +13,15 @@ import React from 'react';
 
 import { Badge, type BadgeTone } from '@/components/primitives/badge';
 
-export type BookingStatus = 'Pending' | 'Confirmed' | 'Needs Completion' | 'Completed' | 'Cancelled';
+export type BookingStatus =
+  | 'Pending'
+  | 'Confirmed'
+  | 'Needs Completion'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Declined'
+  | 'Withdrawn'
+  | 'Expired';
 
 const STATUS_TONE_MAP: Record<BookingStatus, BadgeTone> = {
   Pending: 'warning',
@@ -21,6 +29,9 @@ const STATUS_TONE_MAP: Record<BookingStatus, BadgeTone> = {
   'Needs Completion': 'warning',
   Completed: 'info',
   Cancelled: 'error',
+  Declined: 'error',
+  Withdrawn: 'error',
+  Expired: 'neutral',
 };
 
 export function StatusBadge({

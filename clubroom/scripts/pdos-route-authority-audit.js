@@ -3,6 +3,7 @@
 
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
+const ts = require('typescript');
 const { listFiles } = require('./file-scan-utils');
 const { resolveLoadingRouteEntry } = require('../navigation/loading-route-manifest');
 
@@ -15,6 +16,13 @@ const ROUTE_RULES = [
     verdict: 'OPS-CORE',
     personas: ['parent', 'coach', 'club', 'child'],
     job: 'app shell, providers, routing, and account/session frame',
+  },
+  {
+    match: /app\/revyl-auth\.tsx/,
+    pdos: 'PDOS-01',
+    verdict: 'OPS-CORE',
+    personas: ['parent', 'coach', 'club', 'child'],
+    job: 'development-only native-audit deep-link backstop; production redirects to root',
   },
   {
     match: /app\/\(tabs\)\/(messages|notifications)\.tsx|app\/chat\/index\.tsx/,
@@ -34,8 +42,8 @@ const ROUTE_RULES = [
     match: /app\/\(tabs\)\/availability\.tsx/,
     pdos: 'PDOS-03',
     verdict: 'PROTECT',
-    personas: ['coach', 'club'],
-    job: 'coach availability and bookable storefront readiness entry',
+    personas: ['coach'],
+    job: 'legacy deep-link redirect to the canonical Schedule availability segment',
   },
   {
     match: /app\/\(tabs\)\/schedule\.tsx/,
@@ -196,8 +204,7 @@ const ROUTE_RULES = [
   },
 ];
 
-const SERVICE_IMPORT_PATTERN =
-  /from ['"]@\/services\/([^'"]+)['"]|from ['"]\.\.\/services\/([^'"]+)['"]|from ['"]\.\.\/\.\.\/services\/([^'"]+)['"]/g;
+const SERVICE_IMPORT_PATH_PATTERN = /^(?:@\/|\.\.\/|\.\.\/\.\.\/)services\/(.+)$/;
 const HOOK_IMPORT_PATTERN = /from ['"]@\/hooks\/([^'"]+)['"]/g;
 const COMPONENT_IMPORT_PATTERN = /from ['"]@\/components\/([^'"]+)['"]/g;
 const IMPLEMENTATION_RISK_FLAGS = new Set([
@@ -205,6 +212,15 @@ const IMPLEMENTATION_RISK_FLAGS = new Set([
   'direct-fetch-check',
   'money-hard-wall-check',
   'sensitive-read-audit-check',
+]);
+const SENSITIVE_SERVICE_IMPORTS = new Set([
+  'child-service',
+  'concern-service',
+  'consent-service',
+  'injury-service',
+  'safety-service',
+  'trust',
+  'trust/safeguarding-service',
 ]);
 
 function parseArgs(argv) {
@@ -251,6 +267,39 @@ function extractMatches(content, pattern) {
 
   pattern.lastIndex = 0;
   return matches;
+}
+
+function extractRuntimeServiceImports(content) {
+  const source = ts.createSourceFile(
+    'pdos-route-audit.tsx',
+    content,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TSX,
+  );
+  const imports = [];
+
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+      continue;
+    }
+
+    const clause = statement.importClause;
+    if (clause?.isTypeOnly) continue;
+    if (
+      clause?.namedBindings &&
+      ts.isNamedImports(clause.namedBindings) &&
+      !clause.name &&
+      clause.namedBindings.elements.every((element) => element.isTypeOnly)
+    ) {
+      continue;
+    }
+
+    const match = SERVICE_IMPORT_PATH_PATTERN.exec(statement.moduleSpecifier.text);
+    if (match) imports.push(match[1]);
+  }
+
+  return imports;
 }
 
 function readProjectFileIfExists(relativeFile) {
@@ -422,14 +471,10 @@ function collectRouteContext(routeContent) {
     .map((file) => readProjectFileIfExists(file))
     .filter(Boolean);
   const componentContents = collectImportedComponentContents(routeContent);
-  const hookServiceImports = hookContents.flatMap((content) =>
-    extractMatches(content, SERVICE_IMPORT_PATTERN),
-  );
-  const componentServiceImports = componentContents.flatMap((content) =>
-    extractMatches(content, SERVICE_IMPORT_PATTERN),
-  );
+  const hookServiceImports = hookContents.flatMap(extractRuntimeServiceImports);
+  const componentServiceImports = componentContents.flatMap(extractRuntimeServiceImports);
   const serviceImports = uniq([
-    ...extractMatches(routeContent, SERVICE_IMPORT_PATTERN),
+    ...extractRuntimeServiceImports(routeContent),
     ...hookServiceImports,
     ...componentServiceImports,
   ]);
@@ -747,19 +792,18 @@ function stripDecorativeIconNames(content) {
     .replace(/\bname\s*=\s*['"][^'"]+-outline['"]/g, '');
 }
 
-function hasRuntimeDataSource(content, context) {
+function hasSensitiveRuntimeDataSource(content, context) {
   return (
-    context.serviceImports.length > 0 ||
-    /fetch\s*\(|AsyncStorage|localStorage/.test(content)
+    context.serviceImports.some((serviceImport) => SENSITIVE_SERVICE_IMPORTS.has(serviceImport)) ||
+    /(?:apiFetch|fetch)\s*\(|AsyncStorage|localStorage/.test(content)
   );
 }
 
 function filterRiskFlags(flags, content, context) {
-  if (hasRuntimeDataSource(content, context)) {
-    return flags;
-  }
-
-  return flags.filter((flag) => flag !== 'sensitive-read-audit-check');
+  return flags.filter((flag) => {
+    if (flag !== 'sensitive-read-audit-check') return true;
+    return hasSensitiveRuntimeDataSource(content, context);
+  });
 }
 
 function getRiskFlags(content, file) {
@@ -977,4 +1021,8 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { extractRuntimeServiceImports, filterRiskFlags };

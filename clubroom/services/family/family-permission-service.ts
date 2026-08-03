@@ -20,7 +20,7 @@ import {
   mapChildProfileToFamilyMember,
   type ApiFamilyAthlete,
 } from './family-api-support';
-import { CHILD_COLORS } from './family-member-service';
+import { CHILD_COLORS } from './family-colors';
 import {
   type Result,
   type ServiceError,
@@ -218,7 +218,11 @@ class FamilyPermissionService {
   }
 
   private normalizeRole(role: string | null | undefined): 'PRIMARY' | 'GUARDIAN' | 'VIEWER' {
-    return role === 'PRIMARY' || role === 'GUARDIAN' || role === 'VIEWER' ? role : 'GUARDIAN';
+    const normalized = role?.toUpperCase();
+    if (normalized === 'PRIMARY' || normalized === 'OWNER' || normalized === 'ADMIN') {
+      return 'PRIMARY';
+    }
+    return normalized === 'VIEWER' ? 'VIEWER' : 'GUARDIAN';
   }
 
   // ==========================================================================

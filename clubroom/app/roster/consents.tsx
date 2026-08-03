@@ -1,7 +1,7 @@
 /**
- * Consent Dashboard Screen
+ * Roster consents
  *
- * Quick view of athlete consent statuses with search, filters, and stat cards.
+ * Roster consent statuses with search, filters, and stat cards.
  * All state/logic in useConsents hook. StatCard kept inline (small).
  */
 
@@ -43,9 +43,13 @@ function StatCard({
   const { colors: palette } = useTheme();
   const total = granted + denied;
   const pct = total > 0 ? Math.round((granted / total) * 100) : 0;
+  const consentStatusColor =
+    pct === 100 ? palette.success : pct > 0 ? palette.warning : palette.error;
   return (
     <Clickable
       onPress={onPress}
+      accessibilityLabel={`${CONSENT_TYPE_LABELS[type]} consent: ${pct}% granted, ${granted} of ${total} athletes`}
+      accessibilityState={{ selected: isActive }}
       style={[
         styles.statCard,
         {
@@ -62,13 +66,13 @@ function StatCard({
         />
         <ThemedText
           style={[styles.statLabel, { color: isActive ? palette.tint : palette.muted }]}
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {CONSENT_TYPE_LABELS[type]}
         </ThemedText>
       </Row>
       <Row align="baseline" justify="space-between" style={styles.statNumbers}>
-        <ThemedText style={[styles.statPct, { color: palette.success }]}>{pct}%</ThemedText>
+        <ThemedText style={[styles.statPct, { color: consentStatusColor }]}>{pct}%</ThemedText>
         <ThemedText style={[styles.statDetail, { color: palette.muted }]}>
           {granted}/{total}
         </ThemedText>
@@ -82,13 +86,18 @@ export default function ConsentsScreen() {
   const c = useConsents();
   const header = (
     <Row align="center" gap="md" style={styles.header}>
-      <Clickable onPress={() => router.back()} hitSlop={8}>
+      <Clickable
+        onPress={() => router.back()}
+        hitSlop={8}
+        accessibilityLabel="Back"
+        accessibilityHint="Returns to the previous screen"
+      >
         <Ionicons name="arrow-back" size={24} color={palette.text} />
       </Clickable>
       <View style={styles.headerTitle}>
-        <ThemedText type="title">Consent Dashboard</ThemedText>
+        <ThemedText type="title">Consents</ThemedText>
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-          Quick view before posting content
+          Review player consents before posting.
         </ThemedText>
       </View>
     </Row>
@@ -117,8 +126,17 @@ export default function ConsentsScreen() {
   }
 
   if (c.status === 'error') {
+    const terminalAccessError = c.error?.code === 'UNAUTHORIZED';
     return renderShell(
-      <ErrorState message={c.error?.message || 'Failed to load consent data.'} onRetry={c.retry} />,
+      <ErrorState
+        title={terminalAccessError ? 'Consent access unavailable' : undefined}
+        message={
+          terminalAccessError
+            ? 'Your account does not have roster consents to review.'
+            : c.error?.message || 'Failed to load consent data.'
+        }
+        onRetry={terminalAccessError ? undefined : c.retry}
+      />,
     );
   }
 
@@ -155,7 +173,7 @@ export default function ConsentsScreen() {
           <Ionicons name="search" size={18} color={palette.muted} />
           <TextInput
             style={[styles.searchInput, { color: palette.text }]}
-            placeholder="Search athletes..."
+            placeholder="Search players..."
             placeholderTextColor={palette.muted}
             value={c.searchQuery}
             onChangeText={c.setSearchQuery}
@@ -169,6 +187,9 @@ export default function ConsentsScreen() {
         </Row>
         <Clickable
           onPress={c.toggleFilters}
+          accessibilityLabel={c.showFilters ? 'Hide consent filters' : 'Show consent filters'}
+          accessibilityHint="Filters the roster consent list"
+          accessibilityState={{ expanded: c.showFilters }}
           style={[
             styles.filterButton,
             {
@@ -215,11 +236,11 @@ export default function ConsentsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="shield-checkmark-outline"
-            title="No athletes found"
+            title="No players found"
             message={
               c.searchQuery || c.activeFiltersCount > 0
                 ? 'Try adjusting your search or filters'
-                : 'No athletes in your roster have consent data yet.'
+                : 'No players in your roster have consent data yet.'
             }
             actionLabel={c.activeFiltersCount > 0 ? 'Clear Filters' : undefined}
             onPressAction={c.activeFiltersCount > 0 ? c.clearFilters : undefined}
@@ -246,7 +267,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statHeader: {},
-  statLabel: { ...Typography.caption, flex: 1 },
+  statLabel: { ...Typography.caption, flex: 1, lineHeight: 15 },
   statNumbers: {},
   statPct: { ...Typography.heading },
   statDetail: { ...Typography.caption },

@@ -16,7 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { TrainingCard } from '@/components/club/training-card';
 import { WeeklyCalendarView } from '@/components/club/weekly-calendar-view';
 import { TrainingAttendanceCard } from '@/components/club/training-attendance-card';
@@ -35,6 +35,8 @@ export default function TrainingScheduleScreen() {
   const { colors } = useTheme();
   const {
     loading,
+    error,
+    retry,
     viewMode,
     setViewMode,
     selectedSquadId,
@@ -125,6 +127,10 @@ export default function TrainingScheduleScreen() {
       {loading ? (
         <View style={styles.content}>
           <LoadingState variant="schedule" />
+        </View>
+      ) : error ? (
+        <View style={styles.content}>
+          <ErrorState message={error} onRetry={retry} />
         </View>
       ) : filteredSessions.length === 0 ? (
         <View style={styles.content}>

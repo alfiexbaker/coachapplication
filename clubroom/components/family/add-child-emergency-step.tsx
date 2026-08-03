@@ -1,21 +1,12 @@
 import React from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { MedicalTagListForm } from './medical-tag-list-form';
-
-// Re-export extracted components for backward compat
-export { AddChildConsentsStep } from './add-child-emergency-step-sections';
-export type { AddChildConsentsStepProps } from './add-child-emergency-step-sections';
-
-// ─── Types ──────────────────────────────────────────────────────
 
 export interface AddChildEmergencyStepProps {
   firstName: string;
@@ -49,8 +40,6 @@ export interface AddChildEmergencyStepProps {
   onAddMedication: () => void;
   onEmergencyTreatmentConsentChange: (value: boolean) => void;
 }
-
-// ─── Emergency Step ─────────────────────────────────────────────
 
 function AddChildEmergencyStepInner({
   firstName,
@@ -86,230 +75,245 @@ function AddChildEmergencyStepInner({
 }: AddChildEmergencyStepProps) {
   const { colors: palette } = useTheme();
 
+  const inputStyle = [
+    styles.input,
+    {
+      backgroundColor: palette.surface,
+      borderColor: palette.border,
+      color: palette.text,
+    },
+  ];
+
   return (
     <View style={styles.stepContent}>
-      <SurfaceCard style={styles.infoCard}>
-        <Ionicons name="shield-checkmark-outline" size={24} color={palette.tint} />
-        <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          Add the details coaches may need if something goes wrong or {firstName || 'your child'}
-          needs support during a session.
-        </ThemedText>
-      </SurfaceCard>
+      <ThemedText style={[styles.context, { color: palette.muted }]}>
+        Coaches can see these details only when assigned to this player.
+      </ThemedText>
 
-      <SurfaceCard style={styles.sectionCard}>
-        <Column gap="md">
-          <View style={styles.field}>
-            <ThemedText type="defaultSemiBold">Primary Emergency Contact *</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              This person will be called first if we cannot reach you.
-            </ThemedText>
-          </View>
+      <View style={styles.section}>
+        <View style={styles.sectionHeading}>
+          <ThemedText type="defaultSemiBold">Emergency contact</ThemedText>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Who should be called first?
+          </ThemedText>
+        </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Full Name *</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="Contact name"
-              placeholderTextColor={palette.muted}
-              value={emergencyName}
-              onChangeText={onEmergencyNameChange}
-              autoCapitalize="words"
-              maxLength={50}
-            />
-          </View>
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>Full name *</ThemedText>
+          <TextInput
+            style={inputStyle}
+            accessibilityLabel="Emergency contact full name"
+            placeholder="Contact name"
+            placeholderTextColor={palette.muted}
+            value={emergencyName}
+            onChangeText={onEmergencyNameChange}
+            autoCapitalize="words"
+            autoComplete="name"
+            textContentType="name"
+            maxLength={50}
+          />
+        </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Phone Number *</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="+44 7700 900123"
-              placeholderTextColor={palette.muted}
-              value={emergencyPhone}
-              onChangeText={onEmergencyPhoneChange}
-              keyboardType="phone-pad"
-              maxLength={20}
-            />
-          </View>
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>Phone number *</ThemedText>
+          <TextInput
+            style={inputStyle}
+            accessibilityLabel="Emergency contact phone number"
+            placeholder="07700 900123"
+            placeholderTextColor={palette.muted}
+            value={emergencyPhone}
+            onChangeText={onEmergencyPhoneChange}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            maxLength={20}
+          />
+        </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Relationship to Child *</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="e.g., Mother, Father, Grandparent"
-              placeholderTextColor={palette.muted}
-              value={emergencyRelation}
-              onChangeText={onEmergencyRelationChange}
-              maxLength={100}
-            />
-          </View>
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>Relationship to player *</ThemedText>
+          <TextInput
+            style={inputStyle}
+            accessibilityLabel="Emergency contact relationship to player"
+            placeholder="For example, parent or grandparent"
+            placeholderTextColor={palette.muted}
+            value={emergencyRelation}
+            onChangeText={onEmergencyRelationChange}
+            autoCapitalize="words"
+            maxLength={100}
+          />
+        </View>
+      </View>
 
-          <View style={[styles.field, { marginTop: Spacing.xs }]}>
-            <ThemedText type="defaultSemiBold">Secondary Contact (Optional)</ThemedText>
-          </View>
+      <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Full Name</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="Secondary contact name"
-              placeholderTextColor={palette.muted}
-              value={secondaryName}
-              onChangeText={onSecondaryNameChange}
-              autoCapitalize="words"
-              maxLength={50}
-            />
-          </View>
+      <View style={styles.section}>
+        <View style={styles.sectionHeading}>
+          <ThemedText type="defaultSemiBold">Backup contact</ThemedText>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>Optional</ThemedText>
+        </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Phone Number</ThemedText>
-            <TextInput
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-              placeholder="+44 7700 900456"
-              placeholderTextColor={palette.muted}
-              value={secondaryPhone}
-              onChangeText={onSecondaryPhoneChange}
-              keyboardType="phone-pad"
-              maxLength={20}
-            />
-          </View>
-        </Column>
-      </SurfaceCard>
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>Full name</ThemedText>
+          <TextInput
+            style={inputStyle}
+            accessibilityLabel="Backup contact full name, optional"
+            placeholder="Contact name"
+            placeholderTextColor={palette.muted}
+            value={secondaryName}
+            onChangeText={onSecondaryNameChange}
+            autoCapitalize="words"
+            autoComplete="name"
+            textContentType="name"
+            maxLength={50}
+          />
+        </View>
 
-      <SurfaceCard style={styles.sectionCard}>
-        <Clickable
-          onPress={() => onEmergencyTreatmentConsentChange(!emergencyTreatmentConsent)}
-          style={[styles.consentRow, { borderColor: palette.border }]}
-          accessibilityLabel="Toggle emergency treatment consent"
-        >
-          <Column flex gap="micro">
-            <ThemedText type="defaultSemiBold">Emergency treatment consent</ThemedText>
-            <ThemedText style={[styles.consentDesc, { color: palette.muted }]}>
-              Allow urgent medical treatment if a parent cannot be reached in time.
-            </ThemedText>
-          </Column>
-          <View
-            style={[
-              styles.toggle,
-              { backgroundColor: emergencyTreatmentConsent ? palette.success : palette.border },
-            ]}
-          >
-            <View
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>Phone number</ThemedText>
+          <TextInput
+            style={inputStyle}
+            accessibilityLabel="Backup contact phone number, optional"
+            placeholder="07700 900456"
+            placeholderTextColor={palette.muted}
+            value={secondaryPhone}
+            onChangeText={onSecondaryPhoneChange}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
+            maxLength={20}
+          />
+        </View>
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: palette.border }]} />
+
+      <Row align="center" style={styles.settingRow}>
+        <View style={styles.settingCopy}>
+          <ThemedText type="defaultSemiBold">Emergency treatment</ThemedText>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Allow urgent treatment when a guardian cannot be reached.
+          </ThemedText>
+        </View>
+        <Switch
+          value={emergencyTreatmentConsent}
+          onValueChange={onEmergencyTreatmentConsentChange}
+          accessibilityLabel="Emergency treatment consent"
+          trackColor={{ false: palette.border, true: palette.tint }}
+          thumbColor={palette.onPrimary}
+          ios_backgroundColor={palette.border}
+        />
+      </Row>
+
+      <View style={[styles.divider, { backgroundColor: palette.border }]} />
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeading}>
+          <ThemedText type="defaultSemiBold">Coach medical notes</ThemedText>
+          <ThemedText style={[styles.hint, { color: palette.muted }]}>
+            Include only what an assigned coach needs for a session.
+          </ThemedText>
+        </View>
+
+        <View style={styles.field}>
+          <ThemedText style={styles.label}>
+            Does an assigned coach need medical, allergy or medication details for{' '}
+            {firstName || 'this player'}? *
+          </ThemedText>
+          <Row style={styles.yesNoRow}>
+            <Clickable
+              onPress={() => onHasMedicalDetailsChange(true)}
+              accessibilityRole="radio"
+              accessibilityLabel="Yes, a coach needs medical details"
+              accessibilityState={{
+                selected: hasMedicalDetails === true,
+                checked: hasMedicalDetails === true,
+              }}
               style={[
-                styles.toggleKnob,
+                styles.yesNoButton,
                 {
-                  backgroundColor: palette.onPrimary,
-                  transform: [{ translateX: emergencyTreatmentConsent ? 18 : 2 }],
+                  backgroundColor: hasMedicalDetails === true ? palette.tint : palette.surface,
+                  borderColor: hasMedicalDetails === true ? palette.tint : palette.border,
                 },
               ]}
-            />
-          </View>
-        </Clickable>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.sectionCard}>
-        <Column gap="md">
-          <View style={styles.field}>
-            <ThemedText type="defaultSemiBold">Medical details for coaches</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Only include what a coach should know to keep {firstName || 'your child'} safe.
-            </ThemedText>
-          </View>
-
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>
-              Does a coach need any medical, allergy, or medication details?
-            </ThemedText>
-            <Row style={styles.yesNoRow}>
-              <Clickable
-                onPress={() => onHasMedicalDetailsChange(true)}
+            >
+              <ThemedText
                 style={[
-                  styles.yesNoButton,
-                  {
-                    backgroundColor:
-                      hasMedicalDetails === true ? palette.tint : palette.surface,
-                    borderColor: hasMedicalDetails === true ? palette.tint : palette.border,
-                  },
+                  styles.yesNoText,
+                  { color: hasMedicalDetails === true ? palette.onPrimary : palette.text },
                 ]}
               >
-                <ThemedText
-                  style={[
-                    styles.yesNoText,
-                    { color: hasMedicalDetails === true ? palette.onPrimary : palette.text },
-                  ]}
-                >
-                  Yes
-                </ThemedText>
-              </Clickable>
-              <Clickable
-                onPress={() => onHasMedicalDetailsChange(false)}
+                Yes
+              </ThemedText>
+            </Clickable>
+            <Clickable
+              onPress={() => onHasMedicalDetailsChange(false)}
+              accessibilityRole="radio"
+              accessibilityLabel="No medical details are needed"
+              accessibilityState={{
+                selected: hasMedicalDetails === false,
+                checked: hasMedicalDetails === false,
+              }}
+              style={[
+                styles.yesNoButton,
+                {
+                  backgroundColor: hasMedicalDetails === false ? palette.tint : palette.surface,
+                  borderColor: hasMedicalDetails === false ? palette.tint : palette.border,
+                },
+              ]}
+            >
+              <ThemedText
                 style={[
-                  styles.yesNoButton,
-                  {
-                    backgroundColor:
-                      hasMedicalDetails === false ? palette.tint : palette.surface,
-                    borderColor: hasMedicalDetails === false ? palette.tint : palette.border,
-                  },
+                  styles.yesNoText,
+                  { color: hasMedicalDetails === false ? palette.onPrimary : palette.text },
                 ]}
               >
-                <ThemedText
-                  style={[
-                    styles.yesNoText,
-                    { color: hasMedicalDetails === false ? palette.onPrimary : palette.text },
-                  ]}
-                >
-                  No
-                </ThemedText>
-              </Clickable>
-            </Row>
-          </View>
+                No
+              </ThemedText>
+            </Clickable>
+          </Row>
+        </View>
 
-          {hasMedicalDetails === true ? (
-            <MedicalTagListForm
-              allergies={allergies}
-              allergyInput={allergyInput}
-              medicalConditions={medicalConditions}
-              conditionInput={conditionInput}
-              medications={medications}
-              medicationInput={medicationInput}
-              onAllergiesChange={onAllergiesChange}
-              onAllergyInputChange={onAllergyInputChange}
-              onAddAllergy={onAddAllergy}
-              onMedicalConditionsChange={onMedicalConditionsChange}
-              onConditionInputChange={onConditionInputChange}
-              onAddCondition={onAddCondition}
-              onMedicationsChange={onMedicationsChange}
-              onMedicationInputChange={onMedicationInputChange}
-              onAddMedication={onAddMedication}
-              palette={palette}
-              showInfoCard={false}
-            />
-          ) : null}
-        </Column>
-      </SurfaceCard>
+        {hasMedicalDetails === true ? (
+          <MedicalTagListForm
+            allergies={allergies}
+            allergyInput={allergyInput}
+            medicalConditions={medicalConditions}
+            conditionInput={conditionInput}
+            medications={medications}
+            medicationInput={medicationInput}
+            onAllergiesChange={onAllergiesChange}
+            onAllergyInputChange={onAllergyInputChange}
+            onAddAllergy={onAddAllergy}
+            onMedicalConditionsChange={onMedicalConditionsChange}
+            onConditionInputChange={onConditionInputChange}
+            onAddCondition={onAddCondition}
+            onMedicationsChange={onMedicationsChange}
+            onMedicationInputChange={onMedicationInputChange}
+            onAddMedication={onAddMedication}
+            palette={palette}
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   stepContent: {
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
-  infoCard: {
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  sectionCard: {
-    gap: Spacing.sm,
-  },
-  infoText: {
-    flex: 1,
+  context: {
     ...Typography.small,
     lineHeight: 18,
   },
-  sectionHint: {
+  section: {
+    gap: Spacing.md,
+  },
+  sectionHeading: {
+    gap: Spacing.xxs,
+  },
+  hint: {
     ...Typography.small,
     lineHeight: 18,
   },
@@ -321,51 +325,39 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   input: {
-    borderWidth: 1.5,
+    minHeight: 48,
+    borderWidth: 1,
     borderRadius: Radii.md,
-    padding: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     ...Typography.body,
   },
-  yesNoRow: {
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  settingRow: {
     gap: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  settingCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  yesNoRow: {
+    gap: Spacing.xs,
   },
   yesNoButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
+    minHeight: 48,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   yesNoText: {
     ...Typography.bodySemiBold,
   },
-  consentRow: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  consentDesc: {
-    ...Typography.small,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: Radii.full,
-    justifyContent: 'center',
-  },
-  toggleKnob: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.full,
-  },
 });
-
-// ─── Exports ────────────────────────────────────────────────────
 
 export const AddChildEmergencyStep = AddChildEmergencyStepInner;
 export default AddChildEmergencyStep;

@@ -1,26 +1,21 @@
+import { useState } from 'react';
+import * as DocumentPicker from 'expo-document-picker';
+
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService } from '@/services/verification-service';
+import {
+  VERIFICATION_DOCUMENT_PICKER_TYPES,
+  validateVerificationDocumentSelection,
+  verificationService,
+  type VerificationDocumentUploadInput,
+} from '@/services/verification-service';
+import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useBackgroundCheck');
-
-export const BG_CHECK_STEPS = [
-  {
-    id: 1,
-    title: 'Provide Details',
-    description: 'Enter your personal information for the background check',
-  },
-  {
-    id: 2,
-    title: 'Consent & ID Verification',
-    description: 'Confirm your identity and provide consent for the check',
-  },
-  { id: 3, title: 'Review & Submit', description: 'The check is processed by our trusted partner' },
-  { id: 4, title: 'Receive Results', description: 'Certificate issued upon successful completion' },
-];
 
 export interface UseBackgroundCheckResult {
   status: VerificationStatus | null;
@@ -30,13 +25,22 @@ export interface UseBackgroundCheckResult {
   refreshing: boolean;
   onRefresh: () => void;
   retry: () => void;
+  submitting: boolean;
+  uploaded: boolean;
   isVerified: boolean;
   isPending: boolean;
+  handleUpload: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
+  setUploaded: (value: boolean) => void;
 }
 
 export function useBackgroundCheck() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? null;
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(
+    null,
+  );
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -67,6 +71,57 @@ export function useBackgroundCheck() {
   });
 
   const loading = screenStatus === 'loading';
+  const uploaded = Boolean(selectedDocument);
+
+  const handleUpload = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: VERIFICATION_DOCUMENT_PICKER_TYPES,
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const selection = validateVerificationDocumentSelection({
+      uri: asset.uri,
+      fileName: asset.name || 'dbs-certificate',
+      contentType: asset.mimeType,
+      sizeBytes: asset.size,
+      label: 'Enhanced DBS certificate',
+    });
+    if (!selection.success) {
+      uiFeedback.showToast(selection.error.message, 'error');
+      return;
+    }
+    setSelectedDocument(selection.data);
+  };
+
+  const handleSubmit = async () => {
+    if (!coachId || !selectedDocument) return;
+
+    setSubmitting(true);
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await verificationService.submitBackgroundCheckVerification(
+          coachId,
+          selectedDocument,
+        );
+        if (result.success) {
+          setSelectedDocument(null);
+          onRefresh();
+          uiFeedback.showToast('DBS certificate submitted for review.', 'success');
+        } else {
+          uiFeedback.showToast(result.error.message, 'error');
+        }
+      },
+      async (error) => {
+        logger.error('Failed to submit DBS certificate:', error);
+        uiFeedback.showToast('Failed to submit DBS certificate.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
+  };
 
   const isVerified = status?.backgroundCheck.status === 'VERIFIED';
   const isPending = status?.backgroundCheck.status === 'PENDING';
@@ -79,7 +134,14 @@ export function useBackgroundCheck() {
     refreshing,
     onRefresh,
     retry,
+    submitting,
+    uploaded,
     isVerified,
     isPending,
+    handleUpload,
+    handleSubmit,
+    setUploaded: (value: boolean) => {
+      if (!value) setSelectedDocument(null);
+    },
   } satisfies UseBackgroundCheckResult;
 }

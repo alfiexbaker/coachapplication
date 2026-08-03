@@ -112,7 +112,7 @@ export function SubscribeForm({
           onPress={form.handleSubmit}
           disabled={!form.isValid || submitting}
           style={styles.submitButton}
-          label={submitting ? 'Creating...' : 'Start Subscription'}
+          label={submitting ? 'Creating...' : 'Start recurring booking'}
         />
       </Row>
     </KeyboardAvoidingView>

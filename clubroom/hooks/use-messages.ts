@@ -42,8 +42,10 @@ export interface UseMessagesResult {
 export function useMessages(): UseMessagesResult {
   const params = useLocalSearchParams<{
     coachId?: string;
+    bookingId?: string;
   }>();
   const coachId = params.coachId;
+  const bookingId = params.bookingId;
   const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('direct');
@@ -70,15 +72,24 @@ export function useMessages(): UseMessagesResult {
   });
   const threadList = threads ?? EMPTY_THREAD_LIST;
 
-  // Auto-open thread if coachId param is provided.
+  // Auto-open the exact booking thread when available; coachId remains a legacy fallback.
   useEffect(() => {
-    if (!coachId || threadList.length === 0) {
+    if ((!bookingId && !coachId) || threadList.length === 0) {
       return;
     }
     let cancelled = false;
     const openCoachThread = async () => {
       const directThreads = threadList.filter((thread) => thread.kind !== 'group');
       if (directThreads.length === 0) return;
+      const bookingMatch = bookingId
+        ? directThreads.find((thread) => thread.bookingId === bookingId)
+        : undefined;
+      if (bookingMatch) {
+        primeMessageThreadPreview(bookingMatch);
+        router.push(Routes.chat(bookingMatch.id));
+        return;
+      }
+      if (!coachId) return;
       const idHintMatch = directThreads.find((thread) =>
         thread.id.toLowerCase().includes(coachId.toLowerCase()),
       );
@@ -92,10 +103,10 @@ export function useMessages(): UseMessagesResult {
       const coachBookingIds = new Set(
         bookings.flatMap((booking) => (booking.coachId === coachId ? [booking.id] : [])),
       );
-      const bookingMatch = directThreads.find((thread) => coachBookingIds.has(thread.bookingId));
-      if (bookingMatch) {
-        primeMessageThreadPreview(bookingMatch);
-        router.push(Routes.chat(bookingMatch.id));
+      const coachThread = directThreads.find((thread) => coachBookingIds.has(thread.bookingId));
+      if (coachThread) {
+        primeMessageThreadPreview(coachThread);
+        router.push(Routes.chat(coachThread.id));
         return;
       }
     };
@@ -103,7 +114,7 @@ export function useMessages(): UseMessagesResult {
     return () => {
       cancelled = true;
     };
-  }, [coachId, threadList]);
+  }, [bookingId, coachId, threadList]);
   const filteredThreads = (() => {
     const term = search.trim().toLowerCase();
     if (!term) return threadList;

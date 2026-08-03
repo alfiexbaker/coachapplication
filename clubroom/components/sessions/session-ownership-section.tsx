@@ -113,27 +113,29 @@ function SessionOwnershipSectionInner({
         </Column>
       )}
 
-      <Column gap="xs">
-        <ThemedText type="defaultSemiBold">Audit timeline</ThemedText>
-        <View style={[styles.timeline, { borderColor: palette.border }]}>
-          {timeline.map((entry) => (
-            <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
-              <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
-              <Column gap="xxs" style={styles.timelineContent}>
-                <ThemedText style={styles.timelineTitle}>{entry.title}</ThemedText>
-                {entry.meta ? (
+      {timeline.length > 0 ? (
+        <Column gap="xs">
+          <ThemedText type="defaultSemiBold">Audit timeline</ThemedText>
+          <View style={[styles.timeline, { borderColor: palette.border }]}>
+            {timeline.map((entry) => (
+              <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
+                <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
+                <Column gap="xxs" style={styles.timelineContent}>
+                  <ThemedText style={styles.timelineTitle}>{entry.title}</ThemedText>
+                  {entry.meta ? (
+                    <ThemedText style={[styles.metaSubtext, { color: palette.muted }]}>
+                      {entry.meta}
+                    </ThemedText>
+                  ) : null}
                   <ThemedText style={[styles.metaSubtext, { color: palette.muted }]}>
-                    {entry.meta}
+                    {entry.timestampLabel}
                   </ThemedText>
-                ) : null}
-                <ThemedText style={[styles.metaSubtext, { color: palette.muted }]}>
-                  {entry.timestampLabel}
-                </ThemedText>
-              </Column>
-            </Row>
-          ))}
-        </View>
-      </Column>
+                </Column>
+              </Row>
+            ))}
+          </View>
+        </Column>
+      ) : null}
     </SurfaceCard>
   );
 }

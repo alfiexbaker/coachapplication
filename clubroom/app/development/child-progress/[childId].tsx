@@ -46,6 +46,8 @@ import { Routes } from '@/navigation/routes';
 import type { FootballSkill } from '@/types/progress-types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { formatShortDateWithYear } from '@/utils/format';
+import { RELATIONSHIPS } from '@/components/family/add-child-basic-step-helpers';
 
 export default function ChildProgressScreen() {
   const childIdParam = useRequiredParam('childId');
@@ -120,11 +122,16 @@ export default function ChildProgressScreen() {
   }
 
   if (status === 'error') {
+    const accessDenied = error?.code === 'UNAUTHORIZED';
     return renderShell({
       header: progressHeader,
       showSwitcher: true,
       content: (
-        <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
+        <ErrorState
+          title={accessDenied ? 'Player progress unavailable' : undefined}
+          message={error?.message ?? 'Failed to load child progress.'}
+          onRetry={accessDenied ? undefined : retry}
+        />
       ),
     });
   }
@@ -230,12 +237,14 @@ export default function ChildProgressScreen() {
               )}
               {!!childProfile?.dateOfBirth && (
                 <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                  DOB: {childProfile.dateOfBirth}
+                  Date of birth: {formatShortDateWithYear(childProfile.dateOfBirth)}
                 </ThemedText>
               )}
               {!!childProfile?.relationship && (
                 <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                  Relationship: {childProfile.relationship}
+                  Relationship:{' '}
+                  {RELATIONSHIPS.find(({ id }) => id === childProfile.relationship)?.label ??
+                    'Other'}
                 </ThemedText>
               )}
             </SurfaceCard>

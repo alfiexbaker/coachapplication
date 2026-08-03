@@ -101,12 +101,12 @@ function DateTimeFieldInner({
     setTempDate(null);
   };
 
-  const themedStyles = ({
+  const themedStyles = {
     button: { backgroundColor: colors.surface },
     disabled: { backgroundColor: colors.surfaceSecondary, opacity: 0.6 },
     text: { color: colors.text },
     placeholder: { color: colors.muted },
-  });
+  };
 
   return (
     <View style={[styles.container, style]}>
@@ -115,6 +115,9 @@ function DateTimeFieldInner({
       <Pressable
         testID={testID}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={label ?? placeholder ?? defaultPlaceholder}
+        accessibilityState={{ disabled }}
         style={[
           styles.button,
           themedStyles.button,

@@ -3,6 +3,7 @@ import {
   canUseClubCapability,
   isClubStaffRole,
   parseOrganizationRole,
+  type CompleteGroupSessionRequest,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
@@ -13,8 +14,20 @@ import {
   generateInvoiceForBooking,
 } from '../../lib/invoice-runtime.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
-import { createBookingInSeedTables, type SeedTables } from './booking-repository.js';
+import {
+  API_DB_TRANSACTION_OPTIONS,
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from '../../lib/prisma-runtime.js';
+import type { AuditEventData } from '../../lib/audit-runtime.js';
+import {
+  BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE,
+  BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE,
+  bookingCompletionNotificationRows,
+  bookingFamilyRecipientIds,
+  createBookingInSeedTables,
+  type SeedTables,
+} from './booking-repository.js';
 import { normalizeForJson } from './normalize.js';
 type SeedRow = Record<string, unknown>;
 type GroupSessionStatus = 'DRAFT' | 'PUBLISHED' | 'FULL' | 'COMPLETED' | 'CANCELLED';
@@ -78,7 +91,9 @@ export interface AppGroupRegistration {
   id: string;
   sessionId: string;
   athleteId: string;
+  athleteName?: string;
   parentId: string;
+  parentName?: string;
   status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
   registeredAt: string;
   paidAt?: string;
@@ -142,6 +157,7 @@ export interface GroupSessionAccessParams {
   isPrivilegedAdmin: boolean;
   sessionId: string;
   requestId?: string;
+  forCompletion?: boolean;
 }
 export interface GroupSessionOffPlatformParticipantsParams extends GroupSessionAccessParams {
   count: number;
@@ -167,7 +183,16 @@ export interface GroupSessionAttendanceParams {
   isPrivilegedAdmin: boolean;
   registrationId: string;
   date: string;
-  attended: boolean;
+  status: 'ATTENDED' | 'NO_SHOW' | null;
+  successAuditEvent: AuditEventData;
+}
+export interface GroupSessionCompletionParams {
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  sessionId: string;
+  body: CompleteGroupSessionRequest;
+  requestId: string;
+  successAuditEvent: AuditEventData;
 }
 export interface GroupSessionRegistrationAccessParams {
   authUserId: string;
@@ -218,6 +243,7 @@ export interface GroupSessionDetailResult extends GroupSessionActionResult {}
 export interface GroupSessionRosterResult {
   session: AppGroupSession;
   registrations: AppGroupRegistration[];
+  occurrenceDate: string | null;
   dataVersion: string | null;
 }
 export interface GroupSessionRegisterResult {
@@ -233,6 +259,12 @@ export interface GroupSessionRegisterResult {
 }
 export interface GroupSessionRegistrationResult {
   registration: AppGroupRegistration;
+  dataVersion: string | null;
+}
+export interface GroupSessionCompletionResult {
+  session: AppGroupSession;
+  registrations: AppGroupRegistration[];
+  occurrenceDate: string;
   dataVersion: string | null;
 }
 export interface GroupRegistrationListResult {
@@ -282,6 +314,7 @@ export interface GroupSessionRepository {
     params: GroupSessionRegistrationAccessParams,
   ): Promise<GroupSessionRegistrationResult>;
   markAttendance(params: GroupSessionAttendanceParams): Promise<GroupSessionRegistrationResult>;
+  completeSession(params: GroupSessionCompletionParams): Promise<GroupSessionCompletionResult>;
   listRegistrationsForAthleteIds(
     params: GroupRegistrationListParams,
   ): Promise<GroupRegistrationListResult>;
@@ -312,6 +345,7 @@ interface StoreSessionContext {
 interface PrismaAthleteRow {
   id: string;
   userId: string | null;
+  displayName: string;
 }
 interface PrismaRegistrationRow {
   id: string;
@@ -326,17 +360,34 @@ interface PrismaRegistrationRow {
   createdByUserId: string;
   updatedByUserId: string;
   version: number;
+  rosterActiveAt: string | null;
+  rosterEndedAt: string | null;
   deletedAt: string | null;
   deletedByUserId: string | null;
+  parentName?: string;
   athlete?: PrismaAthleteRow | null;
 }
 interface PrismaAttendanceRow {
   id: string;
+  bookingId: string | null;
   groupSessionId: string | null;
   athleteId: string;
   status: string;
   notes: string | null;
+  effortRating: number | null;
   recordedAt: string;
+  createdAt: string;
+}
+interface PrismaOccurrenceCompletionRow {
+  id: string;
+  groupSessionId: string;
+  occurrenceDate: string;
+  completedByUserId: string;
+  rosterSize: number;
+  attendedCount: number;
+  noShowCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 interface PrismaSessionRsvpRow {
   id: string;
@@ -384,10 +435,12 @@ interface PrismaSessionRow {
   createdByUserId: string;
   createdByName?: string;
   updatedByUserId: string;
+  version: number;
   deletedAt: string | null;
   deletedByUserId: string | null;
   registrations: PrismaRegistrationRow[];
   attendanceRecords: PrismaAttendanceRow[];
+  occurrenceCompletions?: PrismaOccurrenceCompletionRow[];
 }
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -487,15 +540,34 @@ function normalizeSessionStatus(value: string | undefined): GroupSessionStatus {
   }
   return 'DRAFT';
 }
-function assertSessionOpenForRegistration(
-  sessionId: string,
-  status: string | undefined,
-): GroupSessionStatus {
-  const normalized = normalizeSessionStatus(status);
+function assertSessionOpenForRegistration(session: SeedRow, now: Date): GroupSessionStatus {
+  const sessionId = asString(session.id) ?? '';
+  const normalized = normalizeSessionStatus(asString(session.status));
   if (normalized !== 'PUBLISHED' && normalized !== 'FULL') {
     throw badRequest('Group session is not open for registration', {
       sessionId,
       status: normalized,
+    });
+  }
+  const deadline = asString(session.registrationDeadlineAt);
+  if (deadline && Date.parse(deadline) <= now.getTime()) {
+    throw badRequest('Group session registration deadline has passed', {
+      sessionId,
+      registrationDeadline: deadline,
+    });
+  }
+  const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+  const hasUpcomingOccurrence = buildScheduleEntries(session.scheduleJson).some((entry) => {
+    const startsAt = new Date(`${entry.date}T${entry.startTime}:00.000Z`);
+    return (
+      !cancelled.has(entry.date) &&
+      !Number.isNaN(startsAt.getTime()) &&
+      startsAt.getTime() > now.getTime()
+    );
+  });
+  if (!hasUpcomingOccurrence) {
+    throw badRequest('Group session has no upcoming occurrence available for registration', {
+      sessionId,
     });
   }
   return normalized;
@@ -519,6 +591,48 @@ function scheduledRecurringDatesFrom(
     throw badRequest('Group session is not recurring', { sessionId });
   }
   return schedule.flatMap((entry) => (entry.date >= fromDate ? [entry.date] : []));
+}
+function assertOccurrencesCanBeCancelled(params: {
+  session: SeedRow;
+  dates: string[];
+  occurrenceCompletions: SeedRow[];
+  now: Date;
+}): void {
+  const sessionId = asString(params.session.id) ?? '';
+  const schedule = buildScheduleEntries(params.session.scheduleJson);
+  const byDate = new Map(schedule.map((entry) => [entry.date, entry] as const));
+  const completedDates = completedOccurrenceDates(params.occurrenceCompletions, sessionId);
+  for (const date of params.dates) {
+    const occurrence = byDate.get(date);
+    const startsAt = occurrence
+      ? new Date(`${occurrence.date}T${occurrence.startTime}:00.000Z`)
+      : null;
+    if (
+      !occurrence ||
+      !startsAt ||
+      Number.isNaN(startsAt.getTime()) ||
+      startsAt.getTime() <= params.now.getTime() ||
+      completedDates.has(date)
+    ) {
+      throw conflict('Started or completed group session occurrences cannot be cancelled', {
+        sessionId,
+        occurrenceDate: date,
+      });
+    }
+  }
+  const cancelledDates = new Set(asStringArray(params.session.cancelledInstancesJson));
+  params.dates.forEach((date) => cancelledDates.add(date));
+  const remainingDates = schedule
+    .filter((entry) => !cancelledDates.has(entry.date))
+    .map((entry) => entry.date);
+  if (
+    completedDates.size > 0 &&
+    remainingDates.every((date) => completedDates.has(date))
+  ) {
+    throw conflict('Cannot cancel every remaining occurrence after group session delivery started', {
+      sessionId,
+    });
+  }
 }
 function groupSessionHeadcount(registered: number, offPlatform: number): number {
   return Math.max(0, registered) + Math.max(0, offPlatform);
@@ -673,6 +787,294 @@ function buildStoredScheduleJson(schedule: AppGroupSessionSchedule[]): Array<{
     })();
     return mapped !== null ? [mapped] : [];
   });
+}
+function assertGroupSessionOccurrenceCanBeCompleted(
+  session: SeedRow,
+  occurrenceDate: string,
+  now: Date,
+): AppGroupSessionSchedule {
+  const sessionId = asString(session.id) ?? '';
+  const status = normalizeSessionStatus(asString(session.status));
+  if (status !== 'PUBLISHED' && status !== 'FULL' && status !== 'COMPLETED') {
+    throw badRequest('Group session is not eligible for completion', {
+      sessionId,
+      status,
+    });
+  }
+  const schedule = buildScheduleEntries(session.scheduleJson);
+  const matchingOccurrences = schedule.filter(
+    (entry) => entry.date === occurrenceDate,
+  );
+  if (matchingOccurrences.length === 0) {
+    throw badRequest('Group session occurrence not found', {
+      sessionId,
+      occurrenceDate,
+    });
+  }
+  if (matchingOccurrences.length > 1) {
+    throw badRequest('Group session occurrence date is ambiguous', {
+      sessionId,
+      occurrenceDate,
+    });
+  }
+  const occurrence = matchingOccurrences[0]!;
+  if (asStringArray(session.cancelledInstancesJson).includes(occurrenceDate)) {
+    throw badRequest('Cancelled group session occurrences cannot be completed', {
+      sessionId,
+      occurrenceDate,
+    });
+  }
+  const endsAt = new Date(`${occurrence.date}T${occurrence.endTime}:00.000Z`);
+  if (Number.isNaN(endsAt.getTime())) {
+    throw badRequest('Group session occurrence has an invalid end time', {
+      sessionId,
+      occurrenceDate,
+    });
+  }
+  if (endsAt.getTime() > now.getTime()) {
+    throw badRequest('Group session occurrence cannot be completed before it ends', {
+      sessionId,
+      occurrenceDate,
+      endsAt: endsAt.toISOString(),
+    });
+  }
+  return occurrence;
+}
+function occurrenceStartsAt(occurrence: AppGroupSessionSchedule): Date {
+  return new Date(`${occurrence.date}T${occurrence.startTime}:00.000Z`);
+}
+function hasRosterLifecycleAuthority(row: SeedRow): boolean {
+  return Object.prototype.hasOwnProperty.call(row, 'rosterActiveAt');
+}
+function isRegistrationActiveForOccurrence(
+  row: SeedRow,
+  occurrence: AppGroupSessionSchedule,
+): boolean {
+  if (asString(row.deletedAt)) {
+    return false;
+  }
+  const status = asString(row.status)?.toUpperCase();
+  if (!hasRosterLifecycleAuthority(row)) {
+    return status !== 'WAITLISTED' && status !== 'CANCELLED';
+  }
+  const activeAt = asString(row.rosterActiveAt);
+  if (!activeAt) {
+    return false;
+  }
+  const occurrenceStart = occurrenceStartsAt(occurrence);
+  const activeDate = new Date(activeAt);
+  if (
+    Number.isNaN(occurrenceStart.getTime()) ||
+    Number.isNaN(activeDate.getTime()) ||
+    activeDate.getTime() > occurrenceStart.getTime()
+  ) {
+    return false;
+  }
+  const endedAt = asString(row.rosterEndedAt);
+  if (!endedAt) {
+    return true;
+  }
+  const endedDate = new Date(endedAt);
+  return !Number.isNaN(endedDate.getTime()) && endedDate.getTime() > occurrenceStart.getTime();
+}
+function occurrenceCompletionDate(row: SeedRow): string | undefined {
+  return parseIsoDatePart(asString(row.occurrenceDate));
+}
+function completedOccurrenceDates(rows: SeedRow[], sessionId: string): Set<string> {
+  return new Set(
+    rows.flatMap((row) => {
+      const date = occurrenceCompletionDate(row);
+      return asString(row.groupSessionId) === sessionId && date ? [date] : [];
+    }),
+  );
+}
+function pendingCompletionOccurrence(params: {
+  session: SeedRow;
+  occurrenceCompletions: SeedRow[];
+  now: Date;
+}): AppGroupSessionSchedule | null {
+  const sessionId = asString(params.session.id) ?? '';
+  const completedDates = completedOccurrenceDates(params.occurrenceCompletions, sessionId);
+  const cancelledDates = new Set(asStringArray(params.session.cancelledInstancesJson));
+  return (
+    buildScheduleEntries(params.session.scheduleJson)
+      .filter((occurrence) => !cancelledDates.has(occurrence.date))
+      .filter((occurrence) => {
+        const endsAt = new Date(`${occurrence.date}T${occurrence.endTime}:00.000Z`);
+        return !Number.isNaN(endsAt.getTime()) && endsAt.getTime() <= params.now.getTime();
+      })
+      .filter((occurrence) => !completedDates.has(occurrence.date))
+      .sort((left, right) => left.date.localeCompare(right.date))[0] ?? null
+  );
+}
+function willCompleteSeriesAfterOccurrence(params: {
+  session: SeedRow;
+  occurrenceCompletions: SeedRow[];
+  occurrenceDate: string;
+  now: Date;
+}): boolean {
+  const sessionId = asString(params.session.id) ?? '';
+  const completedDates = completedOccurrenceDates(params.occurrenceCompletions, sessionId);
+  completedDates.add(params.occurrenceDate);
+  const cancelledDates = new Set(asStringArray(params.session.cancelledInstancesJson));
+  const scheduled = buildScheduleEntries(params.session.scheduleJson).filter(
+    (occurrence) => !cancelledDates.has(occurrence.date),
+  );
+  return (
+    scheduled.length > 0 &&
+    scheduled.every((occurrence) => {
+      const endsAt = new Date(`${occurrence.date}T${occurrence.endTime}:00.000Z`);
+      return (
+        !Number.isNaN(endsAt.getTime()) &&
+        endsAt.getTime() <= params.now.getTime() &&
+        completedDates.has(occurrence.date)
+      );
+    })
+  );
+}
+function isActiveCompletionRegistration(row: SeedRow): boolean {
+  const status = asString(row.status)?.toUpperCase();
+  return (
+    asString(row.deletedAt) == null &&
+    status !== 'CANCELLED' &&
+    status !== 'WAITLISTED'
+  );
+}
+function recurringRegistrationStatus(row: SeedRow): 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' {
+  const status = asString(row.status)?.toUpperCase();
+  if (status === 'WAITLISTED' || status === 'CANCELLED') {
+    return status;
+  }
+  return 'REGISTERED';
+}
+function assertExactCompletionRoster(
+  sessionId: string,
+  registrations: SeedRow[],
+  occurrence: AppGroupSessionSchedule,
+  attendance: CompleteGroupSessionRequest['attendance'],
+): void {
+  const registrationIds = attendance.map((entry) => entry.registrationId);
+  if (new Set(registrationIds).size !== registrationIds.length) {
+    throw badRequest('Group session completion attendance contains duplicate registrations', {
+      sessionId,
+    });
+  }
+  const activeIds = new Set(
+    registrations.flatMap((row) => {
+      const id = asString(row.id);
+      return isRegistrationActiveForOccurrence(row, occurrence) && id ? [id] : [];
+    }),
+  );
+  if (
+    activeIds.size !== registrationIds.length ||
+    registrationIds.some((registrationId) => !activeIds.has(registrationId))
+  ) {
+    throw badRequest('Group session completion requires the exact active roster', {
+      sessionId,
+      activeRegistrationCount: activeIds.size,
+      submittedRegistrationCount: registrationIds.length,
+    });
+  }
+}
+function attendanceProofStatus(row: SeedRow): 'ATTENDED' | 'NO_SHOW' | null {
+  const status = asString(row.status)?.toUpperCase();
+  return status === 'ATTENDED' || status === 'NO_SHOW' ? status : null;
+}
+function completionMatchesExistingProof(params: {
+  sessionId: string;
+  occurrenceDate: string;
+  registrations: SeedRow[];
+  attendanceRecords: SeedRow[];
+  attendance: CompleteGroupSessionRequest['attendance'];
+}): boolean {
+  const registrationById = new Map(
+    params.registrations.flatMap((registration) => {
+      const id = asString(registration.id);
+      return id ? [[id, registration] as const] : [];
+    }),
+  );
+  return params.attendance.every((input) => {
+    const registration = registrationById.get(input.registrationId);
+    if (!registration) {
+      return false;
+    }
+    const proof = params.attendanceRecords.filter(
+      (record) =>
+        asString(record.groupSessionId) === params.sessionId &&
+        asString(record.athleteId) === asString(registration.athleteId) &&
+        parseIsoDatePart(asString(record.recordedAt) ?? asString(record.createdAt)) ===
+          params.occurrenceDate &&
+        attendanceProofStatus(record) !== null,
+    );
+    if (proof.length !== 1) {
+      return false;
+    }
+    const [record] = proof;
+    return (
+      attendanceProofStatus(record!) === input.status &&
+      (asString(record!.notes) ?? null) === (input.notes ?? null) &&
+      (asNumber(record!.effortRating) ?? null) === (input.effortRating ?? null)
+    );
+  });
+}
+function applyDerivedGroupCompletionState(params: {
+  session: SeedRow;
+  registrations: SeedRow[];
+  attendanceRecords: SeedRow[];
+  occurrenceCompletions: SeedRow[];
+  actorUserId: string;
+  now: Date;
+}): void {
+  const sessionId = asString(params.session.id) ?? '';
+  const activeRegistrations = params.registrations.filter(isActiveCompletionRegistration);
+  const cancelledDates = new Set(asStringArray(params.session.cancelledInstancesJson));
+  const scheduled = buildScheduleEntries(params.session.scheduleJson).filter(
+    (entry) => !cancelledDates.has(entry.date),
+  );
+  const scheduledDates = new Set(scheduled.map((entry) => entry.date));
+  const completedDates = completedOccurrenceDates(params.occurrenceCompletions, sessionId);
+  const completed =
+    scheduled.length > 0 &&
+    scheduled.every((entry) => {
+      const endsAt = new Date(`${entry.date}T${entry.endTime}:00.000Z`);
+      return (
+        !Number.isNaN(endsAt.getTime()) &&
+        endsAt.getTime() <= params.now.getTime() &&
+        completedDates.has(entry.date)
+      );
+    });
+  const updatedAt = params.now.toISOString();
+  for (const registration of activeRegistrations) {
+    if (completed) {
+      const proof = params.attendanceRecords.filter(
+        (record) =>
+          asString(record.groupSessionId) === sessionId &&
+          asString(record.athleteId) === asString(registration.athleteId) &&
+          scheduledDates.has(
+            parseIsoDatePart(asString(record.recordedAt) ?? asString(record.createdAt)) ?? '',
+          ) &&
+          attendanceProofStatus(record) !== null,
+      );
+      registration.status = proof.some((record) => attendanceProofStatus(record) === 'ATTENDED')
+        ? 'ATTENDED'
+        : 'NO_SHOW';
+    } else {
+      registration.status = 'REGISTERED';
+    }
+    registration.updatedAt = updatedAt;
+    registration.updatedByUserId = params.actorUserId;
+    registration.version = (asNumber(registration.version) ?? 1) + 1;
+  }
+  params.session.status = completed
+    ? 'COMPLETED'
+    : derivePublishedSessionStatus(
+        asNumber(params.session.maxParticipants) ?? 0,
+        asNumber(params.session.currentParticipants) ?? 0,
+        asNumber(params.session.offPlatformParticipants) ?? 0,
+      );
+  params.session.updatedAt = updatedAt;
+  params.session.updatedByUserId = params.actorUserId;
+  params.session.version = (asNumber(params.session.version) ?? 1) + 1;
 }
 function deriveRecurringPattern(
   schedule: AppGroupSessionSchedule[],
@@ -841,11 +1243,17 @@ function mapRegistrationRow(
 ): AppGroupRegistration {
   const sessionId = asString(registration.groupSessionId) ?? '';
   const athleteId = asString(registration.athleteId) ?? '';
+  const athlete = asObject(registration.athlete);
+  const athleteName =
+    asString(registration.athleteName)?.trim() || asString(athlete?.displayName)?.trim();
+  const parentName = asString(registration.parentName)?.trim();
   return {
     id: asString(registration.id) ?? '',
     sessionId,
     athleteId,
-    parentId: asString(registration.parentUserId) ?? athleteId,
+    ...(athleteName ? { athleteName } : {}),
+    parentId: asString(registration.parentUserId) ?? '',
+    ...(parentName ? { parentName } : {}),
     status:
       (asString(registration.status)?.toUpperCase() as AppGroupRegistration['status']) ??
       'REGISTERED',
@@ -862,6 +1270,40 @@ function mapRegistrationRow(
         }
       : {}),
   };
+}
+
+function withStoreRegistrationIdentity(tables: SeedTables, registration: SeedRow): SeedRow {
+  const athleteId = asString(registration.athleteId);
+  const parentUserId = asString(registration.parentUserId);
+  const athlete = athleteId
+    ? asRows(tables.athletes).find(
+        (row) => asString(row.id) === athleteId && asString(row.deletedAt) == null,
+      )
+    : undefined;
+  const parent = parentUserId
+    ? asRows(tables.users).find(
+        (row) => asString(row.id) === parentUserId && asString(row.deletedAt) == null,
+      )
+    : undefined;
+  return {
+    ...registration,
+    ...(athlete ? { athlete } : {}),
+    ...(asString(athlete?.displayName)?.trim()
+      ? { athleteName: asString(athlete?.displayName)?.trim() }
+      : {}),
+    ...(asString(parent?.name)?.trim()
+      ? { parentName: asString(parent?.name)?.trim() }
+      : {}),
+  };
+}
+function projectRosterRegistrationIdentity(
+  registrations: AppGroupRegistration[],
+  includeGuardianName: boolean,
+): AppGroupRegistration[] {
+  if (includeGuardianName) {
+    return registrations;
+  }
+  return registrations.map(({ parentName: _parentName, ...registration }) => registration);
 }
 function normalizeSessionRsvpStatus(value: unknown): AppSessionRsvpStatus {
   const normalized = String(value ?? '').trim().toUpperCase();
@@ -935,14 +1377,41 @@ function sessionRsvpNotification(params: {
     dismissedAt: null,
   };
 }
-function mapContext(context: StoreSessionContext): GroupSessionRosterResult {
+function mapContext(
+  context: StoreSessionContext,
+  occurrence: AppGroupSessionSchedule | null = null,
+  tables?: SeedTables,
+): GroupSessionRosterResult {
   return {
     session: mapSessionRow(context.session),
     registrations: context.registrations.flatMap((row) =>
-      asString(row.deletedAt) == null && asString(row.status)?.toUpperCase() !== 'CANCELLED'
-        ? [mapRegistrationRow(row, context.attendanceRecords)]
-        : [],
+      occurrence
+        ? isRegistrationActiveForOccurrence(row, occurrence)
+          ? [
+              mapRegistrationRow(
+                tables
+                  ? withStoreRegistrationIdentity(tables, {
+                      ...row,
+                      status: 'REGISTERED',
+                    })
+                  : {
+                      ...row,
+                      status: 'REGISTERED',
+                    },
+                context.attendanceRecords,
+              ),
+            ]
+          : []
+        : asString(row.deletedAt) == null && asString(row.status)?.toUpperCase() !== 'CANCELLED'
+          ? [
+              mapRegistrationRow(
+                tables ? withStoreRegistrationIdentity(tables, row) : row,
+                context.attendanceRecords,
+              ),
+            ]
+          : [],
     ),
+    occurrenceDate: occurrence?.date ?? null,
     dataVersion: null,
   };
 }
@@ -1249,6 +1718,110 @@ function findLinkedSeedBooking(
       asString(row.status)?.toUpperCase() !== 'CANCELLED',
   );
 }
+function completeSeedLinkedBooking(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  authUserId: string;
+  requestId: string;
+  attendanceRecordId: string;
+  status: 'ATTENDED' | 'NO_SHOW';
+  completedAt: string;
+}): void {
+  const currentStatus = asString(params.booking.status)?.toUpperCase();
+  if (currentStatus === 'COMPLETED') {
+    return;
+  }
+  if (currentStatus !== 'CONFIRMED' && currentStatus !== 'AWAITING_COMPLETION') {
+    throw conflict('Linked group booking is not eligible for completion', {
+      bookingId: asString(params.booking.id),
+      status: currentStatus,
+    });
+  }
+  params.booking.status = 'COMPLETED';
+  params.booking.updatedAt = params.completedAt;
+  params.booking.updatedByUserId = params.authUserId;
+  params.booking.version = (asNumber(params.booking.version) ?? 1) + 1;
+  asRows(params.tables.bookingStatusEvents).push({
+    id: newId('bse'),
+    bookingId: asString(params.booking.id),
+    fromStatus: currentStatus,
+    toStatus: 'COMPLETED',
+    actorUserId: params.authUserId,
+    reason: 'Completed with group session attendance',
+    metadataJson: {
+      source: 'group-session-completion',
+      attendanceRecordIds: [params.attendanceRecordId],
+      attendanceSummary: {
+        attended: params.status === 'ATTENDED' ? 1 : 0,
+        noShow: params.status === 'NO_SHOW' ? 1 : 0,
+      },
+      proofSource: 'attendance-record',
+    },
+    requestId: params.requestId,
+    occurredAt: params.completedAt,
+  });
+  const bookingId = asString(params.booking.id);
+  if (!bookingId) {
+    return;
+  }
+  const athleteUserIdByAthleteId = new Map(
+    asRows(params.tables.athletes).flatMap((athlete) => {
+      const athleteId = asString(athlete.id);
+      return athleteId
+        ? [[athleteId, asString(athlete.userId) ?? null] as const]
+        : [];
+    }),
+  );
+  const participantRows = asRows(params.tables.bookingParticipants).filter(
+    (participant) =>
+      asString(participant.bookingId) === bookingId && !asString(participant.deletedAt),
+  );
+  const recipientUserIds = bookingFamilyRecipientIds({
+    actorUserId: params.authUserId,
+    bookedByUserId: asString(params.booking.bookedByUserId),
+    participants: participantRows.map((participant) => {
+      const athleteId = asString(participant.athleteId);
+      return {
+        guardianUserId: asString(participant.guardianUserId),
+        athleteUserId: athleteId ? athleteUserIdByAthleteId.get(athleteId) : null,
+      };
+    }),
+  });
+  if (!Array.isArray(params.tables.notifications)) {
+    params.tables.notifications = [];
+  }
+  const notifications = asRows(params.tables.notifications);
+  const existingKeys = new Set(
+    notifications
+      .filter(
+        (notification) =>
+          asString(notification.sourceId) === bookingId &&
+          (asString(notification.sourceType) === BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE ||
+            asString(notification.sourceType) === BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE),
+      )
+      .map(
+        (notification) =>
+          `${asString(notification.sourceType) ?? ''}:${asString(notification.userId) ?? ''}`,
+      ),
+  );
+  notifications.push(
+    ...bookingCompletionNotificationRows({
+      bookingId,
+      actorUserId: params.authUserId,
+      recipientUserIds,
+      attendanceSummary: {
+        attended: params.status === 'ATTENDED' ? 1 : 0,
+        noShow: params.status === 'NO_SHOW' ? 1 : 0,
+      },
+      now: params.completedAt,
+    }).filter(
+      (notification) =>
+        !existingKeys.has(
+          `${asString(notification.sourceType) ?? ''}:${asString(notification.userId) ?? ''}`,
+        ),
+    ),
+  );
+}
 function cancelSeedBooking(
   tables: SeedTables,
   booking: SeedRow,
@@ -1322,6 +1895,8 @@ function createSeedLinkedBooking(params: {
     bookingRowOverrides: {
       groupSessionId: asString(session.id) ?? null,
       clubId: asString(session.clubId) ?? null,
+      status: 'CONFIRMED',
+      confirmedAt: isoNow(),
     },
   });
   return {
@@ -1597,6 +2172,12 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       throw forbidden('Group session does not belong to authenticated user');
     }
     assertRecurringInstanceExists(params.sessionId, session.scheduleJson, params.date);
+    assertOccurrencesCanBeCancelled({
+      session,
+      dates: [params.date],
+      occurrenceCompletions: asRows(store.tables.groupSessionOccurrenceCompletions),
+      now: new Date(),
+    });
     const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
     cancelled.add(params.date);
     session.cancelledInstancesJson = Array.from(cancelled).sort();
@@ -1621,12 +2202,19 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
       throw forbidden('Group session does not belong to authenticated user');
     }
-    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
-    for (const date of scheduledRecurringDatesFrom(
+    const dates = scheduledRecurringDatesFrom(
       params.sessionId,
       session.scheduleJson,
       params.fromDate,
-    )) {
+    );
+    assertOccurrencesCanBeCancelled({
+      session,
+      dates,
+      occurrenceCompletions: asRows(store.tables.groupSessionOccurrenceCompletions),
+      now: new Date(),
+    });
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    for (const date of dates) {
       cancelled.add(date);
     }
     session.cancelledInstancesJson = Array.from(cancelled).sort();
@@ -1651,12 +2239,43 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
       throw forbidden('Group session does not belong to authenticated user');
     }
+    if (normalizeSessionStatus(asString(session.status)) === 'COMPLETED') {
+      throw conflict('Completed group sessions cannot be cancelled', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (
+      asRows(store.tables.groupSessionOccurrenceCompletions).some(
+        (row) => asString(row.groupSessionId) === params.sessionId,
+      )
+    ) {
+      throw conflict('Group sessions with completed occurrences cannot be cancelled', {
+        sessionId: params.sessionId,
+      });
+    }
     const activeBookings = asRows(store.tables.bookings).filter(
       (row) =>
         asString(row.groupSessionId) === params.sessionId &&
         asString(row.deletedAt) == null &&
         asString(row.status)?.toUpperCase() !== 'CANCELLED',
     );
+    const finalizedRegistration = asRows(store.tables.groupSessionRegistrations).find(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        asString(row.deletedAt) == null &&
+        (asString(row.status)?.toUpperCase() === 'ATTENDED' ||
+          asString(row.status)?.toUpperCase() === 'NO_SHOW'),
+    );
+    const completedBooking = activeBookings.find(
+      (booking) => asString(booking.status)?.toUpperCase() === 'COMPLETED',
+    );
+    if (finalizedRegistration || completedBooking) {
+      throw conflict('Group sessions with finalized attendance cannot be cancelled', {
+        sessionId: params.sessionId,
+        registrationId: asString(finalizedRegistration?.id) ?? null,
+        bookingId: asString(completedBooking?.id) ?? null,
+      });
+    }
     const activeBookingIds = new Set(
       activeBookings.flatMap((row) => {
         const mapped = asString(row.id);
@@ -1695,6 +2314,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         asString(row.status)?.toUpperCase() !== 'CANCELLED',
     )) {
       registration.status = 'CANCELLED';
+      registration.rosterEndedAt = now;
       registration.updatedAt = now;
       registration.updatedByUserId = params.authUserId;
       registration.version = (asNumber(registration.version) ?? 1) + 1;
@@ -1741,7 +2361,6 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       params.athleteId,
       params.isPrivilegedAdmin,
     );
-    assertSessionOpenForRegistration(params.sessionId, asString(session.status));
     const registrations = asRows(store.tables.groupSessionRegistrations);
     const activeRegistration = registrations.find(
       (row) =>
@@ -1780,7 +2399,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         booking: linkedBooking
           ? {
               id: asString(linkedBooking.id) ?? '',
-              status: 'CONFIRMED',
+              status: asString(linkedBooking.status) ?? 'CONFIRMED',
               recurringSeriesId: asString(linkedBooking.recurringSeriesId) ?? null,
               groupSessionId: asString(linkedBooking.groupSessionId) ?? null,
             }
@@ -1789,6 +2408,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         dataVersion: store.version,
       };
     }
+    assertSessionOpenForRegistration(session, new Date());
     requireAssignedDeliveryCoach(params.sessionId, asString(session.coachUserId));
     const currentParticipants = asNumber(session.currentParticipants) ?? 0;
     const offPlatformParticipants = asNumber(session.offPlatformParticipants) ?? 0;
@@ -1821,6 +2441,8 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       updatedByUserId: params.authUserId,
       version: 1,
       registeredAt: now,
+      rosterActiveAt: status === 'REGISTERED' ? now : null,
+      rosterEndedAt: null,
       updatedAt: now,
       deletedAt: null,
       deletedByUserId: null,
@@ -1885,6 +2507,15 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       });
     }
     if (
+      params.forCompletion &&
+      !params.isPrivilegedAdmin &&
+      asString(session.coachUserId) !== params.authUserId
+    ) {
+      throw forbidden('Only the assigned coach can read a group session completion roster', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (
       !canUserReadSeedSession(
         store.tables,
         session,
@@ -1898,9 +2529,30 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       });
     }
     const context = buildStoreSessionContext(store.tables, session);
-    const mapped = mapContext(context);
+    const occurrence = params.forCompletion
+      ? pendingCompletionOccurrence({
+          session,
+          occurrenceCompletions: asRows(store.tables.groupSessionOccurrenceCompletions),
+          now: new Date(),
+        })
+      : null;
+    if (params.forCompletion && !occurrence) {
+      return {
+        session: mapSessionRow(session),
+        registrations: [],
+        occurrenceDate: null,
+        dataVersion: store.version,
+      };
+    }
+    const mapped = mapContext(context, occurrence, store.tables);
+    const includeGuardianName =
+      params.isPrivilegedAdmin || asString(session.coachUserId) === params.authUserId;
     return {
       ...mapped,
+      registrations: projectRosterRegistrationIdentity(
+        mapped.registrations,
+        includeGuardianName,
+      ),
       dataVersion: store.version,
     };
   }
@@ -1939,12 +2591,39 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     }
     const now = isoNow();
     const previousStatus = asString(registration.status)?.toUpperCase() ?? 'REGISTERED';
+    if (normalizeSessionStatus(asString(session.status)) === 'COMPLETED') {
+      throw conflict('Completed group session registrations cannot be cancelled', {
+        registrationId: params.registrationId,
+        sessionId,
+      });
+    }
+    if (previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW') {
+      throw conflict('Finalized attendance cannot be cancelled through registration removal', {
+        registrationId: params.registrationId,
+        sessionId,
+      });
+    }
     const booking =
-      previousStatus === 'REGISTERED' ||
-      previousStatus === 'ATTENDED' ||
-      previousStatus === 'NO_SHOW'
+      previousStatus === 'REGISTERED'
         ? findLinkedSeedBooking(store.tables, sessionId, athleteId)
         : null;
+    if (booking && asString(booking.status)?.toUpperCase() === 'COMPLETED') {
+      throw conflict('Completed group bookings cannot be cancelled through registration removal', {
+        registrationId: params.registrationId,
+        bookingId: asString(booking.id),
+      });
+    }
+    if (
+      booking &&
+      asString(booking.status)?.toUpperCase() !== 'CONFIRMED' &&
+      asString(booking.status)?.toUpperCase() !== 'AWAITING_COMPLETION'
+    ) {
+      throw conflict('Linked group booking is not eligible for cancellation', {
+        registrationId: params.registrationId,
+        bookingId: asString(booking.id),
+        status: asString(booking.status),
+      });
+    }
     if (booking) {
       await applyBookingCancellationInvoiceEffects({
         bookingId: asString(booking.id) ?? '',
@@ -1953,13 +2632,12 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       });
     }
     registration.status = 'CANCELLED';
+    registration.rosterEndedAt = now;
     registration.updatedAt = now;
     registration.updatedByUserId = params.authUserId;
     registration.version = (asNumber(registration.version) ?? 1) + 1;
     if (
-      previousStatus === 'REGISTERED' ||
-      previousStatus === 'ATTENDED' ||
-      previousStatus === 'NO_SHOW'
+      previousStatus === 'REGISTERED'
     ) {
       session.currentParticipants = Math.max(0, (asNumber(session.currentParticipants) ?? 0) - 1);
       if (booking) {
@@ -1992,6 +2670,8 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       if (promoted) {
         promoted.status = 'REGISTERED';
         promoted.paidAt = null;
+        promoted.rosterActiveAt = now;
+        promoted.rosterEndedAt = null;
         promoted.updatedAt = now;
         promoted.updatedByUserId = params.authUserId;
         promoted.version = (asNumber(promoted.version) ?? 1) + 1;
@@ -2058,6 +2738,34 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         registrationId: params.registrationId,
       });
     }
+    if (normalizeSessionStatus(asString(session.status)) === 'COMPLETED') {
+      throw conflict('Completed group session attendance is immutable', {
+        registrationId: params.registrationId,
+        sessionId,
+      });
+    }
+    const occurrence = assertGroupSessionOccurrenceCanBeCompleted(session, params.date, new Date());
+    if (
+      asRows(store.tables.groupSessionOccurrenceCompletions).some(
+        (row) =>
+          asString(row.groupSessionId) === sessionId &&
+          occurrenceCompletionDate(row) === params.date,
+      )
+    ) {
+      throw conflict('Completed group session occurrence attendance is immutable', {
+        registrationId: params.registrationId,
+        sessionId,
+        occurrenceDate: params.date,
+      });
+    }
+    if (!isRegistrationActiveForOccurrence(registration, occurrence)) {
+      throw badRequest('Registration was not active for this group session occurrence', {
+        registrationId: params.registrationId,
+        sessionId,
+        occurrenceDate: params.date,
+      });
+    }
+    const isRecurring = buildScheduleEntries(session.scheduleJson).length > 1;
     const attendanceRecords = asRows(store.tables.attendanceRecords);
     const athleteId = asString(registration.athleteId) ?? '';
     const targetDate = params.date;
@@ -2068,14 +2776,19 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         parseIsoDatePart(asString(row.recordedAt) ?? asString(row.createdAt)) === targetDate,
     );
     const now = `${targetDate}T12:00:00.000Z`;
-    if (params.attended) {
-      if (matching.length === 0) {
+    if (params.status) {
+      const [existing, ...duplicates] = matching;
+      if (existing) {
+        existing.status = params.status;
+        existing.recordedByUserId = params.authUserId;
+        existing.updatedAt = isoNow();
+      } else {
         attendanceRecords.push({
           id: newId('att'),
           bookingId: null,
           groupSessionId: sessionId,
           athleteId,
-          status: 'ATTENDED',
+          status: params.status,
           notes: null,
           effortRating: null,
           focusAreasJson: [],
@@ -2085,24 +2798,272 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
           updatedAt: now,
         });
       }
-      registration.status = 'ATTENDED';
+      for (const duplicate of duplicates) {
+        duplicate.status = 'SUPERSEDED';
+        duplicate.updatedAt = isoNow();
+      }
+      registration.status = isRecurring ? recurringRegistrationStatus(registration) : params.status;
     } else {
       for (const row of matching) {
-        row.groupSessionId = null;
+        row.status = 'CLEARED';
+        row.updatedAt = isoNow();
       }
-      const remaining = attendanceRecords.some(
+      const remaining = attendanceRecords.filter(
         (row) =>
           asString(row.groupSessionId) === sessionId &&
           asString(row.athleteId) === athleteId &&
-          asString(row.status)?.toUpperCase() === 'ATTENDED',
+          attendanceProofStatus(row) !== null,
       );
-      registration.status = remaining ? 'ATTENDED' : 'REGISTERED';
+      registration.status = isRecurring
+        ? recurringRegistrationStatus(registration)
+        : remaining.some((row) => attendanceProofStatus(row) === 'ATTENDED')
+          ? 'ATTENDED'
+          : remaining.some((row) => attendanceProofStatus(row) === 'NO_SHOW')
+            ? 'NO_SHOW'
+            : 'REGISTERED';
     }
     registration.updatedAt = isoNow();
     registration.updatedByUserId = params.authUserId;
     registration.version = (asNumber(registration.version) ?? 1) + 1;
+    if (!Array.isArray(store.tables.auditEvents)) {
+      store.tables.auditEvents = [];
+    }
+    asRows(store.tables.auditEvents).push({
+      ...params.successAuditEvent,
+      metadataJson: {
+        ...(params.successAuditEvent.metadataJson as SeedRow),
+        sessionId,
+        athleteId,
+        registrationStatus: asString(registration.status),
+      },
+      occurredAt: params.successAuditEvent.occurredAt.toISOString(),
+    });
     return {
       registration: mapRegistrationRow(registration, attendanceRecords),
+      dataVersion: store.version,
+    };
+  }
+  async completeSession(
+    params: GroupSessionCompletionParams,
+  ): Promise<GroupSessionCompletionResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
+      throw forbidden('Group session does not belong to authenticated user');
+    }
+    const now = new Date();
+    const occurrence = assertGroupSessionOccurrenceCanBeCompleted(
+      session,
+      params.body.occurrenceDate,
+      now,
+    );
+    const registrations = asRows(store.tables.groupSessionRegistrations).filter(
+      (row) => asString(row.groupSessionId) === params.sessionId,
+    );
+    assertExactCompletionRoster(
+      params.sessionId,
+      registrations,
+      occurrence,
+      params.body.attendance,
+    );
+    const attendanceRecords = asRows(store.tables.attendanceRecords);
+    if (!Array.isArray(store.tables.groupSessionOccurrenceCompletions)) {
+      store.tables.groupSessionOccurrenceCompletions = [];
+    }
+    const occurrenceCompletions = asRows(store.tables.groupSessionOccurrenceCompletions);
+    const existingCompletion = occurrenceCompletions.find(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        occurrenceCompletionDate(row) === params.body.occurrenceDate,
+    );
+    if (existingCompletion) {
+      if (
+        !completionMatchesExistingProof({
+          sessionId: params.sessionId,
+          occurrenceDate: params.body.occurrenceDate,
+          registrations,
+          attendanceRecords,
+          attendance: params.body.attendance,
+        })
+      ) {
+        throw conflict('Group session was already completed with different attendance', {
+          sessionId: params.sessionId,
+          occurrenceDate: params.body.occurrenceDate,
+        });
+      }
+      return {
+        session: mapSessionRow(session),
+        registrations: registrations
+          .filter((row) => asString(row.deletedAt) == null)
+          .map((row) => mapRegistrationRow(row, attendanceRecords)),
+        occurrenceDate: params.body.occurrenceDate,
+        dataVersion: store.version,
+      };
+    }
+    if (normalizeSessionStatus(asString(session.status)) === 'COMPLETED') {
+      throw conflict('Group session completion ledger is inconsistent', {
+        sessionId: params.sessionId,
+        occurrenceDate: params.body.occurrenceDate,
+      });
+    }
+    const shouldCompleteSeries = willCompleteSeriesAfterOccurrence({
+      session,
+      occurrenceCompletions,
+      occurrenceDate: params.body.occurrenceDate,
+      now,
+    });
+    const registrationById = new Map(
+      registrations.flatMap((row) => {
+        const id = asString(row.id);
+        return id ? [[id, row] as const] : [];
+      }),
+    );
+    const activeLinkedBookings = asRows(store.tables.bookings).filter(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        asString(row.deletedAt) == null &&
+        asString(row.status)?.toUpperCase() !== 'CANCELLED',
+    );
+    for (const linkedBooking of activeLinkedBookings) {
+      const linkedStatus = asString(linkedBooking.status)?.toUpperCase();
+      if (linkedStatus === 'COMPLETED') {
+        throw conflict('Linked group booking was completed outside group session authority', {
+          bookingId: asString(linkedBooking.id),
+          sessionId: params.sessionId,
+        });
+      }
+      if (linkedStatus !== 'CONFIRMED' && linkedStatus !== 'AWAITING_COMPLETION') {
+        throw conflict('Linked group booking is not eligible for completion', {
+          bookingId: asString(linkedBooking.id),
+          status: linkedStatus,
+        });
+      }
+    }
+    const linkedBookingByRegistrationId = new Map<string, SeedRow>();
+    for (const input of params.body.attendance) {
+      const registration = registrationById.get(input.registrationId);
+      const athleteId = asString(registration?.athleteId);
+      const linkedBooking = athleteId
+        ? findLinkedSeedBooking(store.tables, params.sessionId, athleteId)
+        : undefined;
+      if (!linkedBooking) continue;
+      linkedBookingByRegistrationId.set(input.registrationId, linkedBooking);
+    }
+    if (shouldCompleteSeries) {
+      const submittedBookingIds = new Set(
+        Array.from(linkedBookingByRegistrationId.values()).flatMap((booking) => {
+          const bookingId = asString(booking.id);
+          return bookingId ? [bookingId] : [];
+        }),
+      );
+      const orphanedBooking = activeLinkedBookings.find(
+        (booking) => !submittedBookingIds.has(asString(booking.id) ?? ''),
+      );
+      if (orphanedBooking) {
+        throw conflict('Every active linked booking must belong to the final occurrence roster', {
+          sessionId: params.sessionId,
+          bookingId: asString(orphanedBooking.id),
+        });
+      }
+    }
+    const recordedAt = `${params.body.occurrenceDate}T12:00:00.000Z`;
+    for (const input of params.body.attendance) {
+      const registration = registrationById.get(input.registrationId);
+      if (!registration) {
+        throw badRequest('Group session completion registration not found', {
+          sessionId: params.sessionId,
+          registrationId: input.registrationId,
+        });
+      }
+      const athleteId = asString(registration.athleteId) ?? '';
+      const matching = attendanceRecords.filter(
+        (row) =>
+          asString(row.groupSessionId) === params.sessionId &&
+          asString(row.athleteId) === athleteId &&
+          parseIsoDatePart(asString(row.recordedAt) ?? asString(row.createdAt)) ===
+            params.body.occurrenceDate,
+      );
+      const [existing, ...duplicates] = matching;
+      let attendanceRecord: SeedRow;
+      if (existing) {
+        existing.status = input.status;
+        existing.notes = input.notes ?? null;
+        existing.effortRating = input.effortRating ?? null;
+        existing.recordedByUserId = params.authUserId;
+        existing.recordedAt = recordedAt;
+        existing.updatedAt = now.toISOString();
+        attendanceRecord = existing;
+      } else {
+        attendanceRecord = {
+          id: newId('att'),
+          bookingId: null,
+          groupSessionId: params.sessionId,
+          athleteId,
+          status: input.status,
+          notes: input.notes ?? null,
+          effortRating: input.effortRating ?? null,
+          focusAreasJson: [],
+          recordedByUserId: params.authUserId,
+          recordedAt,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        };
+        attendanceRecords.push(attendanceRecord);
+      }
+      for (const duplicate of duplicates) {
+        duplicate.status = 'SUPERSEDED';
+        duplicate.updatedAt = now.toISOString();
+      }
+      const linkedBooking = linkedBookingByRegistrationId.get(input.registrationId);
+      if (linkedBooking && shouldCompleteSeries) {
+        attendanceRecord.bookingId = asString(linkedBooking.id) ?? null;
+        completeSeedLinkedBooking({
+          tables: store.tables,
+          booking: linkedBooking,
+          authUserId: params.authUserId,
+          requestId: params.requestId,
+          attendanceRecordId: asString(attendanceRecord.id) ?? '',
+          status: input.status,
+          completedAt: now.toISOString(),
+        });
+      }
+    }
+    occurrenceCompletions.push({
+      id: newId('goc'),
+      groupSessionId: params.sessionId,
+      occurrenceDate: `${params.body.occurrenceDate}T00:00:00.000Z`,
+      completedByUserId: params.authUserId,
+      rosterSize: params.body.attendance.length,
+      attendedCount: params.body.attendance.filter((entry) => entry.status === 'ATTENDED').length,
+      noShowCount: params.body.attendance.filter((entry) => entry.status === 'NO_SHOW').length,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    });
+    applyDerivedGroupCompletionState({
+      session,
+      registrations,
+      attendanceRecords,
+      occurrenceCompletions,
+      actorUserId: params.authUserId,
+      now,
+    });
+    asRows(store.tables.auditEvents).push({
+      ...params.successAuditEvent,
+      occurredAt: params.successAuditEvent.occurredAt.toISOString(),
+    });
+    return {
+      session: mapSessionRow(session),
+      registrations: registrations
+        .filter((row) => asString(row.deletedAt) == null)
+        .map((row) => mapRegistrationRow(row, attendanceRecords)),
+      occurrenceDate: params.body.occurrenceDate,
       dataVersion: store.version,
     };
   }
@@ -2430,6 +3391,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     coachUserId?: string;
     clubId?: string;
     squadId?: string;
+    includeOccurrenceCompletions?: boolean;
+    includeRegistrationGuardianNames?: boolean;
   }): Promise<PrismaSessionRow[]> {
     if (shouldUseDbFixtureFallback()) {
       return [];
@@ -2475,14 +3438,21 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             },
           },
           attendanceRecords: true,
+          ...(params.includeOccurrenceCompletions ? { occurrenceCompletions: true } : {}),
         },
       }),
     );
     const userIds = Array.from(
       new Set(
-        sessions.flatMap((session) =>
-          [session.coachUserId, session.createdByUserId].filter(Boolean),
-        ),
+        sessions.flatMap((session) => [
+          session.coachUserId,
+          session.createdByUserId,
+          ...(params.includeRegistrationGuardianNames
+            ? session.registrations.flatMap((registration) =>
+                registration.parentUserId ? [registration.parentUserId] : [],
+              )
+            : []),
+        ]),
       ),
     );
     const clubIds = Array.from(new Set(sessions.flatMap((session) => session.clubId ?? [])));
@@ -2520,6 +3490,16 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     const clubNameById = new Map(clubs.map((club) => [club.id, club.name] as const));
     return sessions.map((session) => ({
       ...session,
+      ...(params.includeRegistrationGuardianNames
+        ? {
+            registrations: session.registrations.map((registration) => ({
+              ...registration,
+              ...(registration.parentUserId && userNameById.get(registration.parentUserId)
+                ? { parentName: userNameById.get(registration.parentUserId) }
+                : {}),
+            })),
+          }
+        : {}),
       ...(session.coachUserId && userNameById.get(session.coachUserId)
         ? {
             coachName: userNameById.get(session.coachUserId),
@@ -2902,7 +3882,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async listVisibleSessions(params: GroupSessionListParams): Promise<GroupSessionListResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listVisibleSessions(params);
+      getPrismaClientOrThrow();
     }
     if (params.athleteId) {
       await this.assertAthleteAccess(params.authUserId, params.athleteId, params.isPrivilegedAdmin);
@@ -2950,7 +3930,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async getVisibleSessionById(params: GroupSessionAccessParams): Promise<GroupSessionDetailResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getVisibleSessionById(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,
@@ -3126,22 +4106,41 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       params.sessionId,
     );
     assertRecurringInstanceExists(params.sessionId, session.scheduleJson, params.date);
+    const prisma = getPrismaClientOrThrow();
+    const occurrenceCompletions = normalizeAs<PrismaOccurrenceCompletionRow[]>(
+      await prisma.groupSessionOccurrenceCompletion.findMany({
+        where: { groupSessionId: params.sessionId },
+      }),
+    );
+    assertOccurrencesCanBeCancelled({
+      session: session as unknown as SeedRow,
+      dates: [params.date],
+      occurrenceCompletions: occurrenceCompletions as unknown as SeedRow[],
+      now: new Date(),
+    });
     const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
     cancelled.add(params.date);
-    const prisma = getPrismaClientOrThrow();
+    const update = await prisma.groupSession.updateMany({
+      where: {
+        id: session.id,
+        version: session.version,
+      },
+      data: {
+        cancelledInstancesJson: Array.from(cancelled).sort(),
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    if (update.count !== 1) {
+      throw conflict('Group session changed while cancelling the occurrence', {
+        sessionId: params.sessionId,
+        occurrenceDate: params.date,
+      });
+    }
     const updated = normalizeForJson(
-      await prisma.groupSession.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          cancelledInstancesJson: Array.from(cancelled).sort(),
-          updatedByUserId: params.authUserId,
-          version: {
-            increment: 1,
-          },
-        },
-      }),
+      await prisma.groupSession.findUniqueOrThrow({ where: { id: session.id } }),
     ) as SeedRow;
     return {
       session: mapSessionRow(updated),
@@ -3157,28 +4156,47 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       params.isPrivilegedAdmin,
       params.sessionId,
     );
-    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
-    for (const date of scheduledRecurringDatesFrom(
+    const dates = scheduledRecurringDatesFrom(
       params.sessionId,
       session.scheduleJson,
       params.fromDate,
-    )) {
+    );
+    const prisma = getPrismaClientOrThrow();
+    const occurrenceCompletions = normalizeAs<PrismaOccurrenceCompletionRow[]>(
+      await prisma.groupSessionOccurrenceCompletion.findMany({
+        where: { groupSessionId: params.sessionId },
+      }),
+    );
+    assertOccurrencesCanBeCancelled({
+      session: session as unknown as SeedRow,
+      dates,
+      occurrenceCompletions: occurrenceCompletions as unknown as SeedRow[],
+      now: new Date(),
+    });
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    for (const date of dates) {
       cancelled.add(date);
     }
-    const prisma = getPrismaClientOrThrow();
+    const update = await prisma.groupSession.updateMany({
+      where: {
+        id: session.id,
+        version: session.version,
+      },
+      data: {
+        cancelledInstancesJson: Array.from(cancelled).sort(),
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    if (update.count !== 1) {
+      throw conflict('Group session changed while ending the series', {
+        sessionId: params.sessionId,
+      });
+    }
     const updated = normalizeForJson(
-      await prisma.groupSession.update({
-        where: {
-          id: session.id,
-        },
-        data: {
-          cancelledInstancesJson: Array.from(cancelled).sort(),
-          updatedByUserId: params.authUserId,
-          version: {
-            increment: 1,
-          },
-        },
-      }),
+      await prisma.groupSession.findUniqueOrThrow({ where: { id: session.id } }),
     ) as SeedRow;
     return {
       session: mapSessionRow(updated),
@@ -3187,16 +4205,68 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async cancelSession(params: GroupSessionAccessParams): Promise<GroupSessionActionResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.cancelSession(params);
+      getPrismaClientOrThrow();
     }
-    await this.assertSessionWriteAccess(
+    const authorizedSession = await this.assertSessionWriteAccess(
       params.authUserId,
       params.isPrivilegedAdmin,
       params.sessionId,
     );
+    if (normalizeSessionStatus(authorizedSession.status) === 'COMPLETED') {
+      throw conflict('Completed group sessions cannot be cancelled', {
+        sessionId: params.sessionId,
+      });
+    }
     const prisma = getPrismaClientOrThrow();
     const updated = normalizeForJson(
       await prisma.$transaction(async (tx) => {
+        const [currentSession, finalizedRegistration, occurrenceCompletion] = await Promise.all([
+          tx.groupSession.findFirst({
+            where: {
+              id: params.sessionId,
+              deletedAt: null,
+            },
+            select: {
+              status: true,
+              version: true,
+            },
+          }),
+          tx.groupSessionRegistration.findFirst({
+            where: {
+              groupSessionId: params.sessionId,
+              deletedAt: null,
+              status: {
+                in: ['ATTENDED', 'NO_SHOW'],
+              },
+            },
+            select: {
+              id: true,
+            },
+          }),
+          tx.groupSessionOccurrenceCompletion.findFirst({
+            where: {
+              groupSessionId: params.sessionId,
+            },
+            select: {
+              id: true,
+            },
+          }),
+        ]);
+        if (!currentSession) {
+          throw notFound('Group session not found', {
+            sessionId: params.sessionId,
+          });
+        }
+        if (normalizeSessionStatus(currentSession.status) === 'COMPLETED') {
+          throw conflict('Completed group sessions cannot be cancelled', {
+            sessionId: params.sessionId,
+          });
+        }
+        if (occurrenceCompletion) {
+          throw conflict('Group sessions with completed occurrences cannot be cancelled', {
+            sessionId: params.sessionId,
+          });
+        }
         const activeBookings = await tx.booking.findMany({
           where: {
             groupSessionId: params.sessionId,
@@ -3210,6 +4280,16 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             status: true,
           },
         });
+        const completedBooking = activeBookings.find(
+          (booking) => booking.status === 'COMPLETED',
+        );
+        if (finalizedRegistration || completedBooking) {
+          throw conflict('Group sessions with finalized attendance cannot be cancelled', {
+            sessionId: params.sessionId,
+            registrationId: finalizedRegistration?.id ?? null,
+            bookingId: completedBooking?.id ?? null,
+          });
+        }
         await Promise.all(
           activeBookings.map((booking) =>
             applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
@@ -3232,6 +4312,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             },
             data: {
               status: 'CANCELLED',
+              rosterEndedAt: now,
               updatedByUserId: params.authUserId,
               version: {
                 increment: 1,
@@ -3279,9 +4360,10 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             }),
           ]),
         ]);
-        return tx.groupSession.update({
+        const sessionUpdate = await tx.groupSession.updateMany({
           where: {
             id: params.sessionId,
+            version: currentSession.version,
           },
           data: {
             status: 'CANCELLED',
@@ -3293,6 +4375,19 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             },
           },
         });
+        if (sessionUpdate.count !== 1) {
+          throw conflict('Group session changed during cancellation', {
+            sessionId: params.sessionId,
+          });
+        }
+        return tx.groupSession.findUniqueOrThrow({
+          where: {
+            id: params.sessionId,
+          },
+        });
+      }, {
+        ...API_DB_TRANSACTION_OPTIONS,
+        isolationLevel: 'Serializable',
       }),
     ) as SeedRow;
     return {
@@ -3302,12 +4397,11 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async registerAthlete(params: GroupSessionRegisterParams): Promise<GroupSessionRegisterResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.registerAthlete(params);
+      getPrismaClientOrThrow();
     }
     await this.assertAthleteAccess(params.authUserId, params.athleteId, params.isPrivilegedAdmin);
     const prisma = getPrismaClientOrThrow();
     const session = await this.assertSessionWriteAccess(params.authUserId, true, params.sessionId);
-    assertSessionOpenForRegistration(params.sessionId, session.status);
     const athleteForThread = await prisma.athlete.findUnique({
       where: {
         id: params.athleteId,
@@ -3419,7 +4513,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       if (registration.status === 'REGISTERED') {
         await prisma.$transaction(async (tx) => {
           await ensureDbGroupSessionThread(tx, new Date());
-        });
+        }, API_DB_TRANSACTION_OPTIONS);
       }
       const linkedBooking = normalizeAs<{
         id: string;
@@ -3454,6 +4548,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         dataVersion: null,
       };
     }
+    assertSessionOpenForRegistration(session as unknown as SeedRow, new Date());
     const deliveryCoachUserId = requireAssignedDeliveryCoach(params.sessionId, session.coachUserId);
     const currentParticipants = session.currentParticipants;
     const offPlatformParticipants = session.offPlatformParticipants;
@@ -3490,6 +4585,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           createdByUserId: params.authUserId,
           updatedByUserId: params.authUserId,
           registeredAt: now,
+          rosterActiveAt: isFull ? null : now,
+          rosterEndedAt: null,
         },
       });
       let booking: {
@@ -3629,7 +4726,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         registration: normalizeAs<PrismaRegistrationRow>(registration),
         booking,
       };
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     const attendanceRecords = normalizeAs<PrismaAttendanceRow[]>(
       await prisma.attendanceRecord.findMany({
         where: {
@@ -3650,14 +4747,25 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async listSessionRoster(params: GroupSessionAccessParams): Promise<GroupSessionRosterResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listSessionRoster(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,
+      includeOccurrenceCompletions: params.forCompletion === true,
+      includeRegistrationGuardianNames: true,
     });
     const session = sessions[0];
     if (!session) {
       throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (
+      params.forCompletion &&
+      !params.isPrivilegedAdmin &&
+      session.coachUserId !== params.authUserId
+    ) {
+      throw forbidden('Only the assigned coach can read a group session completion roster', {
         sessionId: params.sessionId,
       });
     }
@@ -3672,13 +4780,39 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         sessionId: params.sessionId,
       });
     }
+    const occurrence = params.forCompletion
+      ? pendingCompletionOccurrence({
+          session: session as unknown as SeedRow,
+          occurrenceCompletions: (session.occurrenceCompletions ?? []) as unknown as SeedRow[],
+          now: new Date(),
+        })
+      : null;
+    const registrations =
+      params.forCompletion && !occurrence
+        ? []
+        : session.registrations.flatMap((row) =>
+            occurrence
+              ? isRegistrationActiveForOccurrence(row as unknown as SeedRow, occurrence)
+                ? [
+                    this.mapPrismaRegistration(
+                      {
+                        ...row,
+                        status: 'REGISTERED',
+                      },
+                      session.attendanceRecords,
+                    ),
+                  ]
+                : []
+              : row.status !== 'CANCELLED'
+                ? [this.mapPrismaRegistration(row, session.attendanceRecords)]
+                : [],
+          );
+    const includeGuardianName =
+      params.isPrivilegedAdmin || session.coachUserId === params.authUserId;
     return {
       session: this.mapPrismaSession(session),
-      registrations: session.registrations.flatMap((row) =>
-        row.status !== 'CANCELLED'
-          ? [this.mapPrismaRegistration(row, session.attendanceRecords)]
-          : [],
-      ),
+      registrations: projectRosterRegistrationIdentity(registrations, includeGuardianName),
+      occurrenceDate: occurrence?.date ?? null,
       dataVersion: null,
     };
   }
@@ -3686,7 +4820,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupSessionRegistrationAccessParams,
   ): Promise<GroupSessionRegistrationResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.cancelRegistration(params);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const registration = normalizeAs<
@@ -3724,14 +4858,23 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     }
     const now = new Date();
     const previousStatus = registration.status.toUpperCase();
+    if (normalizeSessionStatus(registration.groupSession.status) === 'COMPLETED') {
+      throw conflict('Completed group session registrations cannot be cancelled', {
+        registrationId: params.registrationId,
+        sessionId: registration.groupSessionId,
+      });
+    }
+    if (previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW') {
+      throw conflict('Finalized attendance cannot be cancelled through registration removal', {
+        registrationId: params.registrationId,
+        sessionId: registration.groupSessionId,
+      });
+    }
     const promotedBookingIds = await prisma.$transaction(async (tx) => {
       const createdPromotedBookingIds: string[] = [];
       let linkedBookingId: string | null = null;
-      if (
-        previousStatus === 'REGISTERED' ||
-        previousStatus === 'ATTENDED' ||
-        previousStatus === 'NO_SHOW'
-      ) {
+      let linkedBookingStatus: string | null = null;
+      if (previousStatus === 'REGISTERED') {
         const booking = await tx.booking.findFirst({
           where: {
             groupSessionId: registration.groupSessionId,
@@ -3748,9 +4891,31 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           },
           select: {
             id: true,
+            status: true,
           },
         });
         linkedBookingId = booking?.id ?? null;
+        linkedBookingStatus = booking?.status ?? null;
+        if (booking?.status === 'COMPLETED') {
+          throw conflict(
+            'Completed group bookings cannot be cancelled through registration removal',
+            {
+              registrationId: params.registrationId,
+              bookingId: booking.id,
+            },
+          );
+        }
+        if (
+          booking &&
+          booking.status !== 'CONFIRMED' &&
+          booking.status !== 'AWAITING_COMPLETION'
+        ) {
+          throw conflict('Linked group booking is not eligible for cancellation', {
+            registrationId: params.registrationId,
+            bookingId: booking.id,
+            status: booking.status,
+          });
+        }
         if (linkedBookingId) {
           await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
             bookingId: linkedBookingId,
@@ -3765,17 +4930,14 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         },
         data: {
           status: 'CANCELLED',
+          rosterEndedAt: now,
           updatedByUserId: params.authUserId,
           version: {
             increment: 1,
           },
         },
       });
-      if (
-        previousStatus === 'REGISTERED' ||
-        previousStatus === 'ATTENDED' ||
-        previousStatus === 'NO_SHOW'
-      ) {
+      if (previousStatus === 'REGISTERED') {
         await tx.groupSession.update({
           where: {
             id: registration.groupSessionId,
@@ -3810,7 +4972,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             data: {
               id: newId('bse'),
               bookingId: linkedBookingId,
-              fromStatus: 'CONFIRMED',
+              fromStatus: linkedBookingStatus as never,
               toStatus: 'CANCELLED',
               actorUserId: params.authUserId,
               reason: 'Group session registration cancelled.',
@@ -3841,6 +5003,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
               data: {
                 status: 'REGISTERED',
                 paidAt: null,
+                rosterActiveAt: now,
+                rosterEndedAt: null,
                 updatedByUserId: params.authUserId,
                 version: {
                   increment: 1,
@@ -3989,7 +5153,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         });
       }
       return createdPromotedBookingIds;
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     await Promise.all(
       promotedBookingIds.map((bookingId) =>
         generateLinkedRegistrationInvoiceIfBillable({
@@ -4028,37 +5192,77 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupSessionAttendanceParams,
   ): Promise<GroupSessionRegistrationResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.markAttendance(params);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
-    const registration = normalizeAs<
-      | (PrismaRegistrationRow & {
-          groupSession: PrismaSessionRow;
-        })
-      | null
-    >(
-      await prisma.groupSessionRegistration.findFirst({
+    return prisma.$transaction(async (tx) => {
+      const registration = normalizeAs<
+        | (PrismaRegistrationRow & {
+            groupSession: PrismaSessionRow;
+          })
+        | null
+      >(
+        await tx.groupSessionRegistration.findFirst({
+          where: {
+            id: params.registrationId,
+            deletedAt: null,
+          },
+          include: {
+            groupSession: true,
+          },
+        }),
+      );
+      if (!registration) {
+        throw notFound('Group session registration not found', {
+          registrationId: params.registrationId,
+        });
+      }
+      if (
+        !params.isPrivilegedAdmin &&
+        registration.groupSession.coachUserId !== params.authUserId
+      ) {
+        throw forbidden('Group session does not belong to authenticated user', {
+          registrationId: params.registrationId,
+        });
+      }
+      if (normalizeSessionStatus(registration.groupSession.status) === 'COMPLETED') {
+        throw conflict('Completed group session attendance is immutable', {
+          registrationId: params.registrationId,
+          sessionId: registration.groupSessionId,
+        });
+      }
+      const occurrence = assertGroupSessionOccurrenceCanBeCompleted(
+        registration.groupSession as unknown as SeedRow,
+        params.date,
+        new Date(),
+      );
+      const occurrenceCompletion = await tx.groupSessionOccurrenceCompletion.findUnique({
         where: {
-          id: params.registrationId,
-          deletedAt: null,
+          groupSessionId_occurrenceDate: {
+            groupSessionId: registration.groupSessionId,
+            occurrenceDate: new Date(`${params.date}T00:00:00.000Z`),
+          },
         },
-        include: {
-          groupSession: true,
+        select: {
+          id: true,
         },
-      }),
-    );
-    if (!registration) {
-      throw notFound('Group session registration not found', {
-        registrationId: params.registrationId,
       });
-    }
-    if (!params.isPrivilegedAdmin && registration.groupSession.coachUserId !== params.authUserId) {
-      throw forbidden('Group session does not belong to authenticated user', {
-        registrationId: params.registrationId,
-      });
-    }
-    const targetDate = params.date;
-    await prisma.$transaction(async (tx) => {
+      if (occurrenceCompletion) {
+        throw conflict('Completed group session occurrence attendance is immutable', {
+          registrationId: params.registrationId,
+          sessionId: registration.groupSessionId,
+          occurrenceDate: params.date,
+        });
+      }
+      if (!isRegistrationActiveForOccurrence(registration as unknown as SeedRow, occurrence)) {
+        throw badRequest('Registration was not active for this group session occurrence', {
+          registrationId: params.registrationId,
+          sessionId: registration.groupSessionId,
+          occurrenceDate: params.date,
+        });
+      }
+      const isRecurring = buildScheduleEntries(registration.groupSession.scheduleJson).length > 1;
+      const targetDate = params.date;
       const existing = await tx.attendanceRecord.findMany({
         where: {
           groupSessionId: registration.groupSessionId,
@@ -4068,15 +5272,26 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       const matching = existing.filter(
         (row) => parseIsoDatePart(row.recordedAt.toISOString()) === targetDate,
       );
-      if (params.attended) {
-        if (matching.length === 0) {
+      if (params.status) {
+        const [existing, ...duplicates] = matching;
+        if (existing) {
+          await tx.attendanceRecord.update({
+            where: {
+              id: existing.id,
+            },
+            data: {
+              status: params.status,
+              recordedByUserId: params.authUserId,
+            },
+          });
+        } else {
           await tx.attendanceRecord.create({
             data: {
               id: newId('att'),
               bookingId: null,
               groupSessionId: registration.groupSessionId,
               athleteId: registration.athleteId,
-              status: 'ATTENDED',
+              status: params.status,
               notes: null,
               effortRating: null,
               focusAreasJson: [],
@@ -4085,12 +5300,26 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             },
           });
         }
+        if (duplicates.length > 0) {
+          await tx.attendanceRecord.updateMany({
+            where: {
+              id: {
+                in: duplicates.map((row) => row.id),
+              },
+            },
+            data: {
+              status: 'SUPERSEDED',
+            },
+          });
+        }
         await tx.groupSessionRegistration.update({
           where: {
             id: registration.id,
           },
           data: {
-            status: 'ATTENDED',
+            status: isRecurring
+              ? recurringRegistrationStatus(registration as unknown as SeedRow)
+              : params.status,
             updatedByUserId: params.authUserId,
             version: {
               increment: 1,
@@ -4099,19 +5328,27 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         });
       } else {
         if (matching.length > 0) {
-          await tx.attendanceRecord.deleteMany({
+          await tx.attendanceRecord.updateMany({
             where: {
               id: {
                 in: matching.map((row) => row.id),
               },
             },
+            data: {
+              status: 'CLEARED',
+            },
           });
         }
-        const remaining = await tx.attendanceRecord.count({
+        const remaining = await tx.attendanceRecord.findMany({
           where: {
             groupSessionId: registration.groupSessionId,
             athleteId: registration.athleteId,
-            status: 'ATTENDED',
+            status: {
+              in: ['ATTENDED', 'NO_SHOW'],
+            },
+          },
+          select: {
+            status: true,
           },
         });
         await tx.groupSessionRegistration.update({
@@ -4119,7 +5356,13 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             id: registration.id,
           },
           data: {
-            status: remaining > 0 ? 'ATTENDED' : 'REGISTERED',
+            status: isRecurring
+              ? recurringRegistrationStatus(registration as unknown as SeedRow)
+              : remaining.some((row) => row.status === 'ATTENDED')
+                ? 'ATTENDED'
+                : remaining.some((row) => row.status === 'NO_SHOW')
+                  ? 'NO_SHOW'
+                  : 'REGISTERED',
             updatedByUserId: params.authUserId,
             version: {
               increment: 1,
@@ -4127,29 +5370,496 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           },
         });
       }
-    });
-    const refreshed = normalizeAs<PrismaRegistrationRow | null>(
-      await prisma.groupSessionRegistration.findUnique({
-        where: {
-          id: registration.id,
+      const [refreshed, attendanceRecords] = await Promise.all([
+        tx.groupSessionRegistration.findUnique({
+          where: {
+            id: registration.id,
+          },
+        }),
+        tx.attendanceRecord.findMany({
+          where: {
+            groupSessionId: registration.groupSessionId,
+            athleteId: registration.athleteId,
+          },
+        }),
+      ]);
+      if (!refreshed) {
+        throw notFound('Group session registration not found', {
+          registrationId: params.registrationId,
+        });
+      }
+      const mappedRegistration = this.mapPrismaRegistration(
+        normalizeAs<PrismaRegistrationRow>(refreshed),
+        normalizeAs<PrismaAttendanceRow[]>(attendanceRecords),
+      );
+      await tx.auditEvent.create({
+        data: {
+          ...params.successAuditEvent,
+          metadataJson: {
+            ...(params.successAuditEvent.metadataJson as SeedRow),
+            sessionId: registration.groupSessionId,
+            athleteId: registration.athleteId,
+            registrationStatus: mappedRegistration.status,
+          } as never,
         },
-      }),
-    );
-    const attendanceRecords = normalizeAs<PrismaAttendanceRow[]>(
-      await prisma.attendanceRecord.findMany({
-        where: {
-          groupSessionId: registration.groupSessionId,
-          athleteId: registration.athleteId,
-        },
-      }),
-    );
-    if (!refreshed) {
-      throw notFound('Group session registration not found', {
-        registrationId: params.registrationId,
       });
+      return {
+        registration: mappedRegistration,
+        dataVersion: null,
+      };
+    }, {
+      ...API_DB_TRANSACTION_OPTIONS,
+      isolationLevel: 'Serializable',
+    });
+  }
+  async completeSession(
+    params: GroupSessionCompletionParams,
+  ): Promise<GroupSessionCompletionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      getPrismaClientOrThrow();
     }
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    const completedSession = await prisma.$transaction(async (tx) => {
+      const session = normalizeAs<PrismaSessionRow | null>(
+        await tx.groupSession.findFirst({
+          where: {
+            id: params.sessionId,
+            deletedAt: null,
+          },
+          include: {
+            registrations: {
+              where: {
+                deletedAt: null,
+              },
+            },
+            attendanceRecords: true,
+            occurrenceCompletions: true,
+          },
+        }),
+      );
+      if (!session) {
+        throw notFound('Group session not found', {
+          sessionId: params.sessionId,
+        });
+      }
+      if (!params.isPrivilegedAdmin && session.coachUserId !== params.authUserId) {
+        throw forbidden('Group session does not belong to authenticated user', {
+          sessionId: params.sessionId,
+        });
+      }
+      const occurrence = assertGroupSessionOccurrenceCanBeCompleted(
+        session as unknown as SeedRow,
+        params.body.occurrenceDate,
+        now,
+      );
+      const registrationRows = session.registrations as unknown as SeedRow[];
+      assertExactCompletionRoster(
+        params.sessionId,
+        registrationRows,
+        occurrence,
+        params.body.attendance,
+      );
+      const registrationById = new Map(session.registrations.map((row) => [row.id, row] as const));
+      const attendanceRows = session.attendanceRecords as unknown as SeedRow[];
+      const occurrenceRows = (session.occurrenceCompletions ?? []) as unknown as SeedRow[];
+      const existingCompletion = occurrenceRows.find(
+        (row) =>
+          asString(row.groupSessionId) === params.sessionId &&
+          occurrenceCompletionDate(row) === params.body.occurrenceDate,
+      );
+      if (existingCompletion) {
+        if (
+          !completionMatchesExistingProof({
+            sessionId: params.sessionId,
+            occurrenceDate: params.body.occurrenceDate,
+            registrations: registrationRows,
+            attendanceRecords: attendanceRows,
+            attendance: params.body.attendance,
+          })
+        ) {
+          throw conflict('Group session was already completed with different attendance', {
+            sessionId: params.sessionId,
+            occurrenceDate: params.body.occurrenceDate,
+          });
+        }
+        return session;
+      }
+      if (normalizeSessionStatus(session.status) === 'COMPLETED') {
+        throw conflict('Group session completion ledger is inconsistent', {
+          sessionId: params.sessionId,
+          occurrenceDate: params.body.occurrenceDate,
+        });
+      }
+      const shouldCompleteSeries = willCompleteSeriesAfterOccurrence({
+        session: session as unknown as SeedRow,
+        occurrenceCompletions: occurrenceRows,
+        occurrenceDate: params.body.occurrenceDate,
+        now,
+      });
+      const linkedBookings = await tx.booking.findMany({
+        where: {
+          groupSessionId: params.sessionId,
+          deletedAt: null,
+          status: {
+            not: 'CANCELLED',
+          },
+        },
+        include: {
+          participants: {
+            where: {
+              deletedAt: null,
+            },
+            include: {
+              athlete: {
+                select: {
+                  userId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      const linkedBookingByAthleteId = new Map<
+        string,
+        (typeof linkedBookings)[number]
+      >();
+      for (const booking of linkedBookings) {
+        for (const participant of booking.participants) {
+          if (linkedBookingByAthleteId.has(participant.athleteId)) {
+            throw conflict('Athlete has multiple active bookings for this group session', {
+              sessionId: params.sessionId,
+              athleteId: participant.athleteId,
+            });
+          }
+          linkedBookingByAthleteId.set(participant.athleteId, booking);
+        }
+      }
+      for (const linkedBooking of linkedBookings) {
+        if (linkedBooking.status === 'COMPLETED') {
+          throw conflict('Linked group booking was completed outside group session authority', {
+            bookingId: linkedBooking.id,
+            sessionId: params.sessionId,
+          });
+        }
+        if (
+          linkedBooking.status !== 'CONFIRMED' &&
+          linkedBooking.status !== 'AWAITING_COMPLETION'
+        ) {
+          throw conflict('Linked group booking is not eligible for completion', {
+            bookingId: linkedBooking.id,
+            status: linkedBooking.status,
+          });
+        }
+      }
+      if (shouldCompleteSeries) {
+        const finalRosterAthleteIds = new Set(
+          params.body.attendance.flatMap((entry) => {
+            const athleteId = registrationById.get(entry.registrationId)?.athleteId;
+            return athleteId ? [athleteId] : [];
+          }),
+        );
+        const orphanedBooking = linkedBookings.find(
+          (booking) =>
+            booking.participants.length === 0 ||
+            booking.participants.some(
+              (participant) => !finalRosterAthleteIds.has(participant.athleteId),
+            ),
+        );
+        if (orphanedBooking) {
+          throw conflict('Every active linked booking must belong to the final occurrence roster', {
+            sessionId: params.sessionId,
+            bookingId: orphanedBooking.id,
+          });
+        }
+      }
+      const occurrenceCompletion = normalizeAs<PrismaOccurrenceCompletionRow>(
+        await tx.groupSessionOccurrenceCompletion.create({
+          data: {
+            id: newId('goc'),
+            groupSessionId: params.sessionId,
+            occurrenceDate: new Date(`${params.body.occurrenceDate}T00:00:00.000Z`),
+            completedByUserId: params.authUserId,
+            rosterSize: params.body.attendance.length,
+            attendedCount: params.body.attendance.filter((entry) => entry.status === 'ATTENDED')
+              .length,
+            noShowCount: params.body.attendance.filter((entry) => entry.status === 'NO_SHOW')
+              .length,
+          },
+        }),
+      );
+      occurrenceRows.push(occurrenceCompletion as unknown as SeedRow);
+      const recordedAt = new Date(`${params.body.occurrenceDate}T12:00:00.000Z`);
+      for (const input of params.body.attendance) {
+        const registration = registrationById.get(input.registrationId);
+        if (!registration) {
+          throw badRequest('Group session completion registration not found', {
+            sessionId: params.sessionId,
+            registrationId: input.registrationId,
+          });
+        }
+        const matching = session.attendanceRecords.filter(
+          (row) =>
+            row.athleteId === registration.athleteId &&
+            parseIsoDatePart(row.recordedAt) === params.body.occurrenceDate,
+        );
+        const [existing, ...duplicates] = matching;
+        const linkedBooking = linkedBookingByAthleteId.get(registration.athleteId);
+        let attendanceRecord: PrismaAttendanceRow;
+        if (existing) {
+          attendanceRecord = normalizeAs<PrismaAttendanceRow>(
+            await tx.attendanceRecord.update({
+              where: {
+                id: existing.id,
+              },
+              data: {
+                bookingId: linkedBooking?.id ?? existing.bookingId,
+                status: input.status,
+                notes: input.notes ?? null,
+                effortRating: input.effortRating ?? null,
+                recordedByUserId: params.authUserId,
+                recordedAt,
+              },
+            }),
+          );
+          Object.assign(existing, attendanceRecord);
+        } else {
+          attendanceRecord = normalizeAs<PrismaAttendanceRow>(
+            await tx.attendanceRecord.create({
+              data: {
+                id: newId('att'),
+                bookingId: linkedBooking?.id ?? null,
+                groupSessionId: params.sessionId,
+                athleteId: registration.athleteId,
+                status: input.status,
+                notes: input.notes ?? null,
+                effortRating: input.effortRating ?? null,
+                focusAreasJson: [],
+                recordedByUserId: params.authUserId,
+                recordedAt,
+              },
+            }),
+          );
+          session.attendanceRecords.push(attendanceRecord);
+        }
+        if (duplicates.length > 0) {
+          await tx.attendanceRecord.updateMany({
+            where: {
+              id: {
+                in: duplicates.map((row) => row.id),
+              },
+            },
+            data: {
+              status: 'SUPERSEDED',
+            },
+          });
+          for (const duplicate of duplicates) {
+            duplicate.status = 'SUPERSEDED';
+          }
+        }
+        if (linkedBooking && shouldCompleteSeries) {
+          const bookingUpdate = await tx.booking.updateMany({
+            where: {
+              id: linkedBooking.id,
+              version: linkedBooking.version,
+              status: linkedBooking.status,
+            },
+            data: {
+              status: 'COMPLETED',
+              updatedByUserId: params.authUserId,
+              version: {
+                increment: 1,
+              },
+            },
+          });
+          if (bookingUpdate.count !== 1) {
+            throw conflict('Linked group booking changed during completion', {
+              bookingId: linkedBooking.id,
+            });
+          }
+          await tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: linkedBooking.id,
+              fromStatus: linkedBooking.status,
+              toStatus: 'COMPLETED',
+              actorUserId: params.authUserId,
+              reason: 'Completed with group session attendance',
+              metadataJson: {
+                source: 'group-session-completion',
+                attendanceRecordIds: [attendanceRecord.id],
+                attendanceSummary: {
+                  attended: input.status === 'ATTENDED' ? 1 : 0,
+                  noShow: input.status === 'NO_SHOW' ? 1 : 0,
+                },
+                proofSource: 'attendance-record',
+              },
+              requestId: params.requestId,
+              occurredAt: now,
+            },
+          });
+          const recipientUserIds = bookingFamilyRecipientIds({
+            actorUserId: params.authUserId,
+            bookedByUserId: linkedBooking.bookedByUserId,
+            participants: linkedBooking.participants.map((participant) => ({
+              guardianUserId: participant.guardianUserId,
+              athleteUserId: participant.athlete.userId,
+            })),
+          });
+          if (recipientUserIds.length > 0) {
+            const existingNotifications = await tx.notification.findMany({
+              where: {
+                userId: {
+                  in: recipientUserIds,
+                },
+                sourceType: {
+                  in: [
+                    BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE,
+                    BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE,
+                  ],
+                },
+                sourceId: linkedBooking.id,
+              },
+              select: {
+                sourceType: true,
+                userId: true,
+              },
+            });
+            const existingKeys = new Set(
+              existingNotifications.map(
+                (notification) => `${notification.sourceType ?? ''}:${notification.userId}`,
+              ),
+            );
+            const notificationRows = bookingCompletionNotificationRows({
+              bookingId: linkedBooking.id,
+              actorUserId: params.authUserId,
+              recipientUserIds,
+              attendanceSummary: {
+                attended: input.status === 'ATTENDED' ? 1 : 0,
+                noShow: input.status === 'NO_SHOW' ? 1 : 0,
+              },
+              now: now.toISOString(),
+            }).filter(
+              (notification) =>
+                !existingKeys.has(
+                  `${asString(notification.sourceType) ?? ''}:${asString(notification.userId) ?? ''}`,
+                ),
+            );
+            if (notificationRows.length > 0) {
+              await tx.notification.createMany({
+                data: notificationRows.map((notification) => ({
+                  id: asString(notification.id) ?? newId('nfn'),
+                  userId: asString(notification.userId) ?? '',
+                  type: asString(notification.type) ?? 'BOOKING_COMPLETED',
+                  title: asString(notification.title) ?? 'Booking update',
+                  body: asString(notification.body) ?? null,
+                  status: 'UNREAD',
+                  sourceType: asString(notification.sourceType) ?? null,
+                  sourceId: linkedBooking.id,
+                  deepLink:
+                    asString(notification.deepLink) ?? `/bookings/${linkedBooking.id}`,
+                  metadataJson: notification.metadataJson as never,
+                  createdAt: now,
+                  updatedAt: now,
+                })),
+              });
+            }
+          }
+        }
+      }
+      const sessionRow = session as unknown as SeedRow;
+      const sessionVersion = session.version;
+      const registrationVersions = new Map(
+        session.registrations.map((registration) => [
+          registration.id,
+          registration.version,
+        ]),
+      );
+      applyDerivedGroupCompletionState({
+        session: sessionRow,
+        registrations: registrationRows,
+        attendanceRecords: attendanceRows,
+        occurrenceCompletions: occurrenceRows,
+        actorUserId: params.authUserId,
+        now,
+      });
+      const registrationUpdates = await Promise.all(
+        registrationRows
+          .filter(isActiveCompletionRegistration)
+          .map((registration) =>
+            tx.groupSessionRegistration.updateMany({
+              where: {
+                id: asString(registration.id) ?? '',
+                version: registrationVersions.get(asString(registration.id) ?? ''),
+              },
+              data: {
+                status: asString(registration.status) as never,
+                updatedByUserId: params.authUserId,
+                version: {
+                  increment: 1,
+                },
+              },
+            }),
+          ),
+      );
+      if (registrationUpdates.some((update) => update.count !== 1)) {
+        throw conflict('Group session roster changed during completion', {
+          sessionId: params.sessionId,
+        });
+      }
+      const sessionUpdate = await tx.groupSession.updateMany({
+        where: {
+          id: params.sessionId,
+          version: sessionVersion,
+        },
+        data: {
+          status: asString(sessionRow.status) as never,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      if (sessionUpdate.count !== 1) {
+        throw conflict('Group session changed during completion', {
+          sessionId: params.sessionId,
+        });
+      }
+      await tx.auditEvent.create({
+        data: params.successAuditEvent,
+      });
+      const refreshed = await tx.groupSession.findFirst({
+        where: {
+          id: params.sessionId,
+          deletedAt: null,
+        },
+        include: {
+          registrations: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          attendanceRecords: true,
+          occurrenceCompletions: true,
+        },
+      });
+      if (!refreshed) {
+        throw notFound('Group session not found', {
+          sessionId: params.sessionId,
+        });
+      }
+      return refreshed;
+    }, {
+      ...API_DB_TRANSACTION_OPTIONS,
+      isolationLevel: 'Serializable',
+    });
+    const refreshed = normalizeAs<PrismaSessionRow>(completedSession);
     return {
-      registration: this.mapPrismaRegistration(refreshed, attendanceRecords),
+      session: this.mapPrismaSession(refreshed),
+      registrations: refreshed.registrations.map((registration) =>
+        this.mapPrismaRegistration(registration, refreshed.attendanceRecords),
+      ),
+      occurrenceDate: params.body.occurrenceDate,
       dataVersion: null,
     };
   }
@@ -4157,7 +5867,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupRegistrationListParams,
   ): Promise<GroupRegistrationListResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listRegistrationsForAthleteIds(params);
+      getPrismaClientOrThrow();
     }
     await Promise.all(
       params.athleteIds.map((athleteId) =>
@@ -4207,7 +5917,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupSessionRsvpCreateParams,
   ): Promise<SessionRsvpListResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.createSessionRsvps(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,
@@ -4264,7 +5974,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async listSessionRsvps(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpListResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listSessionRsvps(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,
@@ -4310,13 +6020,13 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   async listSessionRsvpsForUser(
     params: SessionRsvpUserListParams,
   ): Promise<SessionRsvpListResult> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listSessionRsvpsForUser(params);
-    }
     if (!params.isPrivilegedAdmin && params.userId !== params.authUserId) {
       throw forbidden('RSVP userId must match authenticated user', {
         userId: params.userId,
       });
+    }
+    if (shouldUseDbFixtureFallback()) {
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const rows = normalizeAs<PrismaSessionRsvpRow[]>(
@@ -4342,7 +6052,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async getSessionRsvpById(params: SessionRsvpAccessParams): Promise<SessionRsvpActionResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getSessionRsvpById(params);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const row = normalizeAs<
@@ -4395,7 +6105,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
   }
   async respondSessionRsvp(params: SessionRsvpRespondParams): Promise<SessionRsvpActionResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.respondSessionRsvp(params);
+      getPrismaClientOrThrow();
     }
     const prisma = getPrismaClientOrThrow();
     const existing = normalizeAs<PrismaSessionRsvpRow | null>(
@@ -4453,7 +6163,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: SessionRsvpBatchCountsParams,
   ): Promise<SessionRsvpBatchCountsResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getBatchSessionRsvpCounts(params);
+      getPrismaClientOrThrow();
     }
     const countsBySessionId = Object.fromEntries(
       params.sessionIds.map((sessionId) => [sessionId, emptySessionRsvpCounts()]),
@@ -4477,7 +6187,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupSessionRsvpAccessParams,
   ): Promise<SessionRsvpReminderResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.remindSessionRsvps(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,
@@ -4533,7 +6243,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     params: GroupSessionRsvpAccessParams,
   ): Promise<SessionRsvpReminderResult> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.deleteSessionRsvpsForSession(params);
+      getPrismaClientOrThrow();
     }
     const sessions = await this.querySessions({
       sessionId: params.sessionId,

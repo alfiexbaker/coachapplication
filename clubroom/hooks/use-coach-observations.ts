@@ -23,20 +23,21 @@ export function useCoachObservations(athleteId: string) {
   const { currentUser } = useAuth();
   const [observations, setObservations] = useState<CoachObservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingObservation, setEditingObservation] = useState<CoachObservation | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     startTransition(() => {
-      void loadCoachObservations(athleteId, setObservations, setLoading);
+      void loadCoachObservations(athleteId, setObservations, setLoading, setError);
     });
   }, [athleteId]);
 
   // Subscribe to observation events for live updates
   useEffect(() => {
     const reloadObservations = () => {
-      void loadCoachObservations(athleteId, setObservations, setLoading);
+      void loadCoachObservations(athleteId, setObservations, setLoading, setError);
     };
     const unsubs = [
       onTyped(ServiceEvents.COACH_OBSERVATION_CREATED, (e) => {
@@ -65,7 +66,6 @@ export function useCoachObservations(athleteId: string) {
   const handleSave = async (data: {
     text: string;
     category: ObservationCategory;
-    isPrivate: boolean;
   }) => {
     if (!currentUser) return;
     setSaving(true);
@@ -86,6 +86,7 @@ export function useCoachObservations(athleteId: string) {
             athleteId,
             coachId: currentUser.id,
             coachName: currentUser.name,
+            isPrivate: true,
             ...data,
           });
           if (!result.success) {
@@ -124,6 +125,7 @@ export function useCoachObservations(athleteId: string) {
   return {
     observations,
     loading,
+    error,
     modalVisible,
     editingObservation,
     saving,
@@ -131,6 +133,7 @@ export function useCoachObservations(athleteId: string) {
     hideModal,
     handleSave,
     deleteObservation,
+    retry: () => loadCoachObservations(athleteId, setObservations, setLoading, setError),
   };
 }
 
@@ -138,10 +141,34 @@ async function loadCoachObservations(
   athleteId: string,
   setObservations: (observations: CoachObservation[]) => void,
   setLoading: (loading: boolean) => void,
+  setError: (error: string | null) => void,
 ) {
-  const result = await coachObservationService.getObservations(athleteId);
-  if (result.success) {
-    setObservations(result.data);
+  setLoading(true);
+  setError(null);
+  if (!athleteId.trim()) {
+    setObservations([]);
+    setError('Athlete profile is required before loading coach observations.');
+    setLoading(false);
+    return;
   }
-  setLoading(false);
+
+  await runAsyncTryCatchFinally(
+    async () => {
+      const result = await coachObservationService.getObservations(athleteId);
+      if (result.success) {
+        setObservations(result.data);
+        return;
+      }
+      setObservations([]);
+      setError(result.error.message || 'Failed to load coach observations.');
+    },
+    async (loadError) => {
+      logger.error('load_observations_failed', { athleteId, error: loadError });
+      setObservations([]);
+      setError('Failed to load coach observations.');
+    },
+    () => {
+      setLoading(false);
+    },
+  );
 }

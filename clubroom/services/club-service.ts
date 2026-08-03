@@ -34,8 +34,14 @@ import {
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { api } from '@/constants/config';
-import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  loadMockClubMembers as loadMembers,
+  resetMockClubMembers,
+  saveMockClubMembers as saveMembers,
+  seedMockClubMembers,
+  type ClubMember,
+} from './club-member-mock-store';
 import {
   ORGANIZATION_ROLE_LABELS,
   canManageClubMembers,
@@ -55,6 +61,8 @@ const ROLE_COLORS: Record<ClubRole, string> = {
   ASSISTANT: '#D97706',
   MEMBER: '#6B7280',
 };
+
+export type { ClubMember } from './club-member-mock-store';
 
 function unwrapApiResult<T>(result: Result<T, ServiceError>): T {
   if (!result.success) {
@@ -388,74 +396,7 @@ export interface ClubMemberRemovalRecord {
   originalMembership?: ClubMembership;
 }
 
-export interface ClubMember {
-  userId: string;
-  userName: string;
-  userPhotoUrl?: string;
-  role: ClubRole;
-  status: 'active' | 'pending' | 'banned';
-  joinedAt: string;
-  squadIds?: string[];
-  bannedAt?: string;
-  bannedBy?: string;
-  banReason?: string;
-}
-
-// Mock members data
-const MOCK_MEMBERS: ClubMember[] = normalizeLegacyMockDates([
-  {
-    userId: 'coach1',
-    userName: 'Director Kelly',
-    role: 'OWNER',
-    status: 'active',
-    joinedAt: '2024-01-15',
-    squadIds: ['squad_u15', 'squad_juniors'],
-  },
-  {
-    userId: 'coach2',
-    userName: 'Jess Okafor',
-    role: 'COACH',
-    status: 'active',
-    joinedAt: '2024-03-20',
-    squadIds: ['squad_u15'],
-  },
-  {
-    userId: 'coach3',
-    userName: 'Reuben Carr',
-    role: 'COACH',
-    status: 'pending',
-    joinedAt: '2024-11-10',
-    squadIds: ['squad_juniors'],
-  },
-  {
-    userId: 'parent1',
-    userName: 'Sarah Baker',
-    role: 'MEMBER',
-    status: 'active',
-    joinedAt: '2024-06-01',
-  },
-  {
-    userId: 'parent2',
-    userName: 'Dan Mensah',
-    role: 'MEMBER',
-    status: 'active',
-    joinedAt: '2024-07-15',
-  },
-]);
-
-let membersCache: Map<string, ClubMember[]> = new Map();
 let removalHistoryCache: ClubMemberRemovalRecord[] = [];
-
-function cloneMember(member: ClubMember): ClubMember {
-  return {
-    ...member,
-    squadIds: member.squadIds ? [...member.squadIds] : undefined,
-  };
-}
-
-function cloneMembers(members: ClubMember[]): ClubMember[] {
-  return members.map(cloneMember);
-}
 
 function cloneRemovalRecord(record: ClubMemberRemovalRecord): ClubMemberRemovalRecord {
   return {
@@ -473,25 +414,6 @@ function cloneRemovalRecord(record: ClubMemberRemovalRecord): ClubMemberRemovalR
 
 function cloneRemovalHistory(history: ClubMemberRemovalRecord[]): ClubMemberRemovalRecord[] {
   return history.map(cloneRemovalRecord);
-}
-
-async function loadMembers(clubId: string): Promise<ClubMember[]> {
-  if (!USE_MOCK) {
-    return [];
-  }
-
-  const cached = membersCache.get(clubId);
-  if (cached) {
-    return cloneMembers(cached);
-  }
-
-  const seededMembers = cloneMembers(MOCK_MEMBERS);
-  membersCache.set(clubId, seededMembers);
-  return cloneMembers(seededMembers);
-}
-
-async function saveMembers(clubId: string, members: ClubMember[]): Promise<void> {
-  membersCache.set(clubId, cloneMembers(members));
 }
 
 async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
@@ -1225,15 +1147,11 @@ export const clubService = {
     if (!USE_MOCK) {
       return;
     }
-    membersCache.set(clubId, cloneMembers(members));
+    seedMockClubMembers(clubId, members);
   },
 
   __resetMockMembers(clubId?: string): void {
-    if (clubId) {
-      membersCache.delete(clubId);
-    } else {
-      membersCache = new Map();
-    }
+    resetMockClubMembers(clubId);
     removalHistoryCache = [];
   },
 };

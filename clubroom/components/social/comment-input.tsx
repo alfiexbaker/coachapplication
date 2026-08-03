@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -16,10 +16,11 @@ import { useTheme } from '@/hooks/useTheme';
 export interface CommentInputProps {
   value: string;
   onChangeText: (text: string) => void;
-  onSubmit: (text?: string) => void;
+  onSubmit: (text: string) => void;
   replyingTo?: string | null; // Author name being replied to
   onCancelReply?: () => void;
   placeholder?: string;
+  submitting?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -32,7 +33,8 @@ function CommentInputInner({
   onSubmit,
   replyingTo,
   onCancelReply,
-  placeholder = 'Add a comment...',
+  placeholder = 'Comment',
+  submitting = false,
 }: CommentInputProps) {
   const { colors: palette } = useTheme();
 
@@ -41,7 +43,7 @@ function CommentInputInner({
   const warnThreshold = Math.floor(maxLength * 0.9);
 
   const handleSend = () => {
-    if (!hasText) return;
+    if (!hasText || submitting) return;
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -52,13 +54,8 @@ function CommentInputInner({
     <View
       style={[styles.wrapper, { backgroundColor: palette.surface, borderTopColor: palette.border }]}
     >
-      {/* Reply indicator */}
       {replyingTo && (
-        <Row
-          align="center"
-          justify="between"
-          style={[styles.replyIndicator, { backgroundColor: palette.background }]}
-        >
+        <Row align="center" justify="between" style={styles.replyIndicator}>
           <ThemedText style={[styles.replyText, { color: palette.muted }]} numberOfLines={1}>
             Replying to <ThemedText style={styles.replyAuthor}>{replyingTo}</ThemedText>
           </ThemedText>
@@ -73,7 +70,6 @@ function CommentInputInner({
         </Row>
       )}
 
-      {/* Input row */}
       <Row align="flex-end" gap="xs">
         <TextInput
           style={[
@@ -90,38 +86,37 @@ function CommentInputInner({
           onChangeText={onChangeText}
           multiline
           maxLength={maxLength}
+          editable={!submitting}
           returnKeyType="default"
           accessibilityLabel={replyingTo ? `Reply to ${replyingTo}` : 'Add a comment'}
+          accessibilityState={{ disabled: submitting }}
         />
         <Clickable
           onPress={handleSend}
-          disabled={!hasText}
+          disabled={!hasText || submitting}
           style={[
             styles.sendButton,
             {
-              backgroundColor: hasText ? palette.tint : palette.border,
+              backgroundColor: hasText && !submitting ? palette.tint : palette.border,
             },
           ]}
           hitSlop={8}
           accessibilityLabel="Send comment"
           accessibilityRole="button"
-          accessibilityState={{ disabled: !hasText }}
+          accessibilityState={{ disabled: !hasText || submitting, busy: submitting }}
         >
-          <Ionicons name="arrow-up" size={18} color={palette.onPrimary} />
+          {submitting ? (
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+          ) : (
+            <Ionicons name="arrow-up" size={18} color={palette.onPrimary} />
+          )}
         </Clickable>
       </Row>
-      <ThemedText
-        style={[
-          Typography.caption,
-          {
-            color: value.length > warnThreshold ? palette.error : palette.muted,
-            textAlign: 'right',
-            marginTop: Spacing.xxs,
-          },
-        ]}
-      >
-        {value.length}/{maxLength}
-      </ThemedText>
+      {value.length > warnThreshold ? (
+        <ThemedText style={[styles.characterCount, { color: palette.error }]}>
+          {value.length}/{maxLength}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -137,9 +132,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   replyIndicator: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
+    minHeight: 44,
     marginBottom: Spacing.xs,
   },
   replyText: {
@@ -151,16 +144,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cancelReply: {
-    minWidth: 36,
-    minHeight: 36,
+    minWidth: 44,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   // inputRow replaced by Row primitive
   input: {
     flex: 1,
+    minHeight: 44,
     borderWidth: 1,
-    borderRadius: Radii.pill,
+    borderRadius: Radii.lg,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     maxHeight: 100,
@@ -172,6 +166,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  characterCount: {
+    ...Typography.caption,
+    textAlign: 'right',
+    marginTop: Spacing.xxs,
   },
 });
 

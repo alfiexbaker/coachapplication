@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import { getApiDataBackend } from './data-backend.js';
-import { getDbFixtureStore } from './db-fixture-store.js';
 import { badRequest, notFound } from './http-errors.js';
 import { getMarketplaceSeedStore } from './marketplace-seed-store.js';
 import {
@@ -10,7 +9,7 @@ import {
   verifySimulatedPaymentToken,
 } from './payment-provider.js';
 import type { PrismaClient } from '@clubroom/db';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
+import { getPrismaClientOrThrow } from './prisma-runtime.js';
 import { normalizeForJson } from '../repositories/p0/normalize.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -166,6 +165,7 @@ export interface BookingInvoiceAdjustmentInput {
 }
 interface BookingInvoiceContext {
   bookingId: string;
+  bookingStatus: string;
   coachUserId: string;
   payerUserId: string | null;
   athleteId: string | null;
@@ -178,6 +178,20 @@ interface BookingInvoiceContext {
   coachBusinessName?: string | null;
   coachBusinessEmail?: string | null;
   billingAddress?: string | null;
+}
+const INVOICEABLE_BOOKING_STATUSES = new Set([
+  'CONFIRMED',
+  'AWAITING_COMPLETION',
+  'COMPLETED',
+  'CANCELLED',
+]);
+function assertBookingReadyForInvoice(context: BookingInvoiceContext): void {
+  if (!INVOICEABLE_BOOKING_STATUSES.has(context.bookingStatus.toUpperCase())) {
+    throw badRequest('Booking must be confirmed before an invoice can be generated', {
+      bookingId: context.bookingId,
+      status: context.bookingStatus,
+    });
+  }
 }
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
 type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
@@ -487,9 +501,6 @@ async function canManageClubInvoiceInDb(invoice: SeedRow, authUserId: string): P
 
 export async function canManageClubInvoice(invoice: SeedRow, authUserId: string): Promise<boolean> {
   if (getApiDataBackend() === 'db') {
-    if (shouldUseDbFixtureFallback()) {
-      return canManageClubInvoiceInTables(getDbFixtureStore().tables, invoice, authUserId);
-    }
     return canManageClubInvoiceInDb(invoice, authUserId);
   }
   return canManageClubInvoiceInTables(getMarketplaceSeedStore().tables, invoice, authUserId);
@@ -513,13 +524,6 @@ function resolveMutableTables(): {
 } | null {
   if (getApiDataBackend() === 'seed') {
     const store = getMarketplaceSeedStore();
-    return {
-      tables: store.tables,
-      version: store.version,
-    };
-  }
-  if (shouldUseDbFixtureFallback()) {
-    const store = getDbFixtureStore();
     return {
       tables: store.tables,
       version: store.version,
@@ -870,7 +874,7 @@ function assertMutableInvoiceBookingLink(
     });
   }
 }
-function applyBookingCancellationInvoiceEffectsInTables(
+export function applyBookingCancellationInvoiceEffectsInTables(
   tables: SeedTables,
   input: BookingInvoiceLifecycleInput,
 ): void {
@@ -999,7 +1003,7 @@ function applyBookingReopenInvoiceEffectsInTables(
     });
   }
 }
-function applyBookingInvoiceAdjustmentsInTables(
+export function applyBookingInvoiceAdjustmentsInTables(
   tables: SeedTables,
   input: BookingInvoiceAdjustmentInput,
 ): void {
@@ -1126,6 +1130,7 @@ function resolveBookingInvoiceContextFromTables(
   const payerUser = users.find((row) => asString(row.id) === payerUserId);
   return {
     bookingId,
+    bookingStatus: asString(booking.status) ?? 'PENDING',
     coachUserId: asString(booking.coachUserId) ?? '',
     payerUserId,
     athleteId,
@@ -1177,6 +1182,7 @@ async function resolveBookingInvoiceContextFromDb(
   const payerUser = users.find((row) => row.id === payerUserId);
   return {
     bookingId: booking.id,
+    bookingStatus: booking.status,
     coachUserId: booking.coachUserId,
     payerUserId,
     athleteId: firstParticipant?.athleteId ?? null,
@@ -1228,6 +1234,7 @@ async function resolveBookingInvoiceContextFromDbTransaction(
   const payerUser = users.find((row) => row.id === payerUserId);
   return {
     bookingId: booking.id,
+    bookingStatus: booking.status,
     coachUserId: booking.coachUserId,
     payerUserId,
     athleteId: firstParticipant?.athleteId ?? null,
@@ -2404,6 +2411,13 @@ export async function generateInvoiceForBooking(
   const mutable = resolveMutableTables();
   if (mutable) {
     const invoices = getMutableRows(mutable.tables, 'invoices');
+    const context = resolveBookingInvoiceContextFromTables(mutable.tables, input.bookingId);
+    if (!context) {
+      throw notFound('Booking not found', {
+        bookingId: input.bookingId,
+      });
+    }
+    assertBookingReadyForInvoice(context);
     const existing = getActiveRows(invoices).find(
       (row) => asString(row.bookingId) === input.bookingId,
     );
@@ -2412,12 +2426,6 @@ export async function generateInvoiceForBooking(
         invoice: existing,
         created: false,
       };
-    }
-    const context = resolveBookingInvoiceContextFromTables(mutable.tables, input.bookingId);
-    if (!context) {
-      throw notFound('Booking not found', {
-        bookingId: input.bookingId,
-      });
     }
     if (context.totalMinor <= 0) {
       throw badRequest('Booking has no billable value', {
@@ -2499,6 +2507,13 @@ export async function generateInvoiceForBooking(
     };
   }
   const prisma = getPrismaClientOrThrow();
+  const context = await resolveBookingInvoiceContextFromDb(input.bookingId);
+  if (!context) {
+    throw notFound('Booking not found', {
+      bookingId: input.bookingId,
+    });
+  }
+  assertBookingReadyForInvoice(context);
   const existing = await prisma.invoice.findFirst({
     where: {
       bookingId: input.bookingId,
@@ -2510,12 +2525,6 @@ export async function generateInvoiceForBooking(
       invoice: normalizeForJson(existing),
       created: false,
     };
-  }
-  const context = await resolveBookingInvoiceContextFromDb(input.bookingId);
-  if (!context) {
-    throw notFound('Booking not found', {
-      bookingId: input.bookingId,
-    });
   }
   if (context.totalMinor <= 0) {
     throw badRequest('Booking has no billable value', {

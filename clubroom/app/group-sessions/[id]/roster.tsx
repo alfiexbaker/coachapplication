@@ -22,6 +22,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useGroupRoster, type RosterFilter } from '@/hooks/use-group-roster';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
+import { isAdmin } from '@/utils/user-helpers';
+import { apiClient } from '@/services/api-client';
 import type { GroupRegistration, SessionRsvp } from '@/constants/types';
 import type { QuickRateAthlete } from '@/hooks/use-quick-rate';
 
@@ -83,6 +85,17 @@ export default function SessionRosterScreen() {
   const [quickRateAthlete, setQuickRateAthlete] = useState<QuickRateAthlete | null>(null);
   const [showQuickRate, setShowQuickRate] = useState(false);
 
+  const isAssignedCoach = session?.coachId === currentUser?.id;
+  const canManageRoster = Boolean(isAssignedCoach || isAdmin(currentUser));
+  const canWriteCoachPrivateData = Boolean(
+    isAssignedCoach && (apiClient.isMockMode || currentUser?.isVerified),
+  );
+  const canReportInjury = Boolean(isAdmin(currentUser) || canWriteCoachPrivateData);
+  const canCancelRegistration = (registration: GroupRegistration) =>
+    canManageRoster ||
+    registration.parentId === currentUser?.id ||
+    registration.athleteId === currentUser?.athleteId;
+
   const handleRecognise = (reg: GroupRegistration) => {
     const name = getGroupRegistrationAthleteName(reg);
     setQuickRateAthlete({ athleteId: reg.athleteId, athleteName: name });
@@ -97,9 +110,10 @@ export default function SessionRosterScreen() {
   const rosterItems = getRosterItems(
     filteredRoster,
     getRsvpForRegistration,
-    handleMarkAttendance,
+    canManageRoster ? handleMarkAttendance : undefined,
     handleCancelRegistration,
-    handleRecognise,
+    canCancelRegistration,
+    canWriteCoachPrivateData ? handleRecognise : undefined,
   );
 
   if (!idParam.valid) {
@@ -133,7 +147,12 @@ export default function SessionRosterScreen() {
   return renderShell(
     <>
       <Row gap="md" align="center" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
+        <Clickable
+          onPress={() => router.back()}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <Column flex>
@@ -142,10 +161,12 @@ export default function SessionRosterScreen() {
             {session?.title}
           </ThemedText>
         </Column>
-        {registeredCount > 0 && (
+        {canManageRoster && registeredCount > 0 && (
           <Clickable
             style={[styles.rollCallBtn, { backgroundColor: colors.success }]}
             onPress={startRollCall}
+            accessibilityRole="button"
+            accessibilityLabel="Start roll call"
           >
             <Row align="center" gap="xs">
               <Ionicons name="clipboard-outline" size={18} color={colors.onPrimary} />
@@ -233,7 +254,7 @@ export default function SessionRosterScreen() {
       />
 
       <RollCallModal
-        visible={showRollCall}
+        visible={canManageRoster && showRollCall}
         sessionTitle={session?.title}
         participants={rollCallParticipants}
         attendance={rollCallAttendance}
@@ -244,11 +265,11 @@ export default function SessionRosterScreen() {
         onMarkAllPresent={markAllPresent}
         onReset={resetRollCall}
         onSave={saveRollCall}
-        onReportInjury={openInjuryReport}
+        onReportInjury={canReportInjury ? openInjuryReport : undefined}
       />
 
       <InjuryReportModal
-        visible={showInjuryReport}
+        visible={canReportInjury && showInjuryReport}
         athleteName={
           selectedParticipant ? getGroupRegistrationAthleteName(selectedParticipant) : undefined
         }
@@ -265,7 +286,7 @@ export default function SessionRosterScreen() {
       />
 
       <QuickRateModal
-        visible={showQuickRate}
+        visible={canWriteCoachPrivateData && showQuickRate}
         athlete={quickRateAthlete}
         sessionId={id}
         coachId={currentUser?.id ?? ''}
@@ -311,6 +332,9 @@ function renderRosterFilterItem({ item }: ListRenderItemInfo<RosterFilterItem>) 
   return (
     <Clickable
       onPress={item.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Show ${item.label.toLowerCase()} participants`}
+      accessibilityState={{ selected: item.isActive }}
       style={[
         styles.filterChip,
         {
@@ -337,26 +361,31 @@ interface RosterItem {
   index: number;
   registration: GroupRegistration;
   rsvp: SessionRsvp | null | undefined;
-  onMarkAttendance: (attended: boolean) => void;
-  onCancel: () => void;
-  onRecognise: () => void;
+  onMarkAttendance?: (attended: boolean) => void;
+  onCancel?: () => void;
+  onRecognise?: () => void;
 }
 
 function getRosterItems(
   roster: GroupRegistration[],
   getRsvpForRegistration: (registration: GroupRegistration) => SessionRsvp | null | undefined,
-  handleMarkAttendance: (registration: GroupRegistration, attended: boolean) => void,
+  handleMarkAttendance: ((registration: GroupRegistration, attended: boolean) => void) | undefined,
   handleCancelRegistration: (registration: GroupRegistration) => void,
-  handleRecognise: (registration: GroupRegistration) => void,
+  canCancelRegistration: (registration: GroupRegistration) => boolean,
+  handleRecognise: ((registration: GroupRegistration) => void) | undefined,
 ): RosterItem[] {
   return roster.map((registration, index) => ({
     key: registration.id,
     index,
     registration,
     rsvp: getRsvpForRegistration(registration),
-    onMarkAttendance: (attended) => handleMarkAttendance(registration, attended),
-    onCancel: () => handleCancelRegistration(registration),
-    onRecognise: () => handleRecognise(registration),
+    onMarkAttendance: handleMarkAttendance
+      ? (attended) => handleMarkAttendance(registration, attended)
+      : undefined,
+    onCancel: canCancelRegistration(registration)
+      ? () => handleCancelRegistration(registration)
+      : undefined,
+    onRecognise: handleRecognise ? () => handleRecognise(registration) : undefined,
   }));
 }
 

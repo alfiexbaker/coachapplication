@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-const { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } = require('node:fs');
+const {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+  mkdirSync,
+} = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_PAYMENT_SIMULATION_SECRET = 'clubroom-simulated-payments-dev-secret';
 const DEFAULT_ENV_FILE = '.env.staging.local';
 const DEFAULT_DATABASE_CONNECTION_LIMIT = '1';
+const DEFAULT_SUPABASE_DATA_API_TIMEOUT_MS = 10_000;
+const SUPABASE_DATA_API_DISABLED_ERROR_CODE = 'UNAUTHORIZED_INVALID_API_KEY_TYPE';
 const PRISMA_CLIENT_PATH = path.join(ROOT, 'packages/db/node_modules/@prisma/client');
 const RLS_EXEMPT_PUBLIC_TABLES = new Set(['_prisma_migrations']);
 
@@ -22,6 +31,17 @@ const REQUIRED_ENV = [
     key: 'DATABASE_URL',
     severity: 'blocker',
     message: 'Staging Postgres connection string is required.',
+  },
+  {
+    key: 'DB_PREFLIGHT_SUPABASE_URL',
+    severity: 'blocker',
+    message: 'Supabase project URL is required to verify the public Data API boundary.',
+  },
+  {
+    key: 'DB_PREFLIGHT_SUPABASE_PUBLISHABLE_KEY',
+    severity: 'blocker',
+    message:
+      'An active Supabase publishable key is required to verify the public Data API boundary.',
   },
   {
     key: 'API_JWT_SECRET',
@@ -43,6 +63,13 @@ const REQUIRED_ENV = [
     key: 'API_PAYMENT_ALLOWED_RETURN_ORIGINS',
     severity: 'blocker',
     message: 'Hosted payment return origins must be allowlisted even while simulated.',
+  },
+  {
+    key: 'API_PAYMENT_PROVIDER',
+    expected: 'simulated',
+    severity: 'blocker',
+    message:
+      'Payment and payout provider must be explicitly simulated until real provider adapters and webhooks are implemented.',
   },
   {
     key: 'API_PAYMENT_SIMULATION_SECRET',
@@ -117,6 +144,17 @@ const REQUIRED_FILES = [
   },
 ];
 
+const SECRET_FILE_RULES = [
+  '.env.local',
+  '.env.staging.local',
+  'docs/backend-api/test-data/TEST_ACCOUNTS.local.txt',
+  'docs/backend-api/test-data/TEST_ACCOUNTS.staging.local.txt',
+].map((filePath) => ({
+  path: filePath,
+  severity: 'blocker',
+  message: 'Local secret artifacts must be owner-readable only.',
+}));
+
 const FORBIDDEN_ENV_VALUES = [
   {
     key: 'API_PASSWORD_RESET_DEV_OUTBOX',
@@ -124,6 +162,13 @@ const FORBIDDEN_ENV_VALUES = [
     severity: 'blocker',
     message: 'Password reset dev outbox must not be enabled for release-style staging.',
     action: 'Set API_PASSWORD_RESET_DEV_OUTBOX=false or leave it unset.',
+  },
+  {
+    key: 'API_PASSWORD_RESET_TOKEN_RESPONSE',
+    value: '1',
+    severity: 'blocker',
+    message: 'Password reset token responses must not be enabled for release-style staging.',
+    action: 'Unset API_PASSWORD_RESET_TOKEN_RESPONSE; token echo is test/dev-outbox only.',
   },
 ];
 
@@ -319,8 +364,28 @@ function checkFileRule(rule) {
   ];
 }
 
+function checkSecretFileMode(rule) {
+  const absolutePath = path.isAbsolute(rule.path) ? rule.path : path.join(ROOT, rule.path);
+  if (!existsSync(absolutePath)) return [];
+
+  const mode = statSync(absolutePath).mode & 0o777;
+  if ((mode & 0o077) === 0) return [];
+
+  return [
+    {
+      id: `file-mode:${rule.path}`,
+      status: rule.severity,
+      message: rule.message,
+      action: `Run chmod 600 ${rule.path}.`,
+      value: `0o${mode.toString(8).padStart(3, '0')}`,
+    },
+  ];
+}
+
 function checkForbiddenEnvValue(rule) {
-  const value = String(process.env[rule.key] ?? '').trim().toLowerCase();
+  const value = String(process.env[rule.key] ?? '')
+    .trim()
+    .toLowerCase();
   if (value !== rule.value) {
     return [];
   }
@@ -408,9 +473,59 @@ function shouldCheckDatabaseSchema() {
 function emptySupabaseAccessPosture() {
   return {
     checked: false,
+    dataApi: emptySupabaseDataApiPosture(),
+    databasePrincipal: emptyDatabasePrincipal(),
     rlsDisabledTables: [],
     directRoleGrants: [],
+    defaultRoleGrants: [],
+    serviceRoleDirectGrantCount: 0,
+    serviceRoleDefaultGrants: [],
+    securityDefinerFunctions: [],
   };
+}
+
+function emptySupabaseDataApiPosture() {
+  return {
+    checked: false,
+    disabledForPublicClients: false,
+    endpoint: null,
+    statusCode: null,
+    errorCode: null,
+    reason: 'not-configured',
+  };
+}
+
+function emptyDatabasePrincipal() {
+  return {
+    checked: false,
+    currentUser: null,
+    sessionUser: null,
+    databaseName: null,
+    schemaName: null,
+    canAlterSupabaseAdminDefaultPrivileges: false,
+    canAlterPostgresDefaultPrivileges: false,
+  };
+}
+
+function defaultGrantRemediationAction(posture, ownerRole = 'supabase_admin') {
+  const isPostgresOwner = ownerRole === 'postgres';
+  const script = isPostgresOwner
+    ? 'scripts/sql/revoke-postgres-default-grants.sql'
+    : 'scripts/sql/revoke-supabase-default-grants.sql';
+  const base = isPostgresOwner
+    ? `Apply ${script} as the staging migration role, then rerun this preflight.`
+    : `Use the Supabase Data API default-privileges control or apply ${script} from a context with supabase_admin USAGE, then rerun this preflight.`;
+  const principal = posture.databasePrincipal;
+  if (!principal?.checked) {
+    return base;
+  }
+
+  const currentUser = principal.currentUser ?? 'unknown';
+  const canAlter = isPostgresOwner
+    ? principal.canAlterPostgresDefaultPrivileges
+    : principal.canAlterSupabaseAdminDefaultPrivileges;
+  const capability = canAlter ? 'can' : 'cannot';
+  return `${base} Current database role ${currentUser} ${capability} alter ${ownerRole} default privileges.`;
 }
 
 function buildSupabaseAccessPostureIssues(posture) {
@@ -419,6 +534,20 @@ function buildSupabaseAccessPostureIssues(posture) {
   }
 
   const issues = [];
+  const dataApi = posture.dataApi ?? emptySupabaseDataApiPosture();
+  const dataApiDisabled = dataApi.checked && dataApi.disabledForPublicClients;
+  if (!dataApiDisabled) {
+    issues.push({
+      id: 'db:data-api-public-client-boundary',
+      status: 'blocker',
+      message:
+        'Supabase Data API access is enabled for public clients or could not be verified as disabled.',
+      action:
+        'Disable the Supabase Data API for public clients, configure the strict preflight URL and publishable key, then rerun this check.',
+      value: `reason=${dataApi.reason ?? 'unknown'}, status=${dataApi.statusCode ?? 'none'}, code=${dataApi.errorCode ?? 'none'}`,
+    });
+  }
+
   for (const table of posture.rlsDisabledTables) {
     issues.push({
       id: `db:rls:${table.schemaName}.${table.tableName}`,
@@ -435,16 +564,144 @@ function buildSupabaseAccessPostureIssues(posture) {
       id: `db:direct-grant:${grant.grantee}:${grant.objectType}:${grant.schemaName}.${grant.objectName}:${grant.privilegeType}`,
       status: 'blocker',
       message: `Role ${grant.grantee} has direct ${grant.privilegeType} on ${grant.objectType} ${grant.schemaName}.${grant.objectName}.`,
-      action:
-        'Revoke direct anon/authenticated privileges and keep product data access behind the Fastify /v1 API unless a reviewed RLS policy explicitly allows it.',
+      action: `${defaultGrantRemediationAction(posture)} Or otherwise revoke direct anon/authenticated/PUBLIC privileges, unless a reviewed RLS policy explicitly allows direct access.`,
       value: `${grant.grantee} ${grant.privilegeType} ${grant.objectType} ${grant.schemaName}.${grant.objectName}`,
+    });
+  }
+
+  for (const grant of posture.defaultRoleGrants) {
+    issues.push({
+      id: `db:default-grant:${grant.ownerRole}:${grant.grantee}:${grant.objectType}:${grant.schemaName}:${grant.privilegeType}`,
+      status: dataApiDisabled ? 'warning' : 'blocker',
+      message: `Future ${grant.objectType} objects created by ${grant.ownerRole} in ${grant.schemaName} would grant ${grant.privilegeType} to ${grant.grantee}.`,
+      action: dataApiDisabled
+        ? `Keep the Supabase Data API disabled for public clients and retain the strict launch probe. ${defaultGrantRemediationAction(posture, grant.ownerRole)}`
+        : defaultGrantRemediationAction(posture, grant.ownerRole),
+      value: `${grant.ownerRole} -> ${grant.grantee} ${grant.privilegeType} future ${grant.objectType} in ${grant.schemaName}`,
+    });
+  }
+
+  const serviceRoleDirectGrantCount = posture.serviceRoleDirectGrantCount ?? 0;
+  const serviceRoleDefaultGrantCount = posture.serviceRoleDefaultGrants?.length ?? 0;
+  if (serviceRoleDirectGrantCount > 0 || serviceRoleDefaultGrantCount > 0) {
+    issues.push({
+      id: 'db:trusted-service-role-authority',
+      status: 'warning',
+      message:
+        'Supabase service_role retains direct or future public-schema privileges outside the Fastify API.',
+      action:
+        'Keep the service-role key out of all client bundles, confirm no product path uses the Data API directly, and explicitly accept or revoke this trusted integration authority before production.',
+      value: `direct=${serviceRoleDirectGrantCount}, future=${serviceRoleDefaultGrantCount}`,
+    });
+  }
+
+  for (const fn of posture.securityDefinerFunctions ?? []) {
+    issues.push({
+      id: `db:security-definer:${fn.signature}`,
+      status: 'blocker',
+      message: `Security-definer function ${fn.signature} is in the exposed public schema.`,
+      action:
+        'Move the function to a private schema, revoke direct public execution, and keep any trigger dependency on the same function object.',
+      value: `${fn.signature} owned by ${fn.owner}`,
     });
   }
 
   return issues;
 }
 
+async function checkSupabaseDataApiPosture({
+  projectUrl = process.env.DB_PREFLIGHT_SUPABASE_URL,
+  publishableKey = process.env.DB_PREFLIGHT_SUPABASE_PUBLISHABLE_KEY,
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_SUPABASE_DATA_API_TIMEOUT_MS,
+} = {}) {
+  const result = emptySupabaseDataApiPosture();
+  if (!hasValue(projectUrl) || !hasValue(publishableKey) || typeof fetchImpl !== 'function') {
+    result.reason = 'missing-config';
+    return result;
+  }
+
+  let endpoint;
+  try {
+    const baseUrl = new URL(projectUrl);
+    if (baseUrl.protocol !== 'https:') {
+      result.reason = 'invalid-project-url';
+      return result;
+    }
+    endpoint = new URL('/rest/v1/', baseUrl).toString();
+    result.endpoint = endpoint;
+  } catch {
+    result.reason = 'invalid-project-url';
+    return result;
+  }
+
+  try {
+    const response = await fetchImpl(endpoint, {
+      headers: {
+        accept: 'application/json',
+        apikey: publishableKey,
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    result.checked = true;
+    result.statusCode = response.status;
+
+    if (response.status !== 401) {
+      result.reason = 'public-client-request-not-rejected';
+      return result;
+    }
+
+    const responseText = (await response.text()).slice(0, 4096);
+    let body = {};
+    try {
+      body = JSON.parse(responseText);
+    } catch {
+      body = {};
+    }
+    const headerCode = response.headers.get('sb-error-code');
+    const bodyCode = typeof body.code === 'string' ? body.code : null;
+    const message = [body.message, body.hint]
+      .filter((value) => typeof value === 'string')
+      .join(' ');
+    result.errorCode = headerCode || bodyCode;
+    result.disabledForPublicClients =
+      result.errorCode === SUPABASE_DATA_API_DISABLED_ERROR_CODE &&
+      /only (?:secret|the service_role) api keys? can be used for this endpoint/i.test(message);
+    result.reason = result.disabledForPublicClients
+      ? 'public-client-keys-rejected'
+      : 'unexpected-rejection';
+    return result;
+  } catch {
+    result.reason = 'probe-failed';
+    return result;
+  }
+}
+
+async function checkDatabasePrincipal(prisma) {
+  const rows = await prisma.$queryRaw`
+    SELECT current_user AS "currentUser",
+           session_user AS "sessionUser",
+           current_database() AS "databaseName",
+           current_schema() AS "schemaName",
+           pg_has_role(current_user, 'supabase_admin', 'USAGE') AS "canAlterSupabaseAdminDefaultPrivileges",
+           pg_has_role(current_user, 'postgres', 'USAGE') AS "canAlterPostgresDefaultPrivileges"
+    LIMIT 1
+  `;
+  const row = rows[0] ?? {};
+  return {
+    checked: true,
+    currentUser: String(row.currentUser ?? '') || null,
+    sessionUser: String(row.sessionUser ?? '') || null,
+    databaseName: String(row.databaseName ?? '') || null,
+    schemaName: String(row.schemaName ?? '') || null,
+    canAlterSupabaseAdminDefaultPrivileges: row.canAlterSupabaseAdminDefaultPrivileges === true,
+    canAlterPostgresDefaultPrivileges: row.canAlterPostgresDefaultPrivileges === true,
+  };
+}
+
 async function checkSupabaseAccessPosture(prisma) {
+  const dataApi = await checkSupabaseDataApiPosture();
+  const databasePrincipal = await checkDatabasePrincipal(prisma);
   const rlsRows = await prisma.$queryRaw`
     SELECT schemaname AS "schemaName", tablename AS "tableName"
     FROM pg_tables
@@ -453,42 +710,135 @@ async function checkSupabaseAccessPosture(prisma) {
     ORDER BY tablename
   `;
   const grantRows = await prisma.$queryRaw`
-    SELECT 'table' AS "objectType",
-           table_schema AS "schemaName",
-           table_name AS "objectName",
-           grantee,
-           privilege_type AS "privilegeType"
-    FROM information_schema.role_table_grants
-    WHERE table_schema = 'public'
-      AND grantee IN ('anon', 'authenticated')
-    UNION ALL
-    SELECT lower(object_type) AS "objectType",
-           object_schema AS "schemaName",
-           object_name AS "objectName",
-           grantee,
-           privilege_type AS "privilegeType"
-    FROM information_schema.role_usage_grants
-    WHERE object_schema = 'public'
-      AND object_type = 'SEQUENCE'
-      AND grantee IN ('anon', 'authenticated')
-    UNION ALL
-    SELECT 'routine' AS "objectType",
-           routine_schema AS "schemaName",
-           routine_name AS "objectName",
-           grantee,
-           privilege_type AS "privilegeType"
-    FROM information_schema.role_routine_grants
-    WHERE routine_schema = 'public'
-      AND grantee IN ('anon', 'authenticated')
+    WITH relation_objects AS (
+      SELECT CASE WHEN relation.relkind = 'S' THEN 'sequence' ELSE 'table' END AS "objectType",
+             namespace.nspname AS "schemaName",
+             relation.relname AS "objectName",
+             relation.relowner AS "ownerOid",
+             relation.relacl AS "objectAcl",
+             CASE
+               WHEN relation.relkind = 'S' THEN 'S'::"char"
+               ELSE 'r'::"char"
+             END AS "aclKind"
+      FROM pg_class relation
+      JOIN pg_namespace namespace
+        ON namespace.oid = relation.relnamespace
+      WHERE namespace.nspname = 'public'
+        AND relation.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+    ),
+    relation_grants AS (
+      SELECT object."objectType",
+             object."schemaName",
+             object."objectName",
+             COALESCE(grantee_role.rolname, 'PUBLIC') AS grantee,
+             exploded.privilege_type AS "privilegeType"
+      FROM relation_objects object
+      CROSS JOIN LATERAL aclexplode(
+        COALESCE(object."objectAcl", acldefault(object."aclKind", object."ownerOid"))
+      ) exploded
+      LEFT JOIN pg_roles grantee_role
+        ON grantee_role.oid = exploded.grantee
+    ),
+    routine_grants AS (
+      SELECT 'routine' AS "objectType",
+             namespace.nspname AS "schemaName",
+             routine.oid::regprocedure::text AS "objectName",
+             COALESCE(grantee_role.rolname, 'PUBLIC') AS grantee,
+             exploded.privilege_type AS "privilegeType"
+      FROM pg_proc routine
+      JOIN pg_namespace namespace
+        ON namespace.oid = routine.pronamespace
+      CROSS JOIN LATERAL aclexplode(
+        COALESCE(routine.proacl, acldefault('f', routine.proowner))
+      ) exploded
+      LEFT JOIN pg_roles grantee_role
+        ON grantee_role.oid = exploded.grantee
+      WHERE namespace.nspname = 'public'
+    )
+    SELECT *
+    FROM (
+      SELECT * FROM relation_grants
+      UNION ALL
+      SELECT * FROM routine_grants
+    ) grants
+    WHERE grantee IN ('anon', 'authenticated', 'service_role', 'PUBLIC')
     ORDER BY "objectType", "schemaName", "objectName", grantee, "privilegeType"
+  `;
+  const defaultGrantRows = await prisma.$queryRaw`
+    WITH owner_roles AS (
+      SELECT oid, rolname
+      FROM pg_roles
+      WHERE rolname IN ('postgres', 'supabase_admin')
+    ),
+    object_types("objectTypeCode", "objectType") AS (
+      VALUES
+        ('r'::"char", 'table'),
+        ('S'::"char", 'sequence'),
+        ('f'::"char", 'routine')
+    ),
+    public_namespace AS (
+      SELECT oid
+      FROM pg_namespace
+      WHERE nspname = 'public'
+    ),
+    effective_default_acls AS (
+      SELECT owner_role.rolname AS "ownerRole",
+             object_type."objectType",
+             COALESCE(
+               global_default.defaclacl,
+               acldefault(object_type."objectTypeCode", owner_role.oid)
+             ) || COALESCE(schema_default.defaclacl, '{}'::aclitem[]) AS acl
+      FROM owner_roles owner_role
+      CROSS JOIN object_types object_type
+      CROSS JOIN public_namespace namespace
+      LEFT JOIN pg_default_acl global_default
+        ON global_default.defaclrole = owner_role.oid
+       AND global_default.defaclobjtype = object_type."objectTypeCode"
+       AND global_default.defaclnamespace = 0
+      LEFT JOIN pg_default_acl schema_default
+        ON schema_default.defaclrole = owner_role.oid
+       AND schema_default.defaclobjtype = object_type."objectTypeCode"
+       AND schema_default.defaclnamespace = namespace.oid
+    )
+    SELECT DISTINCT effective."ownerRole",
+           'public' AS "schemaName",
+           effective."objectType",
+           COALESCE(grantee_role.rolname, 'PUBLIC') AS grantee,
+           exploded.privilege_type AS "privilegeType"
+    FROM effective_default_acls effective
+    CROSS JOIN LATERAL aclexplode(effective.acl) exploded
+    LEFT JOIN pg_roles grantee_role
+      ON grantee_role.oid = exploded.grantee
+    WHERE COALESCE(grantee_role.rolname, 'PUBLIC')
+      IN ('anon', 'authenticated', 'service_role', 'PUBLIC')
+    ORDER BY "ownerRole", "objectType", grantee, "privilegeType"
+  `;
+  const securityDefinerRows = await prisma.$queryRaw`
+    SELECT p.oid::regprocedure::text AS signature,
+           namespace.nspname AS "schemaName",
+           routine_owner.rolname AS owner
+    FROM pg_proc p
+    JOIN pg_namespace namespace
+      ON namespace.oid = p.pronamespace
+    JOIN pg_roles routine_owner
+      ON routine_owner.oid = p.proowner
+    WHERE namespace.nspname = 'public'
+      AND p.prosecdef IS TRUE
+    ORDER BY signature
   `;
 
   return {
     checked: true,
+    dataApi,
+    databasePrincipal,
     rlsDisabledTables: rlsRows.filter(
       (row) => !RLS_EXEMPT_PUBLIC_TABLES.has(String(row.tableName ?? '')),
     ),
-    directRoleGrants: grantRows,
+    directRoleGrants: grantRows.filter((row) => row.grantee !== 'service_role'),
+    defaultRoleGrants: defaultGrantRows.filter((row) => row.grantee !== 'service_role'),
+    serviceRoleDirectGrantCount: grantRows.filter((row) => row.grantee === 'service_role').length,
+    serviceRoleDefaultGrants: defaultGrantRows.filter((row) => row.grantee === 'service_role'),
+    securityDefinerFunctions: securityDefinerRows,
   };
 }
 
@@ -537,9 +887,7 @@ async function checkDatabaseSchema() {
       WHERE finished_at IS NOT NULL
     `;
     const appliedNames = new Set(
-      appliedRows
-        .map((row) => String(row.migrationName ?? '').trim())
-        .filter(Boolean),
+      appliedRows.map((row) => String(row.migrationName ?? '').trim()).filter(Boolean),
     );
     result.appliedMigrations = appliedNames.size;
     result.missingMigrations = checkedInMigrations.filter((name) => !appliedNames.has(name));
@@ -555,7 +903,8 @@ async function checkDatabaseSchema() {
       `;
       const present = rows.length > 0;
       const entry = result.requiredColumns.find(
-        (column) => column.table === requiredColumn.table && column.column === requiredColumn.column,
+        (column) =>
+          column.table === requiredColumn.table && column.column === requiredColumn.column,
       );
       if (entry) entry.present = present;
     }
@@ -582,7 +931,8 @@ async function checkDatabaseSchema() {
       id: `db:migration:${migrationName}`,
       status: 'blocker',
       message: `Checked-in migration ${migrationName} has not been applied to the staging database.`,
-      action: 'Run Prisma migrate deploy against the staging DATABASE_URL before release rehearsal.',
+      action:
+        'Run Prisma migrate deploy against the staging DATABASE_URL before release rehearsal.',
       value: '',
     });
   }
@@ -609,6 +959,7 @@ async function buildReport(envFileLoad) {
     ...checkPasswordResetDeliveryEnv(),
     ...FORBIDDEN_ENV_VALUES.flatMap(checkForbiddenEnvValue),
     ...REQUIRED_FILES.flatMap(checkFileRule),
+    ...SECRET_FILE_RULES.flatMap(checkSecretFileMode),
     ...database.issues,
   ];
   const migrationCount = getMigrationCount();
@@ -693,7 +1044,9 @@ function toMarkdown(report) {
   lines.push('## Database Schema');
   lines.push('');
   if (!report.database.checked) {
-    lines.push('- SKIP database schema check; DATABASE_URL or API_DATA_BACKEND=db was not available.');
+    lines.push(
+      '- SKIP database schema check; DATABASE_URL or API_DATA_BACKEND=db was not available.',
+    );
   } else {
     lines.push(
       `- ${report.database.status.toUpperCase()} applied migrations: ${report.database.appliedMigrations}/${report.database.requiredMigrations}`,
@@ -709,6 +1062,26 @@ function toMarkdown(report) {
       );
     }
     if (report.database.supabaseAccess.checked) {
+      const dataApi = report.database.supabaseAccess.dataApi;
+      lines.push(
+        `- ${
+          dataApi?.checked && dataApi.disabledForPublicClients ? 'PASS' : 'BLOCKER'
+        } Supabase Data API public-client boundary: ${dataApi?.reason ?? 'not-checked'}`,
+      );
+      const principal = report.database.supabaseAccess.databasePrincipal;
+      if (principal?.checked) {
+        lines.push(
+          `- DB principal: current_user=${principal.currentUser ?? 'unknown'}, session_user=${
+            principal.sessionUser ?? 'unknown'
+          }, database=${principal.databaseName ?? 'unknown'}, schema=${
+            principal.schemaName ?? 'unknown'
+          }, supabase_admin_default_privilege_fix=${
+            principal.canAlterSupabaseAdminDefaultPrivileges
+              ? 'can-apply'
+              : 'needs-privileged-context'
+          }`,
+        );
+      }
       lines.push(
         `- ${
           report.database.supabaseAccess.rlsDisabledTables.length === 0 ? 'PASS' : 'BLOCKER'
@@ -717,7 +1090,17 @@ function toMarkdown(report) {
       lines.push(
         `- ${
           report.database.supabaseAccess.directRoleGrants.length === 0 ? 'PASS' : 'BLOCKER'
-        } no direct anon/authenticated public grants`,
+        } no direct anon/authenticated/PUBLIC public grants`,
+      );
+      lines.push(
+        `- ${
+          report.database.supabaseAccess.defaultRoleGrants.length === 0 ? 'PASS' : 'BLOCKER'
+        } no anon/authenticated/PUBLIC default grants for future public objects`,
+      );
+      lines.push(
+        `- ${
+          report.database.supabaseAccess.securityDefinerFunctions.length === 0 ? 'PASS' : 'BLOCKER'
+        } no security-definer functions in exposed public schema`,
       );
     } else {
       lines.push('- SKIP Supabase public schema RLS/grant posture check.');
@@ -763,6 +1146,24 @@ function printText(report) {
   console.log(
     `- database schema: ${report.database.checked ? report.database.status : 'skipped'} (${report.database.appliedMigrations}/${report.database.requiredMigrations} migrations applied)`,
   );
+  const principal = report.database.supabaseAccess.databasePrincipal;
+  const dataApi = report.database.supabaseAccess.dataApi;
+  if (report.database.supabaseAccess.checked) {
+    console.log(
+      `- Supabase Data API public-client boundary: ${
+        dataApi?.checked && dataApi.disabledForPublicClients ? 'disabled' : 'unverified'
+      } (${dataApi?.reason ?? 'not-checked'})`,
+    );
+  }
+  if (principal?.checked) {
+    console.log(
+      `- DB principal: current_user=${principal.currentUser ?? 'unknown'}, session_user=${
+        principal.sessionUser ?? 'unknown'
+      }, supabase_admin default fix: ${
+        principal.canAlterSupabaseAdminDefaultPrivileges ? 'can apply' : 'needs privileged context'
+      }`,
+    );
+  }
   console.log(`- blockers: ${report.summary.blockers}`);
   console.log(`- warnings: ${report.summary.warnings}`);
 
@@ -803,7 +1204,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  REQUIRED_ENV,
   buildSupabaseAccessPostureIssues,
+  checkSupabaseDataApiPosture,
+  checkEnvRule,
+  checkSecretFileMode,
   classifyDatabaseSchemaError,
   compactErrorValue,
 };

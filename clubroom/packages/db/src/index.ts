@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -22,4 +22,4 @@ export function getPrismaClient(): PrismaClient {
   return prismaClient;
 }
 
-export { PrismaClient };
+export { Prisma, PrismaClient };

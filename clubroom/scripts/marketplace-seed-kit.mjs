@@ -1203,8 +1203,12 @@ function buildLinkedDataset() {
     });
 
     const familyId = familyIdFromSlug(athlete.familySlug);
+    const guardianUserIds = new Set(athlete.guardianSlugs.map(userIdFromSlug));
     for (const membership of tables.familyMemberships) {
-      if (membership.familyId === familyId) {
+      if (
+        membership.familyId === familyId &&
+        (membership.role === 'owner' || guardianUserIds.has(membership.userId))
+      ) {
         const nextSet = new Set(membership.childAccessAthleteIds);
         nextSet.add(athleteId);
         membership.childAccessAthleteIds = Array.from(nextSet);
@@ -1797,7 +1801,14 @@ function buildLinkedDataset() {
       rsvpDeadlineAt: toIso({ days: 8 + clubIndex }),
       guestLimit: 150,
       metadataJson: {
-        type: 'community',
+        type: 'TRIAL_DAY',
+        targetAudience: 'ALL',
+        isVirtual: false,
+        priceMinor: 0,
+        currency: 'GBP',
+        rsvpRequired: true,
+        squadIds: [],
+        athleteIds: [],
       },
       createdByUserId: creatorUserId,
       updatedByUserId: creatorUserId,
@@ -1822,7 +1833,14 @@ function buildLinkedDataset() {
       rsvpDeadlineAt: toIso({ days: -16 + clubIndex }),
       guestLimit: 80,
       metadataJson: {
-        type: 'operations',
+        type: 'PRESENTATION',
+        targetAudience: 'ALL',
+        isVirtual: false,
+        priceMinor: 0,
+        currency: 'GBP',
+        rsvpRequired: true,
+        squadIds: [],
+        athleteIds: [],
       },
       createdByUserId: creatorUserId,
       updatedByUserId: creatorUserId,

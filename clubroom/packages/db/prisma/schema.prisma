@@ -47,6 +47,9 @@ enum BookingStatus {
   AWAITING_COMPLETION
   COMPLETED
   CANCELLED
+  DECLINED
+  WITHDRAWN
+  EXPIRED
 }
 
 enum BookingChangeRequestType {
@@ -267,6 +270,7 @@ model User {
   profile                        UserProfile?
   passwordCredential             PasswordCredential?
   passwordResetTokens            PasswordResetToken[]
+  emailVerificationTokens        EmailVerificationToken[]
   roles                          UserRoleMembership[]
   devices                        UserDevice[]
   sessions                       AuthSession[]
@@ -446,6 +450,7 @@ model AuthSession {
   device UserDevice? @relation(fields: [userDeviceId], references: [id], onDelete: SetNull)
 
   @@index([userId, revokedAt])
+  @@index([userDeviceId])
 }
 
 model PasswordCredential {
@@ -460,6 +465,22 @@ model PasswordCredential {
 model PasswordResetToken {
   id        String    @id
   userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, usedAt])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id        String    @id
+  userId    String
+  email     String
   tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
@@ -701,6 +722,7 @@ model AthleteInjury {
   expectedRecoveryDate DateTime?
   resolvedAt           DateTime?
   notes                String?
+  sharedWithCoach      Boolean   @default(false)
   createdByUserId      String
   updatedByUserId      String
   version              BigInt    @default(1)
@@ -870,6 +892,8 @@ model CoachAthleteRosterEntry {
   @@index([coachUserId, deletedAt])
   @@index([athleteId, deletedAt])
   @@index([coachUserId, removedAt])
+  @@index([createdByUserId])
+  @@index([updatedByUserId])
 }
 
 model CoachLocation {
@@ -1021,6 +1045,7 @@ model Club {
   secondaryColor  String?
   slug            String?   @unique
   visibility      String    @default("private")
+  joinPolicy      String    @default("INVITE_ONLY")
   commercialMode  String    @default("COACH_OWNED")
   createdByUserId String
   updatedByUserId String
@@ -1032,6 +1057,7 @@ model Club {
 
   memberships        ClubMembership[]
   inviteCodes        ClubInviteCode[]
+  integrations       ClubIntegration[]
   squads             Squad[]
   events             ClubEvent[]
   matches            ClubMatch[]
@@ -1078,6 +1104,28 @@ model ClubInviteCode {
   club Club @relation(fields: [clubId], references: [id], onDelete: Restrict)
 
   @@index([clubId, role, deletedAt])
+}
+
+model ClubIntegration {
+  id                String    @id
+  clubId            String
+  provider          String
+  status            String    @default("DISCONNECTED")
+  displayName       String?
+  externalAccountId String?
+  metadataJson      Json?
+  createdByUserId   String
+  updatedByUserId   String
+  version           BigInt    @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  deletedByUserId   String?
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Restrict)
+
+  @@index([clubId, status, deletedAt])
+  @@index([provider, deletedAt])
 }
 
 model Squad {
@@ -1215,6 +1263,7 @@ model VerificationDocument {
   verification CoachVerification @relation(fields: [coachVerificationId], references: [id], onDelete: Restrict)
   mediaObject  MediaObject       @relation(fields: [mediaObjectId], references: [id], onDelete: Restrict)
 
+  @@index([coachVerificationId])
   @@index([mediaObjectId])
 }
 
@@ -1223,36 +1272,39 @@ model VerificationDocument {
 // -----------------------------------------------------------------------------
 
 model Booking {
-  id                   String        @id
-  coachUserId          String
-  bookedByUserId       String?
-  clubId               String?
-  coachingOfferingId   String?
-  status               BookingStatus
-  scheduledAt          DateTime
-  durationMinutes      Int
-  location             String
-  serviceType          String?
-  notes                String?
-  objectivesJson       Json?
-  priceMinor           Int?
-  currency             String        @default("GBP")
-  confirmationMode     String? // auto/manual
-  confirmedAt          DateTime?
-  cancelledByUserId    String?
-  cancelledAt          DateTime?
-  cancelReason         String?
-  cancellationFeeMinor Int?
-  groupSessionId       String?
-  recurringSeriesId    String?
-  seriesIndex          Int?
-  createdByUserId      String
-  updatedByUserId      String
-  version              BigInt        @default(1)
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  deletedAt            DateTime?
-  deletedByUserId      String?
+  id                      String        @id
+  coachUserId             String
+  bookedByUserId          String?
+  clubId                  String?
+  coachingOfferingId      String?
+  status                  BookingStatus
+  scheduledAt             DateTime
+  durationMinutes         Int
+  location                String
+  serviceType             String?
+  notes                   String?
+  objectivesJson          Json?
+  priceMinor              Int?
+  currency                String        @default("GBP")
+  confirmationMode        String? // auto/manual
+  confirmedAt             DateTime?
+  requestExpiresAt        DateTime?
+  requestResolvedAt       DateTime?
+  requestResolutionReason String?
+  cancelledByUserId       String?
+  cancelledAt             DateTime?
+  cancelReason            String?
+  cancellationFeeMinor    Int?
+  groupSessionId          String?
+  recurringSeriesId       String?
+  seriesIndex             Int?
+  createdByUserId         String
+  updatedByUserId         String
+  version                 BigInt        @default(1)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  deletedAt               DateTime?
+  deletedByUserId         String?
 
   participants          BookingParticipant[]
   objectives            BookingObjective[]
@@ -1267,6 +1319,7 @@ model Booking {
 
   @@index([coachUserId, status])
   @@index([bookedByUserId, status])
+  @@index([status, requestExpiresAt])
   @@index([scheduledAt])
   @@index([groupSessionId])
 }
@@ -1318,6 +1371,31 @@ model BookingStatusEvent {
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
   @@index([bookingId, occurredAt])
+}
+
+model BookingStepAnalyticsEvent {
+  id                  String    @id
+  userId              String
+  source              String
+  role                String
+  actingAs            String
+  step                String
+  status              String
+  failureCode         String?
+  coachUserId         String?
+  ownerCoachUserId    String?
+  assigneeCoachUserId String?
+  clubId              String?
+  clientEventId       String?
+  clientCreatedAt     DateTime?
+  metadataJson        Json?
+  createdAt           DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([coachUserId, createdAt])
+  @@index([clubId, createdAt])
+  @@index([step, status, createdAt])
 }
 
 model BookingChangeRequest {
@@ -1399,11 +1477,12 @@ model GroupSession {
   deletedAt                DateTime?
   deletedByUserId          String?
 
-  squad             Squad?                     @relation(fields: [squadId], references: [id], onDelete: SetNull)
-  registrations     GroupSessionRegistration[]
-  rsvps             SessionRsvp[]
-  waitlistEntries   WaitlistEntry[]
-  attendanceRecords AttendanceRecord[]
+  squad                 Squad?                             @relation(fields: [squadId], references: [id], onDelete: SetNull)
+  registrations         GroupSessionRegistration[]
+  rsvps                 SessionRsvp[]
+  waitlistEntries       WaitlistEntry[]
+  attendanceRecords     AttendanceRecord[]
+  occurrenceCompletions GroupSessionOccurrenceCompletion[]
 
   @@index([coachUserId, status])
   @@index([clubId, status])
@@ -1422,6 +1501,8 @@ model GroupSessionRegistration {
   updatedByUserId String
   version         BigInt                  @default(1)
   registeredAt    DateTime                @default(now())
+  rosterActiveAt  DateTime?
+  rosterEndedAt   DateTime?
   updatedAt       DateTime                @updatedAt
   deletedAt       DateTime?
   deletedByUserId String?
@@ -1431,6 +1512,24 @@ model GroupSessionRegistration {
 
   @@unique([groupSessionId, athleteId])
   @@index([athleteId, status])
+  @@index([groupSessionId, rosterActiveAt, rosterEndedAt])
+}
+
+model GroupSessionOccurrenceCompletion {
+  id                String   @id
+  groupSessionId    String
+  occurrenceDate    DateTime @db.Date
+  completedByUserId String
+  rosterSize        Int
+  attendedCount     Int
+  noShowCount       Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  groupSession GroupSession @relation(fields: [groupSessionId], references: [id], onDelete: Restrict)
+
+  @@unique([groupSessionId, occurrenceDate])
+  @@index([completedByUserId, createdAt])
 }
 
 model SessionRsvp {
@@ -1565,6 +1664,7 @@ model ClubMatch {
   opponent         String
   isHome           Boolean         @default(true)
   startsAt         DateTime
+  timeZone         String
   kickoffTimeLocal String
   meetTimeLocal    String?
   venue            String
@@ -1572,6 +1672,8 @@ model ClubMatch {
   maxPlayers       Int             @default(14)
   status           ClubMatchStatus @default(SCHEDULED)
   resultJson       Json?
+  importSource     String?
+  importExternalId String?
   notes            String?
   createdByUserId  String
   updatedByUserId  String
@@ -1586,6 +1688,7 @@ model ClubMatch {
   players ClubMatchPlayer[]
 
   @@index([clubId, startsAt])
+  @@index([clubId, importSource])
   @@index([squadId, startsAt])
   @@index([coachUserId, startsAt])
   @@index([status, startsAt])
@@ -2084,6 +2187,8 @@ model SelfAssessmentEntry {
   @@index([athleteId, createdAt])
   @@index([coachUserId, createdAt])
   @@index([submittedByUserId, createdAt])
+  @@index([bookingId])
+  @@index([promptId])
 }
 
 model TermlyReportSnapshot {
@@ -2182,6 +2287,7 @@ model AthleteSkillAssessment {
   skillDefinition SkillDefinition @relation(fields: [skillDefinitionId], references: [id], onDelete: Restrict)
 
   @@index([athleteId, skillDefinitionId, assessedAt])
+  @@index([skillDefinitionId])
 }
 
 model BadgeDefinition {
@@ -2211,6 +2317,7 @@ model AthleteBadge {
   badgeDefinition BadgeDefinition @relation(fields: [badgeDefinitionId], references: [id], onDelete: Restrict)
 
   @@index([athleteId, awardedAt])
+  @@index([badgeDefinitionId])
 }
 
 model Drill {
@@ -2251,6 +2358,7 @@ model DrillAssignment {
 
   @@index([athleteId, status])
   @@index([coachUserId, status])
+  @@index([drillId])
 }
 
 model AssignmentSubmission {
@@ -2269,6 +2377,7 @@ model AssignmentSubmission {
   mediaObject     MediaObject?    @relation(fields: [mediaObjectId], references: [id], onDelete: SetNull)
 
   @@index([drillAssignmentId, submittedAt])
+  @@index([mediaObjectId])
 }
 
 // -----------------------------------------------------------------------------
@@ -2339,41 +2448,90 @@ model SessionMediaAsset {
   @@index([athleteId])
   @@index([coachUserId])
   @@index([mediaObjectId])
+  @@index([thumbnailMediaObjectId])
 }
 
 model UploadSession {
-  id                  String    @id
-  requesterUserId     String
-  mediaObjectId       String?
-  targetResourceType  String?
-  targetResourceId    String?
-  expectedContentType String?
-  expectedMaxBytes    BigInt?
-  status              String    @default("INITIATED")
-  uploadUrlExpiresAt  DateTime
-  completedAt         DateTime?
-  metadataJson        Json?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                           String    @id
+  requesterUserId              String
+  mediaObjectId                String?
+  targetResourceType           String?
+  targetResourceId             String?
+  expectedContentType          String?
+  expectedMaxBytes             BigInt?
+  status                       String    @default("INITIATED")
+  uploadUrlExpiresAt           DateTime
+  completedAt                  DateTime?
+  scanClaimedAt                DateTime?
+  scanClaimedBy                String?
+  activeScanAttemptId          String?   @unique
+  scanLeaseExpiresAt           DateTime?
+  scanAttemptCount             Int       @default(0)
+  scanNextAttemptAt            DateTime?
+  scanLastError                String?
+  cleanScanResultId            String?   @unique
+  stagingStorageKey            String?
+  stagingCleanupDueAt          DateTime?
+  stagingCleanupClaimedAt      DateTime?
+  stagingCleanupClaimedBy      String?
+  stagingCleanupLeaseExpiresAt DateTime?
+  stagingCleanupCompletedAt    DateTime?
+  stagingCleanupNextAttemptAt  DateTime?
+  stagingCleanupLastError      String?
+  stagingCleanupAttemptCount   Int       @default(0)
+  metadataJson                 Json?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
-  mediaObject MediaObject? @relation(fields: [mediaObjectId], references: [id], onDelete: SetNull)
+  mediaObject     MediaObject?        @relation(fields: [mediaObjectId], references: [id], onDelete: SetNull)
+  scanResults     MalwareScanResult[] @relation("UploadSessionScans")
+  cleanScanResult MalwareScanResult?  @relation("UploadSessionCleanScan", fields: [cleanScanResultId], references: [id], onDelete: SetNull)
+
+  @@index([mediaObjectId])
 
   @@index([requesterUserId, createdAt])
   @@index([uploadUrlExpiresAt])
+  @@index([status, scanNextAttemptAt, scanClaimedAt])
+  @@index([stagingCleanupCompletedAt, stagingCleanupDueAt, stagingCleanupNextAttemptAt])
+}
+
+model RuntimeWorkerHeartbeat {
+  id           String    @id
+  workerType   String
+  status       String
+  version      String?
+  metadataJson Json?
+  lastReadyAt  DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([workerType, status, expiresAt])
 }
 
 model MalwareScanResult {
-  id            String             @id
-  mediaObjectId String
-  verdict       MalwareScanVerdict
-  scanner       String?
-  detailsJson   Json?
-  scannedAt     DateTime?
-  createdAt     DateTime           @default(now())
+  id               String             @id
+  mediaObjectId    String
+  uploadSessionId  String?
+  sourceResultId   String?            @unique
+  scanAttemptId    String?            @unique
+  verdict          MalwareScanVerdict
+  scanner          String?
+  objectSizeBytes  BigInt?
+  objectETag       String?
+  sha256Hex        String?
+  sealedStorageKey String?            @unique
+  requestHash      String?
+  detailsJson      Json?
+  scannedAt        DateTime?
+  createdAt        DateTime           @default(now())
 
-  mediaObject MediaObject @relation(fields: [mediaObjectId], references: [id], onDelete: Restrict)
+  mediaObject           MediaObject    @relation(fields: [mediaObjectId], references: [id], onDelete: Restrict)
+  uploadSession         UploadSession? @relation("UploadSessionScans", fields: [uploadSessionId], references: [id], onDelete: SetNull)
+  cleanForUploadSession UploadSession? @relation("UploadSessionCleanScan")
 
   @@index([mediaObjectId, createdAt])
+  @@index([uploadSessionId, createdAt])
 }
 
 model Video {
@@ -2399,6 +2557,7 @@ model Video {
 
   @@index([athleteId])
   @@index([coachUserId])
+  @@index([mediaObjectId])
 }
 
 model VideoShare {
@@ -2872,6 +3031,7 @@ model RetentionRun {
   policy RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id], onDelete: SetNull)
 
   @@index([status, startedAt])
+  @@index([retentionPolicyId])
 }
 
 model LegalHold {

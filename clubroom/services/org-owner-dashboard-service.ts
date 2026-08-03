@@ -1,9 +1,9 @@
-import type { Club, ClubMembership } from '@/constants/types';
-import type {
-  HeadCoachCoachHealth,
-  HeadCoachCompletionItem,
-} from '@/services/org-head-coach-service';
-import type { OrgWorkItem } from '@/services/org-staffing-service';
+import type { OwnerDashboardResponse } from '../packages/shared-contracts/src/club/owner-dashboard';
+export type {
+  OwnerDashboardFinanceSummary,
+  OwnerDashboardSummary,
+  OwnerDashboardSupportIssue,
+} from '../packages/shared-contracts/src/club/owner-dashboard';
 import { api } from '@/constants/config';
 import { apiFetch } from './api-client';
 import {
@@ -11,73 +11,16 @@ import {
   deriveApiActingRole,
   resolveSignedInApiUser,
 } from './api-auth-context';
-import {
-  err,
-  ok,
-  type Result,
-  type ServiceError,
-  validationError,
-} from '@/types/result';
+import { err, ok, type Result, type ServiceError, validationError } from '@/types/result';
 
-type ProblemReportStatus = 'pending' | 'reviewed' | 'resolved';
-
-export interface OwnerDashboardSummary {
-  activeStaffCount: number;
-  activeOrgSessions: number;
-  liveBookingCount: number;
-  unassignedCount: number;
-  awaitingCompletionCount: number;
-  overdueCompletionCount: number;
-  watchAthleteCount: number;
-  overdueFollowUpCount: number;
-  supportIssueCount: number;
-}
-
-export interface OwnerDashboardFinanceSummary {
-  openTotal: number;
-  orgCreditOpen: number;
-  coachCollectedOpen: number;
-  collectedTotal: number;
-  writtenOffTotal: number;
-  overdueCount: number;
-  owedCount: number;
-  note: string;
-}
-
-export interface OwnerDashboardSupportIssue {
-  id: string;
-  bookingId: string;
-  status: ProblemReportStatus;
-  category: string;
-  description: string;
-  createdAt: string;
-  scheduledAt?: string;
-  sessionTitle: string;
-  athleteLabel: string;
-  supportLabel: string;
-  deliveredByLabel: string;
-}
-
-export interface OrgOwnerDashboardData {
-  club: Club;
-  viewerMembership: ClubMembership;
-  summary: OwnerDashboardSummary;
-  finance: OwnerDashboardFinanceSummary;
-  unassignedWork: OrgWorkItem[];
-  coachHealth: HeadCoachCoachHealth[];
-  completionQueue: HeadCoachCompletionItem[];
-  supportIssues: OwnerDashboardSupportIssue[];
-}
-
-type ApiOwnerDashboardResponse = OrgOwnerDashboardData & {
-  clubId: string;
-  requestId?: string;
-};
+export type OrgOwnerDashboardData = Omit<OwnerDashboardResponse, 'clubId' | 'requestId'>;
 
 const MOCK_OWNER_DASHBOARD_API_MESSAGE =
   'Owner dashboard requires live /v1 API data. Local mock dashboard composition is disabled.';
 
-async function resolveOwnerDashboardHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+async function resolveOwnerDashboardHeaders(): Promise<
+  Result<Record<string, string>, ServiceError>
+> {
   const currentUserResult = await resolveSignedInApiUser('Sign in to view owner dashboard.');
   if (!currentUserResult.success) {
     return currentUserResult;
@@ -103,7 +46,7 @@ class OrgOwnerDashboardService {
     if (!headersResult.success) {
       return headersResult;
     }
-    const result = await apiFetch<ApiOwnerDashboardResponse>(
+    const result = await apiFetch<OwnerDashboardResponse>(
       `/v1/clubs/${encodeURIComponent(clubId)}/owner-dashboard`,
       {
         headers: headersResult.data,

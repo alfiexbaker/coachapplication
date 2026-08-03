@@ -240,7 +240,9 @@ export interface CreateSessionState {
   postingAs: 'self' | 'club';
   selectedClubId: string | null;
   clubOptions: ClubOwnerOption[];
+  clubOptionsError: string | null;
   assigneeOptions: SessionAssigneeOption[];
+  assigneeOptionsError: string | null;
   selectedAssigneeId: string | null;
 
   // Step 2: Schedule
@@ -330,8 +332,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const [postingAs, setPostingAsState] = useState<'self' | 'club'>('self');
   const [clubOptionsLoaded, setClubOptionsLoaded] = useState(false);
   const [clubOptions, setClubOptions] = useState<ClubOwnerOption[]>([]);
+  const [clubOptionsError, setClubOptionsError] = useState<string | null>(null);
   const [selectedClubId, setSelectedClubIdState] = useState<string | null>(null);
   const [assigneeOptions, setAssigneeOptions] = useState<SessionAssigneeOption[]>([]);
+  const [assigneeOptionsError, setAssigneeOptionsError] = useState<string | null>(null);
   const [selectedAssigneeId, setSelectedAssigneeIdState] = useState<string | null>(
     currentUser?.id ?? null,
   );
@@ -500,6 +504,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     let active = true;
     const loadClubOptions = async () => {
       setClubOptionsLoaded(false);
+      setClubOptionsError(null);
       if (!currentUser?.id) {
         setClubOptions([]);
         setSelectedClubIdState(null);
@@ -511,9 +516,13 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       if (!academyResult.success) {
         setClubOptions([]);
         setSelectedClubIdState(null);
+        setClubOptionsError(
+          apiClient.isMockMode ? null : 'Failed to load club session permissions. Please retry.',
+        );
         setClubOptionsLoaded(true);
         return;
       }
+      setClubOptionsError(null);
       const nextOptions = academyResult.data.flatMap((club) =>
         canCreateAsClub(club.membership)
           ? [
@@ -547,13 +556,19 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     const loadAssignees = async () => {
       if (!selectedClubId) {
         setAssigneeOptions([]);
+        setAssigneeOptionsError(null);
         setSelectedAssigneeIdState(currentUser?.id ?? null);
         return;
       }
+      setAssigneeOptionsError(null);
       const staffResult = await academyService.getStaff(selectedClubId);
       if (!active) return;
       if (!staffResult.success) {
         setAssigneeOptions([]);
+        setSelectedAssigneeIdState(null);
+        setAssigneeOptionsError(
+          apiClient.isMockMode ? null : 'Failed to load club staff. Please retry.',
+        );
         return;
       }
       const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
@@ -563,6 +578,15 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         usersResult.data.forEach((user) => {
           labelById.set(user.id, user.name || '');
         });
+      }
+      if (
+        !apiClient.isMockMode &&
+        (!usersResult.success || staff.some((member) => !labelById.get(member.userId)?.trim()))
+      ) {
+        setAssigneeOptions([]);
+        setSelectedAssigneeIdState(null);
+        setAssigneeOptionsError('Failed to load club staff names. Please retry.');
+        return;
       }
       const mapped = staff
         .map((member) => ({
@@ -681,6 +705,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     if (!clubOptionsLoaded) {
       return;
     }
+    if (clubOptionsError) {
+      return;
+    }
     if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
       startTransition(() => {
         setPostingAsState('self');
@@ -697,6 +724,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     });
   }, [
     assigneeOptions,
+    clubOptionsError,
     clubOptionsLoaded,
     currentUser?.id,
     postingAs,
@@ -916,8 +944,20 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
         const creatorDisplayName = currentUserDisplayName;
         if (resolvedActingAs === 'club') {
+          if (clubOptionsError || assigneeOptionsError) {
+            setValidationMessage(
+              clubOptionsError ?? assigneeOptionsError ?? 'Club ownership is unavailable.',
+            );
+            setLoading(false);
+            return;
+          }
           if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
             setValidationMessage('Choose a club where you can post sessions.');
+            setLoading(false);
+            return;
+          }
+          if (!selectedAssignee) {
+            setValidationMessage('Choose a coach loaded from club staff authority.');
             setLoading(false);
             return;
           }
@@ -1304,7 +1344,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     postingAs,
     selectedClubId,
     clubOptions,
+    clubOptionsError,
     assigneeOptions,
+    assigneeOptionsError,
     selectedAssigneeId,
     recurrence,
     selectedDate,

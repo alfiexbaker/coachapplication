@@ -13,12 +13,13 @@ import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Invoice } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+import { isAdmin, isCoach as isCoachUser } from '@/utils/user-helpers';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InvoiceDetailScreen');
 
-const MANUAL_PAYMENT_OPTIONS: Array<{ id: ManualReceiptMethod; label: string }> = [
+const MANUAL_PAYMENT_OPTIONS: { id: ManualReceiptMethod; label: string }[] = [
   { id: 'bank_transfer', label: 'Bank transfer' },
   { id: 'cash', label: 'Cash' },
   { id: 'other', label: 'Other' },
@@ -112,7 +113,7 @@ export function useInvoiceDetail() {
 
     await runAsyncTryCatchFinally(
       async () => {
-        await invoiceService.markAsPaid(invoice.id, {
+        const updatedInvoice = await invoiceService.markAsPaid(invoice.id, {
           manualReceipt: {
             method: method as ManualReceiptMethod,
             amountMinor: toMinorUnits(invoice.total),
@@ -120,6 +121,11 @@ export function useInvoiceDetail() {
             note: `Recorded from invoice detail for invoice ${invoice.id}`,
           },
         });
+        if (!updatedInvoice || updatedInvoice.status !== 'PAID') {
+          uiFeedback.showToast('Could not record payment.', 'error');
+          return;
+        }
+        uiFeedback.showToast('Invoice marked paid.', 'success');
         onRefresh();
       },
       async (error) => {
@@ -146,7 +152,12 @@ export function useInvoiceDetail() {
 
             await runAsyncTryCatchFinally(
               async () => {
-                await invoiceService.voidInvoice(invoice.id, 'Voided by user');
+                const updatedInvoice = await invoiceService.voidInvoice(invoice.id, 'Voided by user');
+                if (!updatedInvoice || updatedInvoice.status !== 'VOID') {
+                  uiFeedback.showToast('Could not void invoice.', 'error');
+                  return;
+                }
+                uiFeedback.showToast('Invoice voided.', 'success');
                 onRefresh();
               },
               async (error) => {
@@ -166,14 +177,16 @@ export function useInvoiceDetail() {
   const openSendModal = () => setShowSendModal(true);
   const closeSendModal = () => setShowSendModal(false);
 
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.id === invoice?.coachId;
+  const isCoach = isCoachUser(currentUser) || currentUser?.id === invoice?.coachId;
+  const isInvoiceManager = invoice?.canManageMoney === true || isCoach || isAdmin(currentUser);
   const canSend = Boolean(
     invoice &&
-    isCoach &&
+    isInvoiceManager &&
     (invoice.status === 'DRAFT' || (invoice.status === 'SENT' && !invoice.sentAt)),
   );
-  const canMarkPaid = (invoice?.status === 'SENT' || invoice?.status === 'DRAFT') && isCoach;
-  const canVoid = invoice?.status !== 'VOID' && invoice?.status !== 'PAID';
+  const canMarkPaid =
+    (invoice?.status === 'SENT' || invoice?.status === 'DRAFT') && isInvoiceManager;
+  const canVoid = invoice?.status !== 'VOID' && invoice?.status !== 'PAID' && isInvoiceManager;
 
   return {
     invoice: invoice ?? null,

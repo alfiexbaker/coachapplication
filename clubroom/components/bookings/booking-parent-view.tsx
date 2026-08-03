@@ -6,15 +6,18 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { BookingSummary } from '@/constants/types';
 
 interface BookingParentViewProps {
-  bookingStatus?: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Needs Completion';
+  bookingStatus?: BookingSummary['status'];
   onMessageCoach: () => void;
   onCancelBooking: () => void;
   onReportProblem: () => void;
   onReopenBooking?: () => void;
   onRebook?: () => void;
   onManageRecurring?: () => void;
+  onWithdrawRequest?: () => void;
+  isResolvingRequest?: boolean;
   canCancelBooking: boolean;
   messageLabel?: string;
   reportProblemLabel?: string;
@@ -28,8 +31,10 @@ function BookingParentViewInner({
   onReopenBooking,
   onRebook,
   onManageRecurring,
+  onWithdrawRequest,
+  isResolvingRequest = false,
   canCancelBooking,
-  messageLabel = 'Message delivery coach',
+  messageLabel = 'Message coach',
   reportProblemLabel = 'Report problem',
 }: BookingParentViewProps) {
   const { colors: palette } = useTheme();
@@ -37,6 +42,8 @@ function BookingParentViewInner({
   const isConfirmed = bookingStatus === 'Confirmed';
   const isCompleted = bookingStatus === 'Completed';
   const isCancelled = bookingStatus === 'Cancelled';
+  const isClosedRequest =
+    bookingStatus === 'Declined' || bookingStatus === 'Withdrawn' || bookingStatus === 'Expired';
 
   return (
     <View style={styles.actions}>
@@ -56,7 +63,28 @@ function BookingParentViewInner({
         </ThemedText>
       </Clickable>
 
-      {(isPending || isConfirmed) && canCancelBooking ? (
+      {isPending && onWithdrawRequest ? (
+        <Clickable
+          onPress={onWithdrawRequest}
+          disabled={isResolvingRequest}
+          accessibilityLabel="Withdraw booking request"
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.error },
+              pressed && { backgroundColor: palette.border, opacity: 0.7 },
+              isResolvingRequest && { opacity: 0.6 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          <Ionicons name="close-circle-outline" size={20} color={palette.error} />
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+            {isResolvingRequest ? 'Withdrawing...' : 'Withdraw request'}
+          </ThemedText>
+        </Clickable>
+      ) : null}
+
+      {isConfirmed && canCancelBooking ? (
         <Clickable
           onPress={onCancelBooking}
           style={({ pressed }) =>
@@ -69,7 +97,7 @@ function BookingParentViewInner({
         >
           <Ionicons name="close-circle-outline" size={20} color={palette.error} />
           <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
-            Cancel Booking
+            Cancel booking
           </ThemedText>
         </Clickable>
       ) : null}
@@ -87,7 +115,7 @@ function BookingParentViewInner({
         >
           <Ionicons name="refresh-circle-outline" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-            Reopen Booking
+            Reopen booking
           </ThemedText>
         </Clickable>
       ) : null}
@@ -104,7 +132,7 @@ function BookingParentViewInner({
           }
         >
           <Ionicons name="repeat-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Manage Recurring Plan</ThemedText>
+          <ThemedText style={styles.secondaryButtonText}>Manage recurring plan</ThemedText>
         </Clickable>
       ) : null}
 
@@ -122,7 +150,7 @@ function BookingParentViewInner({
         <ThemedText style={styles.secondaryButtonText}>{reportProblemLabel}</ThemedText>
       </Clickable>
 
-      {(isCompleted || (isCancelled && !onReopenBooking)) && onRebook ? (
+      {(isCompleted || isClosedRequest || (isCancelled && !onReopenBooking)) && onRebook ? (
         <Clickable
           onPress={onRebook}
           style={({ pressed }) =>
@@ -135,7 +163,7 @@ function BookingParentViewInner({
         >
           <Ionicons name="repeat-outline" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-            Book Again
+            Book again
           </ThemedText>
         </Clickable>
       ) : null}
@@ -151,6 +179,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   primaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
@@ -161,6 +190,7 @@ const styles = StyleSheet.create({
     ...Typography.subheading,
   },
   secondaryButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,

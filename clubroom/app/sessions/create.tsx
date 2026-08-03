@@ -27,6 +27,7 @@ import { CreateReviewStep } from '@/components/session/create-review-step';
 import { CreateInviteStep } from '@/components/session/create-invite-step';
 import { CreateFooterBar } from '@/components/session/create-footer-bar';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { rosterService } from '@/services/roster-service';
 import { inviteService } from '@/services/invite';
@@ -37,7 +38,6 @@ import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-displa
 import { safeDisplayLabel } from '@/utils/booking-display';
 import type { Academy, AcademyMembership, GroupSession, TimeSlot } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
-import type { OrganizationCommercialMode } from '@/constants/types';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 type FlowMode = 'choose' | 'new' | 'existing';
 type ExistingSessionScope = 'assigned' | 'club';
@@ -157,6 +157,8 @@ function ExistingInviteFlow({
   const [notes, setNotes] = useState('');
   const [academies, setAcademies] = useState<AcademyOption[]>([]);
   const [assigneeOptions, setAssigneeOptions] = useState<InviteAssigneeOption[]>([]);
+  const [clubLoadError, setClubLoadError] = useState<string | null>(null);
+  const [assigneeLoadError, setAssigneeLoadError] = useState<string | null>(null);
   const [postingAs, setPostingAs] = useState<'self' | 'club'>(
     initialActingAs === 'club' ? 'club' : 'self',
   );
@@ -171,12 +173,17 @@ function ExistingInviteFlow({
     postingAs === 'club' ? (assigneeCoachId ?? currentUser?.id ?? null) : (currentUser?.id ?? null);
   const canPostAsSelectedClub = selectedClub ? canPostAsClub(selectedClub.membership) : false;
   const selectedAssignee = assigneeOptions.find((option) => option.id === assigneeCoachId) ?? null;
+  const ownershipLoadError = clubLoadError ?? assigneeLoadError;
   const canSend =
     selectedAthleteIds.length > 0 &&
     selectedSession !== null &&
     !submitting &&
     (postingAs === 'self' ||
-      (Boolean(selectedClubId) && Boolean(assigneeCoachId) && canPostAsSelectedClub)) &&
+      (Boolean(selectedClubId) &&
+        Boolean(assigneeCoachId) &&
+        selectedAssignee !== null &&
+        !ownershipLoadError &&
+        canPostAsSelectedClub)) &&
     Boolean(ownerCoachId);
   useEffect(() => {
     let active = true;
@@ -228,6 +235,7 @@ function ExistingInviteFlow({
               : (finalSessions[0]?.id ?? null),
           );
           if (academyResult.success) {
+            setClubLoadError(null);
             const eligibleAcademies = academyResult.data.filter((academy) =>
               canCreateAsClub(academy.membership),
             );
@@ -246,6 +254,9 @@ function ExistingInviteFlow({
             });
           } else {
             setAcademies([]);
+            setClubLoadError(
+              api.useMock ? null : 'Failed to load club invite permissions. Please retry.',
+            );
           }
         },
         async (error) => {
@@ -278,12 +289,15 @@ function ExistingInviteFlow({
       });
       return;
     }
+    if (assigneeLoadError) {
+      return;
+    }
     if (!assigneeCoachId) {
       startTransition(() => {
         setAssigneeCoachId(currentUser?.id ?? null);
       });
     }
-  }, [assigneeCoachId, currentUser?.id, postingAs]);
+  }, [assigneeCoachId, assigneeLoadError, currentUser?.id, postingAs]);
   useEffect(() => {
     if (postingAs !== 'club' && sessionScope !== 'assigned') {
       startTransition(() => {
@@ -296,24 +310,38 @@ function ExistingInviteFlow({
     const loadAssignees = async () => {
       if (!selectedClubId) {
         setAssigneeOptions([]);
+        setAssigneeLoadError(null);
         setAssigneeCoachId(currentUser?.id ?? null);
         return;
       }
+      setAssigneeLoadError(null);
       const staffResult = await academyService.getStaff(selectedClubId);
       if (!active) return;
       if (!staffResult.success) {
         setAssigneeOptions([]);
+        setAssigneeCoachId(null);
+        setAssigneeLoadError(api.useMock ? null : 'Failed to load club staff. Please retry.');
         return;
       }
       const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
       const ids = staff.map((member) => member.userId);
       const usersResult = await userService.getUsersByIds(ids);
+      if (!active) return;
       const nameById = new Map<string, string>();
       if (usersResult.success) {
         usersResult.data.forEach((user) => {
           const label = user.name?.trim() || '';
           nameById.set(user.id, label);
         });
+      }
+      if (
+        !api.useMock &&
+        (!usersResult.success || staff.some((member) => !nameById.get(member.userId)?.trim()))
+      ) {
+        setAssigneeOptions([]);
+        setAssigneeCoachId(null);
+        setAssigneeLoadError('Failed to load club staff names. Please retry.');
+        return;
       }
       const options = staff
         .map((member) => ({
@@ -371,8 +399,16 @@ function ExistingInviteFlow({
       uiFeedback.showToast('You do not have permission to post invites as this club.', 'error');
       return;
     }
+    if (postingAs === 'club' && ownershipLoadError) {
+      uiFeedback.showToast(ownershipLoadError, 'error');
+      return;
+    }
     if (postingAs === 'club' && !assigneeCoachId) {
       uiFeedback.showToast('Choose a coach owner before sending invites.');
+      return;
+    }
+    if (postingAs === 'club' && !selectedAssignee) {
+      uiFeedback.showToast('Choose a coach loaded from club staff authority.', 'error');
       return;
     }
     if (!ownerCoachId) {
@@ -506,6 +542,9 @@ function ExistingInviteFlow({
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {ownershipLoadError ? (
+              <StatusBanner variant="error" message={ownershipLoadError} />
+            ) : null}
             <SurfaceCard style={styles.sectionCard}>
               <ThemedText type="defaultSemiBold">Who to invite</ThemedText>
               {athletes.length === 0 ? (
@@ -1256,6 +1295,12 @@ export default function CreateSessionScreen() {
               message={state.validationMessage}
               onDismiss={state.clearValidationMessage}
             />
+          ) : null}
+          {state.clubOptionsError ? (
+            <StatusBanner variant="error" message={state.clubOptionsError} />
+          ) : null}
+          {state.assigneeOptionsError ? (
+            <StatusBanner variant="error" message={state.assigneeOptionsError} />
           ) : null}
           {state.step === 'details' && (
             <CreateDetailsStep

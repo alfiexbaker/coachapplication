@@ -70,6 +70,10 @@ export default function RSVPScreen() {
         rsvpService.getForSession(sessionId),
         rsvpService.getSessionCounts(sessionId),
       ]);
+      const firstSlot = session?.schedule?.[0];
+      if (!session || !firstSlot) {
+        return err(serviceError('UNKNOWN', 'This session is unavailable for RSVP.'));
+      }
 
       let loadedRsvp: SessionRsvp | null = null;
       let responded = false;
@@ -94,15 +98,15 @@ export default function RSVPScreen() {
         }
       }
 
-      const firstSlot = session?.schedule?.[0];
-      const scheduledAt = firstSlot
-        ? new Date(`${firstSlot.date}T${firstSlot.startTime}:00`).toISOString()
-        : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      const scheduledDate = new Date(`${firstSlot.date}T${firstSlot.startTime}:00`);
+      if (Number.isNaN(scheduledDate.getTime())) {
+        return err(serviceError('UNKNOWN', 'This session has an invalid schedule.'));
+      }
       const sessionInfo: SessionInfo = {
         id: sessionId,
-        title: session?.title || 'Training Session',
-        scheduledAt,
-        location: session?.location || 'Location to be confirmed',
+        title: session.title,
+        scheduledAt: scheduledDate.toISOString(),
+        location: session.location,
       };
 
       return ok<RsvpLoadData>({
@@ -139,8 +143,21 @@ export default function RSVPScreen() {
     if (!rsvp) return false;
 
     try {
-      await rsvpService.respond(rsvp.id, status);
-      setResponseOverride({ responded: true, responseStatus: status });
+      const result = await rsvpService.respond(rsvp.id, status);
+      if (!result.success) {
+        uiFeedback.showToast('Failed to submit your response. Please try again.', 'error');
+        return false;
+      }
+      const responseStatus = result.data.status;
+      if (
+        responseStatus !== 'going' &&
+        responseStatus !== 'not_going' &&
+        responseStatus !== 'maybe'
+      ) {
+        uiFeedback.showToast('Your response was not updated. Please try again.', 'error');
+        return false;
+      }
+      setResponseOverride({ responded: true, responseStatus });
 
       const statusLabels: Record<string, string> = {
         going: 'attending',
@@ -148,7 +165,9 @@ export default function RSVPScreen() {
         maybe: 'maybe attending',
       };
 
-      uiFeedback.showToast(`You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`);
+      uiFeedback.showToast(
+        `You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[responseStatus]}.`,
+      );
       if (canGoBack()) back();
       return true;
     } catch {

@@ -23,6 +23,13 @@ interface UseSessionMediaParams {
   coachId: string;
 }
 
+interface SessionMediaState {
+  sessionId: string;
+  athleteId: string;
+  photos: PhotoAsset[];
+  video: VideoAsset | null;
+}
+
 type CaptureMode = 'photo' | 'video';
 
 interface CapturedPhotoPayload {
@@ -135,13 +142,25 @@ function resolveAssetRemovalKey(
 }
 
 export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMediaParams) {
-  const [photos, setPhotos] = useState<PhotoAsset[]>([]);
-  const [video, setVideo] = useState<VideoAsset | null>(null);
+  const [storedMedia, setStoredMedia] = useState<SessionMediaState>(() => ({
+    sessionId,
+    athleteId,
+    photos: [],
+    video: null,
+  }));
   const [cameraVisible, setCameraVisible] = useState(false);
   const [cameraMode, setCameraMode] = useState<CaptureMode>('photo');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(10);
   const isUploadingPhotosRef = useRef(false);
+  const mediaMatchesContext =
+    storedMedia.sessionId === sessionId && storedMedia.athleteId === athleteId;
+  const photos = mediaMatchesContext ? storedMedia.photos : [];
+  const video = mediaMatchesContext ? storedMedia.video : null;
+
+  const applyCurrentMedia = (nextPhotos: PhotoAsset[], nextVideo: VideoAsset | null) => {
+    setStoredMedia({ sessionId, athleteId, photos: nextPhotos, video: nextVideo });
+  };
 
   const mediaIds = (() => {
     const photoIds = photos.map((photo) => photo.id ?? photo.mediaObjectId ?? photo.uri);
@@ -170,25 +189,21 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadExisting = async () => {
-      const result = await mediaService.getSessionMedia(sessionId, athleteId);
-      if (!result.success || !result.data || !isMounted) {
-        return;
-      }
-
-      setPhotos(result.data.photos);
-      setVideo(result.data.video);
-    };
+    const controller = new AbortController();
 
     if (sessionId && athleteId) {
-      void loadExisting();
+      void mediaService.getSessionMedia(sessionId, athleteId).then((result) => {
+        if (controller.signal.aborted || !result.success || !result.data) return;
+        setStoredMedia({
+          sessionId,
+          athleteId,
+          photos: result.data.photos,
+          video: result.data.video,
+        });
+      });
     }
 
-    return () => {
-      isMounted = false;
-    };
+    return () => controller.abort();
   }, [athleteId, sessionId]);
 
   const closeCamera = () => {
@@ -227,8 +242,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
           await deletePhotoAsset(photoAsset);
           return;
         }
-        setPhotos(persisted.photos);
-        setVideo(persisted.video);
+        applyCurrentMedia(persisted.photos, persisted.video);
       }, async (error) => {
         logger.error('Failed to select photo from library', error);
         uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -281,8 +295,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await deletePhotoAsset(photoAsset);
         return;
       }
-      setPhotos(persisted.photos);
-      setVideo(persisted.video);
+      applyCurrentMedia(persisted.photos, persisted.video);
     }, async error => {
       logger.error('Failed to process captured photo', error);
       uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -300,8 +313,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await deleteVideoAsset(videoAsset);
         return;
       }
-      setPhotos(persisted.photos);
-      setVideo(persisted.video);
+      applyCurrentMedia(persisted.photos, persisted.video);
     }, async error => {
       logger.error('Failed to process captured video', error);
       uiFeedback.showToast('Unable to save video. Please try again.', 'error');
@@ -320,13 +332,11 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
     }
 
     if (!result.data) {
-      setPhotos([]);
-      setVideo(null);
+      applyCurrentMedia([], null);
       return;
     }
 
-    setPhotos(result.data.photos);
-    setVideo(result.data.video);
+    applyCurrentMedia(result.data.photos, result.data.video);
   };
 
   return {

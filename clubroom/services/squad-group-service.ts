@@ -6,12 +6,14 @@
  * When members are added/removed from a squad, the group membership
  * is kept in sync. When a squad is deleted, the group is also deleted.
  *
- * Uses a SQUAD_GROUP_MAP storage key to persist squadId -> groupId mapping.
+ * API mode uses the /v1 community-group authority. SQUAD_GROUP_MAP is retained
+ * only for mock-mode compatibility.
  */
 
 import { apiClient } from "./api-client";
 import { communityGroupService } from "./community/community-group-service";
 import { squadService } from "./squad-service";
+import { api } from "@/constants/config";
 import {
   type Result,
   type ServiceError,
@@ -24,6 +26,7 @@ import { STORAGE_KEYS } from "@/constants/storage-keys";
 import { createLogger } from "@/utils/logger";
 import type { ParentGroup } from "@/constants/types";
 const logger = createLogger("SquadGroupService");
+const USE_MOCK = api.useMock;
 
 /** In-memory cache for squad->group mapping */
 type SquadGroupMap = Record<string, string>;
@@ -54,6 +57,82 @@ async function saveMap(
     return err(storageError("Failed to save squad group map"));
   }
 }
+
+async function getApiGroupForSquad(
+  squadId: string,
+): Promise<Result<ParentGroup | null, ServiceError>> {
+  const groupsResult = await communityGroupService.getAllGroups();
+  if (!groupsResult.success) {
+    return err(groupsResult.error);
+  }
+  return ok(
+    groupsResult.data.find(
+      (group) => group.type === "SQUAD" && group.squadId === squadId,
+    ) ?? null,
+  );
+}
+
+async function getApiGroupIdForSquad(
+  squadId: string,
+): Promise<Result<string | null, ServiceError>> {
+  const groupResult = await getApiGroupForSquad(squadId);
+  if (!groupResult.success) {
+    return err(groupResult.error);
+  }
+  return ok(groupResult.data?.id ?? null);
+}
+
+async function createSquadGroupViaCommunityAuthority(
+  squadId: string,
+  creatorId: string,
+  creatorName: string,
+): Promise<Result<ParentGroup, ServiceError>> {
+  const squad = await squadService.getSquad(squadId);
+  if (!squad) {
+    return err(notFound("Squad", squadId));
+  }
+  let parentIds: string[] = [];
+  let parentNames: string[] = [];
+  try {
+    const parents = await squadService.getSquadParents(squadId);
+    parentIds = parents.flatMap((p) =>
+      p.parentId !== creatorId ? [p.parentId] : [],
+    );
+    parentNames = parents.flatMap((p) =>
+      p.parentId !== creatorId ? [p.parentName] : [],
+    );
+  } catch (error) {
+    logger.warn("Failed to load squad parents for group seeding", error);
+    if (!USE_MOCK) {
+      return err(storageError("Failed to load squad parents for group creation"));
+    }
+  }
+
+  const result = await communityGroupService.createGroup({
+    name: `${squad.name} Parents`,
+    description: `Parent group chat for ${squad.name}`,
+    type: "SQUAD",
+    memberIds: parentIds,
+    memberNames: parentNames,
+    creatorId,
+    creatorName,
+    isPublic: false,
+    clubId: squad.clubId,
+    squadId,
+  });
+  if (!result.success) {
+    return err(result.error);
+  }
+
+  logger.info("Resolved squad group through community authority", {
+    squadId,
+    groupId: result.data.id,
+    memberCount: result.data.members.length,
+    source: USE_MOCK ? "mock" : "api",
+  });
+  return ok(result.data);
+}
+
 export const squadGroupService = {
   /**
    * Get or create the parent group for a squad.
@@ -66,6 +145,14 @@ export const squadGroupService = {
     creatorId: string,
     creatorName: string,
   ): Promise<Result<ParentGroup, ServiceError>> {
+    if (!USE_MOCK) {
+      return createSquadGroupViaCommunityAuthority(
+        squadId,
+        creatorId,
+        creatorName,
+      );
+    }
+
     // 1. Check existing mapping
     const map = await loadMap();
     const existingGroupId = map[squadId];
@@ -87,40 +174,12 @@ export const squadGroupService = {
       }
     }
 
-    // 2. Fetch squad info + parents for initial member seeding
-    const squad = await squadService.getSquad(squadId);
-    if (!squad) {
-      return err(notFound("Squad", squadId));
-    }
-    let parentIds: string[] = [];
-    let parentNames: string[] = [];
     try {
-      const parents = await squadService.getSquadParents(squadId);
-      // Exclude creator from the memberIds list (they become OWNER automatically)
-      parentIds = parents.flatMap((p) =>
-        p.parentId !== creatorId ? [p.parentId] : [],
-      );
-      parentNames = parents.flatMap((p) =>
-        p.parentId !== creatorId ? [p.parentName] : [],
-      );
-    } catch (error) {
-      logger.warn("Failed to load squad parents for group seeding", error);
-    }
-
-    // 3. Create the group
-    try {
-      const newGroup = await communityGroupService.createGroup({
-        name: `${squad.name} Parents`,
-        description: `Parent group chat for ${squad.name}`,
-        type: "SQUAD",
-        memberIds: parentIds,
-        memberNames: parentNames,
+      const newGroup = await createSquadGroupViaCommunityAuthority(
+        squadId,
         creatorId,
         creatorName,
-        isPublic: false,
-        clubId: squad.clubId,
-        squadId,
-      });
+      );
       if (!newGroup.success) {
         return err(newGroup.error);
       }
@@ -152,8 +211,13 @@ export const squadGroupService = {
     parentId: string,
     parentName: string,
   ): Promise<Result<void, ServiceError>> {
-    const map = await loadMap();
-    const groupId = map[squadId];
+    const groupIdResult = USE_MOCK
+      ? ok((await loadMap())[squadId] ?? null)
+      : await getApiGroupIdForSquad(squadId);
+    if (!groupIdResult.success) {
+      return err(groupIdResult.error);
+    }
+    const groupId = groupIdResult.data;
     if (!groupId) {
       logger.debug("No group mapping for squad, skipping sync", {
         squadId,
@@ -189,8 +253,13 @@ export const squadGroupService = {
     squadId: string,
     parentId: string,
   ): Promise<Result<void, ServiceError>> {
-    const map = await loadMap();
-    const groupId = map[squadId];
+    const groupIdResult = USE_MOCK
+      ? ok((await loadMap())[squadId] ?? null)
+      : await getApiGroupIdForSquad(squadId);
+    if (!groupIdResult.success) {
+      return err(groupIdResult.error);
+    }
+    const groupId = groupIdResult.data;
     if (!groupId) {
       logger.debug("No group mapping for squad, skipping removal sync", {
         squadId,
@@ -222,6 +291,34 @@ export const squadGroupService = {
    * Called when a squad is removed.
    */
   async deleteSquadGroup(squadId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const groupResult = await getApiGroupForSquad(squadId);
+      if (!groupResult.success) {
+        return err(groupResult.error);
+      }
+      const groupId = groupResult.data?.id;
+      if (!groupId) {
+        logger.debug("No API squad group found, nothing to remove", {
+          squadId,
+        });
+        return ok(undefined);
+      }
+      const result = await communityGroupService.deleteGroup(groupId);
+      if (!result.success) {
+        logger.error("Failed to remove API squad group", {
+          squadId,
+          groupId,
+          error: result.error,
+        });
+        return err(result.error);
+      }
+      logger.info("Removed API squad group", {
+        squadId,
+        groupId,
+      });
+      return ok(undefined);
+    }
+
     const map = await loadMap();
     const groupId = map[squadId];
     if (!groupId) {
@@ -258,6 +355,14 @@ export const squadGroupService = {
    * Get the group ID for a squad, if one exists.
    */
   async getGroupIdForSquad(squadId: string): Promise<string | null> {
+    if (!USE_MOCK) {
+      const groupResult = await getApiGroupForSquad(squadId);
+      if (!groupResult.success) {
+        return null;
+      }
+      return groupResult.data?.id ?? null;
+    }
+
     const map = await loadMap();
     return map[squadId] ?? null;
   },

@@ -2,29 +2,37 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import {
+  createHeadCoachStandardRequestSchema,
+  createHeadCoachTaskRequestSchema,
+  headCoachOversightResponseSchema,
+  headCoachStandardResponseSchema,
+  headCoachTaskResponseSchema,
   isClubOversightRole,
   isClubStaffRole,
   parseOrganizationRole,
+  updateHeadCoachStandardRequestSchema,
+  updateHeadCoachTaskRequestSchema,
   type ClubRole,
+  type HeadCoachStandardCategory,
+  type HeadCoachTaskStatus,
+  type HeadCoachTaskType,
 } from '@clubroom/shared-contracts';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { ApiProblemError, forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, forbidden, isZodValidationError, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 type HeadCoachScopeType = 'club' | 'assigned_squads';
-type HeadCoachTaskType = 'required_follow_up' | 'session_note_expectation';
-type HeadCoachTaskStatus = 'open' | 'done';
-type HeadCoachStandardCategory = 'session_notes' | 'follow_up' | 'program';
 
 interface ClubProjection {
   id: string;
   name: string;
+  city?: string | null;
   createdByUserId?: string | null;
   tagline?: string | null;
   badgeUrl?: string | null;
@@ -151,43 +159,19 @@ interface ProjectionInput {
   isPrivilegedAdmin: boolean;
 }
 
-const paramsSchema = z.object({
-  clubId: z.string().min(1),
-});
-const taskParamsSchema = z.object({
-  clubId: z.string().min(1),
-  taskId: z.string().min(1),
-});
-const standardParamsSchema = z.object({
-  clubId: z.string().min(1),
-  standardId: z.string().min(1),
-});
-const taskTypeSchema = z.enum(['required_follow_up', 'session_note_expectation']);
-const taskStatusSchema = z.enum(['open', 'done']);
-const standardCategorySchema = z.enum(['session_notes', 'follow_up', 'program']);
-const createTaskBodySchema = z.object({
-  coachId: z.string().min(1),
-  type: taskTypeSchema,
-  dueAt: z.string().min(1).optional(),
-  athleteId: z.string().min(1).optional(),
-  athleteName: z.string().min(1).optional(),
-  bookingId: z.string().min(1).optional(),
-  offeringId: z.string().min(1).optional(),
-  squadId: z.string().min(1).optional(),
-  title: z.string().min(1).optional(),
-  details: z.string().min(1).optional(),
-});
-const updateTaskBodySchema = z.object({
-  status: taskStatusSchema,
-});
-const createStandardBodySchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1).optional(),
-  category: standardCategorySchema.optional(),
-});
-const updateStandardBodySchema = z.object({
-  active: z.boolean().optional(),
-});
+const paramsSchema = z.object({ clubId: z.string().min(1) }).strict();
+const taskParamsSchema = z
+  .object({
+    clubId: z.string().min(1),
+    taskId: z.string().min(1),
+  })
+  .strict();
+const standardParamsSchema = z
+  .object({
+    clubId: z.string().min(1),
+    standardId: z.string().min(1),
+  })
+  .strict();
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -265,15 +249,19 @@ function parseScheduleEntries(value: unknown): Array<{ startsAt?: string }> {
     return [];
   }
   return parsed
-    .filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object'))
+    .filter((entry): entry is Record<string, unknown> =>
+      Boolean(entry && typeof entry === 'object'),
+    )
     .map((entry) => ({ startsAt: asString(entry.startsAt) }));
 }
 
 function pickSessionStart(session: SessionProjection): string | null {
-  return parseScheduleEntries(session.scheduleJson)
-    .map((entry) => entry.startsAt)
-    .filter((value): value is string => Boolean(value))
-    .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0] ?? null;
+  return (
+    parseScheduleEntries(session.scheduleJson)
+      .map((entry) => entry.startsAt)
+      .filter((value): value is string => Boolean(value))
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0] ?? null
+  );
 }
 
 function maxIso(values: Array<string | null | undefined>): string | null {
@@ -284,10 +272,17 @@ function maxIso(values: Array<string | null | undefined>): string | null {
 }
 
 function readAuditResult(error: unknown): 'DENY' | 'ERROR' {
-  return error instanceof z.ZodError ||
-    (error instanceof ApiProblemError && error.status < 500)
+  return isZodValidationError(error) || (error instanceof ApiProblemError && error.status < 500)
     ? 'DENY'
     : 'ERROR';
+}
+
+function parseHeadCoachResponse<T>(schema: z.ZodType<T>, payload: unknown, detail: string): T {
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', detail);
+  }
+  return parsed.data;
 }
 
 async function recordOversightAudit(params: {
@@ -341,17 +336,14 @@ function makeClubPayload(input: ProjectionInput) {
   return {
     id: input.club.id,
     name: input.club.name,
-    city: 'Club',
-    ...(input.club.badgeUrl ? { badge: input.club.badgeUrl } : {}),
-    ...(input.club.coverPhotoUrl ? { photoUrl: input.club.coverPhotoUrl } : {}),
-    ...(input.club.badgeUrl ? { profilePhotoUrl: input.club.badgeUrl } : {}),
-    ...(input.club.coverPhotoUrl ? { coverPhotoUrl: input.club.coverPhotoUrl } : {}),
-    ...(input.club.tagline ? { tagline: input.club.tagline } : {}),
+    city: input.club.city ?? null,
+    tagline: input.club.tagline ?? null,
+    badgeUrl: input.club.badgeUrl ?? null,
+    coverPhotoUrl: input.club.coverPhotoUrl ?? null,
     memberCount: input.memberships.length,
     coachCount: activeStaff.length,
     squadCount: input.squads.length,
-    ownerId,
-    inviteCode: '',
+    ownerId: ownerId || null,
   };
 }
 
@@ -371,13 +363,13 @@ function buildSquadPayload(params: {
     id: params.squad.id,
     clubId: params.squad.clubId,
     name: params.squad.name,
-    level: params.squad.ageBandLabel ?? 'Squad',
+    ageBandLabel: params.squad.ageBandLabel ?? null,
     memberCount: params.squadMembers.filter((member) => member.squadId === params.squad.id).length,
-    primaryCoach: params.squad.ownerCoachUserId
-      ? (params.userNames.get(params.squad.ownerCoachUserId) ?? 'Assigned coach')
-      : 'Unassigned',
-    meetLocation: 'Club training ground',
-    ...(nextSession ? { nextSession } : {}),
+    ownerCoachId: params.squad.ownerCoachUserId ?? null,
+    ownerCoachName: params.squad.ownerCoachUserId
+      ? (params.userNames.get(params.squad.ownerCoachUserId) ?? params.squad.ownerCoachUserId)
+      : null,
+    nextSessionAt: nextSession ?? null,
   };
 }
 
@@ -386,12 +378,12 @@ function buildTaskPayload(task: HeadCoachTaskProjection, userNames: Map<string, 
     id: task.id,
     clubId: task.clubId,
     coachId: task.coachId,
-    coachName: task.coachName ?? userNames.get(task.coachId) ?? 'Club coach',
+    coachName: task.coachName ?? userNames.get(task.coachId) ?? task.coachId,
     type: task.type,
     status: task.status,
     title: task.title,
     ...(task.details ? { details: task.details } : {}),
-    dueAt: task.dueAt ?? addDaysIso(7),
+    dueAt: task.dueAt ?? null,
     ...(task.athleteId ? { athleteId: task.athleteId } : {}),
     ...(task.athleteName ? { athleteName: task.athleteName } : {}),
     ...(task.bookingId ? { bookingId: task.bookingId } : {}),
@@ -402,6 +394,20 @@ function buildTaskPayload(task: HeadCoachTaskProjection, userNames: Map<string, 
     createdByUserId: task.createdByUserId,
     ...(task.completedAt ? { completedAt: task.completedAt } : {}),
     ...(task.completedByUserId ? { completedByUserId: task.completedByUserId } : {}),
+  };
+}
+
+function buildStandardPayload(standard: HeadCoachStandardProjection) {
+  return {
+    id: standard.id,
+    clubId: standard.clubId,
+    category: standard.category,
+    title: standard.title,
+    ...(standard.description ? { description: standard.description } : {}),
+    active: standard.active,
+    createdAt: standard.createdAt,
+    updatedAt: standard.updatedAt,
+    createdByUserId: standard.createdByUserId,
   };
 }
 
@@ -436,7 +442,9 @@ function buildWatchlistFromTasks(params: {
           (left, right) =>
             new Date(left.dueAt as string).getTime() - new Date(right.dueAt as string).getTime(),
         );
-      const overdueCount = datedTasks.filter((task) => new Date(task.dueAt as string).getTime() < now).length;
+      const overdueCount = datedTasks.filter(
+        (task) => new Date(task.dueAt as string).getTime() < now,
+      ).length;
       const dueSoonCount = datedTasks.filter((task) => {
         const dueAt = new Date(task.dueAt as string).getTime();
         return dueAt >= now && dueAt <= dueSoonCutoff;
@@ -455,9 +463,9 @@ function buildWatchlistFromTasks(params: {
 
       return {
         athleteId: first.athleteId as string,
-        athleteName: first.athleteName ?? 'Athlete',
+        athleteName: first.athleteName ?? (first.athleteId as string),
         coachId: first.coachId,
-        coachName: first.coachName ?? params.userNames.get(first.coachId) ?? 'Club coach',
+        coachName: first.coachName ?? params.userNames.get(first.coachId) ?? first.coachId,
         risk,
         pendingCount: tasks.length,
         overdueCount,
@@ -472,7 +480,8 @@ function buildWatchlistFromTasks(params: {
     })
     .sort(
       (left, right) =>
-        right.attentionScore - left.attentionScore || left.athleteName.localeCompare(right.athleteName),
+        right.attentionScore - left.attentionScore ||
+        left.athleteName.localeCompare(right.athleteName),
     );
 }
 
@@ -486,7 +495,9 @@ function buildOversightFromProjection(input: ProjectionInput) {
     });
   }
 
-  const userNames = new Map(input.memberships.map((membership) => [membership.userId, membership.label]));
+  const userNames = new Map(
+    input.memberships.map((membership) => [membership.userId, membership.label]),
+  );
   const assignedSquadIds = Array.from(
     new Set([
       ...(input.viewerMembership?.squadIds ?? []),
@@ -515,7 +526,10 @@ function buildOversightFromProjection(input: ProjectionInput) {
     if (booking.clubId !== input.club.id || booking.status.toUpperCase() === 'CANCELLED') {
       return false;
     }
-    return scopeType === 'club' || Boolean(booking.groupSessionId && visibleSessionIds.has(booking.groupSessionId));
+    return (
+      scopeType === 'club' ||
+      Boolean(booking.groupSessionId && visibleSessionIds.has(booking.groupSessionId))
+    );
   });
   const participantsByBooking = new Map<string, BookingParticipantProjection[]>();
   for (const participant of input.bookingParticipants) {
@@ -527,19 +541,21 @@ function buildOversightFromProjection(input: ProjectionInput) {
   const completionQueue = visibleBookings
     .filter((booking) => booking.status.toUpperCase() === 'AWAITING_COMPLETION')
     .map((booking) => {
-      const linkedSession = booking.groupSessionId ? sessionById.get(booking.groupSessionId) : undefined;
+      const linkedSession = booking.groupSessionId
+        ? sessionById.get(booking.groupSessionId)
+        : undefined;
       const squad = linkedSession?.squadId ? squadById.get(linkedSession.squadId) : undefined;
       const dueAt = addHoursIso(booking.scheduledAt, 24);
-      const athleteName = participantsByBooking.get(booking.id)?.[0]?.athleteName ?? 'Athlete';
+      const athleteName = participantsByBooking.get(booking.id)?.[0]?.athleteName ?? booking.id;
       return {
         bookingId: booking.id,
-        ...(booking.groupSessionId ?? booking.coachingOfferingId
+        ...((booking.groupSessionId ?? booking.coachingOfferingId)
           ? { offeringId: booking.groupSessionId ?? booking.coachingOfferingId ?? undefined }
           : {}),
         coachId: booking.coachUserId,
-        coachName: userNames.get(booking.coachUserId) ?? 'Club coach',
+        coachName: userNames.get(booking.coachUserId) ?? booking.coachUserId,
         athleteName,
-        service: linkedSession?.title ?? booking.serviceType ?? 'Club session',
+        service: linkedSession?.title ?? booking.serviceType ?? booking.location,
         scheduledAt: booking.scheduledAt,
         dueAt,
         overdue: new Date(dueAt).getTime() < Date.now(),
@@ -582,7 +598,10 @@ function buildOversightFromProjection(input: ProjectionInput) {
     .sort((left, right) => {
       const leftDue = left.dueAt ? new Date(left.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
       const rightDue = right.dueAt ? new Date(right.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
-      return leftDue - rightDue || new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      return (
+        leftDue - rightDue ||
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
     });
 
   const visibleStaff = input.memberships.filter((membership) => {
@@ -593,9 +612,15 @@ function buildOversightFromProjection(input: ProjectionInput) {
   });
   const coachHealth = visibleStaff
     .map((membership) => {
-      const coachSessions = visibleSessions.filter((session) => session.coachUserId === membership.userId);
-      const coachBookings = visibleBookings.filter((booking) => booking.coachUserId === membership.userId);
-      const coachCompletionQueue = completionQueue.filter((item) => item.coachId === membership.userId);
+      const coachSessions = visibleSessions.filter(
+        (session) => session.coachUserId === membership.userId,
+      );
+      const coachBookings = visibleBookings.filter(
+        (booking) => booking.coachUserId === membership.userId,
+      );
+      const coachCompletionQueue = completionQueue.filter(
+        (item) => item.coachId === membership.userId,
+      );
       const coachOpenTasks = visibleTasks.filter(
         (task) => task.coachId === membership.userId && task.status === 'open',
       );
@@ -606,7 +631,9 @@ function buildOversightFromProjection(input: ProjectionInput) {
         new Set(
           [
             ...coachSessions.flatMap((session) =>
-              session.squadId && squadById.has(session.squadId) ? [squadById.get(session.squadId)?.name] : [],
+              session.squadId && squadById.has(session.squadId)
+                ? [squadById.get(session.squadId)?.name]
+                : [],
             ),
             ...visibleSquads.flatMap((squad) =>
               squad.ownerCoachUserId === membership.userId ? [squad.name] : [],
@@ -619,13 +646,19 @@ function buildOversightFromProjection(input: ProjectionInput) {
         coachName: membership.label,
         role: membership.role,
         squadNames,
-        completionCount: coachBookings.filter((booking) => booking.status.toUpperCase() === 'COMPLETED').length,
+        completionCount: coachBookings.filter(
+          (booking) => booking.status.toUpperCase() === 'COMPLETED',
+        ).length,
         overdueCompletionCount: coachCompletionQueue.filter((item) => item.overdue).length,
         watchAthleteCount: 0,
-        overdueFollowUpCount: coachOverdueTasks.filter((task) => task.type === 'required_follow_up').length,
+        overdueFollowUpCount: coachOverdueTasks.filter((task) => task.type === 'required_follow_up')
+          .length,
         openTaskCount: coachOpenTasks.length,
-        sessionNoteExpectationCount: coachOpenTasks.filter((task) => task.type === 'session_note_expectation').length,
-        requiredFollowUpCount: coachOpenTasks.filter((task) => task.type === 'required_follow_up').length,
+        sessionNoteExpectationCount: coachOpenTasks.filter(
+          (task) => task.type === 'session_note_expectation',
+        ).length,
+        requiredFollowUpCount: coachOpenTasks.filter((task) => task.type === 'required_follow_up')
+          .length,
         latestCoachActionAt: maxIso([
           ...coachSessions.map((session) => session.updatedAt),
           ...coachBookings.map((booking) => booking.updatedAt),
@@ -660,7 +693,6 @@ function buildOversightFromProjection(input: ProjectionInput) {
       userId: input.authUserId,
       role: viewerRole,
       status: 'active',
-      joinSource: 'created',
       squadIds: scopeSquadIds,
     },
     scope: {
@@ -672,9 +704,7 @@ function buildOversightFromProjection(input: ProjectionInput) {
     coachHealth: coachHealth.map((coach) => ({
       ...coach,
       watchAthleteCount: new Set(
-        watchlist
-          .filter((item) => item.coachId === coach.coachId)
-          .map((item) => item.athleteId),
+        watchlist.filter((item) => item.coachId === coach.coachId).map((item) => item.athleteId),
       ).size,
     })),
     completionQueue,
@@ -682,7 +712,8 @@ function buildOversightFromProjection(input: ProjectionInput) {
     tasks: visibleTasks.map((task) => buildTaskPayload(task, userNames)),
     standards: input.standards
       .filter((standard) => standard.clubId === input.club.id)
-      .sort((left, right) => left.title.localeCompare(right.title)),
+      .sort((left, right) => left.title.localeCompare(right.title))
+      .map(buildStandardPayload),
     summary: {
       coachCount: coachHealth.length,
       squadCount: squads.length,
@@ -724,9 +755,7 @@ function buildSeedOversight(params: {
   const memberships = asRows(params.tables.clubMemberships)
     .filter(
       (row) =>
-        asString(row.clubId) === params.clubId &&
-        row.active !== false &&
-        !asString(row.deletedAt),
+        asString(row.clubId) === params.clubId && row.active !== false && !asString(row.deletedAt),
     )
     .flatMap((row): MembershipProjection[] => {
       const role = toRole(row.role);
@@ -743,7 +772,8 @@ function buildSeedOversight(params: {
           ]
         : [];
     });
-  const viewerMembership = memberships.find((membership) => membership.userId === params.authUserId) ?? null;
+  const viewerMembership =
+    memberships.find((membership) => membership.userId === params.authUserId) ?? null;
   if (!params.isPrivilegedAdmin && !viewerMembership) {
     throw forbidden('You do not have permission to view head coach oversight', {
       clubId: params.clubId,
@@ -751,41 +781,47 @@ function buildSeedOversight(params: {
   }
   const squads = asRows(params.tables.squads)
     .filter((row) => asString(row.clubId) === params.clubId && !asString(row.deletedAt))
-    .map((row): SquadProjection => ({
-      id: asString(row.id) ?? '',
-      clubId: params.clubId,
-      name: asString(row.name) ?? 'Squad',
-      ageBandLabel: asString(row.ageBandLabel) ?? null,
-      ownerCoachUserId: asString(row.ownerCoachUserId) ?? null,
-    }));
+    .map(
+      (row): SquadProjection => ({
+        id: asString(row.id) ?? '',
+        clubId: params.clubId,
+        name: asString(row.name) ?? 'Squad',
+        ageBandLabel: asString(row.ageBandLabel) ?? null,
+        ownerCoachUserId: asString(row.ownerCoachUserId) ?? null,
+      }),
+    );
   const sessions = asRows(params.tables.groupSessions)
     .filter((row) => asString(row.clubId) === params.clubId && !asString(row.deletedAt))
-    .map((row): SessionProjection => ({
-      id: asString(row.id) ?? '',
-      clubId: asString(row.clubId) ?? null,
-      coachUserId: asString(row.coachUserId) ?? '',
-      squadId: asString(row.squadId) ?? null,
-      title: asString(row.title) ?? 'Club session',
-      sessionType: asString(row.sessionType) ?? null,
-      scheduleJson: row.scheduleJson,
-      status: asString(row.status) ?? null,
-      updatedAt: asString(row.updatedAt) ?? null,
-    }));
+    .map(
+      (row): SessionProjection => ({
+        id: asString(row.id) ?? '',
+        clubId: asString(row.clubId) ?? null,
+        coachUserId: asString(row.coachUserId) ?? '',
+        squadId: asString(row.squadId) ?? null,
+        title: asString(row.title) ?? 'Club session',
+        sessionType: asString(row.sessionType) ?? null,
+        scheduleJson: row.scheduleJson,
+        status: asString(row.status) ?? null,
+        updatedAt: asString(row.updatedAt) ?? null,
+      }),
+    );
   const bookings = asRows(params.tables.bookings)
     .filter((row) => asString(row.clubId) === params.clubId && !asString(row.deletedAt))
-    .map((row): BookingProjection => ({
-      id: asString(row.id) ?? '',
-      clubId: asString(row.clubId) ?? null,
-      coachUserId: asString(row.coachUserId) ?? '',
-      groupSessionId: asString(row.groupSessionId) ?? null,
-      coachingOfferingId: asString(row.coachingOfferingId) ?? null,
-      status: asString(row.status) ?? 'PENDING',
-      scheduledAt: asString(row.scheduledAt) ?? new Date(0).toISOString(),
-      durationMinutes: asNumber(row.durationMinutes) ?? 60,
-      location: asString(row.location) ?? 'Club training ground',
-      serviceType: asString(row.serviceType) ?? null,
-      updatedAt: asString(row.updatedAt) ?? null,
-    }));
+    .map(
+      (row): BookingProjection => ({
+        id: asString(row.id) ?? '',
+        clubId: asString(row.clubId) ?? null,
+        coachUserId: asString(row.coachUserId) ?? '',
+        groupSessionId: asString(row.groupSessionId) ?? null,
+        coachingOfferingId: asString(row.coachingOfferingId) ?? null,
+        status: asString(row.status) ?? 'PENDING',
+        scheduledAt: asString(row.scheduledAt) ?? new Date(0).toISOString(),
+        durationMinutes: asNumber(row.durationMinutes) ?? 60,
+        location: asString(row.location) ?? 'Club training ground',
+        serviceType: asString(row.serviceType) ?? null,
+        updatedAt: asString(row.updatedAt) ?? null,
+      }),
+    );
   const athletesById = new Map(
     asRows(params.tables.athletes).map((row) => [
       asString(row.id) ?? '',
@@ -830,7 +866,9 @@ function buildSeedOversight(params: {
           athleteId: asString(row.athleteId) ?? null,
           athleteName:
             asString(row.athleteName) ??
-            (asString(row.athleteId) ? athletesById.get(asString(row.athleteId) as string) : undefined) ??
+            (asString(row.athleteId)
+              ? athletesById.get(asString(row.athleteId) as string)
+              : undefined) ??
             null,
           bookingId: asString(row.bookingId) ?? null,
           offeringId: asString(row.offeringId) ?? null,
@@ -870,6 +908,7 @@ function buildSeedOversight(params: {
     club: {
       id: params.clubId,
       name: asString(club.name) ?? 'Club',
+      city: asString(club.city) ?? null,
       createdByUserId: asString(club.createdByUserId) ?? null,
       tagline: asString(club.tagline) ?? null,
       badgeUrl: asString(club.badgeUrl) ?? null,
@@ -909,6 +948,7 @@ async function buildDbOversight(params: {
     select: {
       id: true,
       name: true,
+      city: true,
       createdByUserId: true,
       tagline: true,
       badgeUrl: true,
@@ -918,8 +958,15 @@ async function buildDbOversight(params: {
   if (!club) {
     throw notFound('Club not found');
   }
-  const [membershipsRaw, squadsRaw, squadMembersRaw, sessionsRaw, bookingsRaw, tasksRaw, standardsRaw] =
-  await Promise.all([
+  const [
+    membershipsRaw,
+    squadsRaw,
+    squadMembersRaw,
+    sessionsRaw,
+    bookingsRaw,
+    tasksRaw,
+    standardsRaw,
+  ] = await Promise.all([
     prisma.clubMembership.findMany({
       where: {
         clubId: params.clubId,
@@ -1094,7 +1141,8 @@ async function buildDbOversight(params: {
         ]
       : [];
   });
-  const viewerMembership = memberships.find((membership) => membership.userId === params.authUserId) ?? null;
+  const viewerMembership =
+    memberships.find((membership) => membership.userId === params.authUserId) ?? null;
   if (!params.isPrivilegedAdmin && !viewerMembership) {
     throw forbidden('You do not have permission to view head coach oversight', {
       clubId: params.clubId,
@@ -1228,7 +1276,7 @@ function assertVisibleCoach(
 
 function resolveCreateTaskPayload(params: {
   oversight: Awaited<ReturnType<typeof resolveHeadCoachOversight>>;
-  body: z.infer<typeof createTaskBodySchema>;
+  body: z.infer<typeof createHeadCoachTaskRequestSchema>;
 }) {
   const coach = assertVisibleCoach(params.oversight, params.body.coachId);
   const bookingContext = params.body.bookingId
@@ -1239,7 +1287,8 @@ function resolveCreateTaskPayload(params: {
       bookingId: params.body.bookingId,
     });
   }
-  const dueAt = parseOptionalDate(params.body.dueAt ?? bookingContext?.dueAt)?.toISOString() ?? addDaysIso(7);
+  const dueAt =
+    parseOptionalDate(params.body.dueAt ?? bookingContext?.dueAt)?.toISOString() ?? addDaysIso(7);
   const title =
     params.body.title ??
     (params.body.type === 'session_note_expectation'
@@ -1316,7 +1365,7 @@ async function createHeadCoachTask(params: {
   clubId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
-  body: z.infer<typeof createTaskBodySchema>;
+  body: z.infer<typeof createHeadCoachTaskRequestSchema>;
 }) {
   const oversight = await resolveMutationContext(params);
   const payload = resolveCreateTaskPayload({ oversight, body: params.body });
@@ -1503,7 +1552,7 @@ async function createHeadCoachStandard(params: {
   clubId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
-  body: z.infer<typeof createStandardBodySchema>;
+  body: z.infer<typeof createHeadCoachStandardRequestSchema>;
 }) {
   await resolveMutationContext(params);
   const now = new Date().toISOString();
@@ -1527,7 +1576,7 @@ async function createHeadCoachStandard(params: {
       deletedByUserId: null,
     };
     ensureMutableTable(tables, 'headCoachStandards').push(row);
-    return seedStandardProjection(row);
+    return buildStandardPayload(seedStandardProjection(row));
   }
 
   const prisma = getPrismaClientOrThrow();
@@ -1543,7 +1592,7 @@ async function createHeadCoachStandard(params: {
       updatedByUserId: params.authUserId,
     },
   });
-  return {
+  return buildStandardPayload({
     id: created.id,
     clubId: created.clubId,
     category: normalizeStandardCategory(created.category),
@@ -1553,7 +1602,7 @@ async function createHeadCoachStandard(params: {
     createdAt: created.createdAt.toISOString(),
     updatedAt: created.updatedAt.toISOString(),
     createdByUserId: created.createdByUserId,
-  };
+  });
 }
 
 async function updateHeadCoachStandard(params: {
@@ -1566,7 +1615,9 @@ async function updateHeadCoachStandard(params: {
   const oversight = await resolveMutationContext(params);
   const visibleStandard = oversight.standards.find((standard) => standard.id === params.standardId);
   if (!visibleStandard) {
-    throw forbidden('Standard is outside your head-coach oversight scope', { standardId: params.standardId });
+    throw forbidden('Standard is outside your head-coach oversight scope', {
+      standardId: params.standardId,
+    });
   }
   const nextActive = params.active ?? !visibleStandard.active;
   const now = new Date().toISOString();
@@ -1585,7 +1636,7 @@ async function updateHeadCoachStandard(params: {
     row.updatedByUserId = params.authUserId;
     row.updatedAt = now;
     row.version = asNumber(row.version) ?? 1;
-    return seedStandardProjection(row);
+    return buildStandardPayload(seedStandardProjection(row));
   }
 
   const prisma = getPrismaClientOrThrow();
@@ -1601,7 +1652,7 @@ async function updateHeadCoachStandard(params: {
       },
     },
   });
-  return {
+  return buildStandardPayload({
     id: updated.id,
     clubId: updated.clubId,
     category: normalizeStandardCategory(updated.category),
@@ -1611,39 +1662,46 @@ async function updateHeadCoachStandard(params: {
     createdAt: updated.createdAt.toISOString(),
     updatedAt: updated.updatedAt.toISOString(),
     createdByUserId: updated.createdByUserId,
-  };
+  });
 }
 
 export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
   app.get('/clubs/:clubId/head-coach/oversight', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = paramsSchema.parse(request.params ?? {});
+    const rawParams = (request.params ?? {}) as SeedRow;
+    const clubId = asString(rawParams.clubId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = paramsSchema.parse(rawParams);
       const data = await resolveHeadCoachOversight({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       });
+      const response = parseHeadCoachResponse(
+        headCoachOversightResponseSchema,
+        {
+          ...data,
+          clubId: params.clubId,
+          requestId: request.requestId,
+        },
+        'Head-coach oversight response invalid',
+      );
       await recordOversightAudit({
         request,
         clubId: params.clubId,
         result: 'SUCCESS',
         metadata: {
-          scopeType: data.scope.type,
-          squadIds: data.scope.squadIds,
-          coachCount: data.summary.coachCount,
-          awaitingCompletionCount: data.summary.awaitingCompletionCount,
+          scopeType: response.scope.type,
+          squadIds: response.scope.squadIds,
+          coachCount: response.summary.coachCount,
+          awaitingCompletionCount: response.summary.awaitingCompletionCount,
         },
       });
-      return reply.send({
-        ...data,
-        clubId: params.clubId,
-        requestId: request.requestId,
-      });
+      return reply.send(response);
     } catch (error) {
       await recordOversightAudit({
         request,
-        clubId: params.clubId,
+        clubId,
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
@@ -1654,48 +1712,56 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
   });
 
   app.post('/clubs/:clubId/head-coach/tasks', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = paramsSchema.parse(request.params ?? {});
-    const body = createTaskBodySchema.parse(request.body ?? {});
+    const rawParams = (request.params ?? {}) as SeedRow;
+    const rawBody = (request.body ?? {}) as SeedRow;
+    const clubId = asString(rawParams.clubId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = paramsSchema.parse(rawParams);
+      const body = createHeadCoachTaskRequestSchema.parse(rawBody);
       const task = await createHeadCoachTask({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         body,
       });
+      const response = parseHeadCoachResponse(
+        headCoachTaskResponseSchema,
+        {
+          ...task,
+          requestId: request.requestId,
+        },
+        'Head-coach task response invalid',
+      );
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_task.create',
         clubId: params.clubId,
         resourceType: 'head_coach_task',
-        resourceId: task.id,
+        resourceId: response.id,
         result: 'SUCCESS',
         subjectUserId: body.coachId,
         metadata: {
-          taskType: task.type,
+          taskType: response.type,
           coachId: body.coachId,
           athleteId: body.athleteId ?? null,
           bookingId: body.bookingId ?? null,
-          dueAt: task.dueAt,
+          dueAt: response.dueAt,
         },
       });
-      return reply.code(201).send({
-        ...task,
-        requestId: request.requestId,
-      });
+      return reply.code(201).send(response);
     } catch (error) {
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_task.create',
-        clubId: params.clubId,
+        clubId,
         resourceType: 'head_coach_task',
         result: readAuditResult(error),
-        subjectUserId: body.coachId,
+        subjectUserId: asString(rawBody.coachId) ?? null,
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          taskType: body.type,
-          bookingId: body.bookingId ?? null,
+          taskType: asString(rawBody.type) ?? null,
+          bookingId: asString(rawBody.bookingId) ?? null,
         },
       });
       throw error;
@@ -1703,10 +1769,14 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
   });
 
   app.patch('/clubs/:clubId/head-coach/tasks/:taskId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = taskParamsSchema.parse(request.params ?? {});
-    const body = updateTaskBodySchema.parse(request.body ?? {});
+    const rawParams = (request.params ?? {}) as SeedRow;
+    const rawBody = (request.body ?? {}) as SeedRow;
+    const clubId = asString(rawParams.clubId) ?? '';
+    const taskId = asString(rawParams.taskId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = taskParamsSchema.parse(rawParams);
+      const body = updateHeadCoachTaskRequestSchema.parse(rawBody);
       const task = await updateHeadCoachTaskStatus({
         clubId: params.clubId,
         taskId: params.taskId,
@@ -1714,6 +1784,14 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         status: body.status,
       });
+      const response = parseHeadCoachResponse(
+        headCoachTaskResponseSchema,
+        {
+          ...task,
+          requestId: request.requestId,
+        },
+        'Head-coach task response invalid',
+      );
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_task.update',
@@ -1721,27 +1799,24 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
         resourceType: 'head_coach_task',
         resourceId: params.taskId,
         result: 'SUCCESS',
-        subjectUserId: task.coachId,
+        subjectUserId: response.coachId,
         metadata: {
-          status: task.status,
-          completedAt: task.completedAt ?? null,
+          status: response.status,
+          completedAt: response.completedAt ?? null,
         },
       });
-      return reply.send({
-        ...task,
-        requestId: request.requestId,
-      });
+      return reply.send(response);
     } catch (error) {
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_task.update',
-        clubId: params.clubId,
+        clubId,
         resourceType: 'head_coach_task',
-        resourceId: params.taskId,
+        resourceId: taskId,
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          status: body.status,
+          status: asString(rawBody.status) ?? null,
         },
       });
       throw error;
@@ -1749,42 +1824,50 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
   });
 
   app.post('/clubs/:clubId/head-coach/standards', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = paramsSchema.parse(request.params ?? {});
-    const body = createStandardBodySchema.parse(request.body ?? {});
+    const rawParams = (request.params ?? {}) as SeedRow;
+    const rawBody = (request.body ?? {}) as SeedRow;
+    const clubId = asString(rawParams.clubId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = paramsSchema.parse(rawParams);
+      const body = createHeadCoachStandardRequestSchema.parse(rawBody);
       const standard = await createHeadCoachStandard({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         body,
       });
+      const response = parseHeadCoachResponse(
+        headCoachStandardResponseSchema,
+        {
+          ...standard,
+          requestId: request.requestId,
+        },
+        'Head-coach standard response invalid',
+      );
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_standard.create',
         clubId: params.clubId,
         resourceType: 'head_coach_standard',
-        resourceId: standard.id,
+        resourceId: response.id,
         result: 'SUCCESS',
         metadata: {
-          category: standard.category,
-          active: standard.active,
+          category: response.category,
+          active: response.active,
         },
       });
-      return reply.code(201).send({
-        ...standard,
-        requestId: request.requestId,
-      });
+      return reply.code(201).send(response);
     } catch (error) {
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_standard.create',
-        clubId: params.clubId,
+        clubId,
         resourceType: 'head_coach_standard',
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          category: body.category ?? 'session_notes',
+          category: asString(rawBody.category) ?? null,
         },
       });
       throw error;
@@ -1792,10 +1875,14 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
   });
 
   app.patch('/clubs/:clubId/head-coach/standards/:standardId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = standardParamsSchema.parse(request.params ?? {});
-    const body = updateStandardBodySchema.parse(request.body ?? {});
+    const rawParams = (request.params ?? {}) as SeedRow;
+    const rawBody = (request.body ?? {}) as SeedRow;
+    const clubId = asString(rawParams.clubId) ?? '';
+    const standardId = asString(rawParams.standardId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = standardParamsSchema.parse(rawParams);
+      const body = updateHeadCoachStandardRequestSchema.parse(rawBody);
       const standard = await updateHeadCoachStandard({
         clubId: params.clubId,
         standardId: params.standardId,
@@ -1803,6 +1890,14 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         active: body.active,
       });
+      const response = parseHeadCoachResponse(
+        headCoachStandardResponseSchema,
+        {
+          ...standard,
+          requestId: request.requestId,
+        },
+        'Head-coach standard response invalid',
+      );
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_standard.update',
@@ -1811,24 +1906,21 @@ export function registerClubHeadCoachRoutes(app: FastifyInstance): void {
         resourceId: params.standardId,
         result: 'SUCCESS',
         metadata: {
-          active: standard.active,
+          active: response.active,
         },
       });
-      return reply.send({
-        ...standard,
-        requestId: request.requestId,
-      });
+      return reply.send(response);
     } catch (error) {
       await recordHeadCoachMutationAudit({
         request,
         action: 'club_head_coach_standard.update',
-        clubId: params.clubId,
+        clubId,
         resourceType: 'head_coach_standard',
-        resourceId: params.standardId,
+        resourceId: standardId,
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          active: body.active ?? null,
+          active: typeof rawBody.active === 'boolean' ? rawBody.active : null,
         },
       });
       throw error;

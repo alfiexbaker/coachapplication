@@ -35,10 +35,10 @@ export const EditPricingSection = function EditPricingSection({
 
   return (
     <SurfaceCard style={styles.section}>
-      <ThemedText type="subtitle">Session Pricing</ThemedText>
+      <ThemedText type="subtitle">Pricing</ThemedText>
       <Row gap="md">
         <View style={[styles.fieldGroup, styles.priceField]}>
-          <ThemedText style={styles.label}>Min Price (£)</ThemedText>
+          <ThemedText style={styles.label}>Minimum (£)</ThemedText>
           <TextInput
             value={priceMin}
             onChangeText={onChangeMin}
@@ -47,12 +47,11 @@ export const EditPricingSection = function EditPricingSection({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Minimum price"
-
-            maxLength={10}
+            maxLength={3}
           />
         </View>
         <View style={[styles.fieldGroup, styles.priceField]}>
-          <ThemedText style={styles.label}>Max Price (£)</ThemedText>
+          <ThemedText style={styles.label}>Maximum (£)</ThemedText>
           <TextInput
             value={priceMax}
             onChangeText={onChangeMax}
@@ -61,8 +60,7 @@ export const EditPricingSection = function EditPricingSection({
             placeholderTextColor={colors.muted}
             style={inputStyle}
             accessibilityLabel="Maximum price"
-
-            maxLength={10}
+            maxLength={3}
           />
         </View>
       </Row>
@@ -70,7 +68,7 @@ export const EditPricingSection = function EditPricingSection({
         <ThemedText style={[Typography.caption, { color: colors.error }]}>{priceError}</ThemedText>
       ) : (
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-          Enter whole pounds only (£10-£200)
+          £10–£200, whole pounds
         </ThemedText>
       )}
     </SurfaceCard>
@@ -85,6 +83,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.subheading,

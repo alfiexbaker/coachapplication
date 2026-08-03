@@ -116,28 +116,37 @@ export const StatusFilterBar = function StatusFilterBar({
         contentContainerStyle={styles.filterList}
         renderItem={renderFilterPill}
       />
-      <Clickable
-        accessibilityLabel="Filter by date"
-        style={[
-          styles.dateFilterButton,
-          {
-            backgroundColor: hasDateFilter ? withAlpha(palette.tint, 0.15) : palette.surface,
-            borderColor: hasDateFilter ? palette.tint : palette.border,
-          },
-        ]}
-        onPress={onDatePress}
-      >
-        <Ionicons
-          name="calendar-outline"
-          size={16}
-          color={hasDateFilter ? palette.tint : palette.muted}
-        />
+      <Row gap="xxs">
+        <Clickable
+          accessibilityLabel="Filter by date"
+          style={[
+            styles.dateFilterButton,
+            {
+              backgroundColor: hasDateFilter ? withAlpha(palette.tint, 0.15) : palette.surface,
+              borderColor: hasDateFilter ? palette.tint : palette.border,
+            },
+          ]}
+          onPress={onDatePress}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={16}
+            color={hasDateFilter ? palette.tint : palette.muted}
+          />
+        </Clickable>
         {hasDateFilter && (
-          <Clickable accessibilityLabel="Clear date filter" onPress={onDateClear} hitSlop={10}>
+          <Clickable
+            accessibilityLabel="Clear date filter"
+            style={[
+              styles.dateFilterButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
+            onPress={onDateClear}
+          >
             <Ionicons name="close-circle" size={16} color={palette.tint} />
           </Clickable>
         )}
-      </Clickable>
+      </Row>
     </Row>
   );
 };

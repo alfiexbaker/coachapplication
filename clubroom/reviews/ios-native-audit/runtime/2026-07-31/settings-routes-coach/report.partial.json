@@ -1,0 +1,237 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T20:07:57.915Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "settings-routes"
+    ],
+    "chunkIndex": null,
+    "retries": 1
+  },
+  "totals": {
+    "total": 11,
+    "ok": 11,
+    "failed": 0,
+    "high": 0,
+    "medium": 1,
+    "none": 10
+  },
+  "results": [
+    {
+      "id": "coach_settings_account",
+      "role": "coach",
+      "title": "Coach opens account settings",
+      "path": "/settings/account",
+      "finalPath": "/settings/account",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_account.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3119
+    },
+    {
+      "id": "coach_settings_blocked_users",
+      "role": "coach",
+      "title": "Coach opens blocked users",
+      "path": "/settings/blocked-users",
+      "finalPath": "/settings/blocked-users",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_blocked_users.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2626
+    },
+    {
+      "id": "coach_settings_calendar_sync",
+      "role": "coach",
+      "title": "Coach opens calendar sync",
+      "path": "/settings/calendar-sync",
+      "finalPath": "/settings/calendar-sync",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_calendar_sync.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3252
+    },
+    {
+      "id": "coach_settings_coaching",
+      "role": "coach",
+      "title": "Coach opens coaching settings",
+      "path": "/settings/coaching",
+      "finalPath": "/settings/coaching",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_coaching.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4847
+    },
+    {
+      "id": "coach_settings_help",
+      "role": "coach",
+      "title": "Coach opens help",
+      "path": "/settings/help",
+      "finalPath": "/settings/help",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_help.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3596
+    },
+    {
+      "id": "coach_settings_notifications",
+      "role": "coach",
+      "title": "Coach opens notification settings",
+      "path": "/settings/notifications",
+      "finalPath": "/settings/notifications",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_notifications.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3889
+    },
+    {
+      "id": "coach_settings_notification_preferences",
+      "role": "coach",
+      "title": "Coach opens notification preferences",
+      "path": "/settings/notifications/preferences",
+      "finalPath": "/settings/notifications/preferences",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_notification_preferences.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3407
+    },
+    {
+      "id": "coach_settings_privacy_policy",
+      "role": "coach",
+      "title": "Coach opens privacy policy",
+      "path": "/settings/privacy-policy",
+      "finalPath": "/settings/privacy-policy",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_privacy_policy.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3194
+    },
+    {
+      "id": "coach_settings_privacy",
+      "role": "coach",
+      "title": "Coach opens privacy settings",
+      "path": "/settings/privacy",
+      "finalPath": "/settings/privacy",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_privacy.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4146
+    },
+    {
+      "id": "coach_settings_terms",
+      "role": "coach",
+      "title": "Coach opens terms",
+      "path": "/settings/terms",
+      "finalPath": "/settings/terms",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_terms.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "copy:demo_or_mock_copy_visible"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": [
+          "copy:demo_or_mock_copy_visible"
+        ]
+      },
+      "attempts": 1,
+      "durationMs": 3076
+    },
+    {
+      "id": "coach_settings_travel_radius",
+      "role": "coach",
+      "title": "Coach opens travel radius",
+      "path": "/settings/travel-radius",
+      "finalPath": "/settings/travel-radius",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-coach/coach__coach_settings_travel_radius.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2834
+    }
+  ]
+}

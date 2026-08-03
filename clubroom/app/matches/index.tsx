@@ -34,14 +34,13 @@ export default function MatchesScreen() {
     refreshing,
     onRefresh,
     retry,
-    isCoach,
     canCreateMatch,
     stats,
     groupedMatches,
     handleCreateMatch,
   } = useMatchesScreen();
   const matchFilterItems = getMatchFilterItems(filter, palette, setFilter);
-  const matchGroupItems = getMatchGroupItems(groupedMatches, isCoach, palette);
+  const matchGroupItems = getMatchGroupItems(groupedMatches, palette);
   const listHeader = (
     <>
       {filter === 'past' && stats.total > 0 ? (
@@ -257,20 +256,17 @@ interface MatchGroupItem {
   key: string;
   month: string;
   matches: Match[];
-  isCoach: boolean;
   palette: ThemeColors;
 }
 
 function getMatchGroupItems(
   groupedMatches: [string, Match[]][],
-  isCoach: boolean,
   palette: ThemeColors,
 ): MatchGroupItem[] {
   return groupedMatches.map(([month, monthMatches]) => ({
     key: month,
     month,
     matches: monthMatches,
-    isCoach,
     palette,
   }));
 }
@@ -289,7 +285,7 @@ function renderMatchGroupItem({ item }: ListRenderItemInfo<MatchGroupItem>) {
         {item.month}
       </ThemedText>
       {item.matches.map((match) => (
-        <MatchCard key={match.id} match={match} isCoach={item.isCoach} />
+        <MatchCard key={match.id} match={match} />
       ))}
     </View>
   );

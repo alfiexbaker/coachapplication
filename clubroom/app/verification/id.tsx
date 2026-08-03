@@ -1,18 +1,19 @@
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
+import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
-import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
+import { VerificationStatusCard } from '@/components/verification/verification-status-card';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
 import { useIdVerification, ID_TYPES } from '@/hooks/use-id-verification';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function IdUploadScreen() {
   const { colors } = useTheme();
@@ -33,7 +34,8 @@ export default function IdUploadScreen() {
     handleUpload,
     handleSubmit,
   } = useIdVerification();
-  const header = <PageHeader title="ID Verification" showBack onBackPress={() => router.back()} />;
+  const header = <PageHeader title="Photo ID" showBack onBackPress={() => router.back()} />;
+  const verifiedAt = status?.identity.verifiedAt;
 
   return (
     <VerificationScreenState
@@ -53,108 +55,113 @@ export default function IdUploadScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {isVerified ? (
-          <StatusCard
-            icon="checkmark-circle"
-            iconColor={colors.success}
-            title="ID Verified"
-            subtitle={`Your identity has been verified on ${status?.identity.verifiedAt ? new Date(status.identity.verifiedAt).toLocaleDateString() : 'N/A'}`}
+          <VerificationStatusCard
             colors={colors}
+            icon="checkmark-circle"
+            tone={colors.success}
+            title="ID verified"
+            detail={
+              verifiedAt
+                ? `Verified on ${new Date(verifiedAt).toLocaleDateString()}`
+                : 'Your identity is verified.'
+            }
           />
         ) : isPending ? (
-          <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
-              <Ionicons name="time" size={48} color={colors.warning} />
-            </View>
-            <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-              Under Review
-            </ThemedText>
-            <ThemedText style={[styles.statusText, { color: colors.muted }]}>
-              Your ID document is being reviewed. This usually takes 1-2 business days.
-            </ThemedText>
-          </SurfaceCard>
+          <VerificationStatusCard
+            colors={colors}
+            icon="time"
+            tone={colors.warning}
+            title="Under review"
+            detail="Your ID document is awaiting review."
+          />
         ) : (
           <>
             <ThemedText style={{ color: colors.muted }}>
-              Upload a clear photo of a government-issued ID to verify your identity.
+              Choose an ID type, then select a PDF, JPG, PNG, WebP or HEIC file up to 20 MB.
             </ThemedText>
 
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold">Select ID Type</ThemedText>
-              <Row gap="sm">
-                {ID_TYPES.map((type) => (
-                  <Clickable
-                    key={type.id}
-                    onPress={() => setSelectedType(type.id)}
-                    style={[
-                      styles.typeCard,
-                      {
-                        borderColor: selectedType === type.id ? colors.tint : colors.border,
-                        backgroundColor:
-                          selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={type.icon as keyof typeof Ionicons.glyphMap}
-                      size={28}
-                      color={selectedType === type.id ? colors.tint : colors.muted}
-                    />
-                    <ThemedText
-                      style={{
-                        ...Typography.small,
-                        color: selectedType === type.id ? colors.tint : colors.text,
-                        fontWeight: selectedType === type.id ? '600' : '400',
-                      }}
-                    >
-                      {type.label}
-                    </ThemedText>
-                  </Clickable>
-                ))}
-              </Row>
+              <ThemedText type="defaultSemiBold">ID type</ThemedText>
+              <SurfaceCard style={styles.typeList}>
+                {ID_TYPES.map((type, index) => {
+                  const selected = selectedType === type.id;
+                  return (
+                    <View key={type.id}>
+                      <Clickable
+                        accessibilityLabel={type.label}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        disabled={submitting}
+                        onPress={() => setSelectedType(type.id)}
+                        style={[
+                          styles.typeRow,
+                          selected ? { backgroundColor: withAlpha(colors.tint, 0.06) } : undefined,
+                        ]}
+                      >
+                        <ThemedText
+                          type="defaultSemiBold"
+                          style={[
+                            styles.typeLabel,
+                            { color: selected ? colors.tint : colors.text },
+                          ]}
+                        >
+                          {type.label}
+                        </ThemedText>
+                        <Ionicons
+                          name={selected ? 'radio-button-on' : 'radio-button-off'}
+                          size={20}
+                          color={selected ? colors.tint : colors.muted}
+                        />
+                      </Clickable>
+                      {index < ID_TYPES.length - 1 ? (
+                        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </SurfaceCard>
             </View>
 
-            {selectedType && (
+            {selectedType ? (
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold">Upload Document</ThemedText>
+                <ThemedText type="defaultSemiBold">Document</ThemedText>
                 {uploaded ? (
-                  <SurfaceCard style={styles.uploadedCard}>
+                  <SurfaceCard>
                     <Row align="center" gap="md">
-                      <Ionicons name="document" size={32} color={colors.success} />
+                      <Ionicons name="document" size={24} color={colors.success} />
                       <Column flex>
-                        <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                        <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                          {ID_TYPES.find((t) => t.id === selectedType)?.label}
+                        <ThemedText type="defaultSemiBold">Document selected</ThemedText>
+                        <ThemedText style={[styles.small, { color: colors.muted }]}>
+                          {ID_TYPES.find((type) => type.id === selectedType)?.label}
                         </ThemedText>
                       </Column>
-                      <Clickable accessibilityLabel="Remove uploaded ID" onPress={() => setUploaded(false)}>
-                        <Ionicons name="close-circle" size={24} color={colors.muted} />
+                      <Clickable
+                        accessibilityLabel="Remove selected ID document"
+                        disabled={submitting}
+                        onPress={() => setUploaded(false)}
+                      >
+                        <Ionicons name="close" size={22} color={colors.muted} />
                       </Clickable>
                     </Row>
                   </SurfaceCard>
                 ) : (
-                  <Clickable onPress={handleUpload} style={[styles.uploadArea, { borderColor: colors.border }]}>
-                    <Ionicons name="cloud-upload" size={40} color={colors.muted} />
-                    <ThemedText type="defaultSemiBold">Tap to upload</ThemedText>
-                    <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-                      Take a photo or choose from gallery
-                    </ThemedText>
-                  </Clickable>
+                  <Button onPress={handleUpload} variant="outline" label="Choose document" />
                 )}
               </View>
-            )}
+            ) : null}
 
             <View style={styles.requirements}>
               <ThemedText type="defaultSemiBold">Requirements</ThemedText>
               {[
-                'Document must be valid and not expired',
-                'All text must be clearly readable',
-                'Photo must show the full document',
-                'No glare or shadows obscuring information',
-              ].map((req, i) => (
-                <Row key={i} align="flex-start" gap="sm">
+                'Valid and not expired',
+                'Full document visible',
+                'Text clearly readable',
+                'No glare or shadows',
+              ].map((requirement) => (
+                <Row key={requirement} align="flex-start" gap="sm">
                   <Ionicons name="checkmark" size={16} color={colors.success} />
-                  <ThemedText style={{ color: colors.muted, ...Typography.small, flex: 1 }}>
-                    {req}
+                  <ThemedText style={[styles.small, { color: colors.muted, flex: 1 }]}>
+                    {requirement}
                   </ThemedText>
                 </Row>
               ))}
@@ -163,7 +170,7 @@ export default function IdUploadScreen() {
             <Button
               onPress={handleSubmit}
               disabled={!selectedType || !uploaded || submitting}
-              label={submitting ? 'Submitting...' : 'Submit for Verification'}
+              label={submitting ? 'Submitting...' : 'Submit for review'}
             />
           </>
         )}
@@ -172,61 +179,20 @@ export default function IdUploadScreen() {
   );
 }
 
-function StatusCard({
-  icon,
-  iconColor,
-  title,
-  subtitle,
-  colors,
-}: {
-  icon: string;
-  iconColor: string;
-  title: string;
-  subtitle: string;
-  colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
-}) {
-  return (
-    <SurfaceCard style={styles.statusCard}>
-      <View style={[styles.statusIcon, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={48} color={iconColor} />
-      </View>
-      <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-        {title}
-      </ThemedText>
-      <ThemedText style={[styles.statusText, { color: colors.muted }]}>{subtitle}</ThemedText>
-    </SurfaceCard>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
-  statusIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusTitle: { ...Typography.heading },
-  statusText: { textAlign: 'center', ...Typography.bodySmall },
   section: { gap: Spacing.sm },
-  typeCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  uploadArea: {
+  typeList: { paddingVertical: Spacing.xs },
+  typeRow: {
+    minHeight: 48,
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.xl,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    borderStyle: 'dashed',
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.sm,
   },
-  uploadedCard: {},
+  typeLabel: { flex: 1, minWidth: 0 },
+  divider: { height: 1, marginHorizontal: Spacing.md },
   requirements: { gap: Spacing.sm },
+  small: { ...Typography.small },
 });

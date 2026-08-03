@@ -1,6 +1,6 @@
 # Knowledge Spine
 
-Validated: 2026-07-03
+Validated: 2026-07-15
 Purpose: give humans and agents a short read path into the real repo.
 
 ## Use This After `docs/START_HERE.md`
@@ -12,33 +12,42 @@ Purpose: give humans and agents a short read path into the real repo.
 ## Domain Routing
 
 Runtime mode and mock versus API behavior:
+
 - `docs/architecture/runtime-modes.md`
 
 Canonical service ownership and entrypoints:
+
 - `docs/architecture/service-ownership-map.md`
 
 Core relationships and entity model:
+
 - `docs/architecture/entity-relationship-map.md`
 
 Club roles, permissions, delegation, and visibility:
+
 - `contracts/club-governance.ts`
 - `docs/architecture/club-relationship-rules.md`
 
 Auth, authz, and trust boundaries:
+
 - `docs/trust/auth-and-permission-boundaries.md`
 - `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
 
 UI loading, empty, and error state expectations:
+
 - `docs/ui/loading-error-empty-state-matrix.md`
 
 API design and current route inventory:
+
 - `docs/backend-api/README.md`
 - `docs/backend-api/ROUTE_INVENTORY_V1.md`
 
 Broad PM/project status:
+
 - `docs/APP_REPORT.md`
 
 AI development pipeline and task packets:
+
 - `docs/AI_DEVELOPMENT_PIPELINE.md`
 - `docs/templates/AI_TASK_PACKET.md`
 
@@ -55,6 +64,7 @@ AI development pipeline and task packets:
 ## Working Rules
 
 - Do not read every linked doc by default.
+- For V1 product behavior, start from DB-backed `/v1` runtime truth; do not add mock/demo product data paths unless the exception is explicit, temporary, and non-authoritative.
 - For club authority questions, use the executable governance source before prose.
 - For API work, tie every decision back to real UI consumers.
 - For non-trivial AI implementation work, scope the slice with the task packet and run the narrowest matching `npm run verify:slice*` command.

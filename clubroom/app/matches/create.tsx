@@ -58,6 +58,8 @@ export default function CreateMatchScreen() {
     activeClubId,
     squads,
     squadMemberCount,
+    squadMembersLoading,
+    squadMemberError,
     autoInvite,
     setAutoInvite,
     clubContextLoading,
@@ -254,6 +256,8 @@ export default function CreateMatchScreen() {
                 squads={squads}
                 selectedSquadId={selectedSquadId}
                 squadMemberCount={squadMemberCount}
+                squadMembersLoading={squadMembersLoading}
+                squadMemberError={squadMemberError}
                 autoInvite={autoInvite}
                 colors={colors}
                 allowNoSquad={canCreateWithoutSquad}
@@ -276,6 +280,8 @@ export default function CreateMatchScreen() {
                 notes={notes}
                 selectedSquad={selectedSquad}
                 squadMemberCount={squadMemberCount}
+                squadMembersLoading={squadMembersLoading}
+                squadMemberError={squadMemberError}
                 autoInvite={autoInvite}
                 colors={colors}
               />

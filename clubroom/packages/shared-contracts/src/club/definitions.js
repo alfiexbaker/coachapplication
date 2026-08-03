@@ -17,6 +17,8 @@ export const organizationRoles = [
 
 export const organizationCommercialModes = ['COACH_OWNED', 'ORG_OWNED'];
 
+export const organizationJoinPolicies = ['INVITE_ONLY', 'REQUEST_TO_JOIN', 'OPEN'];
+
 export const clubRelationshipLayers = [
   'membership',
   'delivery',

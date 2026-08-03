@@ -10,11 +10,14 @@ import { Routes } from '@/navigation/routes';
 import { Spacing, Typography } from '@/constants/theme';
 
 import { useChildrenHub } from '@/hooks/use-children-hub';
+import { useCanCreateChild } from '@/hooks/use-add-child';
+import { shouldLoadFamilyChildren } from '@/hooks/child-context-helpers';
 import { ChildrenStatsRow } from '@/components/family/children-stats-row';
 import { ChildrenRecentBadges } from '@/components/family/children-recent-badges';
 import { ChildrenChildCard } from '@/components/family/children-child-card';
 
 export default function ChildrenHubScreen() {
+  const { canCreateChild } = useCanCreateChild();
   const {
     currentUser,
     children,
@@ -30,6 +33,7 @@ export default function ChildrenHubScreen() {
     activeChildId,
     handleViewBadge,
   } = useChildrenHub();
+  const canViewChildren = shouldLoadFamilyChildren(currentUser);
 
   const handleAddChild = () => {
     router.push(Routes.MODAL_ADD_CHILD);
@@ -39,6 +43,18 @@ export default function ChildrenHubScreen() {
     handleViewBadge(badge);
     router.push(Routes.developmentChildProgress(badge.athleteId, { tab: 'badges' }));
   };
+
+  if (!canViewChildren) {
+    return (
+      <PageContainer header={<ScreenHeader title="My Children" subtitle="Manage your family" />}>
+        <EmptyState
+          icon="people-outline"
+          title="Children unavailable"
+          message="Child management is available to linked guardians."
+        />
+      </PageContainer>
+    );
+  }
 
   if (status === 'loading') {
     return (
@@ -87,7 +103,7 @@ export default function ChildrenHubScreen() {
           <ScreenHeader
             title="My Children"
             subtitle="Manage your family"
-            action={{ icon: 'add', onPress: handleAddChild }}
+            action={canCreateChild ? { icon: 'add', onPress: handleAddChild } : undefined}
           />
         }
         gap={Spacing.md}
@@ -101,8 +117,8 @@ export default function ChildrenHubScreen() {
             icon="people-outline"
             title="No Children Added"
             message="Add children to your account to track their development and progress"
-            actionLabel="Add Child"
-            onPressAction={handleAddChild}
+            actionLabel={canCreateChild ? 'Add Child' : undefined}
+            onPressAction={canCreateChild ? handleAddChild : undefined}
           />
         </Animated.View>
       </PageContainer>
@@ -115,7 +131,7 @@ export default function ChildrenHubScreen() {
         <ScreenHeader
           title="My Children"
           subtitle="Manage your family"
-          action={{ icon: 'add', onPress: handleAddChild }}
+          action={canCreateChild ? { icon: 'add', onPress: handleAddChild } : undefined}
         />
       }
       gap={Spacing.md}

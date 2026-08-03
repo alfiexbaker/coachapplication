@@ -1,0 +1,804 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T19:26:07.081Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [],
+    "role": "coach",
+    "chunkIndex": 1,
+    "chunkSize": 40,
+    "retries": 1,
+    "pauseMs": 600
+  },
+  "totals": {
+    "total": 40,
+    "ok": 35,
+    "failed": 5,
+    "high": 5,
+    "medium": 0,
+    "none": 35
+  },
+  "results": [
+    {
+      "id": "coach_home",
+      "role": "coach",
+      "title": "Coach opens dashboard",
+      "path": "/",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_home.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3369
+    },
+    {
+      "id": "coach_schedule",
+      "role": "coach",
+      "title": "Coach opens schedule",
+      "path": "/schedule",
+      "finalPath": "/schedule",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_schedule.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3638
+    },
+    {
+      "id": "coach_athletes",
+      "role": "coach",
+      "title": "Coach opens athletes",
+      "path": "/athletes",
+      "finalPath": "/athletes",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_athletes.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3342
+    },
+    {
+      "id": "coach_feed",
+      "role": "coach",
+      "title": "Coach opens feed",
+      "path": "/feed",
+      "finalPath": "/feed",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_feed.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3347
+    },
+    {
+      "id": "coach_messages",
+      "role": "coach",
+      "title": "Coach opens messages",
+      "path": "/messages",
+      "finalPath": "/messages",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_messages.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3882
+    },
+    {
+      "id": "coach_bookings",
+      "role": "coach",
+      "title": "Coach opens bookings",
+      "path": "/bookings",
+      "finalPath": "/bookings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3230
+    },
+    {
+      "id": "coach_settings",
+      "role": "coach",
+      "title": "Coach opens settings",
+      "path": "/settings",
+      "finalPath": "/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2673
+    },
+    {
+      "id": "coach_progress",
+      "role": "coach",
+      "title": "Coach opens development progress",
+      "path": "/development/my-progress",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2951
+    },
+    {
+      "id": "coach_discover_sessions",
+      "role": "coach",
+      "title": "Coach opens discover sessions",
+      "path": "/discover-sessions",
+      "finalPath": "/discover-sessions",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_discover_sessions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2700
+    },
+    {
+      "id": "coach_availability_calendar",
+      "role": "coach",
+      "title": "Coach opens availability calendar",
+      "path": "/availability/calendar",
+      "finalPath": "/availability/calendar",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_availability_calendar.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2934
+    },
+    {
+      "id": "coach_availability_rules",
+      "role": "coach",
+      "title": "Coach opens cancellation policy",
+      "path": "/settings/cancellation-policy",
+      "finalPath": "/settings/cancellation-policy",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_availability_rules.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2639
+    },
+    {
+      "id": "coach_group_sessions",
+      "role": "coach",
+      "title": "Coach opens group sessions",
+      "path": "/group-sessions",
+      "finalPath": "/group-sessions",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_group_sessions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2675
+    },
+    {
+      "id": "coach_group_sessions_create",
+      "role": "coach",
+      "title": "Coach opens create group session",
+      "path": "/group-sessions/create",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_group_sessions_create.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3124
+    },
+    {
+      "id": "coach_create_invite_entry",
+      "role": "coach",
+      "title": "Coach opens create/invite hub",
+      "path": "/sessions/create",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_create_invite_entry.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2985
+    },
+    {
+      "id": "coach_make_appointment",
+      "role": "coach",
+      "title": "Coach starts booking a new appointment",
+      "path": "/sessions/create",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_make_appointment.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3417
+    },
+    {
+      "id": "coach_invite_existing",
+      "role": "coach",
+      "title": "Coach starts invite-to-existing flow",
+      "path": "/sessions/create",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_invite_existing.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3622
+    },
+    {
+      "id": "coach_session_invites",
+      "role": "coach",
+      "title": "Coach opens invite inbox",
+      "path": "/session-invites",
+      "finalPath": "/session-invites",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_session_invites.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2868
+    },
+    {
+      "id": "coach_session_invites_create_redirect",
+      "role": "coach",
+      "title": "Coach hits invite redirect",
+      "path": "/session-invites/create",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_session_invites_create_redirect.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3931
+    },
+    {
+      "id": "coach_club_settings",
+      "role": "coach",
+      "title": "Coach opens club settings",
+      "path": "/club/settings",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_club_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2908
+    },
+    {
+      "id": "coach_club_create",
+      "role": "coach",
+      "title": "Coach opens create club",
+      "path": "/club/create",
+      "finalPath": "/club/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_club_create.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2318
+    },
+    {
+      "id": "coach_squad_create",
+      "role": "coach",
+      "title": "Coach opens create squad",
+      "path": "/club/squad/create",
+      "finalPath": "/club/squad/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_squad_create.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2481
+    },
+    {
+      "id": "coach_squad_detail",
+      "role": "coach",
+      "title": "Coach opens squad detail",
+      "path": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "finalPath": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_squad_detail.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2633
+    },
+    {
+      "id": "coach_add_member_to_squad",
+      "role": "coach",
+      "title": "Coach opens add-member panel inside squad",
+      "path": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "finalPath": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_add_member_to_squad.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickButton:Error: Button not visible: Add"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3392
+    },
+    {
+      "id": "coach_squad_invite_screen",
+      "role": "coach",
+      "title": "Coach opens squad invite screen",
+      "path": "/squads/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2/invite",
+      "finalPath": "/squads/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2/invite",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_squad_invite_screen.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3254
+    },
+    {
+      "id": "coach_manage",
+      "role": "coach",
+      "title": "Coach opens management hub",
+      "path": "/manage",
+      "finalPath": "/manage/bookings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_manage.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3090
+    },
+    {
+      "id": "coach_manage_bookings",
+      "role": "coach",
+      "title": "Coach opens booking console",
+      "path": "/manage/bookings",
+      "finalPath": "/manage/bookings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_manage_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2930
+    },
+    {
+      "id": "coach_create_as_club_assigned",
+      "role": "coach",
+      "title": "Coach opens create flow with club-assignment context",
+      "path": "/sessions/create?intent=new&source=club_manage&actingAs=club&clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&assigneeCoachId=usr_65972cc3-8f9b-7199-b867-7df5b7faf34b",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_create_as_club_assigned.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3338
+    },
+    {
+      "id": "coach_existing_invite_ownership",
+      "role": "coach",
+      "title": "Coach existing-invite flow exposes ownership summary and session picker",
+      "path": "/sessions/create?intent=existing&source=club_manage&actingAs=club&clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&assigneeCoachId=usr_65972cc3-8f9b-7199-b867-7df5b7faf34b",
+      "finalPath": "/sessions/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_existing_invite_ownership.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 5176
+    },
+    {
+      "id": "coach_schedule_location_modal_actions",
+      "role": "coach",
+      "title": "Coach can open day editor location modal actions",
+      "path": "/schedule?segment=availability",
+      "finalPath": "/schedule",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_schedule_location_modal_actions.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickText:Error: Text not visible: Add time block",
+        "action_failed:clickButton:Error: Button not visible: Add new venue",
+        "action_failed:assertTextVisible:Error: Text not visible: Use Location"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3505
+    },
+    {
+      "id": "coach_earnings",
+      "role": "coach",
+      "title": "Coach opens earnings",
+      "path": "/earnings",
+      "finalPath": "/earnings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_earnings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3367
+    },
+    {
+      "id": "coach_earnings_payment_instructions",
+      "role": "coach",
+      "title": "Coach can open direct payment instructions",
+      "path": "/earnings",
+      "finalPath": "/earnings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_earnings_payment_instructions.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickText:Error: Text not visible: Payment Instructions",
+        "action_failed:assertTextVisible:Error: Text not visible: Direct Payment Instructions",
+        "action_failed:assertButtonVisible:Error: Button not visible: Copy direct payment instructions"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2796
+    },
+    {
+      "id": "coach_club_invite_members",
+      "role": "coach",
+      "title": "Coach opens club invite members",
+      "path": "/club/invite-members",
+      "finalPath": "/club/invite-members",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_club_invite_members.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2432
+    },
+    {
+      "id": "coach_raise_concern",
+      "role": "coach",
+      "title": "Coach opens raise concern form",
+      "path": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/raise-concern",
+      "finalPath": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/raise-concern",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_raise_concern.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3090
+    },
+    {
+      "id": "coach_health_review",
+      "role": "coach",
+      "title": "Coach opens athlete health review",
+      "path": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/health",
+      "finalPath": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/health",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_health_review.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2991
+    },
+    {
+      "id": "coach_add_child_denied",
+      "role": "coach",
+      "title": "coach is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4120
+    },
+    {
+      "id": "coach_verification_hub",
+      "role": "coach",
+      "title": "Coach opens verification status",
+      "path": "/verification",
+      "finalPath": "/verification",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_hub.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3154
+    },
+    {
+      "id": "coach_verification_identity",
+      "role": "coach",
+      "title": "Coach opens identity verification",
+      "path": "/verification/id",
+      "finalPath": "/verification/id",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_identity.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickText:Error: Text not visible: Passport",
+        "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3438
+    },
+    {
+      "id": "coach_verification_background",
+      "role": "coach",
+      "title": "Coach opens background verification",
+      "path": "/verification/background",
+      "finalPath": "/verification/background",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_background.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2858
+    },
+    {
+      "id": "coach_verification_insurance",
+      "role": "coach",
+      "title": "Coach opens insurance verification",
+      "path": "/verification/insurance",
+      "finalPath": "/verification/insurance",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_insurance.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2495
+    },
+    {
+      "id": "coach_verification_credentials",
+      "role": "coach",
+      "title": "Coach opens credential verification",
+      "path": "/verification/credentials",
+      "finalPath": "/verification/credentials",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/coach__coach_verification_credentials.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:clickButton:Error: Button not visible: Add credential",
+        "action_failed:assertTextVisible:Error: Text not visible: Credential type",
+        "action_failed:clickText:Error: Text not visible: Other qualification",
+        "action_failed:assertTextVisible:Error: Text not visible: Qualification name",
+        "action_failed:assertButtonVisible:Error: Button not visible: Choose document"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2398
+    }
+  ]
+}

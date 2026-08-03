@@ -8,11 +8,24 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 type TemplateKey = keyof typeof POLICY_TEMPLATES;
 
+async function runWithSavingState<T>(
+  setSaving: (saving: boolean) => void,
+  work: () => Promise<T>,
+): Promise<T> {
+  setSaving(true);
+  try {
+    return await work();
+  } finally {
+    setSaving(false);
+  }
+}
+
 export function useCancellationPolicySettings() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const [policy, setPolicy] = useState<CancellationPolicy | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const load = async () => {
     if (!coachId) {
@@ -33,19 +46,29 @@ export function useCancellationPolicySettings() {
   });
 
   useEffect(() => {
-    if (data) startTransition(() => {
-      setPolicy(data);
-    });
+    if (data)
+      startTransition(() => {
+        setPolicy(data);
+        setSaveError(null);
+      });
   }, [data]);
 
   const applyTemplate = async (templateKey: TemplateKey) => {
     if (!coachId) return;
-    setSaving(true);
-    const result = await schedulingRulesService.setCancellationPolicy(coachId, templateKey);
-    if (result.success) {
-      setPolicy(result.data);
+    setSaveError(null);
+
+    try {
+      const result = await runWithSavingState(setSaving, () =>
+        schedulingRulesService.setCancellationPolicy(coachId, templateKey),
+      );
+      if (result.success) {
+        setPolicy(result.data);
+      } else {
+        setSaveError(result.error.message);
+      }
+    } catch {
+      setSaveError('Failed to save cancellation policy.');
     }
-    setSaving(false);
   };
 
   return {
@@ -54,9 +77,10 @@ export function useCancellationPolicySettings() {
     loading: status === 'loading' && !policy,
     status: status as ScreenStatus,
     error:
-      status === 'error'
+      saveError ??
+      (status === 'error'
         ? ((error as ServiceError | null)?.message ?? 'Failed to load cancellation policy.')
-        : null,
+        : null),
     refreshing,
     onRefresh,
     retry,

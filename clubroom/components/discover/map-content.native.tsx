@@ -2,13 +2,11 @@
  * Map Content — Native (iOS/Android)
  *
  * Full Apple/Google Maps with price pins, clustered markers,
- * gesture-driven bottom sheet, GPS, search-as-you-move.
- *
- * Airbnb-quality design: premium cards, pill markers, polished transitions.
+ * gesture-driven bottom sheet, and search-as-you-move.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Linking, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Linking, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import ClusteredMapView from 'react-native-map-clustering';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
@@ -399,36 +397,39 @@ export default function MapContent(props: MapContentProps) {
   const [showRedoSearch, setShowRedoSearch] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [locationPermissionMessage, setLocationPermissionMessage] = useState<string | null>(null);
+  const selectedSearchRegion: Region = {
+    latitude: filters.location?.lat ?? DEFAULT_REGION.latitude,
+    longitude: filters.location?.lng ?? DEFAULT_REGION.longitude,
+    latitudeDelta: DEFAULT_REGION.latitudeDelta,
+    longitudeDelta: DEFAULT_REGION.longitudeDelta,
+  };
 
   const mapRef = useRef<MapView>(null);
   const sheetRef = useRef<BottomSheet>(null);
-  const lastSearchRegion = useRef<Region>(DEFAULT_REGION);
+  const lastSearchRegion = useRef<Region>(selectedSearchRegion);
 
-  // ── GPS on mount ──────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setLocationPermissionMessage(
-            'Location access helps center the map around you. Enable it in Settings to use recenter.',
-          );
-          return;
-        }
-        setLocationPermissionMessage(null);
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-        setUserLocation(coords);
-        const region: Region = { ...coords, latitudeDelta: 0.06, longitudeDelta: 0.06 };
-        lastSearchRegion.current = region;
-        mapRef.current?.animateToRegion(region, 500);
-      } catch {
+  const requestCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
         setLocationPermissionMessage(
-          'Could not read your current location. The map is showing the default launch area.',
+          'Location access helps center the map around you. Enable it in Settings to use recenter.',
         );
+        return;
       }
-    })();
-  }, []);
+      setLocationPermissionMessage(null);
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      setUserLocation(coords);
+      const region: Region = { ...coords, latitudeDelta: 0.06, longitudeDelta: 0.06 };
+      lastSearchRegion.current = region;
+      mapRef.current?.animateToRegion(region, 500);
+    } catch {
+      setLocationPermissionMessage(
+        'Could not read your current location. The map is showing the selected search area.',
+      );
+    }
+  };
 
   const handleCoachSelect = (coachId: string) => {
     onCoachSelect(coachId);
@@ -505,12 +506,10 @@ export default function MapContent(props: MapContentProps) {
         { ...userLocation, latitudeDelta: 0.06, longitudeDelta: 0.06 },
         400,
       );
+      return;
     }
+    void requestCurrentLocation();
   };
-
-  const initialRegion = userLocation
-    ? { ...userLocation, latitudeDelta: 0.06, longitudeDelta: 0.06 }
-    : DEFAULT_REGION;
 
   return (
     <View style={styles.container}>
@@ -518,7 +517,7 @@ export default function MapContent(props: MapContentProps) {
       <ClusteredMapView
         ref={mapRef as React.RefObject<MapView>}
         style={styles.map}
-        initialRegion={initialRegion}
+        initialRegion={selectedSearchRegion}
         showsUserLocation={!!userLocation}
         showsMyLocationButton={false}
         showsCompass={false}
@@ -592,21 +591,19 @@ export default function MapContent(props: MapContentProps) {
       ) : null}
 
       {/* Re-center FAB */}
-      {userLocation ? (
-        <Clickable
-          onPress={handleRecenter}
-          style={[
-            styles.recenterFab,
-            {
-              backgroundColor: palette.surface,
-              ...Shadows[scheme].card,
-            },
-          ]}
-          accessibilityLabel="Re-center on my location"
-        >
-          <Ionicons name="locate" size={20} color={palette.tint} />
-        </Clickable>
-      ) : null}
+      <Clickable
+        onPress={handleRecenter}
+        style={[
+          styles.recenterFab,
+          {
+            backgroundColor: palette.surface,
+            ...Shadows[scheme].card,
+          },
+        ]}
+        accessibilityLabel={userLocation ? 'Re-center on my location' : 'Use my location'}
+      >
+        <Ionicons name="locate" size={20} color={palette.tint} />
+      </Clickable>
 
       {/* Bottom sheet */}
       <BottomSheet

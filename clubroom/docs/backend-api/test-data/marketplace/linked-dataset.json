@@ -1947,8 +1947,7 @@
       },
       {
         "childAccessAthleteIds": [
-          "ath_7df7ec13-e136-7525-985f-dec069fc983f",
-          "ath_d0cc3175-cbe3-7971-9cd1-5ce9d52cda7a"
+          "ath_7df7ec13-e136-7525-985f-dec069fc983f"
         ],
         "createdAt": "2025-11-23T09:00:00.000Z",
         "createdByUserId": "usr_197727c3-a2c5-7868-8c57-72b09c97a1d6",
@@ -9036,7 +9035,14 @@
         "id": "evt_2b479bfb-0ade-7bb7-814a-b94aa8725388",
         "location": "Main Club Ground",
         "metadataJson": {
-          "type": "community"
+          "athleteIds": [],
+          "currency": "GBP",
+          "isVirtual": false,
+          "priceMinor": 0,
+          "rsvpRequired": true,
+          "squadIds": [],
+          "targetAudience": "ALL",
+          "type": "TRIAL_DAY"
         },
         "rsvpDeadlineAt": "2026-03-11T09:00:00.000Z",
         "startsAt": "2026-03-12T17:00:00.000Z",
@@ -9060,7 +9066,14 @@
         "id": "evt_990f61a6-6ecd-75d2-8b0a-94dc127a115f",
         "location": "Club Hall",
         "metadataJson": {
-          "type": "operations"
+          "athleteIds": [],
+          "currency": "GBP",
+          "isVirtual": false,
+          "priceMinor": 0,
+          "rsvpRequired": true,
+          "squadIds": [],
+          "targetAudience": "ALL",
+          "type": "PRESENTATION"
         },
         "rsvpDeadlineAt": "2026-02-15T09:00:00.000Z",
         "startsAt": "2026-02-17T17:00:00.000Z",
@@ -9084,7 +9097,14 @@
         "id": "evt_a2cbdccf-d58c-7d31-95d4-f73266c1f542",
         "location": "Main Club Ground",
         "metadataJson": {
-          "type": "community"
+          "athleteIds": [],
+          "currency": "GBP",
+          "isVirtual": false,
+          "priceMinor": 0,
+          "rsvpRequired": true,
+          "squadIds": [],
+          "targetAudience": "ALL",
+          "type": "TRIAL_DAY"
         },
         "rsvpDeadlineAt": "2026-03-12T09:00:00.000Z",
         "startsAt": "2026-03-13T17:00:00.000Z",
@@ -9108,7 +9128,14 @@
         "id": "evt_e572c2f3-0865-7acd-b184-2e77a90730b6",
         "location": "Club Hall",
         "metadataJson": {
-          "type": "operations"
+          "athleteIds": [],
+          "currency": "GBP",
+          "isVirtual": false,
+          "priceMinor": 0,
+          "rsvpRequired": true,
+          "squadIds": [],
+          "targetAudience": "ALL",
+          "type": "PRESENTATION"
         },
         "rsvpDeadlineAt": "2026-02-16T09:00:00.000Z",
         "startsAt": "2026-02-18T17:00:00.000Z",

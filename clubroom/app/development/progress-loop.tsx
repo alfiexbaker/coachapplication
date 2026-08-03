@@ -674,13 +674,11 @@ export default function ResultsProgramScreen() {
   };
 
   const handleToggleCoachSelectionMode = () => {
-    setCoachSelectionMode((previous) => {
-      const next = !previous;
-      if (!next) {
-        setSelectedCoachAthleteIds([]);
-      }
-      return next;
-    });
+    const next = !coachSelectionMode;
+    setCoachSelectionMode(next);
+    if (!next) {
+      setSelectedCoachAthleteIds([]);
+    }
   };
 
   const handleToggleCoachSelected = (athleteId: string) => {

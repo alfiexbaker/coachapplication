@@ -85,7 +85,7 @@ export default function BlockDateScreen() {
       });
 
       showToast('Date blocked', 'success');
-      router.replace(Routes.AVAILABILITY);
+      router.replace(Routes.SCHEDULE_AVAILABILITY);
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
     }, async saveError => {
       logger.error('Failed to block date', saveError);

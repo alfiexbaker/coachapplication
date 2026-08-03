@@ -10,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -30,6 +30,9 @@ export default function InvoicesScreen() {
   const { currentUser } = useAuth();
 
   const [filter, setFilter] = useState<InvoiceFilter>({});
+  const isFiltered = Boolean(
+    filter.status || filter.dateFrom || filter.dateTo || filter.bookingId || filter.coachId,
+  );
 
   const loadData = async () => {
     if (!currentUser?.id) {
@@ -68,7 +71,8 @@ export default function InvoicesScreen() {
       filter.bookingId,
       filter.coachId,
     ],
-    isEmpty: (value) => value.invoices.length === 0,
+    // Keep filter controls visible when a valid query returns no rows so users can recover.
+    isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
     dataKey: `invoices:${currentUser?.id ?? 'guest'}:${filter.status ?? 'all'}:${filter.dateFrom ?? 'none'}:${filter.dateTo ?? 'none'}:${filter.bookingId ?? 'none'}:${filter.coachId ?? 'none'}`,
@@ -101,22 +105,6 @@ export default function InvoicesScreen() {
     );
   }
 
-  if (status === 'empty') {
-    return (
-      <PageContainer
-        header={<PageHeader title="Invoices" subtitle="Your receipts and invoices" showBack />}
-      >
-        <EmptyState
-          icon="receipt-outline"
-          title="No invoices yet"
-          message="Invoices for completed sessions will show up here."
-          actionLabel="Refresh"
-          onPressAction={onRefresh}
-        />
-      </PageContainer>
-    );
-  }
-
   const renderSummary = () => {
     if (!summary) return null;
 
@@ -124,7 +112,7 @@ export default function InvoicesScreen() {
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <SurfaceCard style={styles.summaryCard}>
           <Row justify="between" align="center" style={styles.summaryHeader}>
-            <ThemedText type="subtitle">Summary</ThemedText>
+            <ThemedText type="subtitle">{isFiltered ? 'Filtered summary' : 'Summary'}</ThemedText>
             <ThemedText style={[styles.summaryTotal, { color: palette.muted }]}>
               {summary.totalInvoices} invoices
             </ThemedText>
@@ -200,7 +188,9 @@ export default function InvoicesScreen() {
         onRefresh={onRefresh}
         onFilterChange={handleFilterChange}
         showFilters={true}
-        emptyMessage="No invoices yet"
+        emptyMessage={
+          isFiltered ? 'No invoices match these filters' : 'Invoices for completed sessions appear here.'
+        }
         ListHeaderComponent={renderSummary() ?? undefined}
       />
     </PageContainer>

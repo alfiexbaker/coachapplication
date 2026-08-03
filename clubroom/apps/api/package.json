@@ -3,29 +3,44 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:staging": "node --env-file=../../.env.staging.local --import tsx src/server.ts",
     "dev:staging:watch": "node --env-file=../../.env.staging.local --import tsx --watch src/server.ts",
+    "worker:upload-scan:dev": "tsx src/workers/upload-scanner.ts",
+    "worker:upload-scan:staging": "node --env-file=../../.env.staging.local --import tsx src/workers/upload-scanner.ts",
+    "worker:upload-scan": "node dist/workers/upload-scanner.js",
+    "build:dependencies": "node ./scripts/build-local-packages.mjs",
+    "prisma:generate": "prisma generate --schema=node_modules/@clubroom/db/prisma/schema.prisma",
+    "postinstall": "npm run prisma:generate && npm run build:dependencies",
+    "proof:upload-scan:staging": "node --env-file=../../.env.staging.local --import tsx scripts/prove-upload-scanner-worker.ts",
+    "proof:event-timezone:staging": "node --env-file=../../.env.staging.local --import tsx scripts/prove-event-timezone.ts",
+    "proof:match-timezone:staging": "node --env-file=../../.env.staging.local --import tsx scripts/prove-match-timezone.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p tsconfig.json",
-    "release:preflight": "NODE_ENV=production tsx ./scripts/release-preflight.ts",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run build:dependencies && npm run clean && node --stack-size=8192 node_modules/typescript/bin/tsc -p tsconfig.json",
+    "release:preflight": "npm run build:dependencies && NODE_ENV=production tsx ./scripts/release-preflight.ts",
     "build:release": "npm run release:preflight && npm run build && npm run sentry:sourcemaps",
     "sentry:sourcemaps": "node ./scripts/upload-sourcemaps.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "NODE_ENV=test API_DATA_BACKEND=seed tsx --test src/modules/**/*.test.ts"
+    "typecheck": "npm run build:dependencies && node --stack-size=8192 node_modules/typescript/bin/tsc -p tsconfig.json --noEmit",
+    "test": "npm run build:dependencies && NODE_ENV=test API_DATA_BACKEND=seed tsx --test src/modules/**/*.test.ts"
   },
   "dependencies": {
-    "@clubroom/config": "workspace:*",
-    "@clubroom/db": "workspace:*",
-    "@clubroom/shared-contracts": "workspace:*",
+    "@clubroom/config": "file:../../packages/config",
+    "@clubroom/db": "file:../../packages/db",
+    "@clubroom/shared-contracts": "file:../../packages/shared-contracts",
     "@sentry/node": "^10.48.0",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@sentry/cli": "2.55.0",
     "@types/node": "^22.13.5",
+    "prisma": "^6.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.2"
   }

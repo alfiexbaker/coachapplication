@@ -8,7 +8,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
 import { Row } from '@/components/primitives';
-import { formatTimeDisplay } from './multi-week-picker-helpers';
+import { formatBookingPrice, formatTimeDisplay } from './multi-week-picker-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -68,6 +68,10 @@ export const WeekRowItem = function WeekRowItem({
           marginBottom: 0,
         },
       ]}
+      accessibilityLabel={`${week.dayName} ${week.dateLabel}, ${formatTimeDisplay(week.startTime)} to ${formatTimeDisplay(week.endTime)}${week.location ? `, ${week.location}` : ''}, ${formatBookingPrice(week.price, currency)}${isSelected ? ', selected' : ''}`}
+      accessibilityHint={
+        week.available ? 'Double tap to change this week selection.' : 'This week is unavailable.'
+      }
     >
       <Row style={styles.weekRowInner}>
         {/* Left: Date info */}
@@ -118,8 +122,7 @@ export const WeekRowItem = function WeekRowItem({
               { color: week.available ? palette.text : palette.muted },
             ]}
           >
-            {currency}
-            {week.price}
+            {formatBookingPrice(week.price, currency)}
           </ThemedText>
           {week.available && (
             <Ionicons

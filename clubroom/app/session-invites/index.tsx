@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -29,7 +29,6 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 type ViewMode = 'sent' | 'received';
 type FilterMode = 'all' | 'pending' | 'responded';
-const inviteListSnapshots: Partial<Record<ViewMode, SessionInvite[]>> = {};
 
 export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
@@ -37,11 +36,6 @@ export default function SessionInvitesScreen() {
   const { isParent: userHasChildren, isMultiChild, getChildById } = useChildContext();
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
-  const modeRef = useRef(mode);
-
-  useEffect(() => {
-    modeRef.current = mode;
-  });
 
   const {
     data: invites,
@@ -54,9 +48,8 @@ export default function SessionInvitesScreen() {
   } = useScreen({
     load: async () => {
       if (!currentUser?.id) return ok([] as SessionInvite[]);
-      const requestedMode = modeRef.current;
       const data =
-        requestedMode === 'sent'
+        mode === 'sent'
           ? await sessionInviteService.getCoachInvites(currentUser.id)
           : await sessionInviteService.getParentInvites(currentUser.id);
       return ok(data);
@@ -65,18 +58,15 @@ export default function SessionInvitesScreen() {
     events: [ServiceEvents.INVITE_ACCEPTED, ServiceEvents.INVITE_BOOKING_FAILED],
     isEmpty: (value) => value.length === 0,
     refetchOnFocus: true,
-    loadingStrategy: 'warm-first',
+    loadingStrategy: 'cold-first',
+    dataKey: currentUser?.id
+      ? `session-invites:${currentUser.id}:${mode}`
+      : 'session-invites:unauthenticated',
   });
 
-  useEffect(() => {
-    if (invites) {
-      inviteListSnapshots[mode] = invites;
-    }
-  }, [invites, mode]);
-
-  const resolvedInvites = invites ?? inviteListSnapshots[mode] ?? [];
-  const loading = status === 'loading' && resolvedInvites.length === 0;
-  const screenError = status === 'error' && resolvedInvites.length === 0 ? error : null;
+  const resolvedInvites = invites ?? [];
+  const loading = status === 'loading';
+  const screenError = status === 'error' ? error : null;
 
   const pendingCount = (() => {
     return resolvedInvites.filter((i) => {
@@ -117,10 +107,14 @@ export default function SessionInvitesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await sessionInviteService.respondToInvite({
+              const result = await sessionInviteService.respondToInvite({
                 inviteId: invite.id,
                 response: 'DECLINED',
               });
+              if (!result.success) {
+                uiFeedback.showToast(result.error.message, 'error');
+                return;
+              }
               uiFeedback.showToast('Invite declined. The coach has been notified.', 'success');
               onRefresh();
             } catch {

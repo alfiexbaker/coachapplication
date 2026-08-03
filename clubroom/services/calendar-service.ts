@@ -1,16 +1,13 @@
 /**
  * Calendar Service
  *
- * Handles calendar sync functionality including ICS file generation,
- * native calendar integration, and sync settings management.
+ * Handles ICS calendar file generation and device-local export preferences.
  *
- * Calendar sync preferences remain device-local in every runtime mode because
- * they control this device's native calendar integration, not server-owned
- * football data.
+ * Export preferences remain device-local in every runtime mode. The service
+ * creates shareable calendar files; it does not keep calendars synchronized.
  */
 
 import { apiClient } from './api-client';
-import { api } from '@/constants/config';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Booking } from '@/constants/app-types';
@@ -22,7 +19,6 @@ import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('CalendarService');
-const USE_MOCK = api.useMock;
 
 // Default settings for new users
 const DEFAULT_SETTINGS: Omit<CalendarSyncSettings, 'userId'> = {
@@ -378,7 +374,7 @@ export const calendarService = {
   },
 
   /**
-   * Get calendar sync settings for a user
+   * Get device-local calendar export preferences for a user
    */
   async getSyncSettings(userId: string): Promise<CalendarSyncSettings | null> {
     try {
@@ -393,7 +389,7 @@ export const calendarService = {
   },
 
   /**
-   * Update calendar sync settings for a user
+   * Update device-local calendar export preferences for a user
    */
   async updateSyncSettings(
     userId: string,

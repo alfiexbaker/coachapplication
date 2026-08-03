@@ -37,6 +37,7 @@ export const SquadInfoCard = function SquadInfoCard({
   const primaryCoachLabel = squad.primaryCoach
     ? safeDisplayLabel(squad.primaryCoach, 'Assigned coach')
     : 'Unassigned coach';
+  const metadataLabel = [squad.level, primaryCoachLabel].filter(Boolean).join(' \u00B7 ');
 
   return (
     <SurfaceCard style={styles.card}>
@@ -84,7 +85,7 @@ export const SquadInfoCard = function SquadInfoCard({
                 {squad.name}
               </ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]} numberOfLines={1}>
-                {squad.level} {'\u00B7'} {primaryCoachLabel}
+                {metadataLabel}
               </ThemedText>
             </View>
             <Clickable onPress={onStartEdit} hitSlop={8}>

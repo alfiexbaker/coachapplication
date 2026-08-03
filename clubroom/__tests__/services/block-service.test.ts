@@ -89,6 +89,17 @@ describe('blockService', () => {
     });
   });
 
+  describe('getBlockedUserSummaries', () => {
+    test('returns opaque summaries for mock-only blocked ids', async () => {
+      const user = uid();
+      const target = uid();
+      expectOk(await blockService.blockUser(user, target));
+
+      const summaries = expectOk(await blockService.getBlockedUserSummaries(user));
+      assert.deepEqual(summaries, [{ id: target, name: null, blockedAt: null }]);
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // isBlocked (bidirectional)
   // ---------------------------------------------------------------------------

@@ -19,7 +19,10 @@ import { socialFeedService } from '../social-feed-service';
 import { rsvpService } from '../rsvp-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
-import { groupSessionAuthorityService } from './group-session-authority-service';
+import {
+  groupSessionAuthorityService,
+  type CompleteGroupSessionInput,
+} from './group-session-authority-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -386,6 +389,10 @@ let sessionsCache: GroupSession[] = USE_MOCK ? [...MOCK_SESSIONS] : [];
 // ============================================================================
 
 export async function loadSessions(): Promise<GroupSession[]> {
+  if (!USE_MOCK) {
+    return [];
+  }
+
   try {
     const stored = await apiClient.get<GroupSession[] | null>(STORAGE_KEYS.GROUP_SESSIONS, null);
     if (stored) return stored;
@@ -396,6 +403,10 @@ export async function loadSessions(): Promise<GroupSession[]> {
 }
 
 export async function saveSessions(sessions: GroupSession[]): Promise<void> {
+  if (!USE_MOCK) {
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, sessions);
     sessionsCache = sessions;
@@ -409,6 +420,10 @@ export function getSessionsCache(): GroupSession[] {
 }
 
 export function setSessionsCache(sessions: GroupSession[]): void {
+  if (!USE_MOCK) {
+    return;
+  }
+
   sessionsCache = sessions;
 }
 
@@ -826,6 +841,22 @@ export const sessionCrudService = {
       return err(result.error);
     }
     return ok(result.data);
+  },
+
+  async completeSession(
+    sessionId: string,
+    input: CompleteGroupSessionInput,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      const session = sessionsCache.find((item) => item.id === sessionId);
+      if (!session) return err(notFound('Session', sessionId));
+      session.status = 'COMPLETED';
+      await saveSessions(sessionsCache);
+      return ok(session);
+    }
+
+    return groupSessionAuthorityService.completeSession(sessionId, input);
   },
 
   async updateOffPlatformParticipants(

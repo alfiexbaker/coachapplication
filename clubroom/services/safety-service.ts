@@ -14,6 +14,7 @@ import {
   ok,
   err,
   storageError,
+  unsupportedError,
   validationError,
 } from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
@@ -52,6 +53,13 @@ export interface AthleteEmergencyQuickView {
   emergencyTreatmentConsent: boolean;
   lastUpdated: string;
   isCached: boolean;
+}
+
+export interface EmergencyAccessContext {
+  requestorId: string;
+  requestorRole: 'coach' | 'parent' | 'admin';
+  /** Required for any coach read of another athlete's emergency record. */
+  isVerifiedCoach?: boolean;
 }
 
 /**
@@ -266,31 +274,26 @@ class SafetyService {
    *
    * When requestorId and requestorRole are provided, access control is
    * enforced and the access is logged for audit compliance.
-   * When omitted (legacy callers), a warning is logged but access is allowed
-   * to avoid breaking existing flows during migration.
+   * In retained mock fixture calls this may be omitted for compatibility.
+   * API mode delegates to backend authority before this branch.
    */
   async getEmergencyInfo(
     athleteId: string,
-    requestorId?: string,
-    requestorRole?: 'coach' | 'parent' | 'admin',
+    accessContext?: EmergencyAccessContext,
   ): Promise<Result<EmergencyInfo, ServiceError>> {
     if (!apiClient.isMockMode) {
       return familyHealthService.getEmergencyInfo(athleteId);
     }
 
     try {
-      // Access control when credentials are provided
-      if (requestorId && requestorRole) {
-        const hasAccess = await this.verifyEmergencyDataAccess(
-          athleteId,
-          requestorId,
-          requestorRole,
-        );
+      // Access control when an application-facing caller supplies its viewer context.
+      if (accessContext) {
+        const hasAccess = await this.verifyEmergencyDataAccess(athleteId, accessContext);
         if (!hasAccess) {
           logger.warn('Unauthorized emergency data access attempt', {
             athleteId,
-            requestorId,
-            requestorRole,
+            requestorId: accessContext.requestorId,
+            requestorRole: accessContext.requestorRole,
           });
           return err({
             code: 'UNAUTHORIZED',
@@ -298,9 +301,13 @@ class SafetyService {
           });
         }
         // Log access for audit trail
-        await this.logEmergencyDataAccess(athleteId, requestorId, requestorRole);
+        await this.logEmergencyDataAccess(
+          athleteId,
+          accessContext.requestorId,
+          accessContext.requestorRole,
+        );
       } else {
-        logger.warn('Emergency data accessed without credentials — legacy caller', {
+        logger.debug('Mock emergency fixture read without requestor context', {
           athleteId,
         });
       }
@@ -320,9 +327,9 @@ class SafetyService {
    */
   private async verifyEmergencyDataAccess(
     athleteId: string,
-    requestorId: string,
-    requestorRole: 'coach' | 'parent' | 'admin',
+    accessContext: EmergencyAccessContext,
   ): Promise<boolean> {
+    const { requestorId, requestorRole, isVerifiedCoach } = accessContext;
     if (requestorRole === 'admin') {
       return true;
     }
@@ -339,11 +346,14 @@ class SafetyService {
 
     // Coaches: check roster (coach's rostered athletes)
     if (requestorRole === 'coach') {
+      if (!isVerifiedCoach) {
+        return false;
+      }
       const roster = await apiClient.get<{ athleteId: string; coachId?: string }[]>(
         STORAGE_KEYS.ROSTER,
         [],
       );
-      return roster.some((a) => a.athleteId === athleteId);
+      return roster.some((a) => a.athleteId === athleteId && a.coachId === requestorId);
     }
 
     return false;
@@ -816,6 +826,7 @@ class SafetyService {
    */
   async getAthleteEmergency(
     athleteId: string,
+    accessContext: EmergencyAccessContext,
     athleteName?: string,
   ): Promise<Result<AthleteEmergencyQuickView, ServiceError>> {
     try {
@@ -823,7 +834,7 @@ class SafetyService {
       let info: EmergencyInfo;
       let resolvedName = athleteName || 'Unknown Athlete';
 
-      const emergencyInfoResult = await this.getEmergencyInfo(athleteId);
+      const emergencyInfoResult = await this.getEmergencyInfo(athleteId, accessContext);
       if (emergencyInfoResult.success) {
         info = emergencyInfoResult.data;
         if (apiClient.isMockMode) {
@@ -831,6 +842,13 @@ class SafetyService {
         }
       } else {
         if (!apiClient.isMockMode) {
+          return err(emergencyInfoResult.error);
+        }
+
+        if (
+          emergencyInfoResult.error.code === 'UNAUTHORIZED' ||
+          emergencyInfoResult.error.code === 'NOT_FOUND'
+        ) {
           return err(emergencyInfoResult.error);
         }
 
@@ -882,6 +900,7 @@ class SafetyService {
   async getSessionSafetyInfo(
     sessionId: string,
     attendees: { athleteId: string; athleteName: string }[],
+    accessContext: EmergencyAccessContext,
   ): Promise<Result<SessionSafetyInfo, ServiceError>> {
     try {
       const athletes: AthleteEmergencyQuickView[] = [];
@@ -894,7 +913,11 @@ class SafetyService {
       const emergencyDataResults = await Promise.all(
         attendees.map(async (attendee) => ({
           attendee,
-          result: await this.getAthleteEmergency(attendee.athleteId, attendee.athleteName),
+          result: await this.getAthleteEmergency(
+            attendee.athleteId,
+            accessContext,
+            attendee.athleteName,
+          ),
         })),
       );
       const failedEmergencyDataResult = emergencyDataResults.find((entry) => !entry.result.success);
@@ -1073,15 +1096,24 @@ class SafetyService {
    */
   async preCacheSessionEmergencyInfo(
     attendees: { athleteId: string; athleteName: string }[],
+    accessContext: EmergencyAccessContext,
   ): Promise<Result<void, ServiceError>> {
     if (!apiClient.isMockMode) {
-      return ok(undefined);
+      return err(
+        unsupportedError(
+          'Offline emergency pre-caching is unavailable in API mode; load session safety data from live athlete health authority.',
+          {
+            capability: 'offline-emergency-cache',
+            authority: '/v1/athletes/:athleteId/{medical,emergency-contacts,consents}',
+          },
+        ),
+      );
     }
 
     try {
       await Promise.all(
         attendees.map(async (attendee) => {
-          const infoResult = await this.getEmergencyInfo(attendee.athleteId);
+          const infoResult = await this.getEmergencyInfo(attendee.athleteId, accessContext);
           if (!infoResult.success) {
             logger.warn('Failed to pre-cache emergency info', {
               athleteId: attendee.athleteId,

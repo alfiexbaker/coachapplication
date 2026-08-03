@@ -191,7 +191,7 @@ export function useHeadCoachOversight() {
           type: 'session_note_expectation',
           bookingId: item.bookingId,
           title: `Submit session notes for ${item.athleteName}`,
-          details: `Head coach expectation raised from oversight console for ${item.service}.`,
+          details: `Session notes required for ${item.service}.`,
           dueAt: item.dueAt,
         });
         if (!result.success) {

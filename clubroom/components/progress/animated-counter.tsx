@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { StyleProp, TextStyle } from 'react-native';
 import Animated, {
-  runOnJS,
   useAnimatedReaction,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -47,7 +47,7 @@ export const AnimatedCounter = function AnimatedCounter({
       const formatted = decimals > 0
         ? current.toFixed(decimals)
         : Math.round(current).toString();
-      runOnJS(setDisplayValue)(formatted);
+      scheduleOnRN(setDisplayValue, formatted);
     },
     [decimals],
   );

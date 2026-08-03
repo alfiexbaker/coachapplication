@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { SettingsFormScreen } from '@/components/settings';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useBlockedUsersSettings } from '@/hooks/use-blocked-users-settings';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -15,7 +15,6 @@ export default function BlockedUsersSettingsScreen() {
   const { colors } = useTheme();
   const {
     blockedUsers,
-    blockedUsersCount,
     pendingUserId,
     loading,
     empty,
@@ -29,7 +28,11 @@ export default function BlockedUsersSettingsScreen() {
   return (
     <SettingsFormScreen
       title="Blocked Users"
-      infoText="Blocked accounts cannot message you, appear in your discovery results, or be invited into your flows."
+      infoText={
+        !loading && !error && !empty
+          ? 'Blocked accounts cannot message you or appear in search.'
+          : undefined
+      }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
       }
@@ -40,41 +43,13 @@ export default function BlockedUsersSettingsScreen() {
 
       {!loading && !error && empty ? (
         <EmptyState
-          title="No blocked users"
-          message="When you block someone, they will appear here so you can review or unblock them later."
+          title="No blocked accounts"
+          message="People you block cannot message you or appear in search."
         />
       ) : null}
 
-      {!loading && !error ? (
+      {!loading && !error && !empty ? (
         <View style={styles.list}>
-          <SurfaceCard style={[styles.summaryCard, { borderColor: colors.border }]}>
-            <Row justify="between" align="center" gap="sm">
-              <View style={styles.summaryCopy}>
-                <ThemedText type="defaultSemiBold" style={{ color: colors.text }}>
-                  Active blocks
-                </ThemedText>
-                <ThemedText style={{ color: colors.muted }}>
-                  {blockedUsersCount === 1
-                    ? '1 account is currently blocked.'
-                    : `${blockedUsersCount} accounts are currently blocked.`}
-                </ThemedText>
-              </View>
-              <View
-                style={[
-                  styles.countBadge,
-                  {
-                    backgroundColor: withAlpha(colors.error, 0.12),
-                    borderColor: withAlpha(colors.error, 0.2),
-                  },
-                ]}
-              >
-                <ThemedText type="defaultSemiBold" style={{ color: colors.error }}>
-                  {blockedUsersCount}
-                </ThemedText>
-              </View>
-            </Row>
-          </SurfaceCard>
-
           {blockedUsers.map((user) => {
             const isPending = pendingUserId === user.id;
             return (
@@ -96,27 +71,18 @@ export default function BlockedUsersSettingsScreen() {
                     <ThemedText type="defaultSemiBold" style={{ color: colors.text }}>
                       {user.name}
                     </ThemedText>
-                    <ThemedText style={{ color: colors.muted }}>{user.subtitle}</ThemedText>
-                    <ThemedText style={[styles.email, { color: colors.muted }]}>
-                      {user.email}
-                    </ThemedText>
-                    {user.missingProfile ? (
-                      <ThemedText style={[styles.warning, { color: colors.warning }]}>
-                        This profile is no longer fully available, but the block still applies.
-                      </ThemedText>
-                    ) : null}
+                    <ThemedText style={{ color: colors.muted }}>{user.blockedLabel}</ThemedText>
                   </View>
                 </Row>
 
                 <Button
                   onPress={() => void unblockUser(user)}
                   variant="outline"
-                  disabled={isPending}
+                  disabled={Boolean(pendingUserId)}
                   accessibilityLabel={`Unblock ${user.name}`}
                   style={styles.unblockButton}
-                >
-                  {isPending ? 'Unblocking...' : 'Unblock'}
-                </Button>
+                  label={isPending ? 'Unblocking…' : 'Unblock'}
+                />
               </SurfaceCard>
             );
           })}
@@ -129,23 +95,6 @@ export default function BlockedUsersSettingsScreen() {
 const styles = StyleSheet.create({
   list: {
     gap: Spacing.md,
-  },
-  summaryCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
-  },
-  summaryCopy: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  countBadge: {
-    minWidth: 48,
-    minHeight: 48,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    paddingHorizontal: Spacing.sm,
   },
   userCard: {
     padding: Spacing.md,
@@ -163,12 +112,6 @@ const styles = StyleSheet.create({
   userCopy: {
     flex: 1,
     gap: Spacing.xxs,
-  },
-  email: {
-    ...Typography.small,
-  },
-  warning: {
-    ...Typography.caption,
   },
   unblockButton: {
     alignSelf: 'flex-start',

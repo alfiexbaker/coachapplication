@@ -207,7 +207,20 @@ describe('user search routes', () => {
       headers: authHeaders(tables, requesterId, 'parent'),
     });
     assert.equal(nameSearch.statusCode, 200);
-    const namePayload = nameSearch.json() as { users: Array<{ id: string; email?: string }> };
+    const namePayload = nameSearch.json() as {
+      users: Array<Record<string, unknown> & { id: string; email?: string }>;
+      total: number;
+      seedVersion: string | null;
+      requestId: string;
+    };
+    assert.deepEqual(Object.keys(namePayload).sort(), [
+      'requestId',
+      'seedVersion',
+      'total',
+      'users',
+    ]);
+    assert.equal(namePayload.total, namePayload.users.length);
+    assert.equal(typeof namePayload.requestId, 'string');
     const nameIds = new Set(namePayload.users.map((user) => user.id));
     assert.equal(nameIds.has('usr_search-related-minor'), true);
     assert.equal(nameIds.has('usr_search-hidden-minor'), false);
@@ -216,6 +229,46 @@ describe('user search routes', () => {
       namePayload.users.find((user) => user.id === 'usr_search-related-minor')?.email,
       'related.minor@clubroom.demo',
     );
+    assert.equal(
+      'dateOfBirth' in
+        (namePayload.users.find((user) => user.id === 'usr_search-related-minor') ?? {}),
+      false,
+    );
+
+    const relatedProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/usr_search-related-minor',
+      headers: authHeaders(tables, requesterId, 'parent'),
+    });
+    assert.equal(relatedProfile.statusCode, 200);
+    const relatedProfilePayload = relatedProfile.json() as {
+      user: Record<string, unknown> & { id: string; email?: string; postcode?: string };
+      seedVersion: string | null;
+      requestId: string;
+    };
+    assert.deepEqual(Object.keys(relatedProfilePayload).sort(), [
+      'requestId',
+      'seedVersion',
+      'user',
+    ]);
+    assert.equal(relatedProfilePayload.user.id, 'usr_search-related-minor');
+    assert.equal(relatedProfilePayload.user.email, 'related.minor@clubroom.demo');
+    assert.equal(relatedProfilePayload.user.postcode, 'CR1 1AA');
+    assert.equal('dateOfBirth' in relatedProfilePayload.user, false);
+
+    const hiddenMinorProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/usr_search-hidden-minor',
+      headers: authHeaders(tables, requesterId, 'parent'),
+    });
+    assert.equal(hiddenMinorProfile.statusCode, 404);
+
+    const privateAdultProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/usr_search-private-adult',
+      headers: authHeaders(tables, requesterId, 'parent'),
+    });
+    assert.equal(privateAdultProfile.statusCode, 404);
 
     ensureTable(tables, 'userBlocks').push({
       id: 'ubl_search_related_minor',
@@ -236,6 +289,13 @@ describe('user search routes', () => {
       (blockedNameSearch.json() as { users: Array<{ id: string }> }).users.map((user) => user.id),
     );
     assert.equal(blockedNameIds.has('usr_search-related-minor'), false);
+
+    const blockedProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/usr_search-related-minor',
+      headers: authHeaders(tables, requesterId, 'parent'),
+    });
+    assert.equal(blockedProfile.statusCode, 404);
 
     const privateEmailSearch = await app.inject({
       method: 'GET',
@@ -259,11 +319,67 @@ describe('user search routes', () => {
     assert.equal(hiddenMinorEmailSearch.statusCode, 200);
     assert.deepEqual((hiddenMinorEmailSearch.json() as { users: unknown[] }).users, []);
 
-    assert.equal(auditRows(tables, 'users.search', 'SUCCESS').length, 4);
+    const invalidSearches = await Promise.all([
+      app.inject({
+        method: 'GET',
+        url: '/v1/users/search?q=x',
+        headers: authHeaders(tables, requesterId, 'parent'),
+      }),
+      app.inject({
+        method: 'GET',
+        url: '/v1/users/search?q=Search&limit=21',
+        headers: authHeaders(tables, requesterId, 'parent'),
+      }),
+      app.inject({
+        method: 'GET',
+        url: '/v1/users/search?q=Search&actorUserId=usr_forged',
+        headers: authHeaders(tables, requesterId, 'parent'),
+      }),
+    ]);
+    assert.deepEqual(
+      invalidSearches.map((response) => response.statusCode),
+      [400, 400, 400],
+    );
+
     const unauthenticated = await app.inject({
       method: 'GET',
       url: '/v1/users/search?q=Search',
     });
     assert.equal(unauthenticated.statusCode, 403);
+
+    const invalidProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/%20',
+      headers: authHeaders(tables, requesterId, 'parent'),
+    });
+    assert.equal(invalidProfile.statusCode, 400);
+    const unauthenticatedProfile = await app.inject({
+      method: 'GET',
+      url: '/v1/users/usr_search-related-minor',
+    });
+    assert.equal(unauthenticatedProfile.statusCode, 403);
+
+    assert.equal(auditRows(tables, 'users.search', 'SUCCESS').length, 4);
+    const deniedSearches = auditRows(tables, 'users.search', 'DENY');
+    assert.equal(deniedSearches.length, 4);
+    assert.equal(
+      deniedSearches.filter(
+        (row) =>
+          (row.metadataJson as { errorCode?: string } | undefined)?.errorCode ===
+          'VALIDATION_FAILED',
+      ).length,
+      3,
+    );
+    assert.equal(auditRows(tables, 'users.profile.read', 'SUCCESS').length, 1);
+    const deniedProfileReads = auditRows(tables, 'users.profile.read', 'DENY');
+    assert.equal(deniedProfileReads.length, 5);
+    assert.equal(
+      deniedProfileReads.filter(
+        (row) =>
+          (row.metadataJson as { errorCode?: string } | undefined)?.errorCode ===
+          'VALIDATION_FAILED',
+      ).length,
+      1,
+    );
   });
 });

@@ -1,5 +1,6 @@
 import type { SessionFeedback } from '@/services/progress-service';
 import type { SessionNoteRecord } from '@/services/progress-service';
+import type { BookingSummary } from '@/constants/types';
 
 export interface BookingDeliverySummary {
   headline: string;
@@ -10,7 +11,7 @@ export interface BookingDeliverySummary {
 }
 
 export function canCoachCompleteBooking(input: {
-  status?: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
+  status?: BookingSummary['status'];
   start?: string;
   now?: number;
 }): boolean {

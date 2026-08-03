@@ -122,10 +122,12 @@ export default function InvoiceDetailScreen() {
                 </Row>
               </Clickable>
             )}
-            {c.canVoid && c.isCoach && (
+            {c.canVoid && (
               <Clickable
                 style={[styles.voidButton, { borderColor: palette.error }]}
                 onPress={c.handleVoidInvoice}
+                accessibilityLabel="Void invoice"
+                accessibilityRole="button"
               >
                 <Ionicons name="close-circle-outline" size={18} color={palette.error} />
               </Clickable>
@@ -172,6 +174,7 @@ export default function InvoiceDetailScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              accessibilityLabel="Recipient email"
               value={c.sendEmail}
               onChangeText={c.setSendEmail}
               maxLength={100}

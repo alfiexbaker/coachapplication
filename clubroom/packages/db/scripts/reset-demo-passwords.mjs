@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
@@ -142,7 +142,8 @@ function writeCredentialFile(users, verified) {
   }
 
   mkdirSync(path.dirname(CREDENTIALS_OUTPUT_PATH), { recursive: true });
-  writeFileSync(CREDENTIALS_OUTPUT_PATH, lines.join('\n'), 'utf8');
+  writeFileSync(CREDENTIALS_OUTPUT_PATH, lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
+  chmodSync(CREDENTIALS_OUTPUT_PATH, 0o600);
 }
 
 async function main() {

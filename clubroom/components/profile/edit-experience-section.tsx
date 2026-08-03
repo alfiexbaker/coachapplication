@@ -63,9 +63,6 @@ export const EditExperienceSection = function EditExperienceSection({
             </Row>
           </Clickable>
         </Row>
-        <ThemedText style={styles.subtitle}>
-          Curate the highlights parents see first: current teams, academies, and playing history.
-        </ThemedText>
 
         {experiences.length > 0 ? (
           <View style={styles.timeline}>
@@ -148,11 +145,7 @@ export const EditExperienceSection = function EditExperienceSection({
           </View>
         ) : (
           <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]}>
-            <Ionicons name="sparkles" size={20} color={colors.muted} />
-            <ThemedText style={styles.emptyText}>
-              Add academy roles, coaching gigs, or your playing career. Parents love to see the
-              timeline.
-            </ThemedText>
+            <ThemedText style={styles.emptyText}>No experience added.</ThemedText>
           </SurfaceCard>
         )}
       </SurfaceCard>
@@ -175,6 +168,7 @@ export const EditExperienceSection = function EditExperienceSection({
                   Keyboard.dismiss();
                   onCloseModal();
                 }}
+                style={styles.modalClose}
                 accessibilityLabel="Close"
                 accessibilityRole="button"
               >
@@ -182,27 +176,32 @@ export const EditExperienceSection = function EditExperienceSection({
               </Clickable>
             </Row>
             <ScrollView
+              style={styles.modalScroll}
               contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
             >
               {modalError ? (
-                <ThemedText style={[styles.errorText, { color: colors.error }]} accessibilityRole="alert">
+                <ThemedText
+                  style={[styles.errorText, { color: colors.error }]}
+                  accessibilityRole="alert"
+                >
                   {modalError}
                 </ThemedText>
               ) : null}
               <View style={styles.fieldGroup}>
-                <ThemedText style={styles.label}>Role / Title</ThemedText>
+                <ThemedText style={styles.label}>Role</ThemedText>
                 <TextInput
                   value={draft.title}
                   onChangeText={(t) => onDraftChange((p) => ({ ...p, title: t }))}
-                  placeholder="Head Coach, Goalkeeping Coach..."
+                  placeholder="Head coach"
                   placeholderTextColor={colors.muted}
                   style={inputStyle}
                   accessibilityLabel="Role title"
+                  maxLength={120}
                 />
               </View>
               <View style={styles.fieldGroup}>
-                <ThemedText style={styles.label}>Organisation / Club</ThemedText>
+                <ThemedText style={styles.label}>Club or organisation</ThemedText>
                 <TextInput
                   value={draft.organization}
                   onChangeText={(t) => onDraftChange((p) => ({ ...p, organization: t }))}
@@ -210,63 +209,58 @@ export const EditExperienceSection = function EditExperienceSection({
                   placeholderTextColor={colors.muted}
                   style={inputStyle}
                   accessibilityLabel="Organisation"
+                  maxLength={120}
                 />
               </View>
-              <Row gap="md">
+              <DateTimeField
+                mode="date"
+                label="Start date"
+                value={draft.startDate}
+                onChange={(t) => onDraftChange((p) => ({ ...p, startDate: t }))}
+              />
+              <Clickable
+                onPress={() =>
+                  onDraftChange((p) => ({
+                    ...p,
+                    current: !p.current,
+                    endDate: p.current ? p.endDate : '',
+                  }))
+                }
+                style={styles.currentToggle}
+                accessibilityLabel="Current role"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: draft.current }}
+              >
+                <Row align="center" gap="xs">
+                  <Ionicons
+                    name={draft.current ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={draft.current ? colors.success : colors.muted}
+                  />
+                  <ThemedText>Current role</ThemedText>
+                </Row>
+              </Clickable>
+              {!draft.current ? (
                 <DateTimeField
                   mode="date"
-                  label="Start Date"
-                  value={draft.startDate}
-                  onChange={(t) => onDraftChange((p) => ({ ...p, startDate: t }))}
-                  style={styles.inlineField}
+                  label="End date (optional)"
+                  value={draft.endDate || ''}
+                  onChange={(t) => onDraftChange((p) => ({ ...p, endDate: t }))}
                 />
-                <View style={[styles.fieldGroup, styles.inlineField]}>
-                  <Row justify="between" align="center">
-                    <ThemedText style={styles.label}>End Date</ThemedText>
-                    <Clickable
-                      onPress={() =>
-                        onDraftChange((p) => ({
-                          ...p,
-                          current: !p.current,
-                          endDate: p.current ? p.endDate : '',
-                        }))
-                      }
-                      style={styles.inlineAction}
-                      accessibilityLabel="Toggle current"
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: draft.current }}
-                    >
-                      <Row align="center" gap="xs">
-                        <Ionicons
-                          name={draft.current ? 'checkbox' : 'square-outline'}
-                          size={18}
-                          color={draft.current ? colors.success : colors.muted}
-                        />
-                        <ThemedText style={styles.helper}>I currently do this</ThemedText>
-                      </Row>
-                    </Clickable>
-                  </Row>
-                  <DateTimeField
-                    mode="date"
-                    value={draft.endDate || ''}
-                    onChange={(t) => onDraftChange((p) => ({ ...p, endDate: t }))}
-                    placeholder={draft.current ? 'Present' : undefined}
-                    disabled={draft.current}
-                  />
-                </View>
-              </Row>
+              ) : null}
               <View style={styles.fieldGroup}>
                 <ThemedText style={styles.label}>Description</ThemedText>
                 <TextInput
                   value={draft.description}
                   onChangeText={(t) => onDraftChange((p) => ({ ...p, description: t }))}
-                  placeholder="Highlight wins, age groups, or your philosophy."
+                  placeholder="Age group, responsibilities, results"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                   placeholderTextColor={colors.muted}
                   style={[...inputStyle, styles.textArea]}
                   accessibilityLabel="Description"
+                  maxLength={1000}
                 />
               </View>
               <Clickable
@@ -289,16 +283,20 @@ export const EditExperienceSection = function EditExperienceSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  subtitle: { opacity: 0.6, ...Typography.bodySmall },
-  inlineAction: {},
+  inlineAction: {
+    minHeight: 44,
+    paddingHorizontal: Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   inlineActionText: { fontWeight: '700' },
   timeline: { gap: Spacing.sm },
   card: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, gap: Spacing.sm },
   pill: { paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
   pillText: { ...Typography.caption },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
@@ -319,26 +317,38 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', opacity: 0.7 },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
-  modalCard: { padding: Spacing.lg, gap: Spacing.md },
+  modalCard: { width: '100%', maxHeight: '90%', padding: Spacing.lg, gap: Spacing.md },
+  modalScroll: { flexShrink: 1 },
   modalContent: { gap: Spacing.md },
+  modalClose: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.subheading,
   },
   textArea: { minHeight: 100, paddingTop: Spacing.sm },
-  inlineField: { flex: 1 },
-  helper: { ...Typography.caption, opacity: 0.6 },
+  currentToggle: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
   errorText: { ...Typography.caption },
   primaryButton: {
     marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
+    minHeight: 48,
     borderRadius: Radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: { ...Typography.subheading },
 });

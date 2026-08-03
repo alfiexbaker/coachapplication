@@ -130,10 +130,10 @@ export function useSubscribe() {
       async () => {
         const result = await recurringBookingService.createRecurring(formParams);
         if (result.success) {
-          uiFeedback.showToast('Your recurring sessions are on your schedule.', 'success');
+          uiFeedback.showToast('Recurring booking created.', 'success');
           router.replace(Routes.SCHEDULE);
         } else {
-          uiFeedback.showToast(result.error?.message || 'Failed to create subscription.', 'error');
+          uiFeedback.showToast(result.error?.message || 'Failed to create recurring booking.', 'error');
         }
       },
       async (error) => {

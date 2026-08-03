@@ -21,6 +21,13 @@ export interface PrivacySettings {
   updatedAt: string;
 }
 
+function changedFieldNames(input: Partial<PrivacySettings>): string[] {
+  return Object.entries(input)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key)
+    .sort();
+}
+
 class PrivacySettingsService {
   private readonly settingKeys: Array<
     keyof Omit<PrivacySettings, 'userId' | 'createdAt' | 'updatedAt'>
@@ -140,7 +147,13 @@ class PrivacySettingsService {
       await this.saveOne(userId, updated);
       return ok(updated);
     } catch (error) {
-      logger.error('Failed to update privacy settings', { userId, updates, error });
+      const changedFields = changedFieldNames(updates);
+      logger.error('Failed to update privacy settings', {
+        userId,
+        changedFields,
+        changedFieldCount: changedFields.length,
+        error,
+      });
       return err(storageError('Failed to update privacy settings'));
     }
   }

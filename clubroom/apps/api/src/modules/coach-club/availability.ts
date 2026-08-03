@@ -1,15 +1,29 @@
+import type { Prisma } from '@clubroom/db';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { badRequest } from '../../lib/http-errors.js';
+import { badRequest, conflict } from '../../lib/http-errors.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
+type CoachAvailabilityDbClient = Pick<
+  Prisma.TransactionClient,
+  | 'availabilityTemplate'
+  | 'availabilityOverride'
+  | 'schedulingRule'
+  | 'booking'
+  | 'groupSession'
+  | 'invite'
+  | 'inviteTarget'
+>;
 function toSeedRows<T>(values: T[]): SeedRow[] {
   return normalizeForJson(values) as unknown as SeedRow[];
 }
-export async function resolveCoachAvailabilityTables(coachUserId: string): Promise<{
+export async function resolveCoachAvailabilityTables(
+  coachUserId: string,
+  dbClient?: CoachAvailabilityDbClient,
+): Promise<{
   tables: SeedTables;
   dataVersion: string | null;
 }> {
@@ -27,7 +41,7 @@ export async function resolveCoachAvailabilityTables(coachUserId: string): Promi
       dataVersion: store.version,
     };
   }
-  const prisma = getPrismaClientOrThrow();
+  const prisma: CoachAvailabilityDbClient = dbClient ?? getPrismaClientOrThrow();
   const [
     availabilityTemplates,
     availabilityOverrides,
@@ -106,6 +120,22 @@ export interface CoachAvailabilitySlot {
   maxBookings: number;
   location?: string;
 }
+export interface CoachAvailabilityConflictSummary {
+  bookingCount: number;
+  holdCount: number;
+  bookings: Array<{
+    id: string;
+    date: string;
+    time: string;
+    location?: string;
+    athleteName?: string;
+  }>;
+  holds: Array<{
+    date: string;
+    time: string;
+    inviteId: string;
+  }>;
+}
 interface InternalCoachAvailabilitySlot extends CoachAvailabilitySlot {
   startsAt: Date;
   endsAt: Date;
@@ -139,6 +169,13 @@ function toDateOnly(value: string | undefined): string {
 }
 function buildUtcDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time}:00.000Z`);
+}
+function isIsoDateOnly(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = buildUtcDateTime(value, '00:00');
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60_000);
@@ -299,6 +336,13 @@ function toMinutes(value: string): number | null {
   }
   return hours * 60 + minutes;
 }
+const NON_BLOCKING_BOOKING_STATUSES = new Set([
+  'CANCELLED',
+  'COMPLETED',
+  'DECLINED',
+  'WITHDRAWN',
+  'EXPIRED',
+]);
 function getBookingBusyWindows(params: {
   tables: SeedTables;
   coachUserId: string;
@@ -306,40 +350,42 @@ function getBookingBusyWindows(params: {
   rangeEnd: Date;
   excludeBookingId?: string;
 }): BusyWindow[] {
-  return getActiveRows(asRows(params.tables.bookings)).flatMap((item) =>
-    ((row) =>
-      asString(row.coachUserId) === params.coachUserId &&
-      asString(row.id) !== params.excludeBookingId &&
-      (asString(row.status) ?? '').toUpperCase() !== 'CANCELLED')(item)
-      ? ((row) => {
-          const mapped = (() => {
-            const startsAtIso = asString(row.scheduledAt);
-            const startsAt = startsAtIso ? new Date(startsAtIso) : null;
-            const durationMinutes = Math.max(1, Number(row.durationMinutes ?? 60));
-            if (!startsAt || Number.isNaN(startsAt.getTime())) {
-              return null;
-            }
-            const endsAt = addMinutes(startsAt, durationMinutes);
-            if (
-              !overlaps({
-                leftStart: startsAt,
-                leftEnd: endsAt,
-                rightStart: params.rangeStart,
-                rightEnd: params.rangeEnd,
-              })
-            ) {
-              return null;
-            }
-            return {
-              startsAt,
-              endsAt,
-              kind: 'booking' as const,
-            };
-          })();
-          return mapped !== null ? [mapped] : [];
-        })(item)
-      : [],
-  ) as BusyWindow[];
+  const nowMs = Date.now();
+  return getActiveRows(asRows(params.tables.bookings)).flatMap((row) => {
+    const status = (asString(row.status) ?? '').toUpperCase();
+    const requestExpiresAt = Date.parse(asString(row.requestExpiresAt) ?? '');
+    const awaitingExpired =
+      (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') &&
+      Number.isFinite(requestExpiresAt) &&
+      requestExpiresAt <= nowMs;
+    if (
+      asString(row.coachUserId) !== params.coachUserId ||
+      asString(row.id) === params.excludeBookingId ||
+      NON_BLOCKING_BOOKING_STATUSES.has(status) ||
+      awaitingExpired
+    ) {
+      return [];
+    }
+
+    const startsAtIso = asString(row.scheduledAt);
+    const startsAt = startsAtIso ? new Date(startsAtIso) : null;
+    const durationMinutes = Math.max(1, Number(row.durationMinutes ?? 60));
+    if (!startsAt || Number.isNaN(startsAt.getTime())) {
+      return [];
+    }
+    const endsAt = addMinutes(startsAt, durationMinutes);
+    if (
+      !overlaps({
+        leftStart: startsAt,
+        leftEnd: endsAt,
+        rightStart: params.rangeStart,
+        rightEnd: params.rangeEnd,
+      })
+    ) {
+      return [];
+    }
+    return [{ startsAt, endsAt, kind: 'booking' as const }];
+  });
 }
 function parseGroupScheduleEntries(value: unknown): Array<{
   startsAt: string;
@@ -430,6 +476,97 @@ function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): Ar
     })();
     return mapped !== null ? [mapped] : [];
   });
+}
+export function resolveCoachAvailabilityConflicts(params: {
+  tables: SeedTables;
+  coachUserId: string;
+  dates: string[];
+  now?: Date;
+}): CoachAvailabilityConflictSummary {
+  const dateSet = new Set(params.dates);
+  const now = params.now ?? new Date();
+  const bookings = getActiveRows(asRows(params.tables.bookings)).flatMap((row) => {
+    if (
+      asString(row.coachUserId) !== params.coachUserId ||
+      (asString(row.status) ?? '').toUpperCase() === 'CANCELLED'
+    ) {
+      return [];
+    }
+    const scheduledAt = asString(row.scheduledAt);
+    const date = toDateOnly(scheduledAt);
+    if (!dateSet.has(date)) {
+      return [];
+    }
+    const id = asString(row.id);
+    if (!id) {
+      return [];
+    }
+    return [
+      {
+        id,
+        date,
+        time: scheduledAt?.slice(11, 16) ?? '00:00',
+        location: asString(row.location),
+        athleteName: asString(row.athleteName) ?? asString(row.childName),
+      },
+    ];
+  });
+
+  const inviteTargetsByInviteId = new Map<string, SeedRow[]>();
+  for (const target of asRows(params.tables.inviteTargets)) {
+    const inviteId = asString(target.inviteId);
+    if (!inviteId) {
+      continue;
+    }
+    const targets = inviteTargetsByInviteId.get(inviteId) ?? [];
+    targets.push(target);
+    inviteTargetsByInviteId.set(inviteId, targets);
+  }
+  const holds = asRows(params.tables.invites).flatMap((row) => {
+    if (
+      asString(row.senderUserId) !== params.coachUserId ||
+      asString(row.revokedAt) ||
+      (asString(row.status) ?? 'PENDING').toUpperCase() !== 'PENDING'
+    ) {
+      return [];
+    }
+    const inviteId = asString(row.id);
+    if (!inviteId) {
+      return [];
+    }
+    const expiresAt = asString(row.expiresAt);
+    if (expiresAt) {
+      const parsed = new Date(expiresAt);
+      if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= now.getTime()) {
+        return [];
+      }
+    }
+    const hasPendingTarget = (inviteTargetsByInviteId.get(inviteId) ?? []).some((target) => {
+      const status = (asString(target.status) ?? 'PENDING').toUpperCase();
+      return status === 'PENDING' && !isInviteDismissed(target);
+    });
+    if (!hasPendingTarget) {
+      return [];
+    }
+    return buildInviteProposedSlotsFromMetadata(asObject(row.metadataJson)).flatMap((slot) =>
+      dateSet.has(slot.date)
+        ? [
+            {
+              date: slot.date,
+              time: slot.startTime,
+              inviteId,
+            },
+          ]
+        : [],
+    );
+  });
+
+  return {
+    bookingCount: bookings.length,
+    holdCount: holds.length,
+    bookings,
+    holds,
+  };
 }
 function getInviteHoldBusyWindows(params: {
   tables: SeedTables;
@@ -693,6 +830,7 @@ export function assertCoachAvailabilitySlotOpen(params: {
   excludeBookingId?: string;
   excludePendingInvites?: boolean;
   applySchedulingRules?: boolean;
+  conflictOnUnavailable?: boolean;
   now?: Date;
 }): CoachAvailabilitySlot {
   const { date, startTime, endTime } = getSlotQueryWindow({
@@ -724,14 +862,18 @@ export function assertCoachAvailabilitySlotOpen(params: {
     });
   }
   if (!slot.isAvailable) {
-    throw badRequest('Selected slot is no longer available', {
+    const details = {
       coachUserId: params.coachUserId,
       date,
       startTime,
       endTime,
       bookedCount: slot.bookedCount,
       maxBookings: slot.maxBookings,
-    });
+    };
+    if (params.conflictOnUnavailable) {
+      throw conflict('Selected slot is no longer available', details);
+    }
+    throw badRequest('Selected slot is no longer available', details);
   }
   return slot;
 }
@@ -762,6 +904,20 @@ export function parseAvailabilitySlotQuery(query: Record<string, unknown>) {
     excludePendingInvites: parseBooleanQueryValue(query.excludePendingInvites),
     applySchedulingRules: parseBooleanQueryValue(query.applySchedulingRules),
   };
+}
+export function parseAvailabilityConflictQuery(query: Record<string, unknown>) {
+  const rawDates = asString(query.dates);
+  const dates = rawDates
+    ?.split(',')
+    .map((date) => date.trim())
+    .filter(Boolean);
+  if (!dates?.length) {
+    throw badRequest('dates query parameter is required');
+  }
+  if (dates.length > 62 || dates.some((date) => !isIsoDateOnly(date))) {
+    throw badRequest('dates must be comma-separated ISO dates');
+  }
+  return { dates: Array.from(new Set(dates)) };
 }
 export function slotToScheduledAt(slot: { date: string; startTime: string }): string {
   return buildUtcDateTime(slot.date, slot.startTime).toISOString();

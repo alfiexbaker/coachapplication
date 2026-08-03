@@ -191,7 +191,13 @@ function assertRuntimeModeConfig(env: string): void {
       'Invalid Clubroom app config: EXPO_PUBLIC_PRE_API_LIVE_MODE=true is no longer supported.',
     );
   }
-  if (process.env.EXPO_PUBLIC_USE_MOCK === 'true' && process.env.NODE_ENV !== 'test') {
+  const isNativeAuditTestMode =
+    env === 'development' && process.env.EXPO_PUBLIC_NATIVE_AUDIT_TEST_MODE === 'true';
+  if (
+    process.env.EXPO_PUBLIC_USE_MOCK === 'true' &&
+    process.env.NODE_ENV !== 'test' &&
+    !isNativeAuditTestMode
+  ) {
     throw new Error(
       'Invalid Clubroom app config: EXPO_PUBLIC_USE_MOCK=true is test-only; normal app runtimes must use the /v1 API.',
     );

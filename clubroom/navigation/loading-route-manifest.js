@@ -81,6 +81,17 @@ const loadingRouteManifest = Object.freeze([
     transition: 'Immediate static render.',
   },
   {
+    pattern: 'app/revyl-auth.tsx',
+    strategy: 'cold-first',
+    owner: 'UI-LOAD-01',
+    stableShell: 'Native audit handoff surface only.',
+    retains: 'No prior product data is shown by this development-only bridge.',
+    pendingSurface: 'Full-route loading state while the bypass decision and test login complete.',
+    transition: 'Open audit link -> validate local bypass -> sign in test actor -> replace route or show inline error.',
+    rationale:
+      'The development-only auth bridge has no truthful prior frame and must block until its one-time login handoff resolves.',
+  },
+  {
     pattern: 'app/(tabs)/index.tsx',
     strategy: 'warm-first',
     owner: 'UI-LOAD-03',
@@ -170,15 +181,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Draft content remains visible while audience metadata or submit work resolves.',
     pendingSurface: 'Action-level progress only.',
     transition: 'Open club post composer -> keep modal frame stable -> show submit progress in place.',
-  },
-  {
-    pattern: 'app/(modal)/create-squad.tsx',
-    strategy: 'submit-only',
-    owner: 'UI-LOAD-08',
-    stableShell: 'Create squad form stays mounted.',
-    retains: 'Entered values remain visible during submit.',
-    pendingSurface: 'Action-level progress only.',
-    transition: 'Tap create squad actions -> keep form visible -> show submit progress in place.',
   },
   {
     pattern: 'app/(tabs)/notifications.tsx',
@@ -827,12 +829,12 @@ const loadingRouteManifest = Object.freeze([
   },
   {
     pattern: 'app/(tabs)/availability.tsx',
-    strategy: 'section-skeleton',
+    strategy: 'static',
     owner: 'UI-LOAD-08',
-    stableShell: 'Availability tab shell stays mounted.',
-    retains: 'Resolved availability context remains visible while pending sections load.',
-    pendingSurface: 'Only unresolved sections may skeletonize.',
-    transition: 'Open availability tab -> keep shell visible -> skeletonize pending section -> resolve in place.',
+    stableShell: 'No compatibility shell is rendered.',
+    retains: 'The canonical Schedule tab owns resolved availability context.',
+    pendingSurface: 'None.',
+    transition: 'Legacy availability link -> immediate canonical Schedule availability redirect.',
   },
   {
     pattern: 'app/settings/calendar-sync.tsx',
@@ -959,15 +961,6 @@ const loadingRouteManifest = Object.freeze([
     retains: 'Resolved management context remains visible while pending sections load.',
     pendingSurface: 'Only unresolved management sections may skeletonize.',
     transition: 'Open manage surface -> keep shell stable -> skeletonize pending section -> resolve in place.',
-  },
-  {
-    pattern: 'app/(tabs)/admin/invite-codes.tsx',
-    strategy: 'warm-first',
-    owner: 'UI-LOAD-08',
-    stableShell: 'Invite codes shell stays mounted.',
-    retains: 'Loaded invite-code rows remain visible during refresh.',
-    pendingSurface: 'Only unresolved rows may skeletonize.',
-    transition: 'Open invite codes -> keep list visible -> refresh locally -> resolve in place.',
   },
   {
     pattern: 'app/club/create.tsx',

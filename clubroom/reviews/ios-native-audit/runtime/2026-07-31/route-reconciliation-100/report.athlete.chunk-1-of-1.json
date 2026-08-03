@@ -1,0 +1,386 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T19:29:41.833Z",
+  "meta": {
+    "roles": [
+      "athlete"
+    ],
+    "profiles": [],
+    "role": "athlete",
+    "chunkIndex": 1,
+    "chunkSize": 19,
+    "retries": 1,
+    "pauseMs": 600
+  },
+  "totals": {
+    "total": 19,
+    "ok": 19,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 19
+  },
+  "results": [
+    {
+      "id": "athlete_home",
+      "role": "athlete",
+      "title": "Athlete opens dashboard",
+      "path": "/",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_home.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3640
+    },
+    {
+      "id": "athlete_feed",
+      "role": "athlete",
+      "title": "Athlete opens feed",
+      "path": "/feed",
+      "finalPath": "/feed",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_feed.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4262
+    },
+    {
+      "id": "athlete_messages",
+      "role": "athlete",
+      "title": "Athlete opens messages",
+      "path": "/messages",
+      "finalPath": "/messages",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_messages.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3165
+    },
+    {
+      "id": "athlete_bookings",
+      "role": "athlete",
+      "title": "Athlete opens bookings",
+      "path": "/bookings",
+      "finalPath": "/bookings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_bookings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4189
+    },
+    {
+      "id": "athlete_settings",
+      "role": "athlete",
+      "title": "Athlete opens settings",
+      "path": "/settings",
+      "finalPath": "/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_settings.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2653
+    },
+    {
+      "id": "athlete_progress",
+      "role": "athlete",
+      "title": "Athlete opens my progress",
+      "path": "/development/my-progress",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_progress.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3754
+    },
+    {
+      "id": "athlete_development_detail",
+      "role": "athlete",
+      "title": "Athlete opens development detail",
+      "path": "/development/athlete/ath_7df7ec13-e136-7525-985f-dec069fc983f",
+      "finalPath": "/development/athlete/ath_7df7ec13-e136-7525-985f-dec069fc983f",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_development_detail.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3643
+    },
+    {
+      "id": "athlete_discover_sessions",
+      "role": "athlete",
+      "title": "Athlete opens discover sessions",
+      "path": "/discover-sessions",
+      "finalPath": "/discover-sessions",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_discover_sessions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2446
+    },
+    {
+      "id": "athlete_favourites",
+      "role": "athlete",
+      "title": "Athlete opens favourites",
+      "path": "/favourites",
+      "finalPath": "/favourites",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_favourites.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2523
+    },
+    {
+      "id": "athlete_find_coach",
+      "role": "athlete",
+      "title": "Athlete opens find coach",
+      "path": "/book-coach",
+      "finalPath": "/book-coach",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_find_coach.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3465
+    },
+    {
+      "id": "athlete_health",
+      "role": "athlete",
+      "title": "Athlete opens health dashboard",
+      "path": "/health",
+      "finalPath": "/health",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_health.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3128
+    },
+    {
+      "id": "athlete_health_injuries",
+      "role": "athlete",
+      "title": "Athlete opens injury log",
+      "path": "/health/injuries",
+      "finalPath": "/health/injuries",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_health_injuries.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2434
+    },
+    {
+      "id": "athlete_chat_list",
+      "role": "athlete",
+      "title": "Athlete opens chat list",
+      "path": "/chat",
+      "finalPath": "/messages",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_chat_list.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2910
+    },
+    {
+      "id": "athlete_add_child_denied",
+      "role": "athlete",
+      "title": "athlete is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3684
+    },
+    {
+      "id": "athlete_verification_hub_denied",
+      "role": "athlete",
+      "title": "athlete is denied verification status",
+      "path": "/verification",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_verification_hub_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3056
+    },
+    {
+      "id": "athlete_verification_identity_denied",
+      "role": "athlete",
+      "title": "athlete is denied identity verification",
+      "path": "/verification/id",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_verification_identity_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2901
+    },
+    {
+      "id": "athlete_verification_background_denied",
+      "role": "athlete",
+      "title": "athlete is denied background verification",
+      "path": "/verification/background",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_verification_background_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4087
+    },
+    {
+      "id": "athlete_verification_insurance_denied",
+      "role": "athlete",
+      "title": "athlete is denied insurance verification",
+      "path": "/verification/insurance",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_verification_insurance_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3710
+    },
+    {
+      "id": "athlete_verification_credentials_denied",
+      "role": "athlete",
+      "title": "athlete is denied credential verification",
+      "path": "/verification/credentials",
+      "finalPath": "/development/my-progress",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/athlete__athlete_verification_credentials_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3196
+    }
+  ]
+}

@@ -20,11 +20,15 @@ type ApiBookingStatus =
   | 'CONFIRMED'
   | 'AWAITING_COMPLETION'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'DECLINED'
+  | 'WITHDRAWN'
+  | 'EXPIRED';
 
 export interface ApiBookingResponse {
   id: string;
   coachUserId: string;
+  clubId?: string | null;
   bookedByUserId?: string;
   recurringSeriesId?: string | null;
   groupSessionId?: string | null;
@@ -47,56 +51,52 @@ export interface ApiBookingResponse {
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string | null;
+  requestExpiresAt?: string | null;
+  requestResolvedAt?: string | null;
+  requestResolutionReason?: string | null;
 }
 
-export function mapApiBookingToBooking(
-  apiBooking: ApiBookingResponse,
-  localBooking?: Booking,
-): Booking {
+export function mapApiBookingToBooking(apiBooking: ApiBookingResponse): Booking {
   const athleteIds = apiBooking.participants.map((participant) => participant.athleteId);
-  const athleteId = localBooking?.athleteId ?? athleteIds[0];
-  const bookedById = localBooking?.bookedById ?? apiBooking.bookedByUserId;
-  const recurringBookingId = apiBooking.recurringSeriesId ?? localBooking?.recurringBookingId;
-  const groupSessionId = apiBooking.groupSessionId ?? localBooking?.groupSessionId;
+  const recurringBookingId = apiBooking.recurringSeriesId ?? undefined;
+  const groupSessionId = apiBooking.groupSessionId ?? undefined;
 
   return {
-    ...localBooking,
     id: apiBooking.id,
-    coachId: localBooking?.coachId ?? apiBooking.coachUserId,
-    athleteIds: localBooking?.athleteIds?.length ? localBooking.athleteIds : athleteIds,
-    athleteId,
-    bookedById,
+    coachId: apiBooking.coachUserId,
+    clubId: apiBooking.clubId ?? undefined,
+    athleteIds,
+    athleteId: athleteIds[0],
+    bookedById: apiBooking.bookedByUserId,
     status: apiBooking.status,
     scheduledAt: apiBooking.scheduledAt,
     duration: apiBooking.durationMinutes,
     location: apiBooking.location,
-    serviceType: apiBooking.serviceType ?? localBooking?.serviceType,
+    serviceType: apiBooking.serviceType,
     ...(apiBooking.sessionTemplateId ? { sessionTemplateId: apiBooking.sessionTemplateId } : {}),
     objectives: apiBooking.objectives,
-    notes: apiBooking.notes ?? localBooking?.notes ?? '',
-    price:
-      typeof apiBooking.priceMinor === 'number'
-        ? apiBooking.priceMinor / 100
-        : localBooking?.price,
+    notes: apiBooking.notes ?? undefined,
+    price: typeof apiBooking.priceMinor === 'number' ? apiBooking.priceMinor / 100 : undefined,
     participants: apiBooking.participants.map((participant) => ({
       id: participant.athleteId,
+      guardianUserId: participant.guardianUserId,
       status: participant.status,
     })),
     createdAt: apiBooking.createdAt,
     version: apiBooking.version,
     cancelledAt: apiBooking.cancelledAt ?? undefined,
-    cancelReason: apiBooking.cancelledAt ? localBooking?.cancelReason : undefined,
-    cancellationReason: apiBooking.cancelledAt ? localBooking?.cancellationReason : undefined,
-    cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
-    statusBeforeCancellation:
-      apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
-    service: localBooking?.service ?? formatServiceTypeLabel(apiBooking.serviceType),
-    isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
-    recurringBookingId: recurringBookingId ?? undefined,
-    isRecurringGenerated: Boolean(recurringBookingId) || localBooking?.isRecurringGenerated,
-    groupSessionId: groupSessionId ?? undefined,
-    sessionSource: groupSessionId ? 'group' : localBooking?.sessionSource,
-    sessionSourceEntityId: groupSessionId ?? localBooking?.sessionSourceEntityId,
+    requestExpiresAt: apiBooking.requestExpiresAt ?? undefined,
+    requestResolvedAt: apiBooking.requestResolvedAt ?? undefined,
+    requestResolutionReason: apiBooking.requestResolutionReason ?? undefined,
+    service: formatServiceTypeLabel(apiBooking.serviceType),
+    isSharedSession: athleteIds.length > 1,
+    recurringBookingId,
+    seriesId: recurringBookingId,
+    isRecurringGenerated: Boolean(recurringBookingId),
+    groupSessionId,
+    isGroupSession: Boolean(groupSessionId),
+    sessionSource: groupSessionId ? 'group' : 'direct',
+    sessionSourceEntityId: groupSessionId,
   };
 }
 
@@ -125,6 +125,7 @@ export interface ApiRebookContextResponse {
 
 interface CreateApiBookingInput {
   coachId: string;
+  clubId?: string;
   athleteIds: string[];
   bookedById: string;
   scheduledAt: string;
@@ -162,6 +163,13 @@ export interface CompleteApiBookingInput {
   note?: string;
   completedAt?: string;
   attendance?: CompleteApiBookingAttendanceInput[];
+  expectedVersion?: number;
+  idempotencyKey?: string;
+}
+
+export interface ResolveApiBookingRequestInput {
+  reason: string;
+  note?: string;
   expectedVersion?: number;
   idempotencyKey?: string;
 }
@@ -238,6 +246,7 @@ function buildBookingIdempotencyKey(input: CreateApiBookingInput): string {
   const scheduledAt = toApiScheduledAt(input.scheduledAt);
   const payload = JSON.stringify({
     coachUserId: toApiUserId(input.coachId),
+    clubId: input.clubId ?? null,
     athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)).sort(),
     bookedByUserId: toApiUserId(input.bookedById),
     scheduledAt,
@@ -281,7 +290,16 @@ function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): s
 }
 
 function buildBookingLifecycleIdempotencyKey(
-  action: 'cancel' | 'confirm' | 'complete' | 'reopen' | 'pause' | 'resume' | 'update',
+  action:
+    | 'cancel'
+    | 'confirm'
+    | 'complete'
+    | 'reopen'
+    | 'decline'
+    | 'withdraw'
+    | 'pause'
+    | 'resume'
+    | 'update',
   bookingId: string,
   input: {
     reason?: string;
@@ -374,10 +392,12 @@ class BookingAuthorityService {
     });
 
     if (!result.success) {
-      logger.error('Failed to get booking via API', {
-        bookingId,
-        error: result.error,
-      });
+      const context = { bookingId, error: result.error };
+      if (result.error.code === 'UNAUTHORIZED' || result.error.code === 'NOT_FOUND') {
+        logger.warn('Booking detail is unavailable to the current actor', context);
+      } else {
+        logger.error('Failed to get booking via API', context);
+      }
       return err(result.error);
     }
 
@@ -460,6 +480,7 @@ class BookingAuthorityService {
         durationMinutes: input.duration,
         location: input.location,
         serviceType: input.serviceType,
+        ...(input.clubId ? { clubId: input.clubId } : {}),
         ...(input.sessionTemplateId ? { sessionTemplateId: input.sessionTemplateId } : {}),
         objectives: input.objectives ?? [],
         ...(input.notes ? { notes: input.notes } : {}),
@@ -738,6 +759,51 @@ class BookingAuthorityService {
     }
 
     return result;
+  }
+
+  private async resolveBookingRequest(
+    bookingId: string,
+    action: 'decline' | 'withdraw',
+    input: ResolveApiBookingRequestInput,
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/${action}`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey(action, bookingId, input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error(`Failed to ${action} booking request via API`, {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async declineBookingRequest(
+    bookingId: string,
+    input: ResolveApiBookingRequestInput,
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    return this.resolveBookingRequest(bookingId, 'decline', input);
+  }
+
+  async withdrawBookingRequest(
+    bookingId: string,
+    input: ResolveApiBookingRequestInput,
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    return this.resolveBookingRequest(bookingId, 'withdraw', input);
   }
 
   async confirmBooking(

@@ -16,7 +16,7 @@ import { Row } from '@/components/primitives/row';
 import { CalendarGrid } from '@/components/club/calendar-grid';
 import { CalendarEventList } from '@/components/club/calendar-event-list';
 import { CalendarSquadFilter } from '@/components/club/calendar-squad-filter';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Components, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubCalendar, MONTH_LABELS } from '@/hooks/use-club-calendar';
@@ -44,18 +44,6 @@ export default function CalendarScreen() {
     handlePrevMonth,
     handleNextMonth,
   } = useClubCalendar();
-
-  if (status === 'loading') {
-    return (
-      <PageContainer
-        header={
-          <PageHeader title="Calendar" showBack subtitle={`${MONTH_LABELS[month]} ${year}`} />
-        }
-      >
-        <LoadingState variant="calendar" />
-      </PageContainer>
-    );
-  }
 
   if (status === 'error') {
     return (
@@ -120,13 +108,13 @@ export default function CalendarScreen() {
         selectedDay={selectedDay}
         weeks={weeks}
         eventsByDate={eventsByDate}
-        loading={showSectionSkeleton}
+        loading={status === 'loading' || showSectionSkeleton}
         isToday={isToday}
         onSelectDay={setSelectedDay}
       />
 
       {/* Selected Day Events */}
-      {selectedDay !== null && !showSectionSkeleton && (
+      {selectedDay !== null && status !== 'loading' && !showSectionSkeleton && (
         <CalendarEventList
           year={year}
           month={month}
@@ -135,7 +123,7 @@ export default function CalendarScreen() {
         />
       )}
 
-      {Object.keys(eventsByDate).length === 0 && !showSectionSkeleton && (
+      {Object.keys(eventsByDate).length === 0 && status !== 'loading' && !showSectionSkeleton && (
         <EmptyState
           icon="calendar-outline"
           title="No calendar activity"

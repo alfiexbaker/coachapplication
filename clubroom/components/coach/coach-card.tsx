@@ -3,7 +3,7 @@
  *
  * Single coach card component with variants for different use cases:
  * - compact: Minimal card for map selection or list items
- * - discovery: Full-featured card for coach discovery (Airbnb-quality)
+ * - discovery: Card for coach search results
  * - favourite: Card for favourites list with remove action
  *
  * Usage:

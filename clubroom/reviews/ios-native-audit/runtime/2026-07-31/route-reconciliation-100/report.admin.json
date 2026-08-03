@@ -1,0 +1,177 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T19:30:21.831Z",
+  "meta": {
+    "roles": [
+      "admin"
+    ],
+    "profiles": [],
+    "role": "admin",
+    "chunkSize": 8,
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 600
+  },
+  "totals": {
+    "total": 8,
+    "ok": 8,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 8
+  },
+  "results": [
+    {
+      "id": "owner_dashboard",
+      "role": "admin",
+      "title": "Owner opens club dashboard",
+      "path": "/club/clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1/dashboard",
+      "finalPath": "/club/clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1/dashboard",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__owner_dashboard.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3330
+    },
+    {
+      "id": "owner_head_coach",
+      "role": "admin",
+      "title": "Owner opens head coach oversight",
+      "path": "/manage/head-coach?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/manage/head-coach",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__owner_head_coach.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2897
+    },
+    {
+      "id": "admin_add_child_denied",
+      "role": "admin",
+      "title": "admin is denied the add-child flow",
+      "path": "/add-child",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_add_child_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3295
+    },
+    {
+      "id": "admin_verification_hub_denied",
+      "role": "admin",
+      "title": "admin is denied verification status",
+      "path": "/verification",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_verification_hub_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3721
+    },
+    {
+      "id": "admin_verification_identity_denied",
+      "role": "admin",
+      "title": "admin is denied identity verification",
+      "path": "/verification/id",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_verification_identity_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3013
+    },
+    {
+      "id": "admin_verification_background_denied",
+      "role": "admin",
+      "title": "admin is denied background verification",
+      "path": "/verification/background",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_verification_background_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4073
+    },
+    {
+      "id": "admin_verification_insurance_denied",
+      "role": "admin",
+      "title": "admin is denied insurance verification",
+      "path": "/verification/insurance",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_verification_insurance_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3717
+    },
+    {
+      "id": "admin_verification_credentials_denied",
+      "role": "admin",
+      "title": "admin is denied credential verification",
+      "path": "/verification/credentials",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/route-reconciliation-100/admin__admin_verification_credentials_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 10093
+    }
+  ]
+}

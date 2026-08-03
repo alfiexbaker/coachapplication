@@ -6,6 +6,7 @@ const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+const API_ROOT = path.join(ROOT, 'apps', 'api');
 const REVIEWS_DIR = path.join(ROOT, 'reviews');
 const STAGING_ENV_PATH = path.join(ROOT, '.env.staging.local');
 const DEFAULT_UI_BASE_URL = 'http://localhost:8083';
@@ -48,6 +49,12 @@ const REQUIRED_GATES = [
     description: 'Configured password reset email delivery provider accepts the release payload',
     command: 'npm',
     args: ['run', 'smoke:password-reset-webhook'],
+  },
+  {
+    id: 'sentry-ingestion-smoke',
+    description: 'Configured Sentry project returns success for a tagged API exception',
+    command: 'npm',
+    args: ['run', 'smoke:sentry:ingestion'],
   },
   {
     id: 'api-mode-strict-smoke',
@@ -226,11 +233,6 @@ async function canReach(url) {
   }
 }
 
-async function canReachApi(apiBaseUrl) {
-  const probe = await probeApi(apiBaseUrl);
-  return probe.ok;
-}
-
 async function probeApi(apiBaseUrl) {
   try {
     const controller = new AbortController();
@@ -243,13 +245,58 @@ async function probeApi(apiBaseUrl) {
       },
     });
     clearTimeout(timeout);
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      // A malformed readiness response is reachable but never release-ready.
+    }
+
     return {
-      ok: response.status > 0,
+      reachable: true,
+      ready: response.ok && payload?.status === 'ready',
+      statusCode: response.status,
+      issueCodes: Array.isArray(payload?.issues)
+        ? payload.issues
+            .map((issue) => issue?.code)
+            .filter((code) => typeof code === 'string' && code.length > 0)
+        : [],
       rateLimitMax: Number.parseInt(response.headers.get('ratelimit-limit') ?? '', 10) || null,
     };
   } catch {
-    return { ok: false, rateLimitMax: null };
+    return {
+      reachable: false,
+      ready: false,
+      statusCode: null,
+      issueCodes: [],
+      rateLimitMax: null,
+    };
   }
+}
+
+function isScannerOnlyReadinessFailure(probe) {
+  return (
+    probe.reachable &&
+    !probe.ready &&
+    probe.issueCodes.length > 0 &&
+    probe.issueCodes.every((code) => code === 'UPLOAD_SCANNER_UNAVAILABLE')
+  );
+}
+
+function apiRateLimitFailureDetail(probe, apiBaseUrl) {
+  const expectedRateLimit = parsePositiveInt(
+    process.env.API_RATE_LIMIT_MAX,
+    Number(DEFAULT_API_RATE_LIMIT_MAX),
+  );
+  if (probe.rateLimitMax === null || probe.rateLimitMax >= expectedRateLimit) {
+    return null;
+  }
+
+  return [
+    `Existing API server at ${apiBaseUrl} reports ratelimit-limit=${probe.rateLimitMax}.`,
+    `Launch UI flows require API_RATE_LIMIT_MAX>=${expectedRateLimit}.`,
+    'Stop the stale API server or rerun launch readiness with --api-base-url on a free port.',
+  ].join('\n');
 }
 
 function parsePort(url) {
@@ -311,11 +358,47 @@ function startApiServer(apiBaseUrl) {
     LOG_LEVEL: process.env.LOG_LEVEL ?? 'error',
     CI: '1',
   });
-  const child = spawn('npm', ['run', 'api:dev:staging'], {
-    cwd: ROOT,
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const child = spawn(
+    process.execPath,
+    ['--env-file=../../.env.staging.local', '--import', 'tsx', 'src/server.ts'],
+    {
+      cwd: API_ROOT,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  const collect = (chunk) => {
+    const text = chunk.toString();
+    logs.push(text);
+    if (logs.length > 80) logs.splice(0, logs.length - 80);
+  };
+
+  child.stdout.on('data', collect);
+  child.stderr.on('data', collect);
+
+  return { child, logs };
+}
+
+function startUploadScannerWorker(apiBaseUrl) {
+  const logs = [];
+  const env = withLaunchDatabaseUrl({
+    ...process.env,
+    API_URL: apiBaseUrl,
+    EXPO_PUBLIC_API_URL: apiBaseUrl,
+    API_UPLOAD_SCAN_API_BASE_URL: `${apiBaseUrl.replace(/\/$/, '')}/v1`,
+    LOG_LEVEL: process.env.LOG_LEVEL ?? 'error',
+    CI: '1',
   });
+  const child = spawn(
+    process.execPath,
+    ['--env-file=../../.env.staging.local', '--import', 'tsx', 'src/workers/upload-scanner.ts'],
+    {
+      cwd: API_ROOT,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
 
   const collect = (chunk) => {
     const text = chunk.toString();
@@ -354,28 +437,50 @@ async function waitForWebServer(uiBaseUrl, managedServer) {
   };
 }
 
-async function waitForApiServer(apiBaseUrl, managedServer) {
+async function waitForApiServer(apiBaseUrl, managedServer, managedScanner) {
   const timeoutMs = Number(process.env.LAUNCH_READINESS_API_TIMEOUT_MS || 120000);
+  const pollMs = Number(process.env.LAUNCH_READINESS_API_POLL_MS || 2000);
   const startedAt = Date.now();
+  let lastProbe = null;
 
   while (Date.now() - startedAt < timeoutMs) {
-    if (await canReachApi(apiBaseUrl)) {
-      return { ok: true, detail: `API server reachable at ${apiBaseUrl}/v1/ready.` };
+    lastProbe = await probeApi(apiBaseUrl);
+    if (lastProbe.ready) {
+      return {
+        ok: true,
+        detail: `API and upload scanner ready at ${apiBaseUrl}/v1/ready.`,
+      };
     }
 
-    if (managedServer.child.exitCode !== null) {
+    if (managedServer?.child.exitCode !== null && managedServer?.child.exitCode !== undefined) {
       return {
         ok: false,
         detail: `Managed staging API server exited before ${apiBaseUrl}/v1/ready became reachable.\n${managedServer.logs.join('')}`,
       };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    if (managedScanner?.child.exitCode !== null && managedScanner?.child.exitCode !== undefined) {
+      return {
+        ok: false,
+        detail: `Managed upload scanner exited before ${apiBaseUrl}/v1/ready became ready.\n${managedScanner.logs.join('')}`,
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
 
+  const issueSummary = lastProbe?.issueCodes.length
+    ? ` Last readiness issues: ${lastProbe.issueCodes.join(', ')}.`
+    : '';
   return {
     ok: false,
-    detail: `Timed out waiting ${timeoutMs}ms for staging API at ${apiBaseUrl}/v1/ready.\n${managedServer.logs.join('')}`,
+    detail: [
+      `Timed out waiting ${timeoutMs}ms for staging API and scanner readiness at ${apiBaseUrl}/v1/ready.${issueSummary}`,
+      managedServer?.logs.join(''),
+      managedScanner?.logs.join(''),
+    ]
+      .filter(Boolean)
+      .join('\n'),
   };
 }
 
@@ -400,6 +505,7 @@ async function prepareApiServer(gate, options) {
   if (!gate.needsApiServer || options.dryRun || options.noApiServer) {
     return {
       managedServer: null,
+      managedScanner: null,
       setupOutput:
         gate.needsApiServer && options.noApiServer ? 'Managed API server startup disabled.' : '',
       setupFailed: null,
@@ -407,19 +513,12 @@ async function prepareApiServer(gate, options) {
   }
 
   const probe = await probeApi(options.apiBaseUrl);
-  if (probe.ok) {
-    const expectedRateLimit = parsePositiveInt(
-      process.env.API_RATE_LIMIT_MAX,
-      Number(DEFAULT_API_RATE_LIMIT_MAX),
-    );
-    if (probe.rateLimitMax !== null && probe.rateLimitMax < expectedRateLimit) {
-      const detail = [
-        `Existing API server at ${options.apiBaseUrl} reports ratelimit-limit=${probe.rateLimitMax}.`,
-        `Launch UI flows require API_RATE_LIMIT_MAX>=${expectedRateLimit}.`,
-        'Stop the stale API server or rerun launch readiness with --api-base-url on a free port.',
-      ].join('\n');
+  if (probe.ready) {
+    const detail = apiRateLimitFailureDetail(probe, options.apiBaseUrl);
+    if (detail) {
       return {
         managedServer: null,
+        managedScanner: null,
         setupOutput: detail,
         setupFailed: {
           ...gate,
@@ -434,18 +533,90 @@ async function prepareApiServer(gate, options) {
 
     return {
       managedServer: null,
+      managedScanner: null,
       setupOutput: `Using existing API server at ${options.apiBaseUrl}.`,
       setupFailed: null,
     };
   }
 
+  if (probe.reachable && !isScannerOnlyReadinessFailure(probe)) {
+    const detail = [
+      `Existing API server at ${options.apiBaseUrl} is not release-ready (HTTP ${probe.statusCode}).`,
+      probe.issueCodes.length
+        ? `Readiness issues: ${probe.issueCodes.join(', ')}.`
+        : 'The readiness response was malformed or did not identify a recoverable scanner-only issue.',
+    ].join('\n');
+    return {
+      managedServer: null,
+      managedScanner: null,
+      setupOutput: detail,
+      setupFailed: {
+        ...gate,
+        status: 'fail',
+        exitCode: 1,
+        durationMs: 0,
+        output: compact(detail),
+        fullOutput: detail,
+      },
+    };
+  }
+
+  const managedScanner = startUploadScannerWorker(options.apiBaseUrl);
+  if (probe.reachable) {
+    const readiness = await waitForApiServer(options.apiBaseUrl, null, managedScanner);
+    if (!readiness.ok) {
+      await stopManagedServer(managedScanner);
+      return {
+        managedServer: null,
+        managedScanner: null,
+        setupOutput: readiness.detail,
+        setupFailed: {
+          ...gate,
+          status: 'fail',
+          exitCode: 1,
+          durationMs: 0,
+          output: compact(readiness.detail),
+          fullOutput: readiness.detail,
+        },
+      };
+    }
+
+    const readyProbe = await probeApi(options.apiBaseUrl);
+    const rateLimitFailure = apiRateLimitFailureDetail(readyProbe, options.apiBaseUrl);
+    if (rateLimitFailure) {
+      await stopManagedServer(managedScanner);
+      return {
+        managedServer: null,
+        managedScanner: null,
+        setupOutput: rateLimitFailure,
+        setupFailed: {
+          ...gate,
+          status: 'fail',
+          exitCode: 1,
+          durationMs: 0,
+          output: compact(rateLimitFailure),
+          fullOutput: rateLimitFailure,
+        },
+      };
+    }
+
+    return {
+      managedServer: null,
+      managedScanner,
+      setupOutput: readiness.detail,
+      setupFailed: null,
+    };
+  }
+
   const managedServer = startApiServer(options.apiBaseUrl);
-  const readiness = await waitForApiServer(options.apiBaseUrl, managedServer);
+  const readiness = await waitForApiServer(options.apiBaseUrl, managedServer, managedScanner);
 
   if (!readiness.ok) {
+    await stopManagedServer(managedScanner);
     await stopManagedServer(managedServer);
     return {
       managedServer: null,
+      managedScanner: null,
       setupOutput: readiness.detail,
       setupFailed: {
         ...gate,
@@ -460,6 +631,7 @@ async function prepareApiServer(gate, options) {
 
   return {
     managedServer,
+    managedScanner,
     setupOutput: readiness.detail,
     setupFailed: null,
   };
@@ -517,6 +689,7 @@ async function runRequiredGate(gate, options) {
 
   const preparedWeb = await prepareWebServer(gate, options);
   if (preparedWeb.setupFailed) {
+    await stopManagedServer(preparedApi.managedScanner);
     await stopManagedServer(preparedApi.managedServer);
     return preparedWeb.setupFailed;
   }
@@ -546,6 +719,7 @@ async function runRequiredGate(gate, options) {
     return result;
   } finally {
     await stopManagedServer(preparedWeb.managedServer);
+    await stopManagedServer(preparedApi.managedScanner);
     await stopManagedServer(preparedApi.managedServer);
   }
 }
@@ -698,7 +872,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  isScannerOnlyReadinessFailure,
+  prepareApiServer,
+  probeApi,
+  stopManagedServer,
+  waitForApiServer,
+};

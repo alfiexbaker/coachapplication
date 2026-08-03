@@ -1,0 +1,51 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T15:34:04.167Z",
+  "meta": {
+    "roles": [
+      "athlete"
+    ],
+    "profiles": [
+      "availability-route-audit"
+    ],
+    "role": "athlete",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 900
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 1,
+    "none": 0
+  },
+  "results": [
+    {
+      "id": "athlete_availability_schedule_denied",
+      "role": "athlete",
+      "title": "athlete is denied coach availability management",
+      "path": "/schedule?segment=availability",
+      "finalPath": "/(tabs)/index",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/availability-route-audit/athlete__athlete_availability_schedule_denied.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "route:unmatched_route_visible"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": [
+          "route:unmatched_route_visible"
+        ]
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 2764
+    }
+  ]
+}

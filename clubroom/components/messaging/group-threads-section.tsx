@@ -9,6 +9,7 @@ import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 
 import { Chip } from '@/components/primitives/chip';
 import { Row } from '@/components/primitives/row';
@@ -24,6 +25,7 @@ const GROUP_FILTER_OPTIONS: { key: GroupFilter; label: string }[] = [
   { key: 'squad', label: 'Squad' },
   { key: 'class', label: 'Class' },
 ];
+const USE_MOCK = api.useMock;
 
 interface GroupThreadsSectionProps {
   threads: ChatThreadSummary[];
@@ -41,7 +43,7 @@ export const GroupThreadsSection = function GroupThreadsSection({
   onThreadPress,
 }: GroupThreadsSectionProps) {
   const handleEmptyAction = () => {
-    router.push(isCoach ? Routes.CLUB_HUB : Routes.MY_CLUBS);
+    router.push(USE_MOCK && isCoach ? Routes.CLUB_HUB : Routes.MY_CLUBS);
   };
 
   return (
@@ -70,10 +72,10 @@ export const GroupThreadsSection = function GroupThreadsSection({
           title="No group chats yet"
           message={
             isCoach
-              ? 'Create a squad or club space to coordinate with coaches, teams, and classes.'
-              : 'Join a club with an invite code to access group chats with coaches and teams.'
+              ? 'Create a squad in a club to start a group chat.'
+              : 'Join a club to see group chats.'
           }
-          actionLabel={isCoach ? 'Go to Club Hub' : 'Join a Club'}
+          actionLabel={USE_MOCK && isCoach ? 'Club Hub' : 'My Clubs'}
           onPressAction={handleEmptyAction}
         />
       ) : (

@@ -17,7 +17,10 @@ export const SpecialNeedsNotesSection = function SpecialNeedsNotesSection({
   const { colors } = useTheme();
 
   const hasNotes = childProfile.communicationNotes || childProfile.behavioralNotes;
-  const hasMedical = childProfile.allergies.length > 0 || childProfile.medications.length > 0;
+  const hasMedical =
+    childProfile.allergies.length > 0 ||
+    childProfile.medicalConditions.length > 0 ||
+    childProfile.medications.length > 0;
 
   if (!hasNotes && !hasMedical) return null;
 
@@ -69,6 +72,26 @@ export const SpecialNeedsNotesSection = function SpecialNeedsNotesSection({
                   >
                     <ThemedText style={[Typography.caption, { color: colors.text }]}>
                       {allergy}
+                    </ThemedText>
+                  </View>
+                ))}
+              </Row>
+            </SurfaceCard>
+          )}
+
+          {childProfile.medicalConditions.length > 0 && (
+            <SurfaceCard style={styles.noteCard}>
+              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                Medical conditions
+              </ThemedText>
+              <Row style={styles.tagList}>
+                {childProfile.medicalConditions.map((condition) => (
+                  <View
+                    key={condition}
+                    style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
+                  >
+                    <ThemedText style={[Typography.caption, { color: colors.text }]}>
+                      {condition}
                     </ThemedText>
                   </View>
                 ))}

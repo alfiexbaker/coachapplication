@@ -1,9 +1,8 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
 import { captureException, withScope } from '@sentry/node';
-import { ZodError } from 'zod';
 import { buildDeniedAction, isSensitiveSecurityPath, recordSecurityEvent } from '../lib/audit-runtime.js';
-import { ApiProblemError } from '../lib/http-errors.js';
+import { ApiProblemError, isZodValidationError } from '../lib/http-errors.js';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (app) => {
   app.setErrorHandler(async (error, request, reply) => {
@@ -22,7 +21,7 @@ const errorHandlerPlugin: FastifyPluginAsync = async (app) => {
       });
     }
 
-    if (error instanceof ZodError) {
+    if (isZodValidationError(error)) {
       return reply.status(400).type('application/problem+json').send({
         type: 'https://api.clubroom.local/errors/validation-failed',
         title: 'Validation failed',

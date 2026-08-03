@@ -41,6 +41,7 @@ describe('progressTermlyReportService API mode', () => {
   it('does not generate a zeroed report when self-assessment history fails', async () => {
     const [
       { progressTermlyReportService },
+      { bookingAuthorityService },
       { bookingService },
       { progressFeedbackService },
       { badgeService },
@@ -50,6 +51,7 @@ describe('progressTermlyReportService API mode', () => {
       { progressGoalsService },
     ] = await Promise.all([
       import('@/services/progress/progress-termly-report-service'),
+      import('@/services/booking/booking-authority-service'),
       import('@/services/booking'),
       import('@/services/progress/progress-feedback-service'),
       import('@/services/badge-service'),
@@ -60,6 +62,7 @@ describe('progressTermlyReportService API mode', () => {
     ]);
 
     const original = {
+      listAuthoritativeBookings: bookingAuthorityService.listBookings,
       listBookings: bookingService.list,
       getFeedback: progressFeedbackService.getFeedbackForAthlete,
       listAwards: badgeService.listAwardsForAthlete,
@@ -69,7 +72,13 @@ describe('progressTermlyReportService API mode', () => {
       getGoals: progressGoalsService.getGoalsForAthlete,
     };
 
-    bookingService.list = async () => [];
+    bookingAuthorityService.listBookings = async () =>
+      ({ success: true, data: [] }) as Awaited<
+        ReturnType<typeof original.listAuthoritativeBookings>
+      >;
+    bookingService.list = async () => {
+      throw new Error('legacy booking facade should not be used in API mode');
+    };
     progressFeedbackService.getFeedbackForAthlete = async () => [];
     badgeService.listAwardsForAthlete = async () => [];
     progressPracticeLogService.listAthleteLogs = async () => [];
@@ -93,6 +102,81 @@ describe('progressTermlyReportService API mode', () => {
       assert.equal(result.success, false);
       assert.match(result.success ? '' : result.error.message, /failed to generate termly report/i);
     } finally {
+      bookingAuthorityService.listBookings = original.listAuthoritativeBookings;
+      bookingService.list = original.listBookings;
+      progressFeedbackService.getFeedbackForAthlete = original.getFeedback;
+      badgeService.listAwardsForAthlete = original.listAwards;
+      progressPracticeLogService.listAthleteLogs = original.listPracticeLogs;
+      progressSelfAssessmentService.listAssessmentsForAthlete = original.listSelfAssessments;
+      progressSkillsService.getAthleteSkillLevels = original.getSkillLevels;
+      progressGoalsService.getGoalsForAthlete = original.getGoals;
+    }
+  });
+
+  it('fails closed when live booking authority cannot build attendance inputs', async () => {
+    const [
+      { progressTermlyReportService },
+      { bookingAuthorityService },
+      { bookingService },
+      { progressFeedbackService },
+      { badgeService },
+      { progressPracticeLogService },
+      { progressSelfAssessmentService },
+      { progressSkillsService },
+      { progressGoalsService },
+    ] = await Promise.all([
+      import('@/services/progress/progress-termly-report-service'),
+      import('@/services/booking/booking-authority-service'),
+      import('@/services/booking'),
+      import('@/services/progress/progress-feedback-service'),
+      import('@/services/badge-service'),
+      import('@/services/progress/progress-practice-log-service'),
+      import('@/services/progress/progress-self-assessment-service'),
+      import('@/services/progress/progress-skills-service'),
+      import('@/services/progress/progress-goals-service'),
+    ]);
+
+    const original = {
+      listAuthoritativeBookings: bookingAuthorityService.listBookings,
+      listBookings: bookingService.list,
+      getFeedback: progressFeedbackService.getFeedbackForAthlete,
+      listAwards: badgeService.listAwardsForAthlete,
+      listPracticeLogs: progressPracticeLogService.listAthleteLogs,
+      listSelfAssessments: progressSelfAssessmentService.listAssessmentsForAthlete,
+      getSkillLevels: progressSkillsService.getAthleteSkillLevels,
+      getGoals: progressGoalsService.getGoalsForAthlete,
+    };
+
+    bookingAuthorityService.listBookings = async () =>
+      ({
+        success: false,
+        error: { code: 'NETWORK', message: 'booking authority down' },
+      }) as Awaited<ReturnType<typeof original.listAuthoritativeBookings>>;
+    bookingService.list = async () => {
+      throw new Error('legacy booking facade should not be used in API mode');
+    };
+    progressFeedbackService.getFeedbackForAthlete = async () => [];
+    badgeService.listAwardsForAthlete = async () => [];
+    progressPracticeLogService.listAthleteLogs = async () => [];
+    progressSelfAssessmentService.listAssessmentsForAthlete = async () => [];
+    progressSkillsService.getAthleteSkillLevels = async () => null;
+    progressGoalsService.getGoalsForAthlete = async () => ({
+      active: [],
+      completed: [],
+      paused: [],
+    });
+
+    try {
+      const result = await progressTermlyReportService.generateTermlyReport({
+        athleteId: 'ath_api_termly',
+        athleteName: 'API Athlete',
+        now: new Date('2026-07-05T10:00:00.000Z'),
+      });
+
+      assert.equal(result.success, false);
+      assert.match(result.success ? '' : result.error.message, /failed to generate termly report/i);
+    } finally {
+      bookingAuthorityService.listBookings = original.listAuthoritativeBookings;
       bookingService.list = original.listBookings;
       progressFeedbackService.getFeedbackForAthlete = original.getFeedback;
       badgeService.listAwardsForAthlete = original.listAwards;

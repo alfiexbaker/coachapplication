@@ -28,7 +28,14 @@ const logger = createLogger('SquadInviteService');
 
 const USE_MOCK = api.useMock;
 const API_MODE_SQUAD_INVITE_MESSAGE =
-  'Squad invite local mirrors are mock-only; API mode uses /v1/invites for squad invite authority.';
+  'Squad invite local mirrors are unavailable in API mode; use /v1/invites for squad invite authority.';
+
+function assertMockMirror(action: string, storageKey: string): void {
+  if (USE_MOCK) return;
+
+  logger.error(API_MODE_SQUAD_INVITE_MESSAGE, { action, storageKey });
+  throw new Error(API_MODE_SQUAD_INVITE_MESSAGE);
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -266,10 +273,7 @@ let squadSessionInvitesCache: SquadSessionInvite[] = [];
 let inviteHistoryCache: SquadInviteHistoryEntry[] = [];
 
 export async function loadSquadInvites(): Promise<SquadInvite[]> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, { storageKey: STORAGE_KEYS.SQUAD_INVITES });
-    return [];
-  }
+  assertMockMirror('loadSquadInvites', STORAGE_KEYS.SQUAD_INVITES);
 
   try {
     return await apiClient.get<SquadInvite[]>(STORAGE_KEYS.SQUAD_INVITES, []);
@@ -280,14 +284,7 @@ export async function loadSquadInvites(): Promise<SquadInvite[]> {
 }
 
 export async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
-      storageKey: STORAGE_KEYS.SQUAD_INVITES,
-      inviteCount: invites.length,
-    });
-    squadInvitesCache = [];
-    return;
-  }
+  assertMockMirror('saveSquadInvites', STORAGE_KEYS.SQUAD_INVITES);
 
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_INVITES, invites);
@@ -298,12 +295,7 @@ export async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
 }
 
 export async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
-      storageKey: STORAGE_KEYS.SQUAD_SESSION_INVITES,
-    });
-    return [];
-  }
+  assertMockMirror('loadSquadSessionInvites', STORAGE_KEYS.SQUAD_SESSION_INVITES);
 
   try {
     return await apiClient.get<SquadSessionInvite[]>(STORAGE_KEYS.SQUAD_SESSION_INVITES, []);
@@ -314,14 +306,7 @@ export async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
 }
 
 export async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Promise<void> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
-      storageKey: STORAGE_KEYS.SQUAD_SESSION_INVITES,
-      inviteCount: invites.length,
-    });
-    squadSessionInvitesCache = [];
-    return;
-  }
+  assertMockMirror('saveSquadSessionInvites', STORAGE_KEYS.SQUAD_SESSION_INVITES);
 
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_SESSION_INVITES, invites);
@@ -332,12 +317,7 @@ export async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Pr
 }
 
 export async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
-      storageKey: STORAGE_KEYS.SQUAD_INVITE_HISTORY,
-    });
-    return [];
-  }
+  assertMockMirror('loadInviteHistory', STORAGE_KEYS.SQUAD_INVITE_HISTORY);
 
   try {
     return await apiClient.get<SquadInviteHistoryEntry[]>(STORAGE_KEYS.SQUAD_INVITE_HISTORY, []);
@@ -348,14 +328,7 @@ export async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
 }
 
 export async function saveInviteHistory(history: SquadInviteHistoryEntry[]): Promise<void> {
-  if (!USE_MOCK) {
-    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
-      storageKey: STORAGE_KEYS.SQUAD_INVITE_HISTORY,
-      entryCount: history.length,
-    });
-    inviteHistoryCache = [];
-    return;
-  }
+  assertMockMirror('saveInviteHistory', STORAGE_KEYS.SQUAD_INVITE_HISTORY);
 
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_INVITE_HISTORY, history);
@@ -367,26 +340,38 @@ export async function saveInviteHistory(history: SquadInviteHistoryEntry[]): Pro
 
 // Export cache getters/setters for use by other services
 export function getSquadInvitesCache(): SquadInvite[] {
+  assertMockMirror('getSquadInvitesCache', STORAGE_KEYS.SQUAD_INVITES);
+
   return squadInvitesCache;
 }
 
 export function setSquadInvitesCache(invites: SquadInvite[]): void {
+  assertMockMirror('setSquadInvitesCache', STORAGE_KEYS.SQUAD_INVITES);
+
   squadInvitesCache = invites;
 }
 
 export function getSquadSessionInvitesCache(): SquadSessionInvite[] {
+  assertMockMirror('getSquadSessionInvitesCache', STORAGE_KEYS.SQUAD_SESSION_INVITES);
+
   return squadSessionInvitesCache;
 }
 
 export function setSquadSessionInvitesCache(invites: SquadSessionInvite[]): void {
+  assertMockMirror('setSquadSessionInvitesCache', STORAGE_KEYS.SQUAD_SESSION_INVITES);
+
   squadSessionInvitesCache = invites;
 }
 
 export function getInviteHistoryCache(): SquadInviteHistoryEntry[] {
+  assertMockMirror('getInviteHistoryCache', STORAGE_KEYS.SQUAD_INVITE_HISTORY);
+
   return inviteHistoryCache;
 }
 
 export function setInviteHistoryCache(history: SquadInviteHistoryEntry[]): void {
+  assertMockMirror('setInviteHistoryCache', STORAGE_KEYS.SQUAD_INVITE_HISTORY);
+
   inviteHistoryCache = history;
 }
 

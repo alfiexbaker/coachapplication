@@ -276,6 +276,8 @@ export interface Invoice {
   currency: string;
   /** Current status of the invoice */
   status: InvoiceStatus;
+  /** Whether the current authenticated actor may make finance transitions. */
+  canManageMoney?: boolean;
   /** When the invoice was created */
   createdAt: string;
   /** When the invoice was last updated */

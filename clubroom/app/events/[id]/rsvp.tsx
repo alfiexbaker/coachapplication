@@ -38,7 +38,6 @@ export default function EventRSVPScreen() {
   const {
     event,
     currentRSVP,
-    isCoach,
     status,
     error,
     refreshing,
@@ -49,12 +48,10 @@ export default function EventRSVPScreen() {
     note,
     isFull,
     rsvpClosed,
-    reminderSending,
     attendeeCounts,
     setNote,
     handleStatusSelect,
     handleSubmit,
-    handleSendReminder,
   } = useEventRSVP(id);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -221,32 +218,6 @@ export default function EventRSVPScreen() {
               </Row>
             </Row>
           </SurfaceCard>
-
-          {isCoach && attendeeCounts.maybe > 0 && !rsvpClosed && (
-            <View
-              style={[
-                styles.reminderCard,
-                { borderColor: palette.border, backgroundColor: palette.surface },
-              ]}
-            >
-              <Row align="center" gap="sm" style={styles.reminderHeader}>
-                <Ionicons name="notifications-outline" size={18} color={palette.tint} />
-                <ThemedText type="defaultSemiBold">
-                  {attendeeCounts.maybe} maybe response{attendeeCounts.maybe === 1 ? '' : 's'}
-                </ThemedText>
-              </Row>
-              <ThemedText style={[styles.reminderBody, { color: palette.muted }]}>
-                Send a reminder to attendees who marked maybe.
-              </ThemedText>
-              <Button
-                onPress={handleSendReminder}
-                disabled={reminderSending}
-                variant="secondary"
-                style={styles.reminderButton}
-                label={reminderSending ? 'Sending...' : 'Send Reminder'}
-              />
-            </View>
-          )}
 
           {isPastDeadline && rsvpDeadlineDate && (
             <Row
@@ -465,15 +436,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   rsvpCountText: { ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
-  reminderCard: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  reminderHeader: {},
-  reminderBody: { ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
-  reminderButton: { marginTop: Spacing.xxs },
   warningBanner: { padding: Spacing.md, borderRadius: Radii.md },
   warningText: {
     ...Typography.bodySmallSemiBold,

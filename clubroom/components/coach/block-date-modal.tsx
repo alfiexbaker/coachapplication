@@ -123,12 +123,12 @@ export function BlockDateModal({
   const adjustDate = (target: 'start' | 'end', days: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (target === 'start') {
-      setStartDate((prev) => {
-        const d = new Date(prev);
-        d.setDate(d.getDate() + days);
-        if (d > endDate) setEndDate(d);
-        return d;
-      });
+      const nextStartDate = new Date(startDate);
+      nextStartDate.setDate(nextStartDate.getDate() + days);
+      setStartDate(nextStartDate);
+      if (nextStartDate > endDate) {
+        setEndDate(nextStartDate);
+      }
     } else {
       setEndDate((prev) => {
         const d = new Date(prev);

@@ -8,7 +8,7 @@
 import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, notFound, serviceError, storageError, unsupportedError } from '@/types/result';
+import { ok, err, notFound, serviceError, storageError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
@@ -612,14 +612,9 @@ export const coachService = {
         ) {
           return ok([]);
         }
-        if (filters?.location) {
-          return err(
-            unsupportedError(
-              'Location coach filtering needs a public location projection before it can run in API mode.',
-            ),
-          );
-        }
+        const locationQuery = filters?.location?.trim();
         return searchApiCoaches({
+          query: locationQuery && locationQuery.length > 0 ? locationQuery : undefined,
           sports: ['Football'],
           priceMax: filters?.maxPrice,
           rating: filters?.minRating,

@@ -282,19 +282,17 @@ describe('BaseService', () => {
   // ---------------------------------------------------------------------------
 
   describe('delete', () => {
-    test('soft-deletes entity (hidden from getAll, still findable by ID)', async () => {
+    test('soft-deletes entity and hides it from reads', async () => {
       const createResult = await service.create({ name: 'Delete Me', category: 'X', score: 0 });
       if (!createResult.success) return;
 
       const deleteResult = await service.delete(createResult.data.id);
       assert.equal(deleteResult.success, true);
 
-      // Soft-deleted: still accessible via getById (has deletedAt set)
+      // Soft-deleted entities are not exposed through normal item reads.
       const getResult = await service.getById(createResult.data.id);
-      assert.equal(getResult.success, true);
-      if (getResult.success) {
-        assert.ok((getResult.data as unknown as Record<string, unknown>).deletedAt, 'Should have deletedAt');
-      }
+      assert.equal(getResult.success, false);
+      if (!getResult.success) assert.equal(getResult.error.code, 'NOT_FOUND');
 
       // But hidden from getAll
       const allResult = await service.getAll();

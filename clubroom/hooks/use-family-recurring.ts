@@ -11,13 +11,15 @@ import { bookingService } from '@/services/booking';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { err, ok, storageError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { shouldLoadFamilyChildren } from '@/hooks/child-context-helpers';
 
 export function useFamilyRecurring() {
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ recurringId?: string }>();
+  const canManageFamilyRecurring = shouldLoadFamilyChildren(currentUser);
 
   const loadPlans = async () => {
-    if (!currentUser?.id) {
+    if (!currentUser?.id || !canManageFamilyRecurring) {
       return ok<FamilyRecurringPlanSummary[]>([]);
     }
     return familyRecurringService.listPlansForParent(currentUser.id);
@@ -25,7 +27,7 @@ export function useFamilyRecurring() {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyRecurringPlanSummary[]>({
     load: loadPlans,
-    deps: [loadPlans],
+    deps: [currentUser?.id, canManageFamilyRecurring],
     isEmpty: (plans) => plans.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
@@ -38,6 +40,7 @@ export function useFamilyRecurring() {
     : undefined;
 
   const runAndRefresh = async (action: () => Promise<{ success: boolean; error?: { message?: string } }>, successMessage: string) => {
+    if (!canManageFamilyRecurring) return;
     const result = await action();
     if (!result.success) {
       uiFeedback.showToast(result.error?.message || 'Failed to update recurring plan.', 'error');
@@ -80,6 +83,7 @@ export function useFamilyRecurring() {
     }, 'Next recurring session skipped.');
 
   const handleCreatePlan = () => {
+    if (!canManageFamilyRecurring) return;
     router.push(Routes.BOOKINGS_SUBSCRIBE);
   };
 
@@ -89,6 +93,7 @@ export function useFamilyRecurring() {
     refreshing,
     onRefresh,
     retry,
+    canManageFamilyRecurring,
     plans,
     highlightedPlan,
     handlePause,

@@ -19,6 +19,8 @@
   },
   "include": [
     "__tests__/book-coach.snapshot.ts",
+    "__tests__/components/**/*.ts",
+    "__tests__/components/**/*.tsx",
     "__tests__/favourites/**/*.ts",
     "__tests__/favourites/**/*.tsx",
     "__tests__/drills/**/*.ts",
@@ -86,8 +88,5 @@
     "__tests__/contracts/**/*.ts",
     "contracts/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    ".tmp-tests"
-  ]
+  "exclude": ["node_modules", ".tmp-tests"]
 }

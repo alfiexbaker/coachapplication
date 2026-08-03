@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeUserRole } from '@/constants/user-types';
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
 import type { BookingDraft } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 
@@ -116,16 +116,27 @@ function buildEvent(params: TrackBookingStepParams): BookingStepAnalyticsEvent {
 
 export const bookingStepAnalyticsService = {
   async track(params: TrackBookingStepParams): Promise<void> {
+    const event = buildEvent(params);
+
     if (!apiClient.isMockMode) {
-      logger.debug('Skipped local booking step analytics outside mock mode', {
-        step: params.step,
-        status: params.status,
-      });
+      const result = await apiFetch<{ event: { id: string; createdAt: string } }>(
+        '/v1/booking-step-analytics',
+        {
+          method: 'POST',
+          body: JSON.stringify(event),
+        },
+      );
+      if (!result.success) {
+        logger.warn('Failed to persist booking step analytics event through API', {
+          step: event.step,
+          status: event.status,
+          error: result.error,
+        });
+      }
       return;
     }
 
     try {
-      const event = buildEvent(params);
       const events = await apiClient.get<BookingStepAnalyticsEvent[]>(
         STORAGE_KEYS.BOOKING_STEP_ANALYTICS_EVENTS,
         [],
@@ -136,7 +147,11 @@ export const bookingStepAnalyticsService = {
       }
       await apiClient.set(STORAGE_KEYS.BOOKING_STEP_ANALYTICS_EVENTS, events);
     } catch (error) {
-      logger.warn('Failed to persist booking step analytics event', { params, error });
+      logger.warn('Failed to persist booking step analytics event', {
+        step: event.step,
+        status: event.status,
+        error,
+      });
     }
   },
 };

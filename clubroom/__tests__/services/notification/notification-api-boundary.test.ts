@@ -93,6 +93,50 @@ test('notification compatibility storage is mock-only in API mode', () => {
   assert.ok(triggerGuard >= 0, 'notification trigger should guard API mode');
   assert.ok(triggerWrite >= 0, 'test should find local notification create');
   assert.ok(triggerGuard < triggerWrite, 'API mode must skip local notification trigger writes');
+
+  const bookingCrud = readSource('services/booking/booking-crud-service.ts');
+  const cancelStart = bookingCrud.indexOf('async cancel(');
+  const mockNotificationGuard = bookingCrud.indexOf('if (apiClient.isMockMode)', cancelStart);
+  const cancellationTrigger = bookingCrud.indexOf(
+    'notificationTriggers.bookingCancelled',
+    cancelStart,
+  );
+
+  assert.ok(cancelStart >= 0, 'test should find booking cancellation flow');
+  assert.ok(mockNotificationGuard >= 0, 'booking cancellation should guard local notifications');
+  assert.ok(cancellationTrigger >= 0, 'test should find booking cancellation trigger');
+  assert.ok(
+    mockNotificationGuard < cancellationTrigger,
+    'API-mode booking cancellation must rely on backend notification rows',
+  );
+
+  const completionHook = readSource('hooks/use-session-completion.ts');
+  const completionEventStart = completionHook.indexOf('emitTyped(ServiceEvents.SESSION_COMPLETED');
+  const completionMockGuard = completionHook.indexOf(
+    'if (apiClient.isMockMode)',
+    completionEventStart,
+  );
+  const sessionCompletedTrigger = completionHook.indexOf(
+    'notificationTriggers.sessionCompleted',
+    completionEventStart,
+  );
+  const reviewPromptTrigger = completionHook.indexOf(
+    'notificationTriggers.reviewPrompt',
+    completionEventStart,
+  );
+
+  assert.ok(completionEventStart >= 0, 'test should find session completion event');
+  assert.ok(completionMockGuard >= 0, 'session completion local notifications need mock guard');
+  assert.ok(sessionCompletedTrigger >= 0, 'test should find session completed trigger');
+  assert.ok(reviewPromptTrigger >= 0, 'test should find review prompt trigger');
+  assert.ok(
+    completionMockGuard < sessionCompletedTrigger,
+    'API-mode session completion must rely on backend completion notification rows',
+  );
+  assert.ok(
+    completionMockGuard < reviewPromptTrigger,
+    'API-mode review prompts must rely on backend completion notification rows',
+  );
 });
 
 test('badge notification actions hide after the API read transition', () => {
@@ -106,6 +150,46 @@ test('badge notification actions hide after the API read transition', () => {
   assert.ok(
     groups.includes('item.type === "badge" && !item.read && !item.handled'),
     'day-grouped notification list should hide add-to-feed after read',
+  );
+});
+
+test('notification preferences preserve live authority errors in API mode', () => {
+  const source = readSource('services/notification/notification-preferences.ts');
+  const authorityRead = source.indexOf(
+    'const authoritativeResult = await notificationAuthorityService.getNotificationPreferences();',
+  );
+  const mockStorageRead = source.indexOf(
+    'const all = await this.loadAllPreferences();',
+    authorityRead,
+  );
+  const helperStart = source.indexOf('function notificationPreferencesError');
+  const helperEnd = source.indexOf('class NotificationPreferencesService', helperStart);
+
+  assert.ok(authorityRead >= 0, 'test should find live notification preference read');
+  assert.ok(mockStorageRead > authorityRead, 'test should find mock storage boundary');
+  assert.ok(helperStart >= 0, 'test should find error preservation helper');
+  assert.ok(helperEnd > helperStart, 'test should find helper boundary');
+
+  const liveReadBlock = source.slice(authorityRead, mockStorageRead);
+  const helperBlock = source.slice(helperStart, helperEnd);
+
+  assert.ok(
+    liveReadBlock.includes('throw authoritativeResult.error;'),
+    'API preference read failures should preserve the original ServiceError',
+  );
+  assert.equal(
+    liveReadBlock.includes('throw new Error(authoritativeResult.error.message)'),
+    false,
+    'API preference read failures must not lose the backend error code',
+  );
+  assert.ok(
+    helperBlock.includes('isServiceError(error) ? error : storageError(fallbackMessage)'),
+    'storage errors should only be used when the thrown value is not an authority ServiceError',
+  );
+  assert.equal(
+    source.includes('return err(storageError('),
+    false,
+    'notification preference catches should use the preserving helper, not generic storage errors',
   );
 });
 

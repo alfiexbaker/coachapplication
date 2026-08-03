@@ -1,7 +1,4 @@
 import { useState } from 'react';
-import { Share } from 'react-native';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -21,27 +18,27 @@ export const FAQ_ITEMS: FAQItem[] = [
   {
     question: 'How do I book a session?',
     answer:
-      'Open Bookings, switch to Discover if needed, then choose a coach or session and follow the booking steps.',
+      'Parents and athletes can open Bookings, choose Discover, then select a coach or open session.',
   },
   {
     question: 'How do I cancel a booking?',
     answer:
-      'Go to your Bookings tab, find the session you want to cancel, and tap on it. Then select "Cancel Booking". Note that cancellation policies may apply.',
+      'Open Bookings, select the session, then choose Cancel Booking. The booking shows any cancellation terms that apply.',
   },
   {
     question: 'How do I become a coach?',
     answer:
-      'To become a coach, sign up with a coach account and complete the verification process. This includes providing credentials and background check information.',
+      'Create a coach account, then complete the identity and coaching verification checks before accepting bookings.',
   },
   {
     question: 'How do payments work?',
     answer:
-      'Clubroom does not process payments in-app. Once a booking is confirmed, the coach or organization responsible for billing shares payment instructions, and payment status can then be tracked in the reconciler.',
+      'Clubroom does not take payments. The coach or club sends payment instructions and records whether payment is due or paid.',
   },
   {
     question: 'How do I update my availability?',
     answer:
-      'Coaches can update their availability by going to Settings > Availability. Set your weekly schedule and any one-off time blocks.',
+      'Coach accounts can open Settings, then Availability, to set recurring slots or block specific dates.',
   },
 ];
 
@@ -69,20 +66,15 @@ export function useHelpScreen() {
     );
   };
 
-  const handleReportProblem = () => {
-    logger.press('ReportProblem');
-    router.push(Routes.BOOKINGS_REPORT_PROBLEM);
-  };
-
   const handleSendFeedback = () => {
     logger.press('SendFeedback');
     void (async () => {
       const selected = await uiFeedback.choose({
-        title: 'Send Feedback',
-        message: 'Your feedback helps us improve Clubroom. What would you like to share?',
+        title: 'Send feedback',
+        message: 'Choose what you want to send.',
         options: [
-          { id: 'feature', label: 'Feature Request' },
-          { id: 'general', label: 'General Feedback' },
+          { id: 'feature', label: 'Suggest a feature' },
+          { id: 'general', label: 'General feedback' },
         ],
         cancelText: 'Cancel',
       });
@@ -109,24 +101,10 @@ export function useHelpScreen() {
     })();
   };
 
-  const handleShareApp = () => {
-    logger.press('ShareApp');
-    void Share.share({
-      message:
-        'Clubroom helps coaches, parents, athletes, and clubs stay coordinated around football sessions.',
-    }).catch((error) => {
-      logger.error('Failed to share app', error);
-      uiFeedback.showToast('Could not open the share sheet right now.', 'error');
-    });
-  };
-
   return {
-    currentUser,
     expandedFAQ,
     toggleFAQ,
     handleContactSupport,
-    handleReportProblem,
     handleSendFeedback,
-    handleShareApp,
   };
 }

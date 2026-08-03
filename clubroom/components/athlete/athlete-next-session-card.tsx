@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
 import { getRosterAthleteName } from '@/utils/roster-display';
+import { formatRosterNextSession } from '@/utils/roster-next-session-display';
 
 export const NextSessionCard = function NextSessionCard({
   athlete,
@@ -29,7 +30,7 @@ export const NextSessionCard = function NextSessionCard({
   };
 
   if (athlete.nextSessionDate) {
-    const date = new Date(athlete.nextSessionDate);
+    const sessionLabel = formatRosterNextSession(athlete.nextSessionDate);
     return (
       <SurfaceCard style={styles.card}>
         <Row gap="sm" align="center">
@@ -39,13 +40,7 @@ export const NextSessionCard = function NextSessionCard({
           <Column gap="micro" style={styles.flex1}>
             <ThemedText type="defaultSemiBold">Next Session</ThemedText>
             <ThemedText style={[styles.sessionDate, { color: colors.success }]}>
-              {date.toLocaleDateString('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {sessionLabel}
             </ThemedText>
           </Column>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />

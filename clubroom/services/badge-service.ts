@@ -60,6 +60,11 @@ type ApiBadgesResponse = {
   seedVersion?: string | null;
   requestId?: string;
 };
+type ApiBadgeDefinitionsResponse = {
+  badgeDefinitions: Array<ApiBadgeDefinitionRow & { awardCount?: number }>;
+  seedVersion?: string | null;
+  requestId?: string;
+};
 type ApiSessionBadgesResponse = {
   sessionId: string;
   badges: ApiBadgeRow[];
@@ -177,6 +182,31 @@ function mapApiBadgeAward(
   };
 }
 
+function mapApiBadgeDefinitionWithStats(row: ApiBadgeDefinitionRow): BadgeDefinitionWithStats {
+  const mapped: BadgeDefinitionWithStats = {
+    id: stringValue(row, 'id', stringValue(row, 'code')),
+    label: stringValue(row, 'label', stringValue(row, 'name', 'Badge')),
+    awardCount: numberValue(row, 'awardCount', 0),
+  };
+  const description = stringValue(row, 'description');
+  if (description) {
+    mapped.description = description;
+  }
+  const category = badgeCategory(row.category);
+  if (category) {
+    mapped.category = category;
+  }
+  const tier = numberValue(row, 'tier', 0);
+  if (tier === 1 || tier === 2 || tier === 3) {
+    mapped.tier = tier;
+  }
+  const pointValue = numberValue(row, 'pointValue', 0);
+  if (pointValue > 0) {
+    mapped.pointValue = pointValue;
+  }
+  return mapped;
+}
+
 async function resolveBadgeApiAccess(athleteId: string): Promise<BadgeApiAccess> {
   const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete badges.');
   if (!currentUserResult.success) {
@@ -225,6 +255,18 @@ async function listApiAwardsForAthlete(athleteId: string): Promise<BadgeAward[]>
   return result.data.badges
     .map((badge) => mapApiBadgeAward(badge, definitionsById, result.data.athleteId))
     .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+}
+
+async function listApiBadgeDefinitionsWithStats(): Promise<BadgeDefinitionWithStats[]> {
+  const headers = await resolveBadgeActionHeaders('Sign in to view badge definitions.');
+  const result = await apiFetch<ApiBadgeDefinitionsResponse>('/v1/badge-definitions', {
+    method: 'GET',
+    headers,
+  });
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.badgeDefinitions.map(mapApiBadgeDefinitionWithStats);
 }
 
 async function listApiAwardsForSession(sessionId: string): Promise<BadgeAward[]> {
@@ -364,6 +406,10 @@ class BadgeService {
   }
 
   async listDefinitionsWithStats(): Promise<BadgeDefinitionWithStats[]> {
+    if (!apiClient.isMockMode) {
+      return listApiBadgeDefinitionsWithStats();
+    }
+
     const [definitions, allAwards] = await Promise.all([this.listDefinitions(), this.listAwards()]);
     const athletesByBadge = new Map<string, Set<string>>();
     for (const award of allAwards) {
@@ -386,7 +432,9 @@ class BadgeService {
 
   async listAwards(): Promise<BadgeAward[]> {
     if (!apiClient.isMockMode) {
-      return [];
+      throw new Error(
+        'Global badge award listing is unavailable in API mode. Use scoped badge reads or /v1/badge-definitions for aggregate stats.',
+      );
     }
 
     const stored = await this.getStoredAwards();

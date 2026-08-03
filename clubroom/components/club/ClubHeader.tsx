@@ -49,12 +49,14 @@ export function ClubHeader({
 
   const roleLabel = getClubRoleLabel(membership.role);
   const canManage = canManageClubUi(membership);
+  const canEditPhotos = canManage && Boolean(onUpdatePhotos);
   const canShareInvite = canShareClubInvite(membership);
   const isOwner = membership.role === 'OWNER';
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
-  const showCoverPhotoArea = Boolean(club.coverPhotoUrl || canManage);
+  const showCoverPhotoArea = Boolean(club.coverPhotoUrl || canEditPhotos);
 
   const pickImage = async (type: 'profile' | 'cover') => {
+    if (!onUpdatePhotos) return;
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       setPhotoPermissionMessage(
@@ -73,7 +75,7 @@ export function ClubHeader({
     if (!result.canceled && result.assets[0]) {
       const uri = result.assets[0].uri;
       setUploadingPhoto(true);
-      onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
+      onUpdatePhotos(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
       setUploadingPhoto(false);
     }
   };
@@ -166,90 +168,110 @@ export function ClubHeader({
     },
   ];
 
+  const coverPhotoContent = club.coverPhotoUrl ? (
+    <>
+      <SafeImage
+        source={{ uri: club.coverPhotoUrl }}
+        fallbackIcon="image-outline"
+        fallbackIconSize={48}
+        style={styles.coverPhoto}
+        contentFit="cover"
+      />
+      {canEditPhotos ? (
+        <View style={[styles.coverEditBadge, { backgroundColor: palette.surface }]}>
+          <Ionicons name="camera-outline" size={14} color={palette.tint} />
+        </View>
+      ) : null}
+    </>
+  ) : (
+    <View
+      style={[
+        styles.coverPhotoPlaceholder,
+        { backgroundColor: withAlpha(palette.tint, 0.06) },
+      ]}
+    >
+      <Row style={styles.coverPhotoHint}>
+        <Ionicons name="camera-outline" size={20} color={palette.muted} />
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+          Add cover photo
+        </ThemedText>
+      </Row>
+    </View>
+  );
+
+  const profilePhotoContent = (
+    <>
+      {club.profilePhotoUrl ? (
+        <SafeImage
+          source={{ uri: club.profilePhotoUrl }}
+          fallbackIcon="people-outline"
+          fallbackIconSize={24}
+          style={[styles.clubAvatar, { borderColor: palette.surface }]}
+        />
+      ) : (
+        <View
+          style={[
+            styles.clubAvatar,
+            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.surface },
+          ]}
+        >
+          <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
+        </View>
+      )}
+      {canEditPhotos && !uploadingPhoto ? (
+        <View style={[styles.profileEditBadge, { backgroundColor: palette.tint }]}>
+          <Ionicons name="camera" size={10} color={palette.surface} />
+        </View>
+      ) : null}
+      {uploadingPhoto ? (
+        <View
+          style={[
+            styles.profileEditBadge,
+            styles.profileUploadOverlay,
+            { backgroundColor: palette.tint },
+          ]}
+        >
+          <ActivityIndicator size="small" color={palette.surface} />
+        </View>
+      ) : null}
+    </>
+  );
+
   return (
     <>
       {/* Cover Photo */}
-      {showCoverPhotoArea && (
+      {showCoverPhotoArea && canEditPhotos ? (
         <Clickable
-          onPress={() => canManage && pickImage('cover')}
-          disabled={!canManage}
+          onPress={() => pickImage('cover')}
+          accessibilityLabel={club.coverPhotoUrl ? 'Change cover photo' : 'Add cover photo'}
           style={styles.coverPhotoContainer}
         >
-          {club.coverPhotoUrl ? (
-            <SafeImage
-              source={{ uri: club.coverPhotoUrl }}
-              fallbackIcon="image-outline"
-              fallbackIconSize={48}
-              style={styles.coverPhoto}
-              contentFit="cover"
-            />
-          ) : (
-            <View
-              style={[
-                styles.coverPhotoPlaceholder,
-                { backgroundColor: withAlpha(palette.tint, 0.06) },
-              ]}
-            >
-              {canManage && (
-                <Row style={styles.coverPhotoHint}>
-                  <Ionicons name="camera-outline" size={20} color={palette.muted} />
-                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                    Add cover photo
-                  </ThemedText>
-                </Row>
-              )}
-            </View>
-          )}
-          {canManage && club.coverPhotoUrl && (
-            <View style={[styles.coverEditBadge, { backgroundColor: palette.surface }]}>
-              <Ionicons name="camera-outline" size={14} color={palette.tint} />
-            </View>
-          )}
+          {coverPhotoContent}
         </Clickable>
-      )}
+      ) : showCoverPhotoArea ? (
+        <View style={styles.coverPhotoContainer}>{coverPhotoContent}</View>
+      ) : null}
 
       {/* Club Info Row */}
       <Row style={[styles.clubHeader, showCoverPhotoArea ? styles.clubHeaderWithCover : undefined]}>
-        <Clickable
-          onPress={() => canManage && pickImage('profile')}
-          disabled={!canManage}
-          style={styles.profilePhotoTouchable}
-        >
-          {club.profilePhotoUrl ? (
-            <SafeImage
-              source={{ uri: club.profilePhotoUrl }}
-              fallbackIcon="people-outline"
-              fallbackIconSize={24}
-              style={[styles.clubAvatar, { borderColor: palette.surface }]}
-            />
-          ) : (
-            <View
-              style={[
-                styles.clubAvatar,
-                { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.surface },
-              ]}
-            >
-              <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
-            </View>
-          )}
-          {canManage && !uploadingPhoto && (
-            <View style={[styles.profileEditBadge, { backgroundColor: palette.tint }]}>
-              <Ionicons name="camera" size={10} color={palette.surface} />
-            </View>
-          )}
-          {uploadingPhoto && (
-            <View style={[styles.profileEditBadge, { backgroundColor: palette.tint, width: 56, height: 56, borderRadius: Radii['2xl'], position: 'absolute', top: 0, left: 0, opacity: 0.7, alignItems: 'center', justifyContent: 'center' }]}>
-              <ActivityIndicator size="small" color={palette.surface} />
-            </View>
-          )}
-        </Clickable>
+        {canEditPhotos ? (
+          <Clickable
+            onPress={() => pickImage('profile')}
+            accessibilityLabel={club.profilePhotoUrl ? 'Change club photo' : 'Add club photo'}
+            style={styles.profilePhotoTouchable}
+          >
+            {profilePhotoContent}
+          </Clickable>
+        ) : (
+          <View style={styles.profilePhotoTouchable}>{profilePhotoContent}</View>
+        )}
 
         <Column flex>
           <ThemedText type="title" style={{ ...Typography.title }}>
             {club.name}
           </ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            {roleLabel} -- {club.memberCount} members
+            {roleLabel} · {club.memberCount} members
           </ThemedText>
           {club.tagline ? (
             <ThemedText
@@ -330,6 +352,17 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileUploadOverlay: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii['2xl'],
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    opacity: 0.7,
     alignItems: 'center',
     justifyContent: 'center',
   },

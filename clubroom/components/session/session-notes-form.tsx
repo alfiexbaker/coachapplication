@@ -1,5 +1,5 @@
 import { useEffect, useState, startTransition } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
 
@@ -66,13 +66,13 @@ export function SessionNotesForm({
 
   const summaryCount = summary.length;
   const summaryWarn = summaryCount > 450;
-  const focusError = focus.length === 0 ? 'Select at least one focus area' : null;
-  const effortError = effort === null ? 'Rate athlete effort' : null;
+  const focusMissing = focus.length === 0;
+  const effortMissing = effort === null;
   const canSubmit =
-    viewerRole === 'coach' && !submitting && !focusError && !effortError;
+    viewerRole === 'coach' && !submitting && !focusMissing && !effortMissing;
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.content}>
       <View style={{ gap: Spacing.sm }}>
         <ThemedText type="defaultSemiBold">Session summary</ThemedText>
         <ThemedText style={[Typography.caption, { color: palette.muted }]}>
@@ -114,7 +114,7 @@ export function SessionNotesForm({
           style={[
             styles.focusWrap,
             {
-              borderColor: focusError ? palette.error : palette.border,
+              borderColor: palette.border,
               backgroundColor: palette.surface,
             },
           ]}
@@ -145,8 +145,8 @@ export function SessionNotesForm({
           })}
           </Row>
         </View>
-        <ThemedText style={[Typography.caption, { color: focusError ? palette.error : palette.muted }]}>
-          {focusError ?? `${focus.length}/3 selected`}
+        <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+          {focus.length}/3 selected
         </ThemedText>
       </View>
 
@@ -181,8 +181,8 @@ export function SessionNotesForm({
       <View style={{ gap: Spacing.sm }}>
         <ThemedText type="defaultSemiBold">Effort rating</ThemedText>
         <RatingStars rating={effort} onRate={setEffort} />
-        <ThemedText style={[Typography.caption, { color: effortError ? palette.error : palette.muted }]}>
-          {effortError ?? 'How hard did the athlete work today?'}
+        <ThemedText style={[Typography.caption, { color: palette.muted }]}>
+          How hard did the athlete work today?
         </ThemedText>
       </View>
 
@@ -240,7 +240,7 @@ export function SessionNotesForm({
           </ThemedText>
         </Row>
       </Clickable>
-    </ScrollView>
+    </View>
   );
 }
 

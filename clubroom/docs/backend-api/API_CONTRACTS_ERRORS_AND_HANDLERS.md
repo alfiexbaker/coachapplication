@@ -19,6 +19,17 @@ This file defines how Clubroom API endpoints should be specified and implemented
 - JSON responses for success
 - `application/problem+json` for errors (recommended)
 
+## Versioning And Deprecation
+
+- The major contract version is the path prefix. `/v1` is the current major and is `preview` until the launch gates pass; the package/OpenAPI document version is not a substitute for the path major.
+- Backward-compatible fixes and additive optional fields may ship within `/v1`. Clients must ignore response fields they do not understand.
+- Removing or renaming fields, changing field meaning or type, adding required request fields, narrowing existing authorization unexpectedly, or changing a successful operation into a different workflow requires a new major path such as `/v2`.
+- A new major must run alongside the prior stable major during migration. Do not silently redirect writes between majors.
+- Once a major is stable, planned retirement receives at least 180 days notice. Deprecated operations are marked `deprecated: true` in OpenAPI and return the standard `Deprecation` and `Sunset` response headers plus a `Link` to migration guidance.
+- Emergency security restrictions may take effect sooner. Record the reason, affected consumers, and mitigation in the release notes and audit the rollout.
+- `/v1/meta/version` is the machine-readable runtime source for service version, contract major, lifecycle status, minimum deprecation window, and active data backend.
+- The generated OpenAPI root exposes the same policy through `x-clubroom-api-lifecycle`; lifecycle metadata and runtime metadata must remain covered by executable tests.
+
 ## Contract Source of Truth
 
 All public request/response DTOs must live in a shared contracts package (planned), e.g.:
@@ -64,6 +75,13 @@ Always map through a serializer to a response DTO schema.
 - reject unknown enum values during request validation
 
 ## Endpoint Design Standards
+
+### OpenAPI tags
+
+- Give each operation one user-facing domain tag.
+- Do not combine domains into slash-delimited tags or expose internal team names.
+- Use `Trust & Safety` for access grants, retention, reports, blocks, and safeguarding operations; use `Verification` for coach evidence review.
+- A generator test must fail if a slash-combined tag or the retired `Trust Ops` tag returns.
 
 ### Production authority bar
 

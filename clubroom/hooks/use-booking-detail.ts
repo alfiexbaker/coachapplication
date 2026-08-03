@@ -29,6 +29,8 @@ import { uiFeedback } from '@/services/ui-feedback';
 import type { SessionFeedback } from '@/services/progress-service';
 import { progressService } from '@/services/progress-service';
 import { canCoachCompleteBooking } from '@/utils/booking-delivery';
+import { buildAuthScopedSnapshotKey } from '@/utils/auth-scoped-snapshot-key';
+import { accountIdsMatch } from '@/utils/account-id';
 
 const logger = createLogger('useBookingDetail');
 const bookingDetailSnapshots = new Map<string, BookingSummary>();
@@ -49,14 +51,21 @@ export interface BookingDetailResult {
     messageCoach: () => void;
     cancelBooking: () => void;
     reopenBooking: () => void;
-    refund: () => void;
     reportProblem: () => void;
     rebook: () => void;
     manageRecurring: () => void;
+    confirmBooking: () => void;
+    declineRequest: () => void;
+    withdrawRequest: () => void;
     completeSession: () => void;
   };
   canCancelBooking: boolean;
   canReopenBooking: boolean;
+  canConfirmBooking: boolean;
+  isConfirmingBooking: boolean;
+  canDeclineRequest: boolean;
+  canWithdrawRequest: boolean;
+  isResolvingRequest: boolean;
   canCompleteSession: boolean;
   formatted: {
     weekday: string;
@@ -72,6 +81,9 @@ const mapBookingStatus = (status: Booking['status']): BookingSummary['status'] =
   if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
   if (status === 'COMPLETED') return 'Completed';
   if (status === 'CANCELLED') return 'Cancelled';
+  if (status === 'DECLINED') return 'Declined';
+  if (status === 'WITHDRAWN') return 'Withdrawn';
+  if (status === 'EXPIRED') return 'Expired';
   return 'Pending';
 };
 
@@ -98,6 +110,20 @@ const toBookingSummary = (
   const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
   const athleteName = getBookingAthleteName(booking);
   const isSelfBooking = Boolean(viewerUserId && athleteId && athleteId === viewerUserId);
+  const participants = booking.participants ?? [];
+  const isGuardianForEveryParticipant = Boolean(
+    viewerUserId &&
+    participants.length > 0 &&
+    participants.every(
+      (participant) =>
+        participant.guardianUserId && accountIdsMatch(viewerUserId, participant.guardianUserId),
+    ),
+  );
+  const canWithdrawRequest = Boolean(
+    viewerUserId &&
+    ((booking.bookedById && accountIdsMatch(viewerUserId, booking.bookedById)) ||
+      isGuardianForEveryParticipant),
+  );
   const audienceLabel = isSelfBooking ? 'You' : athleteName;
 
   return {
@@ -134,6 +160,11 @@ const toBookingSummary = (
     bookedById: booking.bookedById,
     bookedByName: booking.bookedByName,
     audienceLabel,
+    version: booking.version,
+    requestExpiresAt: booking.requestExpiresAt,
+    requestResolvedAt: booking.requestResolvedAt,
+    requestResolutionReason: booking.requestResolutionReason,
+    canWithdrawRequest,
   };
 };
 
@@ -192,16 +223,32 @@ async function resolveBookingUserNames(
   return new Map(result.data.map((user) => [user.id, user.name?.trim() || user.id]));
 }
 
-export function useBookingDetail(id: string): BookingDetailResult {
+function isServiceError(value: unknown): value is ServiceError {
+  return Boolean(
+    value &&
+    typeof value === 'object' &&
+    'code' in value &&
+    typeof (value as { code?: unknown }).code === 'string' &&
+    'message' in value &&
+    typeof (value as { message?: unknown }).message === 'string',
+  );
+}
+
+export function useBookingDetail(id?: string): BookingDetailResult {
   const { currentUser } = useAuth();
   const { reset: resetBookingDraft, updateDraft } = useBookingFlow();
   const isCoach = currentUser?.role === 'COACH';
-
-  const sessionNote = useSessionNote(id);
+  const snapshotKey = buildAuthScopedSnapshotKey(currentUser?.id, 'booking-detail', id);
 
   const [deliveryFeedback, setDeliveryFeedback] = useState<SessionFeedback | null>(null);
+  const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
+  const [isResolvingRequest, setIsResolvingRequest] = useState(false);
 
   const loadBooking = async () => {
+    if (!id) {
+      setDeliveryFeedback(null);
+      return ok<BookingSummary | null>(null);
+    }
     logger.debug('Loading booking', { id });
 
     try {
@@ -209,10 +256,10 @@ export function useBookingDetail(id: string): BookingDetailResult {
       if (booking) {
         const recurringSource = await resolveRecurringSource(booking);
         const userNameById = await resolveBookingUserNames(booking, recurringSource);
-        const feedback = await progressService.getSessionFeedback(
-          booking.id,
-          isCoach ? 'coach' : 'parent',
-        );
+        const feedback =
+          booking.status === 'COMPLETED'
+            ? await progressService.getSessionFeedback(booking.id, isCoach ? 'coach' : 'parent')
+            : null;
         setDeliveryFeedback(feedback);
         return ok<BookingSummary | null>(
           toBookingSummary(booking, {
@@ -226,47 +273,82 @@ export function useBookingDetail(id: string): BookingDetailResult {
       setDeliveryFeedback(null);
       return ok<BookingSummary | null>(null);
     } catch (loadError) {
-      logger.error('Failed to load booking', loadError);
+      if (
+        isServiceError(loadError) &&
+        (loadError.code === 'UNAUTHORIZED' || loadError.code === 'NOT_FOUND')
+      ) {
+        logger.warn('Booking detail is unavailable to the current actor', {
+          bookingId: id,
+          code: loadError.code,
+        });
+      } else {
+        logger.error('Failed to load booking', loadError);
+      }
       setDeliveryFeedback(null);
-      return err(serviceError('UNKNOWN', 'Failed to load booking details.', loadError));
+      return err(
+        isServiceError(loadError)
+          ? loadError
+          : serviceError('UNKNOWN', 'Failed to load booking details.', loadError),
+      );
     }
   };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<BookingSummary | null>({
     load: loadBooking,
-    deps: [id],
+    deps: [id, currentUser?.id, currentUser?.role],
     isEmpty: (value) => value === null,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
   });
 
   useEffect(() => {
-    if (data) {
-      bookingDetailSnapshots.set(id, data);
+    if (data && snapshotKey) {
+      bookingDetailSnapshots.set(snapshotKey, data);
     }
-  }, [data, id]);
+  }, [data, snapshotKey]);
 
-  const booking = data ?? bookingDetailSnapshots.get(id) ?? undefined;
+  const booking =
+    data ??
+    (status === 'loading' && snapshotKey ? bookingDetailSnapshots.get(snapshotKey) : undefined) ??
+    undefined;
   const [nowMs] = useState(() => Date.now());
   const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
   const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > nowMs : false;
-  const canCancelBooking =
-    !!booking &&
+  const requestExpiresMs = booking?.requestExpiresAt
+    ? new Date(booking.requestExpiresAt).getTime()
+    : Number.NaN;
+  const isOpenRequest = Boolean(
+    booking?.status === 'Pending' &&
     isFutureBooking &&
-    booking.status !== 'Cancelled' &&
-    booking.status !== 'Completed' &&
-    booking.status !== 'Needs Completion';
+    (!Number.isFinite(requestExpiresMs) || requestExpiresMs > nowMs),
+  );
+  const canCancelBooking = !!booking && isFutureBooking && booking.status === 'Confirmed';
   const canReopenBooking = !!booking && isFutureBooking && booking.status === 'Cancelled';
+  const canConfirmBooking = Boolean(
+    isCoach &&
+    isOpenRequest &&
+    currentUser?.id &&
+    booking?.coachId &&
+    accountIdsMatch(currentUser.id, booking.coachId),
+  );
+  const canDeclineRequest = canConfirmBooking;
+  const canWithdrawRequest = Boolean(!isCoach && isOpenRequest && booking?.canWithdrawRequest);
   const canCompleteSession =
     isCoach &&
     canCoachCompleteBooking({
       status: booking?.status,
       start: booking?.start,
     });
+  const canReadSessionNote = Boolean(
+    booking &&
+    ((isCoach && (canCompleteSession || booking.status === 'Completed')) ||
+      (!isCoach && booking.status === 'Completed')),
+  );
+  const sessionNote = useSessionNote(canReadSessionNote ? booking?.id : undefined);
 
-  const handleMessageCoach = () => {
+  const handleMessageCounterparty = () => {
     if (!booking) return;
-    router.push(Routes.messagesWith({ coachId: booking.coachId }));
+    router.push(Routes.messagesWith({ bookingId: booking.id }));
   };
 
   const handleCancelBooking = () => {
@@ -277,15 +359,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       );
       return;
     }
-    router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
-  };
-
-  const handleRefund = () => {
-    uiFeedback.alert(
-      'Handle Billing Issue',
-      'Clubroom does not process refunds in-app. Resolve any refund or payment adjustment directly with the family and update your reconciler once it is settled.',
-      [{ text: 'OK' }],
-    );
+    router.push(Routes.bookingCancel(booking.id));
   };
 
   const handleReopenBooking = async () => {
@@ -360,6 +434,88 @@ export function useBookingDetail(id: string): BookingDetailResult {
     router.push(Routes.familyRecurring({ recurringId: booking.recurringBookingId }));
   };
 
+  const handleConfirmBooking = async () => {
+    if (!booking || !canConfirmBooking || isConfirmingBooking) return;
+
+    setIsConfirmingBooking(true);
+    try {
+      const result = await bookingService.confirmBooking(booking.id);
+      setIsConfirmingBooking(false);
+      if (!result.success) {
+        uiFeedback.showToast(result.error || 'We could not confirm this booking.', 'error');
+        return;
+      }
+      uiFeedback.showToast('Booking confirmed.', 'success');
+      onRefresh();
+    } catch (confirmError) {
+      setIsConfirmingBooking(false);
+      logger.error('Failed to confirm booking', confirmError);
+      uiFeedback.showToast('We could not confirm this booking.', 'error');
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    if (!booking || !canDeclineRequest || isResolvingRequest) return;
+
+    const confirmed = await uiFeedback.confirm({
+      title: 'Decline booking request?',
+      message: 'The family will be notified and the requested slot will become available again.',
+      confirmText: 'Decline request',
+      cancelText: 'Keep request',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setIsResolvingRequest(true);
+    try {
+      const result = await bookingService.declineBookingRequest(booking.id, {
+        reason: 'Coach declined the booking request.',
+        ...(typeof booking.version === 'number' ? { expectedVersion: booking.version } : {}),
+      });
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+      } else {
+        uiFeedback.showToast('Booking request declined.', 'success');
+        onRefresh();
+      }
+    } catch (declineError) {
+      logger.error('Failed to decline booking request', declineError);
+      uiFeedback.showToast('We could not decline this booking request.', 'error');
+    }
+    setIsResolvingRequest(false);
+  };
+
+  const handleWithdrawRequest = async () => {
+    if (!booking || !canWithdrawRequest || isResolvingRequest) return;
+
+    const confirmed = await uiFeedback.confirm({
+      title: 'Withdraw booking request?',
+      message: 'The coach will be notified and the requested slot will become available again.',
+      confirmText: 'Withdraw request',
+      cancelText: 'Keep request',
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    setIsResolvingRequest(true);
+    try {
+      const result = await bookingService.withdrawBookingRequest(booking.id, {
+        reason: 'Requester withdrew the booking request.',
+        ...(typeof booking.version === 'number' ? { expectedVersion: booking.version } : {}),
+      });
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+      } else {
+        uiFeedback.showToast('Booking request withdrawn.', 'success');
+        onRefresh();
+      }
+    } catch (withdrawError) {
+      logger.error('Failed to withdraw booking request', withdrawError);
+      uiFeedback.showToast('We could not withdraw this booking request.', 'error');
+    }
+    setIsResolvingRequest(false);
+  };
+
   const handleCompleteSession = () => {
     if (!booking?.id || !canCompleteSession) return;
     router.push(Routes.sessionComplete(booking.id));
@@ -393,17 +549,24 @@ export function useBookingDetail(id: string): BookingDetailResult {
     sessionNote,
     deliveryFeedback,
     handlers: {
-      messageCoach: handleMessageCoach,
+      messageCoach: handleMessageCounterparty,
       cancelBooking: handleCancelBooking,
       reopenBooking: handleReopenBooking,
-      refund: handleRefund,
       reportProblem: handleReportProblem,
       rebook: handleRebook,
       manageRecurring: handleManageRecurring,
+      confirmBooking: handleConfirmBooking,
+      declineRequest: handleDeclineRequest,
+      withdrawRequest: handleWithdrawRequest,
       completeSession: handleCompleteSession,
     },
     canCancelBooking,
     canReopenBooking,
+    canConfirmBooking,
+    isConfirmingBooking,
+    canDeclineRequest,
+    canWithdrawRequest,
+    isResolvingRequest,
     canCompleteSession,
     formatted,
   };

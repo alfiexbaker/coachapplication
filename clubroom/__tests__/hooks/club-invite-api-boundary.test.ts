@@ -40,6 +40,16 @@ test('club invite screen sends supported existing-user invites through API mode 
     'API mode should load club context from /v1 club authority',
   );
   assert.ok(
+    loadBlock.includes('if (!authorityResult.success)') &&
+      loadBlock.includes('throw new Error(authorityResult.error.message);'),
+    'API club authority errors should surface to the invite screen instead of becoming missing club context',
+  );
+  assert.equal(
+    loadBlock.includes('authorityResult?.success'),
+    false,
+    'API mode must not treat club authority failure as nullable club context',
+  );
+  assert.ok(
     loadBlock.includes('socialFeedService') && loadBlock.includes('api.useMock'),
     'local club lookup should be guarded to mock mode',
   );
@@ -81,5 +91,38 @@ test('club invite screen sends supported existing-user invites through API mode 
       !manualBlock.includes('if (!api.useMock)'),
     false,
     'manual fake success must not be unguarded',
+  );
+});
+
+test('club invite screen renders a retryable error when invite context fails', () => {
+  const screenSource = readSource('app/club/invite-members.tsx');
+  const hookDestructureStart = screenSource.indexOf('const {');
+  const loadingStart = screenSource.indexOf('if (loading) {', hookDestructureStart);
+  const errorStart = screenSource.indexOf('if (loadError) {', loadingStart);
+  const errorReturnStart = screenSource.indexOf('return (', errorStart);
+  const mainStart = screenSource.indexOf('return (', errorReturnStart + 1);
+
+  assert.ok(hookDestructureStart >= 0, 'test should find hook destructure');
+  assert.ok(loadingStart > hookDestructureStart, 'test should find loading state');
+  assert.ok(errorStart > loadingStart, 'test should find load error state');
+  assert.ok(errorReturnStart > errorStart, 'test should find error render');
+  assert.ok(mainStart > errorStart, 'test should find main render after error state');
+
+  const hookDestructure = screenSource.slice(hookDestructureStart, loadingStart);
+  const errorBlock = screenSource.slice(errorStart, mainStart);
+
+  assert.ok(
+    screenSource.includes("import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';"),
+    'invite screen should use the shared error state component',
+  );
+  assert.ok(
+    hookDestructure.includes('loadError') && hookDestructure.includes('retry'),
+    'invite screen should consume retryable load errors from the hook',
+  );
+  assert.ok(
+    errorBlock.includes('<ErrorState') &&
+      errorBlock.includes('message={loadError}') &&
+      errorBlock.includes('onRetry={retry}'),
+    'invite context failures should render a retryable screen error',
   );
 });

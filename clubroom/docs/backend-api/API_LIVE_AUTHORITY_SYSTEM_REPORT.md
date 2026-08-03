@@ -1,6 +1,6 @@
 # API Live Authority System Report
 
-Snapshot date: 2026-07-09
+Snapshot date: 2026-07-16
 
 This is a progress matrix, not a new source of truth. Canonical runtime truth remains in:
 
@@ -11,9 +11,9 @@ This is a progress matrix, not a new source of truth. Canonical runtime truth re
 
 ## Current Read
 
-Overall progress toward "all product features use live `/v1` backend authority" is roughly 94% API-runtime operational and about 85% whole-app confidence for the current v1 cutover.
+Overall progress toward "all product features use live `/v1` backend authority" is roughly 97% API-runtime operational and about 90% whole-app confidence for the current v1 cutover.
 
-The API spine is real and improving: auth, club authority, coach self and public profile projection, booking, cancellation-record reads, invoices, simulated payments/payouts, family/athlete, medical/consent, coach verification status, progress, detailed session feedback, media, notifications, account privacy, club events, event athlete invites, roster management, delegated availability, and several trust-admin audit surfaces have `/v1` routes and focused tests. The app is not yet external-release complete. Remaining risk is mostly long-tail compatibility services that may still hide API failures, incomplete mobile E2E role coverage, high-fanout read performance, and route-by-route security proof still being applied slice by slice.
+The API spine is real: the current route inventory has no remaining `planned` or `scaffolded` `/v1` rows, and auth, club authority, coach self and public profile projection, booking, cancellation-record reads, invoices, simulated payments/payouts, family/athlete, medical/consent, coach verification status, progress, detailed session feedback, media, notifications, account privacy, club events, event athlete invites, roster management, delegated availability, and trust-admin audit surfaces have `/v1` routes and focused tests. The app is not yet external-release complete. Remaining risk is mostly proof depth: mobile E2E role coverage, high-fanout read performance, provider smokes, and route-by-route security proof still being applied slice by slice.
 
 ## Latest Hard Validation
 
@@ -42,6 +42,8 @@ Checked from this workspace.
 - 2026-07-09: API-mode earnings facade reads now surface `/v1/coaches/me/earnings`, payout-method, and withdrawal API failures instead of returning zero balances or empty money lists; payout/provider behavior remains simulated behind backend `/v1` routes.
 - 2026-07-09: API-mode booking cancel/reopen lifecycle actions now surface `/v1/bookings/:bookingId/cancel` and `/v1/bookings/:bookingId/reopen` authority failures instead of returning `undefined`.
 - 2026-07-09: Favourite demo-seed detection now returns an explicit `Result<boolean>` and stays mock-only; API mode returns `ok(false)` without local favourite storage reads.
+- 2026-07-09: API-mode user profile reads now use `/v1/users/:userId` with backend profile visibility, minor, relationship, block, and audit gates instead of local auth/user storage.
+- 2026-07-11: API-mode signup email availability now fails closed when `/v1/auth/check-email` is unavailable instead of treating unknown availability as available.
 - 2026-07-08: API-mode generic booking status updates now surface the required explicit lifecycle-route rejection instead of returning `undefined`; focused booking CRUD API-mode tests, root typecheck, and API-boundary audit passed.
 - 2026-07-08: API-mode self-booking preference reads/writes now surface `/v1/me/booking-preferences` failures instead of returning disabled/false; focused self-booking preference tests, root typecheck, and API-boundary audit passed. React Doctor remained 84/100 because of pre-existing `ChildProvider` cascading state and large-component findings in touched files.
 - 2026-07-08: focused API-mode strictness slices passed `npm run test:compile`, root `npm run typecheck`, focused service tests, and `npm run audit:api-boundaries` for practice-task reads, squad reads, self-assessment prompt reads, and family child updates.
@@ -52,6 +54,9 @@ Checked from this workspace.
 - 2026-07-08: focused money-provider verification passed in seed API mode: `coach-club/earnings.routes.test.ts` 4/4, `coach-club/payment-instructions.routes.test.ts` 2/2, and `wave2plus/routes.test.ts` 59/59. Payout/payment completion remains API-backed and simulated; no real funds are wired.
 - 2026-07-08: `npm run verify:slice:full` passed 11/11 after the latest API-mode mock-boundary hardening and coach offering cleanup: app/API/UI gates passed, API tests passed 238/238, DB staging status was ready, 40 migrations were present, public-table RLS audit found 0 missing RLS tables, and there were 0 blockers/warnings.
 - 2026-07-08: `npm run audit:api-boundaries` passed with 0 findings.
+- 2026-07-16: `node scripts/api-boundary-audit.js` passed with 0 findings, and route-inventory status scan found no `/v1` rows outside `implemented`.
+- 2026-07-16: focused source inspection confirmed family calendar/booking reads, booking confirmation club context, generated test-account credential permissions, password-reset token echo guards, practice logs, athlete analytics/skills/goals, progress reports, privacy settings, data-deletion requests, user directory reads, family permission reads, community/media reads, scheduling/cancellation policy reads, and simulated payout flows are API-authoritative or mock-only by explicit runtime gate.
+- 2026-07-16: destructive marketplace P0 seed import now requires explicit local/staging confirmation before Prisma connection or table clearing, rejects production-looking runtime labels/URLs, and is covered by subprocess guard tests.
 - Supabase MCP is configured in `.mcp.json` for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP tools were not exposed in this Codex session; the local `supabase` CLI is also not installed. DB verification therefore used the repo's Prisma/staging preflight and smoke tooling instead of MCP/CLI advisors.
 
 ## Google-Engineer Read
@@ -82,7 +87,7 @@ The biggest slop risk is not one missing abstraction. It is any feature that sti
 | Roster | Coach-athlete roster, notes, removal history | `/v1/coaches/:coachId/roster*` | `CoachAthleteRosterEntry` links coach-to-athlete; coach-private notes are private `SessionNote` rows; removal history is durable soft-removal state | Roster list/detail, consent dashboard, create/update/remove, coach-private notes, removal history, and undo are API-backed and audited; remaining risk is end-to-end role flow coverage |
 | Booking | Bookings/series/invites/session notes/cancellations/no-shows | `/v1/bookings*`, `/v1/booking-series*`, `/v1/cancellation-records*`, `/v1/families/:familyId/no-shows`, invite routes | `Booking` links coach, payer, participants, status events, invoices; cancellation records are a read projection over cancelled bookings; family no-show counts derive from `AttendanceRecord` and group-registration proof | Core booking and invite routes are implemented/runtime-tested; cancellation record list/lookup, proof-backed family no-show count/read/correction, and per-athlete booking completion attended/no-show/effort proof are implemented and audited |
 | Events | Club events, athlete invites, RSVP, attendance | `/v1/clubs/:clubId/events`, `/v1/events*` | `Club` 1-to-many `ClubEvent`; event 1-to-many RSVP/attendance/invite notifications | Event-scoped API implemented; user calendar reads compose existing `/v1` routes; specific-athlete targeting now routes through `/v1/events/:eventId/invites/athletes` |
-| Group sessions | Sessions, registrations, RSVPs | `/v1/group-sessions*`, `/v1/session-rsvps*` | `GroupSession` 1-to-many registrations/RSVPs | Implemented/scaffolded mix |
+| Group sessions | Sessions, registrations, RSVPs | `/v1/group-sessions*`, `/v1/session-rsvps*` | `GroupSession` 1-to-many registrations/RSVPs | Implemented; registration, attendance, invoice/thread side effects, and RSVP routes are backend-owned |
 | Money | Invoices/payments/direct instructions | `/v1/invoices*`, `/v1/payment-attempts/:id/simulated-complete`, `/v1/coaches/me/payment-instructions` | `Invoice` 1-to-many payment attempts/events; `CoachProfile` 1-to-1 `CoachPaymentInstruction` | Implemented; payment provider is simulated, and coach direct-payment copy is API-backed without reusing payout-provider bank details |
 | Payout | Payout methods/withdrawals | `/v1/coaches/me/payout-methods*`, `/v1/coaches/me/withdrawals*` | `CoachProfile` 1-to-many payout methods/withdrawals | Implemented as simulated provider; no real money movement |
 | Progress | Goals, milestones, practice logs, tasks | `/v1/athletes/:athleteId/goals`, `/v1/goals*`, practice/task routes | `Athlete` 1-to-many goals/logs/tasks; assignments gate coach access | Implemented and audited |
@@ -95,7 +100,7 @@ The biggest slop risk is not one missing abstraction. It is any feature that sti
 
 ## Decisions Made
 
-- Club and academy are treated as the same organisation concept for now. Academy compatibility reads and supported writes use club `/v1` authority; unsupported visibility-only settings fail closed until a real separate product model exists.
+- Club and academy are treated as the same organisation concept for now. Academy compatibility reads and supported writes use club `/v1` authority; visibility and approval settings map to club `visibility` and `joinPolicy` rather than a separate academy authority.
 - HTTP `DELETE` can remain RESTful, but audit/display effects should say `archive`, `remove`, `dismiss`, `revoke`, `cancel`, or `void` as appropriate.
 - Payout and payment completion routes work through the API but remain simulated by design. No real funds are wired.
 - Simulated payout method deletion is a backend removal effect and should audit as `coach_payout_methods.remove`, not a hard delete.
@@ -119,7 +124,7 @@ The biggest slop risk is not one missing abstraction. It is any feature that sti
 
 ## Main Gaps
 
-- Supabase MCP server is configured for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP database tools were not visible in this session, and the local `supabase` CLI is not installed. Fallback Prisma/staging verification confirmed DB connectivity, 40/40 migrations applied, demo coach/parent rows, salted `scrypt` password hashes, public-table RLS enabled, and no raw `.delete` audit actions.
+- Supabase MCP server is configured for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP database tools were not visible in this session, and the local `supabase` CLI is not installed. Fallback Prisma/staging verification confirmed DB connectivity, 40/40 migrations applied, demo coach/parent rows, salted `scrypt` password hashes, public-table RLS enabled, and no raw `.delete` audit actions. Current 2026-07-16 work used code/test proof only because the completed slice did not change DB schema or persistence behavior.
 - 2026-07-07 staging demo credential reset updated 28 `@clubroom.demo` users, verified 28 salted `scrypt` `PasswordCredential` rows, verified 8 attached coach accounts, and wrote ignored DB-derived credentials to `docs/backend-api/test-data/TEST_ACCOUNTS.staging.local.txt`. Fixture-derived local credentials remain in `docs/backend-api/test-data/TEST_ACCOUNTS.local.txt`.
 - Staging DB preflight accepts the configured password-reset email delivery provider; the remaining launch blocker is the provider smoke, which must prove the configured provider credentials before go-live. Brevo API keys are now supported alongside the existing webhook and SMTP paths.
 - Launch readiness now requires `audit:worktree:strict`, `verify:slice:full`, `audit:agentic`, `audit:db:stage:strict`, `smoke:password-reset-webhook`, `smoke:api-mode:strict`, `smoke:staging`, and `ui:flows:run`. This proves the staged path and blocks false-ready reports when password-reset provider delivery is broken.

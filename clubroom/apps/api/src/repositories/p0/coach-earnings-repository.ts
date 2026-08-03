@@ -1,11 +1,7 @@
 import { getApiDataBackend } from '../../lib/data-backend.js';
-import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import {
-  getPrismaClientOrThrow,
-  shouldUseDbFixtureFallback,
-} from '../../lib/prisma-runtime.js';
+import { getPrismaClientOrThrow } from '../../lib/prisma-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -462,18 +458,11 @@ class StoreCoachEarningsRepository implements CoachEarningsRepository {
 }
 
 class DbCoachEarningsRepository implements CoachEarningsRepository {
-  private readonly fixture = new StoreCoachEarningsRepository(
-    () => getDbFixtureStore().tables,
-  );
-
   async getSnapshot(
     authUserId: string,
     period: CoachEarningsPeriod,
     limit?: number,
   ): Promise<CoachEarningsSnapshot> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fixture.getSnapshot(authUserId, period, limit);
-    }
     const prisma = getPrismaClientOrThrow();
     const coach = await prisma.coachProfile.findFirst({
       where: {

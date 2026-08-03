@@ -92,6 +92,42 @@ test('booking review does not invent a default payable price', () => {
   );
 });
 
+test('booking review fails closed when cancellation policy authority fails', () => {
+  const source = readSource('app/book/[coachId]/review.tsx');
+  const policyLoadIndex = source.indexOf('schedulingRulesService.getCancellationPolicy(coachId)');
+  const policyFailureIndex = source.indexOf('if (!policyResult.success)', policyLoadIndex);
+  const defaultPolicyIndex = source.indexOf(
+    'schedulingRulesService.getDefaultCancellationPolicy()',
+    policyLoadIndex,
+  );
+  const missingPolicyGuardIndex = source.indexOf(
+    'if (!policyResult.data && !apiClient.isMockMode)',
+    policyLoadIndex,
+  );
+
+  assert.ok(policyLoadIndex >= 0, 'review should load policy through scheduling rules authority');
+  assert.ok(policyFailureIndex > policyLoadIndex, 'review should inspect policy load failure');
+  assert.ok(
+    source
+      .slice(policyFailureIndex, defaultPolicyIndex)
+      .includes('return err(policyResult.error);'),
+    'review should return the live policy error before using defaults',
+  );
+  assert.ok(
+    defaultPolicyIndex > policyFailureIndex,
+    'review should only consider default policy after failed reads are rejected',
+  );
+  assert.ok(
+    missingPolicyGuardIndex > policyFailureIndex && missingPolicyGuardIndex < defaultPolicyIndex,
+    'API booking review should reject an explicitly missing live policy before mock defaults',
+  );
+  assert.equal(
+    /policyResult\.success\s*&&[\s\S]*getDefaultCancellationPolicy/.test(source),
+    false,
+    'review should not collapse policy failures into default cancellation terms',
+  );
+});
+
 test('booking confirmation does not invent default API create payload values', () => {
   const source = readSource('app/book/[coachId]/confirmation.tsx');
   const createStart = source.indexOf('const result = await bookingService.createBooking({');

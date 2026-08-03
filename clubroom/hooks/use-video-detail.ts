@@ -6,7 +6,6 @@
  */
 
 import { useState } from 'react';
-import { Share } from 'react-native';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -52,11 +51,13 @@ export function useVideoDetail(id: string | undefined) {
 
   const { data: video, status, error, onRefresh, retry } = useScreen<SessionVideo | null>({
     load: loadVideo,
-    deps: [id],
+    deps: [id, currentUser?.id],
     isEmpty: (value) => !value,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: id ? `video-detail:${id}` : 'video-detail:missing',
+    dataKey: id
+      ? `video-detail:${currentUser?.id ?? 'anonymous'}:${id}`
+      : 'video-detail:missing',
   });
 
   const isOwner = video?.coachId === currentUser?.id;
@@ -106,20 +107,6 @@ export function useVideoDetail(id: string | undefined) {
       annotation.note?.trim() || undefined,
     );
     onRefresh();
-  };
-
-  const handleShare = async () => {
-    if (!video) return;
-    try {
-      const shareUrl = `clubroom://videos/${video.id}`;
-      await Share.share({
-        title: video.title,
-        message: `Open this training video in Clubroom: ${shareUrl}`,
-        url: shareUrl,
-      });
-    } catch (error) {
-      logger.error('Failed to share:', error);
-    }
   };
 
   const handleToggleVisibility = async () => {
@@ -188,7 +175,6 @@ export function useVideoDetail(id: string | undefined) {
     handleSeekToAnnotation,
     handleQuickAnnotation,
     handleSaveAnnotation,
-    handleShare,
     handleToggleVisibility,
     handleDelete,
     dismissAnnotationModal,

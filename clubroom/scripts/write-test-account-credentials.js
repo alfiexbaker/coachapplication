@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { chmodSync, mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -162,7 +162,8 @@ function buildCredentialFile() {
 function main() {
   const outputPath = getOutputPath(process.argv.slice(2));
   mkdirSync(path.dirname(outputPath), { recursive: true });
-  writeFileSync(outputPath, buildCredentialFile(), 'utf8');
+  writeFileSync(outputPath, buildCredentialFile(), { encoding: 'utf8', mode: 0o600 });
+  chmodSync(outputPath, 0o600);
   console.log(`Wrote ${path.relative(ROOT, outputPath)}`);
 }
 

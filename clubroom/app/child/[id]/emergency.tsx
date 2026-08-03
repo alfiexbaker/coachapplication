@@ -46,13 +46,17 @@ export default function EmergencyContactsScreen() {
   } = useEmergencyContacts();
   const header = (
     <Row gap="sm" align="center" style={styles.header}>
-      <Clickable onPress={() => router.back()} style={styles.backButton}>
+      <Clickable
+        accessibilityLabel="Go back"
+        onPress={() => router.back()}
+        style={styles.backButton}
+      >
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </Clickable>
       <Column flex>
         <ThemedText type="title">Emergency Contacts</ThemedText>
       </Column>
-      {!showForm && !editingContact && contacts.length > 0 && (
+      {status === 'success' && !showForm && !editingContact && contacts.length > 0 && (
         <Clickable
           accessibilityLabel="Add emergency contact"
           onPress={openForm}
@@ -90,12 +94,14 @@ export default function EmergencyContactsScreen() {
   }
 
   if (status === 'error') {
+    const accessDenied = error?.code === 'UNAUTHORIZED';
     return (
       <ChildScreenState
         colors={colors}
         status="error"
         errorMessage={error?.message ?? 'Failed to load emergency contacts.'}
-        onRetry={retry}
+        errorTitle={accessDenied ? 'Emergency contacts unavailable' : undefined}
+        onRetry={accessDenied ? undefined : retry}
         header={header}
       />
     );
@@ -116,7 +122,7 @@ export default function EmergencyContactsScreen() {
         }
       >
         <ThemedText style={{ color: colors.muted }}>
-          Emergency contacts will be notified in case of any incidents during sessions.
+          Contacts used if there is an incident during a session.
         </ThemedText>
 
         {showForm || editingContact ? (
@@ -140,8 +146,8 @@ export default function EmergencyContactsScreen() {
         ) : (
           <EmptyState
             icon="people"
-            title="No Emergency Contacts"
-            message="Add at least one emergency contact who can be reached during sessions."
+            title="No emergency contacts"
+            message="Add at least one contact for use during a session."
             actionLabel="Add Contact"
             onPressAction={openForm}
           />
@@ -151,8 +157,7 @@ export default function EmergencyContactsScreen() {
           <Row gap="sm" style={[styles.infoBox, { backgroundColor: colors.surfaceSecondary }]}>
             <Ionicons name="information-circle" size={20} color={colors.tint} />
             <ThemedText style={[Typography.small, { flex: 1, color: colors.muted }]}>
-              The primary contact will be called first in case of an emergency. Make sure at least
-              one contact is authorized to pick up your child.
+              The primary contact is called first. Mark anyone who can collect your child.
             </ThemedText>
           </Row>
         )}

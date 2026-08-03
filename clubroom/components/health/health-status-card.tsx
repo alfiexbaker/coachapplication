@@ -31,10 +31,10 @@ export const HealthStatusCard = function HealthStatusCard({
             <Ionicons name="checkmark-circle" size={48} color={colors.success} />
           </View>
           <ThemedText type="subtitle" style={styles.healthyTitle}>
-            All Clear!
+            No active injuries
           </ThemedText>
           <ThemedText style={[styles.healthyText, { color: colors.muted }]}>
-            You have no active injuries. Keep up the great work!
+            No coach-visible injury records.
           </ThemedText>
         </View>
       </SurfaceCard>

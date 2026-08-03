@@ -16,6 +16,7 @@ import { EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Skeleton, SkeletonCircle, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
+import { resolveAuthoritativeScreenState } from '@/hooks/use-authoritative-screen-state';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
@@ -36,8 +37,6 @@ interface FindCoachData {
   filterOptions: FilterOptions;
   totalCount: number;
 }
-
-let lastFindCoachSnapshot: FindCoachData | null = null;
 
 interface InitialCoachSearchState {
   filters: CoachSearchFilters;
@@ -80,10 +79,10 @@ function formatNextAvailability(isoDate: string): string {
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   if (date.toDateString() === now.toDateString()) {
-    return `Next: Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return 'Next: Today';
   }
   if (date.toDateString() === tomorrow.toDateString()) {
-    return `Next: Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return 'Next: Tomorrow';
   }
   return `Next: ${date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}`;
 }
@@ -100,7 +99,6 @@ function toCoachCardData(coach: CoachProfile): CoachCardData {
     pricePerHour: coach.sessionRate ?? coach.priceRange.min,
     city: coach.city,
     footballFocuses: coach.footballFocuses,
-    reviewQuote: coach.shortBio,
     nextAvailable: formatNextAvailability(coach.nextAvailability),
   };
 }
@@ -116,6 +114,7 @@ export default function BookCoachScreen() {
   const [filters, setFilters] = useState<CoachSearchFilters>(initialState.filters);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const filtersRef = useRef(filters);
+  const queryKey = JSON.stringify(filters);
 
   useEffect(() => {
     filtersRef.current = filters;
@@ -131,39 +130,37 @@ export default function BookCoachScreen() {
     });
   };
 
-  const { data, status, error, retry, refreshing, onRefresh } = useScreen<FindCoachData>({
+  const {
+    data,
+    status,
+    error,
+    silentError,
+    retry,
+    refreshing,
+    onRefresh,
+    isPending,
+    hasRequestedTruthfulFrame,
+  } = useScreen<FindCoachData>({
     load: loadResults,
     deps: [filters],
     isEmpty: (value) => value.totalCount === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
+    dataKey: queryKey,
   });
-
-  useEffect(() => {
-    if (data) {
-      lastFindCoachSnapshot = data;
-    }
-  }, [data]);
-
-  const resolvedData = data ?? lastFindCoachSnapshot;
-  const loading = status === 'loading' && resolvedData === null;
-  const loadError = status === 'error' && resolvedData === null ? error : null;
+  const { blocked: searchBlocked, status: visibleStatus } = resolveAuthoritativeScreenState({
+    status,
+    isPending,
+    hasRequestedTruthfulFrame,
+    hasSilentError: Boolean(silentError),
+  });
+  const resolvedData = searchBlocked ? null : data;
+  const loading = visibleStatus === 'loading';
+  const loadError = visibleStatus === 'error' ? (error ?? silentError) : null;
   const filterOptions = resolvedData?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
 
   const cards = (resolvedData?.results ?? []).map((result) => toCoachCardData(result.coach));
-  const minSessionPrice = cards.reduce((lowest, coach) => {
-    const price = coach.pricePerHour ?? 0;
-    if (price <= 0) return lowest;
-    return lowest === 0 ? price : Math.min(lowest, price);
-  }, 0);
-  const averageRating = (() => {
-    const rated = cards.filter((coach) => typeof coach.rating === 'number' && coach.rating > 0);
-    if (rated.length === 0) return 0;
-    const total = rated.reduce((sum, coach) => sum + (coach.rating ?? 0), 0);
-    return Number((total / rated.length).toFixed(1));
-  })();
-
   const handleSearch = () => {
     setFilters((prev) => ({
       ...prev,
@@ -241,27 +238,10 @@ export default function BookCoachScreen() {
             <Ionicons name="map-outline" size={18} color={palette.text} />
           </Clickable>
         </Row>
-        <SurfaceCard
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: palette.surface,
-              borderColor: withAlpha(palette.border, 0.9),
-            },
-          ]}
-          tactile={false}
-        >
-          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>
-            Map-first discovery
-          </ThemedText>
+        <View style={styles.searchSection}>
           <ThemedText type="title" style={styles.title}>
-            Find a Coach Nearby
+            Find a coach
           </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Search trusted local coaches, then open the map to choose by distance, fit, and next
-            bookable session.
-          </ThemedText>
-
           <Row
             align="center"
             gap="sm"
@@ -291,55 +271,7 @@ export default function BookCoachScreen() {
               </Clickable>
             ) : null}
           </Row>
-
-          <Row gap="sm">
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  backgroundColor: withAlpha(palette.tint, 0.09),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricValue, { color: palette.tint }]}>
-                {resolvedData?.totalCount ?? 0}
-              </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
-                Available
-              </ThemedText>
-            </View>
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  backgroundColor: withAlpha(palette.success, 0.1),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricValue, { color: palette.success }]}>
-                {minSessionPrice > 0 ? `£${minSessionPrice}` : '£--'}
-              </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
-                Starting price
-              </ThemedText>
-            </View>
-            <View
-              style={[
-                styles.metricChip,
-                {
-                  backgroundColor: withAlpha(palette.rating, 0.12),
-                },
-              ]}
-            >
-              <ThemedText style={[styles.metricValue, { color: palette.rating }]}>
-                {averageRating > 0 ? `${averageRating}★` : '--'}
-              </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
-                Avg rating
-              </ThemedText>
-            </View>
-          </Row>
-        </SurfaceCard>
+        </View>
       </View>
 
       {filterOptions ? (
@@ -379,7 +311,7 @@ export default function BookCoachScreen() {
     );
   }
 
-  if (!loading && status === 'empty') {
+  if (!loading && visibleStatus === 'empty') {
     return renderShell(
       <>
         {header}
@@ -529,22 +461,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  heroCard: {
-    padding: Spacing.sm,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
+  searchSection: {
+    paddingHorizontal: Spacing.xs,
     gap: Spacing.sm,
   },
-  eyebrow: {
-    ...Typography.micro,
-    letterSpacing: 0.8,
-  },
   title: {
-    ...Typography.display,
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    ...Typography.body,
+    ...Typography.title,
   },
   searchBar: {
     borderWidth: 1,
@@ -556,19 +478,6 @@ const styles = StyleSheet.create({
     flex: 1,
     ...Typography.body,
     paddingVertical: 0,
-  },
-  metricChip: {
-    flex: 1,
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-    gap: Spacing.micro,
-  },
-  metricValue: {
-    ...Typography.heading,
-  },
-  metricLabel: {
-    ...Typography.small,
   },
   results: {
     gap: Spacing.xs,

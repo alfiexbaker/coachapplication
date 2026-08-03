@@ -27,7 +27,15 @@ import {
 import type { FavouriteCoach, SportCategory } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  notFound,
+  unsupportedError,
+} from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -127,6 +135,31 @@ export interface AddFavouriteInput {
   note?: string;
 }
 
+function favouriteInputLogFields(input: AddFavouriteInput): {
+  userId: string;
+  coachId: string;
+  hasNote: boolean;
+  noteLength: number;
+  hasCoachMetadata: boolean;
+} {
+  const note = input.note?.trim() ?? '';
+  return {
+    userId: input.userId,
+    coachId: input.coachId,
+    hasNote: note.length > 0,
+    noteLength: note.length,
+    hasCoachMetadata: Boolean(
+      input.coachName ||
+      input.coachAvatar ||
+      input.coachSport ||
+      input.coachRating !== undefined ||
+      input.coachPriceMin !== undefined ||
+      input.coachPriceMax !== undefined ||
+      input.coachCity,
+    ),
+  };
+}
+
 interface ApiFavouriteResponse {
   favourite: FavouriteCoach;
   isFavourite: boolean;
@@ -204,7 +237,10 @@ export const favouriteService = {
         },
       );
       if (!result.success) {
-        logger.error('Failed to add favourite via API', { input, error: result.error });
+        logger.error('Failed to add favourite via API', {
+          ...favouriteInputLogFields(input),
+          error: result.error,
+        });
         return err(result.error);
       }
 
@@ -271,7 +307,10 @@ export const favouriteService = {
       });
       return ok(newFavourite);
     } catch (error) {
-      logger.error('Failed to add favourite', { input, error });
+      logger.error('Failed to add favourite', {
+        ...favouriteInputLogFields(input),
+        error,
+      });
       return err(storageError('Failed to add favourite'));
     }
   },
@@ -584,7 +623,11 @@ export const favouriteService = {
 
   async dismissDemoFavourites(): Promise<Result<void, ServiceError>> {
     if (!apiClient.isMockMode) {
-      return ok(undefined);
+      return err(
+        unsupportedError('Demo favourites can only be dismissed in mock mode.', {
+          authority: '/v1/me/favourite-coaches',
+        }),
+      );
     }
 
     try {

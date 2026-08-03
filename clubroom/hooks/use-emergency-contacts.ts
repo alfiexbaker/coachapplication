@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
 import { safetyService } from '@/services/safety-service';
+import { childService } from '@/services/child-service';
 import { createLogger } from '@/utils/logger';
 import type { EmergencyInfo, EmergencyContact } from '@/constants/types';
 import { useScreen } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('EmergencyContactsScreen');
@@ -16,6 +18,7 @@ interface EmergencyContactsData {
 export function useEmergencyContacts() {
   const idParam = useRequiredParam('id');
   const id = idParam.valid ? idParam.value : undefined;
+  const { currentUser } = useAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null);
@@ -26,6 +29,19 @@ export function useEmergencyContacts() {
     }
 
     try {
+      const accessResult = await childService.canManageChildProfile(id, currentUser);
+      if (!accessResult.success) {
+        return accessResult;
+      }
+      if (!accessResult.data) {
+        return err(
+          serviceError(
+            'UNAUTHORIZED',
+            'You do not have permission to manage this player’s emergency contacts.',
+          ),
+        );
+      }
+
       const result = await safetyService.getEmergencyInfo(id);
       if (!result.success) {
         logger.error('Failed to load emergency info', result.error);
@@ -38,13 +54,30 @@ export function useEmergencyContacts() {
     }
   };
 
+  const canManageEmergencyContacts = async () => {
+    if (!id) return false;
+
+    const accessResult = await childService.canManageChildProfile(id, currentUser);
+    if (!accessResult.success || !accessResult.data) {
+      logger.warn('Blocked emergency contact update without current authority', {
+        childId: id,
+        userId: currentUser?.id,
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<EmergencyContactsData>({
     load: loadInfo,
-    deps: [id],
+    deps: [id, currentUser?.id, currentUser?.children?.map((child) => child.childId).join(',')],
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: id ? `child-emergency:${id}` : 'child-emergency:missing',
+    dataKey: id
+      ? `child-emergency:${currentUser?.id ?? 'anonymous'}:${id}`
+      : 'child-emergency:missing',
   });
 
   const info = data?.info ?? null;
@@ -52,6 +85,8 @@ export function useEmergencyContacts() {
   const handleAddContact = async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id) return;
     try {
+      if (!(await canManageEmergencyContacts())) return;
+
       const result = await safetyService.addContact(id, contact);
       if (!result.success) {
         logger.error('Failed to add contact', result.error);
@@ -67,6 +102,8 @@ export function useEmergencyContacts() {
   const handleUpdateContact = async (contact: Omit<EmergencyContact, 'id'>) => {
     if (!id || !editingContact) return;
     try {
+      if (!(await canManageEmergencyContacts())) return;
+
       const result = await safetyService.updateContact(id, editingContact.id, contact);
       if (!result.success) {
         logger.error('Failed to update contact', result.error);
@@ -82,6 +119,8 @@ export function useEmergencyContacts() {
   const handleDeleteContact = async (contactId: string) => {
     if (!id) return;
     try {
+      if (!(await canManageEmergencyContacts())) return;
+
       const result = await safetyService.removeContact(id, contactId);
       if (!result.success) {
         logger.error('Failed to remove contact', result.error);
@@ -96,6 +135,8 @@ export function useEmergencyContacts() {
   const handleSetPrimary = async (contactId: string) => {
     if (!id) return;
     try {
+      if (!(await canManageEmergencyContacts())) return;
+
       const result = await safetyService.updateContact(id, contactId, { isPrimary: true });
       if (!result.success) {
         logger.error('Failed to set primary contact', result.error);

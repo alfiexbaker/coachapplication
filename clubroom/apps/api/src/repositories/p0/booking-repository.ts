@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Prisma } from '@clubroom/db';
 import {
   bookingResponseSchema,
   bookingStatusSchema,
@@ -8,12 +9,17 @@ import {
   type CompleteBookingRequest,
   type CreateBookingRequest,
   type ReopenBookingRequest,
+  type ResolveBookingRequest,
   type UpdateBookingRequest,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import {
+  API_DB_TRANSACTION_OPTIONS,
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from '../../lib/prisma-runtime.js';
 import {
   applyBookingCancellationInvoiceEffects,
   applyBookingCancellationInvoiceEffectsInDbTransaction,
@@ -22,6 +28,10 @@ import {
 } from '../../lib/invoice-runtime.js';
 import { normalizeForJson } from './normalize.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  assertCoachAvailabilitySlotOpen,
+  resolveCoachAvailabilityTables,
+} from '../../modules/coach-club/availability.js';
 export type SeedRow = Record<string, unknown>;
 export type SeedTables = Record<string, SeedRow[]>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
@@ -41,7 +51,11 @@ type BookingStatusCode =
   | 'CONFIRMED'
   | 'AWAITING_COMPLETION'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'DECLINED'
+  | 'WITHDRAWN'
+  | 'EXPIRED';
+type BookingRequestResolutionAction = 'decline' | 'withdraw';
 type BookingCompletionAttendance = NonNullable<CompleteBookingRequest['attendance']>[number];
 type NormalizedCompletionAttendance = {
   athleteId: string;
@@ -56,11 +70,20 @@ type CompletionAttendanceRecordRef = {
 };
 const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const BOOKING_REQUEST_TTL_MS = 24 * 60 * 60 * 1000;
+const BOOKING_REQUEST_EXPIRY_ACTOR_ID = 'system_booking_request_expiry';
 const bookingLifecycleEndpointKey = (
   bookingId: string,
-  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update',
+  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update' | BookingRequestResolutionAction,
 ) => `POST:/v1/bookings/${bookingId}/${action}`;
 const bookingUpdateEndpointKey = (bookingId: string) => `PATCH:/v1/bookings/${bookingId}`;
+const BOOKING_CANCELLED_NOTIFICATION_SOURCE_TYPE = 'booking_cancelled';
+const BOOKING_CONFIRMED_NOTIFICATION_SOURCE_TYPE = 'booking_confirmed';
+const BOOKING_REQUEST_DECLINED_NOTIFICATION_SOURCE_TYPE = 'booking_request_declined';
+const BOOKING_REQUEST_WITHDRAWN_NOTIFICATION_SOURCE_TYPE = 'booking_request_withdrawn';
+const BOOKING_REQUEST_EXPIRED_NOTIFICATION_SOURCE_TYPE = 'booking_request_expired';
+export const BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE = 'booking_completed';
+export const BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE = 'booking_review_prompt';
 export interface ListBookingsParams {
   authUserId: string;
   statusFilter?: string;
@@ -100,6 +123,13 @@ export interface ConfirmBookingParams {
   requestId: string;
   bookingId: string;
   body: ConfirmBookingRequest;
+}
+export interface ResolveBookingRequestParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  action: BookingRequestResolutionAction;
+  body: ResolveBookingRequest;
 }
 export interface CompleteBookingParams {
   authUserId: string;
@@ -144,6 +174,7 @@ export interface BookingRepository {
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
   updateBooking(params: UpdateBookingParams): Promise<BookingResponse>;
   cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
+  resolveBookingRequest(params: ResolveBookingRequestParams): Promise<BookingResponse>;
   confirmBooking(params: ConfirmBookingParams): Promise<BookingResponse>;
   reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
   completeBooking(params: CompleteBookingParams): Promise<BookingResponse>;
@@ -176,12 +207,42 @@ function hashCreateBookingRequest(body: CreateBookingRequest): string {
     .update(JSON.stringify(canonicalizeJson(body)))
     .digest('hex');
 }
+function bookingReservationLockKey(coachUserId: string): bigint {
+  return crypto
+    .createHash('sha256')
+    .update(`clubroom:booking:${coachUserId}`)
+    .digest()
+    .readBigInt64BE(0);
+}
+function bookingRequestExpiresAt(scheduledAt: string | Date, createdAt: Date): Date {
+  const scheduledAtMs = new Date(scheduledAt).getTime();
+  const createdAtMs = Number.isFinite(createdAt.getTime()) ? createdAt.getTime() : Date.now();
+  return new Date(
+    Math.min(
+      Number.isFinite(scheduledAtMs) ? scheduledAtMs : createdAtMs + BOOKING_REQUEST_TTL_MS,
+      createdAtMs + BOOKING_REQUEST_TTL_MS,
+    ),
+  );
+}
+function isAwaitingBookingRequest(status: string | undefined): boolean {
+  return status === 'PENDING' || status === 'AWAITING_CONFIRMATION';
+}
+function isTerminalBookingStatus(status: string | undefined): boolean {
+  return (
+    status === 'COMPLETED' ||
+    status === 'CANCELLED' ||
+    status === 'DECLINED' ||
+    status === 'WITHDRAWN' ||
+    status === 'EXPIRED'
+  );
+}
 function hashBookingLifecycleRequest(params: {
   bookingId: string;
   body:
     | CancelBookingRequest
     | ConfirmBookingRequest
     | ReopenBookingRequest
+    | ResolveBookingRequest
     | CompleteBookingRequest
     | UpdateBookingRequest;
 }): string {
@@ -359,7 +420,9 @@ function assertSeedBookingAthleteAccess(
   }
 }
 function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]> {
-  const participants = asRows(tables.bookingParticipants);
+  const participants = asRows(tables.bookingParticipants).filter(
+    (participant) => !asString(participant.deletedAt),
+  );
   const participantRowsByBooking = new Map<string, SeedRow[]>();
   for (const participant of participants) {
     const bookingId = asString(participant.bookingId);
@@ -371,6 +434,494 @@ function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]>
     participantRowsByBooking.set(bookingId, existing);
   }
   return participantRowsByBooking;
+}
+function bookingCancellationRecipientIds(params: {
+  actorUserId: string;
+  coachUserId?: string | null;
+  bookedByUserId?: string | null;
+  participants: Array<{
+    guardianUserId?: string | null;
+    athleteUserId?: string | null;
+  }>;
+}): string[] {
+  const recipients = new Set<string>();
+  if (params.coachUserId && params.actorUserId !== params.coachUserId) {
+    recipients.add(params.coachUserId);
+  } else {
+    if (params.bookedByUserId) {
+      recipients.add(params.bookedByUserId);
+    }
+    for (const participant of params.participants) {
+      if (participant.guardianUserId) {
+        recipients.add(participant.guardianUserId);
+      }
+      if (participant.athleteUserId) {
+        recipients.add(participant.athleteUserId);
+      }
+    }
+  }
+  recipients.delete(params.actorUserId);
+  return [...recipients].sort();
+}
+function bookingCancellationNotificationRows(params: {
+  bookingId: string;
+  actorUserId: string;
+  recipientUserIds: string[];
+  reason?: string;
+  scheduledAt?: string | null;
+  now: string;
+}): SeedRow[] {
+  const scheduledAt = params.scheduledAt ? Date.parse(params.scheduledAt) : NaN;
+  const dateLabel = Number.isFinite(scheduledAt)
+    ? new Date(scheduledAt).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })
+    : 'an upcoming date';
+  return params.recipientUserIds.map((userId) => ({
+    id: newId('nfn'),
+    userId,
+    type: 'BOOKING_CANCELLED',
+    title: 'Booking cancelled',
+    body: `A booking on ${dateLabel} has been cancelled.`,
+    status: 'UNREAD',
+    sourceType: BOOKING_CANCELLED_NOTIFICATION_SOURCE_TYPE,
+    sourceId: params.bookingId,
+    deepLink: `/bookings/${params.bookingId}`,
+    metadataJson: {
+      bookingId: params.bookingId,
+      cancelledByUserId: params.actorUserId,
+      reason: params.reason ?? null,
+    },
+    createdAt: params.now,
+    updatedAt: params.now,
+    readAt: null,
+    dismissedAt: null,
+  }));
+}
+function createSeedBookingCancellationNotifications(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  actorUserId: string;
+  participantRowsByBooking: Map<string, SeedRow[]>;
+  athleteUserIdsByAthleteId: Map<string, string | undefined>;
+  reason?: string;
+  now: string;
+}): number {
+  const bookingId = asString(params.booking.id);
+  if (!bookingId) {
+    return 0;
+  }
+  const participants = (params.participantRowsByBooking.get(bookingId) ?? []).map((participant) => {
+    const athleteId = asString(participant.athleteId);
+    return {
+      guardianUserId: asString(participant.guardianUserId),
+      athleteUserId: athleteId ? params.athleteUserIdsByAthleteId.get(athleteId) : undefined,
+    };
+  });
+  const candidateRecipientIds = bookingCancellationRecipientIds({
+    actorUserId: params.actorUserId,
+    coachUserId: asString(params.booking.coachUserId),
+    bookedByUserId: asString(params.booking.bookedByUserId),
+    participants,
+  });
+  if (candidateRecipientIds.length === 0) {
+    return 0;
+  }
+  const notifications = getMutableRows(params.tables, 'notifications');
+  const existingRecipientIds = new Set(
+    notifications
+      .filter(
+        (row) =>
+          asString(row.sourceType) === BOOKING_CANCELLED_NOTIFICATION_SOURCE_TYPE &&
+          asString(row.sourceId) === bookingId,
+      )
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  const missingRecipientIds = candidateRecipientIds.filter(
+    (userId) => !existingRecipientIds.has(userId),
+  );
+  if (missingRecipientIds.length === 0) {
+    return 0;
+  }
+  notifications.push(
+    ...bookingCancellationNotificationRows({
+      bookingId,
+      actorUserId: params.actorUserId,
+      recipientUserIds: missingRecipientIds,
+      reason: params.reason,
+      scheduledAt: asString(params.booking.scheduledAt),
+      now: params.now,
+    }),
+  );
+  return missingRecipientIds.length;
+}
+type BookingRequestResolutionOutcome = BookingRequestResolutionAction | 'expire';
+function bookingRequestResolutionDescriptor(action: BookingRequestResolutionOutcome): {
+  status: 'DECLINED' | 'WITHDRAWN' | 'EXPIRED';
+  notificationType: string;
+  sourceType: string;
+  title: string;
+  bodyVerb: string;
+} {
+  if (action === 'decline') {
+    return {
+      status: 'DECLINED',
+      notificationType: 'BOOKING_REQUEST_DECLINED',
+      sourceType: BOOKING_REQUEST_DECLINED_NOTIFICATION_SOURCE_TYPE,
+      title: 'Booking request declined',
+      bodyVerb: 'was declined',
+    };
+  }
+  if (action === 'withdraw') {
+    return {
+      status: 'WITHDRAWN',
+      notificationType: 'BOOKING_REQUEST_WITHDRAWN',
+      sourceType: BOOKING_REQUEST_WITHDRAWN_NOTIFICATION_SOURCE_TYPE,
+      title: 'Booking request withdrawn',
+      bodyVerb: 'was withdrawn',
+    };
+  }
+  return {
+    status: 'EXPIRED',
+    notificationType: 'BOOKING_REQUEST_EXPIRED',
+    sourceType: BOOKING_REQUEST_EXPIRED_NOTIFICATION_SOURCE_TYPE,
+    title: 'Booking request expired',
+    bodyVerb: 'expired before confirmation',
+  };
+}
+function bookingRequestResolutionRecipientIds(params: {
+  action: BookingRequestResolutionOutcome;
+  actorUserId?: string | null;
+  coachUserId?: string | null;
+  bookedByUserId?: string | null;
+  participants: Array<{
+    guardianUserId?: string | null;
+    athleteUserId?: string | null;
+  }>;
+}): string[] {
+  const familyRecipients = bookingFamilyRecipientIds({
+    actorUserId: params.actorUserId ?? '',
+    bookedByUserId: params.bookedByUserId,
+    participants: params.participants,
+  });
+  const recipients = new Set<string>();
+  if (params.action !== 'decline' && params.coachUserId) {
+    recipients.add(params.coachUserId);
+  }
+  if (params.action !== 'withdraw') {
+    for (const userId of familyRecipients) {
+      recipients.add(userId);
+    }
+  }
+  if (params.actorUserId) {
+    recipients.delete(params.actorUserId);
+  }
+  return [...recipients].sort();
+}
+function bookingRequestResolutionNotificationRows(params: {
+  action: BookingRequestResolutionOutcome;
+  bookingId: string;
+  actorUserId?: string | null;
+  recipientUserIds: string[];
+  reason: string;
+  scheduledAt?: string | null;
+  now: string;
+}): SeedRow[] {
+  const descriptor = bookingRequestResolutionDescriptor(params.action);
+  const scheduledAt = params.scheduledAt ? Date.parse(params.scheduledAt) : NaN;
+  const dateLabel = Number.isFinite(scheduledAt)
+    ? new Date(scheduledAt).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })
+    : 'an upcoming date';
+  return params.recipientUserIds.map((userId) => ({
+    id: newId('nfn'),
+    userId,
+    type: descriptor.notificationType,
+    title: descriptor.title,
+    body: `The booking request for ${dateLabel} ${descriptor.bodyVerb}.`,
+    status: 'UNREAD',
+    sourceType: descriptor.sourceType,
+    sourceId: params.bookingId,
+    deepLink: `/bookings/${params.bookingId}`,
+    metadataJson: {
+      bookingId: params.bookingId,
+      outcome: descriptor.status,
+      resolvedByUserId: params.actorUserId ?? null,
+      reason: params.reason,
+    },
+    createdAt: params.now,
+    updatedAt: params.now,
+    readAt: null,
+    dismissedAt: null,
+  }));
+}
+function createSeedBookingRequestResolutionNotifications(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  action: BookingRequestResolutionOutcome;
+  actorUserId?: string | null;
+  participantRowsByBooking: Map<string, SeedRow[]>;
+  athleteUserIdsByAthleteId: Map<string, string | undefined>;
+  reason: string;
+  now: string;
+}): number {
+  const bookingId = asString(params.booking.id);
+  if (!bookingId) {
+    return 0;
+  }
+  const descriptor = bookingRequestResolutionDescriptor(params.action);
+  const candidateRecipientIds = bookingRequestResolutionRecipientIds({
+    action: params.action,
+    actorUserId: params.actorUserId,
+    coachUserId: asString(params.booking.coachUserId),
+    bookedByUserId: asString(params.booking.bookedByUserId),
+    participants: (params.participantRowsByBooking.get(bookingId) ?? []).map((participant) => {
+      const athleteId = asString(participant.athleteId);
+      return {
+        guardianUserId: asString(participant.guardianUserId),
+        athleteUserId: athleteId ? params.athleteUserIdsByAthleteId.get(athleteId) : undefined,
+      };
+    }),
+  });
+  const notifications = getMutableRows(params.tables, 'notifications');
+  const existingRecipientIds = new Set(
+    notifications
+      .filter(
+        (row) =>
+          asString(row.sourceType) === descriptor.sourceType &&
+          asString(row.sourceId) === bookingId,
+      )
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  const rows = bookingRequestResolutionNotificationRows({
+    action: params.action,
+    bookingId,
+    actorUserId: params.actorUserId,
+    recipientUserIds: candidateRecipientIds.filter((userId) => !existingRecipientIds.has(userId)),
+    reason: params.reason,
+    scheduledAt: asString(params.booking.scheduledAt),
+    now: params.now,
+  });
+  notifications.push(...rows);
+  return rows.length;
+}
+export function bookingFamilyRecipientIds(params: {
+  actorUserId: string;
+  bookedByUserId?: string | null;
+  participants: Array<{
+    guardianUserId?: string | null;
+    athleteUserId?: string | null;
+  }>;
+}): string[] {
+  const recipients = new Set<string>();
+  if (params.bookedByUserId) {
+    recipients.add(params.bookedByUserId);
+  }
+  for (const participant of params.participants) {
+    if (participant.guardianUserId) {
+      recipients.add(participant.guardianUserId);
+    }
+    if (participant.athleteUserId) {
+      recipients.add(participant.athleteUserId);
+    }
+  }
+  recipients.delete(params.actorUserId);
+  return [...recipients].sort();
+}
+function bookingConfirmationNotificationRows(params: {
+  bookingId: string;
+  actorUserId: string;
+  recipientUserIds: string[];
+  scheduledAt?: string | null;
+  now: string;
+}): SeedRow[] {
+  const scheduledAt = params.scheduledAt ? Date.parse(params.scheduledAt) : NaN;
+  const dateLabel = Number.isFinite(scheduledAt)
+    ? new Date(scheduledAt).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      })
+    : 'an upcoming date';
+  return params.recipientUserIds.map((userId) => ({
+    id: newId('nfn'),
+    userId,
+    type: 'BOOKING_CONFIRMED',
+    title: 'Booking confirmed',
+    body: `Your booking on ${dateLabel} has been confirmed.`,
+    status: 'UNREAD',
+    sourceType: BOOKING_CONFIRMED_NOTIFICATION_SOURCE_TYPE,
+    sourceId: params.bookingId,
+    deepLink: `/bookings/${params.bookingId}`,
+    metadataJson: {
+      bookingId: params.bookingId,
+      confirmedByUserId: params.actorUserId,
+    },
+    createdAt: params.now,
+    updatedAt: params.now,
+    readAt: null,
+    dismissedAt: null,
+  }));
+}
+function createSeedBookingConfirmationNotifications(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  actorUserId: string;
+  participantRowsByBooking: Map<string, SeedRow[]>;
+  now: string;
+}): number {
+  const bookingId = asString(params.booking.id);
+  if (!bookingId) {
+    return 0;
+  }
+  const candidateRecipientIds = bookingFamilyRecipientIds({
+    actorUserId: params.actorUserId,
+    bookedByUserId: asString(params.booking.bookedByUserId),
+    participants: (params.participantRowsByBooking.get(bookingId) ?? []).map((participant) => ({
+      guardianUserId: asString(participant.guardianUserId),
+    })),
+  });
+  const notifications = getMutableRows(params.tables, 'notifications');
+  const existingRecipientIds = new Set(
+    notifications
+      .filter(
+        (row) =>
+          asString(row.sourceType) === BOOKING_CONFIRMED_NOTIFICATION_SOURCE_TYPE &&
+          asString(row.sourceId) === bookingId,
+      )
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  const missingRecipientIds = candidateRecipientIds.filter(
+    (userId) => !existingRecipientIds.has(userId),
+  );
+  notifications.push(
+    ...bookingConfirmationNotificationRows({
+      bookingId,
+      actorUserId: params.actorUserId,
+      recipientUserIds: missingRecipientIds,
+      scheduledAt: asString(params.booking.scheduledAt),
+      now: params.now,
+    }),
+  );
+  return missingRecipientIds.length;
+}
+export function bookingCompletionNotificationRows(params: {
+  bookingId: string;
+  actorUserId: string;
+  recipientUserIds: string[];
+  attendanceSummary?: {
+    attended: number;
+    noShow: number;
+  };
+  now: string;
+}): SeedRow[] {
+  return params.recipientUserIds.flatMap((userId) => [
+    {
+      id: newId('nfn'),
+      userId,
+      type: 'BOOKING_COMPLETED',
+      title: 'Session completed',
+      body: 'Your booking has been marked complete.',
+      status: 'UNREAD',
+      sourceType: BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE,
+      sourceId: params.bookingId,
+      deepLink: `/bookings/${params.bookingId}`,
+      metadataJson: {
+        bookingId: params.bookingId,
+        completedByUserId: params.actorUserId,
+        attendanceSummary: params.attendanceSummary ?? null,
+      },
+      createdAt: params.now,
+      updatedAt: params.now,
+      readAt: null,
+      dismissedAt: null,
+    },
+    {
+      id: newId('nfn'),
+      userId,
+      type: 'REVIEW_REQUEST',
+      title: 'How was the session?',
+      body: 'Rate your completed session.',
+      status: 'UNREAD',
+      sourceType: BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE,
+      sourceId: params.bookingId,
+      deepLink: `/bookings/${params.bookingId}`,
+      metadataJson: {
+        bookingId: params.bookingId,
+        completedByUserId: params.actorUserId,
+        attendanceSummary: params.attendanceSummary ?? null,
+      },
+      createdAt: params.now,
+      updatedAt: params.now,
+      readAt: null,
+      dismissedAt: null,
+    },
+  ]);
+}
+function createSeedBookingCompletionNotifications(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  actorUserId: string;
+  participantRowsByBooking: Map<string, SeedRow[]>;
+  athleteUserIdsByAthleteId: Map<string, string | undefined>;
+  attendanceSummary?: {
+    attended: number;
+    noShow: number;
+  };
+  now: string;
+}): number {
+  const bookingId = asString(params.booking.id);
+  if (!bookingId) {
+    return 0;
+  }
+  const participants = (params.participantRowsByBooking.get(bookingId) ?? []).map((participant) => {
+    const athleteId = asString(participant.athleteId);
+    return {
+      guardianUserId: asString(participant.guardianUserId),
+      athleteUserId: athleteId ? params.athleteUserIdsByAthleteId.get(athleteId) : undefined,
+    };
+  });
+  const candidateRecipientIds = bookingFamilyRecipientIds({
+    actorUserId: params.actorUserId,
+    bookedByUserId: asString(params.booking.bookedByUserId),
+    participants,
+  });
+  if (candidateRecipientIds.length === 0) {
+    return 0;
+  }
+  const notifications = getMutableRows(params.tables, 'notifications');
+  const existingKeys = new Set(
+    notifications
+      .filter(
+        (row) =>
+          (asString(row.sourceType) === BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE ||
+            asString(row.sourceType) === BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE) &&
+          asString(row.sourceId) === bookingId,
+      )
+      .map((row) => `${asString(row.sourceType) ?? ''}:${asString(row.userId) ?? ''}`),
+  );
+  const rows = bookingCompletionNotificationRows({
+    bookingId,
+    actorUserId: params.actorUserId,
+    recipientUserIds: candidateRecipientIds,
+    attendanceSummary: params.attendanceSummary,
+    now: params.now,
+  }).filter(
+    (row) => !existingKeys.has(`${asString(row.sourceType) ?? ''}:${asString(row.userId) ?? ''}`),
+  );
+  if (rows.length === 0) {
+    return 0;
+  }
+  notifications.push(...rows);
+  return rows.length;
 }
 function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): string[] {
   return asRows(tables.bookingObjectives)
@@ -501,6 +1052,7 @@ function mapSeedBookingRow(
   return bookingResponseSchema.parse({
     id: bookingId,
     coachUserId: asString(booking.coachUserId),
+    clubId: asString(booking.clubId) ?? null,
     bookedByUserId: asString(booking.bookedByUserId),
     recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
     groupSessionId: asString(booking.groupSessionId) ?? null,
@@ -519,6 +1071,9 @@ function mapSeedBookingRow(
     createdAt: asString(booking.createdAt) ?? isoNow(),
     updatedAt: asString(booking.updatedAt) ?? isoNow(),
     cancelledAt: asString(booking.cancelledAt) ?? null,
+    requestExpiresAt: asString(booking.requestExpiresAt) ?? null,
+    requestResolvedAt: asString(booking.requestResolvedAt) ?? null,
+    requestResolutionReason: asString(booking.requestResolutionReason) ?? null,
   });
 }
 function mapNormalizedDbBookingRow(booking: SeedRow): BookingResponse {
@@ -531,6 +1086,7 @@ function mapNormalizedDbBookingRow(booking: SeedRow): BookingResponse {
   return bookingResponseSchema.parse({
     id: asString(booking.id),
     coachUserId: asString(booking.coachUserId),
+    clubId: asString(booking.clubId) ?? null,
     bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
     recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
     groupSessionId: asString(booking.groupSessionId) ?? null,
@@ -553,13 +1109,102 @@ function mapNormalizedDbBookingRow(booking: SeedRow): BookingResponse {
     createdAt: asString(booking.createdAt) ?? isoNow(),
     updatedAt: asString(booking.updatedAt) ?? isoNow(),
     cancelledAt: asString(booking.cancelledAt) ?? null,
+    requestExpiresAt: asString(booking.requestExpiresAt) ?? null,
+    requestResolvedAt: asString(booking.requestResolvedAt) ?? null,
+    requestResolutionReason: asString(booking.requestResolutionReason) ?? null,
   });
+}
+function expireSeedBookingRequests(
+  tables: SeedTables,
+  options: { bookingId?: string; now?: Date } = {},
+): number {
+  const now = options.now ?? new Date();
+  const nowIso = now.toISOString();
+  const participantRowsByBooking = getParticipantRowsByBooking(tables);
+  const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
+  let expiredCount = 0;
+  for (const booking of asRows(tables.bookings)) {
+    const bookingId = asString(booking.id);
+    const status = asString(booking.status)?.toUpperCase();
+    if (
+      !bookingId ||
+      (options.bookingId && bookingId !== options.bookingId) ||
+      asString(booking.deletedAt) ||
+      !isAwaitingBookingRequest(status)
+    ) {
+      continue;
+    }
+    const storedCreatedAt = new Date(asString(booking.createdAt) ?? nowIso);
+    const createdAt = Number.isFinite(storedCreatedAt.getTime()) ? storedCreatedAt : now;
+    const storedRequestExpiresAt = asString(booking.requestExpiresAt);
+    const parsedRequestExpiresAt = storedRequestExpiresAt ? new Date(storedRequestExpiresAt) : null;
+    const expiresAt =
+      parsedRequestExpiresAt && Number.isFinite(parsedRequestExpiresAt.getTime())
+        ? parsedRequestExpiresAt
+        : bookingRequestExpiresAt(asString(booking.scheduledAt) ?? nowIso, createdAt);
+    booking.requestExpiresAt = expiresAt.toISOString();
+    if (expiresAt.getTime() > now.getTime()) {
+      continue;
+    }
+    const reason = 'Coach confirmation window expired';
+    booking.status = 'EXPIRED';
+    booking.requestResolvedAt = nowIso;
+    booking.requestResolutionReason = reason;
+    booking.updatedByUserId = BOOKING_REQUEST_EXPIRY_ACTOR_ID;
+    booking.updatedAt = nowIso;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+    getMutableRows(tables, 'bookingStatusEvents').push({
+      id: newId('bse'),
+      bookingId,
+      fromStatus: status,
+      toStatus: 'EXPIRED',
+      actorUserId: null,
+      reason,
+      metadataJson: {
+        source: 'api-runtime',
+        requestExpiresAt: expiresAt.toISOString(),
+      },
+      requestId: null,
+      occurredAt: nowIso,
+    });
+    createSeedBookingRequestResolutionNotifications({
+      tables,
+      booking,
+      action: 'expire',
+      actorUserId: null,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+      reason,
+      now: nowIso,
+    });
+    getMutableRows(tables, 'auditEvents').push({
+      id: newId('aud'),
+      occurredAt: nowIso,
+      requestId: null,
+      actorUserId: null,
+      actingRole: 'system',
+      action: 'booking.request.expire',
+      resourceType: 'booking',
+      resourceId: bookingId,
+      subjectUserId: asString(booking.bookedByUserId) ?? null,
+      result: 'SUCCESS',
+      sensitiveRead: false,
+      ipHash: null,
+      metadataJson: {
+        previousStatus: status,
+        requestExpiresAt: expiresAt.toISOString(),
+      },
+    });
+    expiredCount += 1;
+  }
+  return expiredCount;
 }
 function mapSeedBookingsFromTables(
   tables: SeedTables,
   authUserId: string,
   statusFilter?: string,
 ): BookingResponse[] {
+  expireSeedBookingRequests(tables);
   const bookings = asRows(tables.bookings);
   const normalizedStatus = statusFilter?.toUpperCase();
   if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
@@ -568,6 +1213,9 @@ function mapSeedBookingsFromTables(
   const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
   const participantRowsByBooking = getParticipantRowsByBooking(tables);
   const visible = bookings.filter((booking) => {
+    if (asString(booking.deletedAt)) {
+      return false;
+    }
     const bookingStatus = asString(booking.status)?.toUpperCase();
     if (normalizedStatus && bookingStatus !== normalizedStatus) {
       return false;
@@ -754,10 +1402,13 @@ function getVisibleSeedBookingById(
   authUserId: string,
   bookingId: string,
 ): BookingResponse {
+  expireSeedBookingRequests(tables, { bookingId });
   const bookings = asRows(tables.bookings);
   const participantRowsByBooking = getParticipantRowsByBooking(tables);
   const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
-  const booking = bookings.find((row) => asString(row.id) === bookingId);
+  const booking = bookings.find(
+    (row) => asString(row.id) === bookingId && !asString(row.deletedAt),
+  );
   if (!booking) {
     throw notFound('Booking not found', {
       bookingId,
@@ -779,11 +1430,7 @@ function getVisibleSeedBookingById(
 function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
   if (status) {
     const normalized = status.toUpperCase();
-    if (
-      normalized !== 'CANCELLED' &&
-      normalized !== 'COMPLETED' &&
-      isSupportedBookingStatus(normalized)
-    ) {
+    if (!isTerminalBookingStatus(normalized) && isSupportedBookingStatus(normalized)) {
       return normalized as BookingStatusCode;
     }
   }
@@ -844,14 +1491,26 @@ export function createBookingInSeedTables(params: {
   const guardianChildLinks = asRows(tables.guardianChildLinks);
   const now = isoNow();
   const bookingId = newId('bok');
+  const bookingClubId = asString(bookingRowOverrides?.clubId) ?? body.clubId ?? null;
+  const overrideStatus = asString(bookingRowOverrides?.status)?.toUpperCase();
+  const initialStatus =
+    overrideStatus && isSupportedBookingStatus(overrideStatus)
+      ? (overrideStatus as BookingStatusCode)
+      : 'AWAITING_CONFIRMATION';
+  const initialConfirmedAt =
+    initialStatus === 'CONFIRMED' ? (asString(bookingRowOverrides?.confirmedAt) ?? now) : null;
+  const requestExpiresAt = isAwaitingBookingRequest(initialStatus)
+    ? (asString(bookingRowOverrides?.requestExpiresAt) ??
+      bookingRequestExpiresAt(body.scheduledAt, new Date(now)).toISOString())
+    : null;
   assertSeedBookingAthleteAccess(tables, authUserId, body.athleteIds);
   bookings.push({
     id: bookingId,
     coachUserId: body.coachUserId,
     bookedByUserId: body.bookedByUserId,
-    clubId: null,
+    clubId: bookingClubId,
     coachingOfferingId: null,
-    status: 'CONFIRMED',
+    status: initialStatus,
     scheduledAt: body.scheduledAt,
     durationMinutes: body.durationMinutes,
     location: body.location,
@@ -864,7 +1523,10 @@ export function createBookingInSeedTables(params: {
     priceMinor: body.priceMinor ?? null,
     currency: body.currency,
     confirmationMode: 'manual',
-    confirmedAt: now,
+    confirmedAt: initialConfirmedAt,
+    requestExpiresAt,
+    requestResolvedAt: initialStatus === 'CONFIRMED' ? now : null,
+    requestResolutionReason: null,
     cancelledByUserId: null,
     cancelledAt: null,
     cancelReason: null,
@@ -916,8 +1578,8 @@ export function createBookingInSeedTables(params: {
   statusEvents.push({
     id: newId('bse'),
     bookingId,
-    fromStatus: 'PENDING',
-    toStatus: 'CONFIRMED',
+    fromStatus: null,
+    toStatus: initialStatus,
     actorUserId: authUserId,
     reason: 'Created via API booking endpoint.',
     metadataJson: {
@@ -929,10 +1591,11 @@ export function createBookingInSeedTables(params: {
   const response = bookingResponseSchema.parse({
     id: bookingId,
     coachUserId: body.coachUserId,
+    clubId: bookingClubId,
     bookedByUserId: body.bookedByUserId,
     recurringSeriesId: asString(bookingRowOverrides?.recurringSeriesId) ?? null,
     groupSessionId: asString(bookingRowOverrides?.groupSessionId) ?? null,
-    status: 'CONFIRMED',
+    status: initialStatus,
     scheduledAt: body.scheduledAt,
     durationMinutes: body.durationMinutes,
     location: body.location,
@@ -947,6 +1610,9 @@ export function createBookingInSeedTables(params: {
     createdAt: now,
     updatedAt: now,
     cancelledAt: null,
+    requestExpiresAt,
+    requestResolvedAt: initialStatus === 'CONFIRMED' ? now : null,
+    requestResolutionReason: null,
   });
   recordSeedCreateBookingIdempotency({
     tables,
@@ -1086,7 +1752,10 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    expireSeedBookingRequests(store.tables, { bookingId: params.bookingId });
+    const booking = bookings.find(
+      (row) => asString(row.id) === params.bookingId && !asString(row.deletedAt),
+    );
     if (!booking) {
       throw notFound('Booking not found', {
         bookingId: params.bookingId,
@@ -1117,7 +1786,7 @@ class SeedBookingRepository implements BookingRepository {
         status: currentStatus ?? null,
       });
     }
-    if (currentStatus === 'CANCELLED' || currentStatus === 'COMPLETED') {
+    if (isTerminalBookingStatus(currentStatus)) {
       throw badRequest('Only active bookings can be updated');
     }
     assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
@@ -1212,7 +1881,9 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    const booking = bookings.find(
+      (row) => asString(row.id) === params.bookingId && !asString(row.deletedAt),
+    );
     if (!booking) {
       throw notFound('Booking not found', {
         bookingId: params.bookingId,
@@ -1234,8 +1905,11 @@ class SeedBookingRepository implements BookingRepository {
       return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     }
     assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
-    if (currentStatus === 'COMPLETED') {
-      throw badRequest('Completed bookings cannot be cancelled');
+    if (isAwaitingBookingRequest(currentStatus)) {
+      throw conflict('Awaiting requests must be declined or withdrawn, not cancelled');
+    }
+    if (isTerminalBookingStatus(currentStatus)) {
+      throw badRequest('Terminal bookings cannot be cancelled');
     }
     const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
     if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
@@ -1269,6 +1943,116 @@ class SeedBookingRepository implements BookingRepository {
       requestId: params.requestId,
       occurredAt: now,
     });
+    createSeedBookingCancellationNotifications({
+      tables: store.tables,
+      booking,
+      actorUserId: params.authUserId,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+      reason: params.body.reason,
+      now,
+    });
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+    return response;
+  }
+  async resolveBookingRequest(params: ResolveBookingRequestParams): Promise<BookingResponse> {
+    const store = this.loadStore();
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, params.action);
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+    expireSeedBookingRequests(store.tables, { bookingId: params.bookingId });
+    const bookings = asRows(store.tables.bookings);
+    const booking = bookings.find(
+      (row) => asString(row.id) === params.bookingId && !asString(row.deletedAt),
+    );
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const participantRows = participantRowsByBooking.get(params.bookingId) ?? [];
+    if (params.action === 'decline') {
+      if (asString(booking.coachUserId) !== params.authUserId) {
+        throw forbidden('Only the assigned coach can decline this booking request');
+      }
+    } else {
+      const isGuardianForEveryParticipant =
+        participantRows.length > 0 &&
+        participantRows.every(
+          (participant) => asString(participant.guardianUserId) === params.authUserId,
+        );
+      const canWithdraw =
+        asString(booking.bookedByUserId) === params.authUserId ||
+        isGuardianForEveryParticipant;
+      if (!canWithdraw) {
+        throw forbidden('Only the requester or an assigned guardian can withdraw this request');
+      }
+    }
+    const descriptor = bookingRequestResolutionDescriptor(params.action);
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (currentStatus === descriptor.status) {
+      return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
+    if (!isAwaitingBookingRequest(currentStatus)) {
+      throw conflict('Only awaiting booking requests can be resolved', {
+        bookingId: params.bookingId,
+        status: currentStatus,
+      });
+    }
+    const now = isoNow();
+    booking.status = descriptor.status;
+    booking.requestResolvedAt = now;
+    booking.requestResolutionReason = params.body.reason;
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = now;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+    getMutableRows(store.tables, 'bookingStatusEvents').push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: currentStatus,
+      toStatus: descriptor.status,
+      actorUserId: params.authUserId,
+      reason: params.body.reason,
+      metadataJson: {
+        action: params.action,
+        note: params.body.note ?? null,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: now,
+    });
+    createSeedBookingRequestResolutionNotifications({
+      tables: store.tables,
+      booking,
+      action: params.action,
+      actorUserId: params.authUserId,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+      reason: params.body.reason,
+      now,
+    });
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
       tables: store.tables,
@@ -1301,7 +2085,10 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    expireSeedBookingRequests(store.tables, { bookingId: params.bookingId });
+    const booking = bookings.find(
+      (row) => asString(row.id) === params.bookingId && !asString(row.deletedAt),
+    );
     if (!booking) {
       throw notFound('Booking not found', {
         bookingId: params.bookingId,
@@ -1315,7 +2102,7 @@ class SeedBookingRepository implements BookingRepository {
       return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     }
     assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
-    if (currentStatus === 'CANCELLED' || currentStatus === 'COMPLETED') {
+    if (isTerminalBookingStatus(currentStatus)) {
       throw badRequest('Terminal bookings cannot be confirmed', {
         bookingId: params.bookingId,
         status: currentStatus,
@@ -1327,9 +2114,17 @@ class SeedBookingRepository implements BookingRepository {
         status: currentStatus,
       });
     }
+    const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
+    if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
+      throw badRequest('Only upcoming booking requests can be confirmed', {
+        bookingId: params.bookingId,
+      });
+    }
     const now = isoNow();
     booking.status = 'CONFIRMED';
     booking.confirmedAt = now;
+    booking.requestResolvedAt = now;
+    booking.requestResolutionReason = null;
     booking.updatedByUserId = params.authUserId;
     booking.updatedAt = now;
     booking.version = (asNumber(booking.version) ?? 1) + 1;
@@ -1346,6 +2141,13 @@ class SeedBookingRepository implements BookingRepository {
       },
       requestId: params.requestId,
       occurredAt: now,
+    });
+    createSeedBookingConfirmationNotifications({
+      tables: store.tables,
+      booking,
+      actorUserId: params.authUserId,
+      participantRowsByBooking,
+      now,
     });
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
@@ -1452,6 +2254,7 @@ class SeedBookingRepository implements BookingRepository {
     const bookings = asRows(store.tables.bookings);
     const statusEvents = asRows(store.tables.bookingStatusEvents);
     const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
     const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'complete');
     const requestHash = hashBookingLifecycleRequest({
       bookingId: params.bookingId,
@@ -1528,6 +2331,7 @@ class SeedBookingRepository implements BookingRepository {
       recordedAt: completedAt,
       note: params.body.note ?? null,
     });
+    const attendanceSummary = summarizeCompletionAttendance(completionAttendance);
     booking.status = 'COMPLETED';
     booking.updatedByUserId = params.authUserId;
     booking.updatedAt = completedAt;
@@ -1544,7 +2348,7 @@ class SeedBookingRepository implements BookingRepository {
         source: 'api-runtime',
         attendanceRecordIds,
         sessionNoteIds,
-        attendanceSummary: summarizeCompletionAttendance(completionAttendance),
+        attendanceSummary,
         proofSource: 'attendance-record',
         proofSources: sessionNoteIds.length
           ? ['attendance-record', 'session-note']
@@ -1552,6 +2356,15 @@ class SeedBookingRepository implements BookingRepository {
       },
       requestId: params.requestId,
       occurredAt: completedAt,
+    });
+    createSeedBookingCompletionNotifications({
+      tables: store.tables,
+      booking,
+      actorUserId: params.authUserId,
+      participantRowsByBooking,
+      athleteUserIdsByAthleteId,
+      attendanceSummary,
+      now: completedAt,
     });
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
@@ -1620,11 +2433,12 @@ export async function resolveCreateBookingIdempotency(params: {
 async function resolveLifecycleBookingIdempotency(params: {
   authUserId: string;
   bookingId: string;
-  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update';
+  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update' | BookingRequestResolutionAction;
   body:
     | CancelBookingRequest
     | ConfirmBookingRequest
     | ReopenBookingRequest
+    | ResolveBookingRequest
     | CompleteBookingRequest
     | UpdateBookingRequest;
 }): Promise<{
@@ -1712,6 +2526,164 @@ function canUserWriteDbBooking(params: {
     ),
   );
 }
+async function expireDbBookingRequests(
+  prisma: ReturnType<typeof getPrismaClientOrThrow>,
+  params: { authUserId: string; bookingId?: string; now?: Date },
+): Promise<number> {
+  const now = params.now ?? new Date();
+  const candidates = await prisma.booking.findMany({
+    where: {
+      ...(params.bookingId ? { id: params.bookingId } : {}),
+      deletedAt: null,
+      status: { in: ['PENDING', 'AWAITING_CONFIRMATION'] },
+      requestExpiresAt: { lte: now },
+      OR: [
+        { coachUserId: params.authUserId },
+        { bookedByUserId: params.authUserId },
+        {
+          participants: {
+            some: { guardianUserId: params.authUserId, deletedAt: null },
+          },
+        },
+        {
+          participants: {
+            some: {
+              deletedAt: null,
+              athlete: { userId: params.authUserId },
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      participants: {
+        where: { deletedAt: null },
+        include: { athlete: { select: { userId: true } } },
+      },
+    },
+    orderBy: { requestExpiresAt: 'asc' },
+    take: params.bookingId ? 1 : 200,
+  });
+  let expiredCount = 0;
+  for (const booking of candidates) {
+    const reason = 'Coach confirmation window expired';
+    const committed = await prisma.$transaction(async (tx) => {
+      const updateResult = await tx.booking.updateMany({
+        where: {
+          id: booking.id,
+          version: booking.version,
+          deletedAt: null,
+          status: { in: ['PENDING', 'AWAITING_CONFIRMATION'] },
+          requestExpiresAt: { lte: now },
+        },
+        data: {
+          status: 'EXPIRED',
+          requestResolvedAt: now,
+          requestResolutionReason: reason,
+          updatedByUserId: BOOKING_REQUEST_EXPIRY_ACTOR_ID,
+          updatedAt: now,
+          version: { increment: 1 },
+        },
+      });
+      if (updateResult.count !== 1) {
+        return false;
+      }
+      await tx.bookingStatusEvent.create({
+        data: {
+          id: newId('bse'),
+          bookingId: booking.id,
+          fromStatus: booking.status,
+          toStatus: 'EXPIRED',
+          actorUserId: null,
+          reason,
+          metadataJson: {
+            source: 'api-db-runtime',
+            requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+          },
+          requestId: null,
+          occurredAt: now,
+        },
+      });
+      const recipientUserIds = bookingRequestResolutionRecipientIds({
+        action: 'expire',
+        actorUserId: null,
+        coachUserId: booking.coachUserId,
+        bookedByUserId: booking.bookedByUserId,
+        participants: booking.participants.map((participant) => ({
+          guardianUserId: participant.guardianUserId,
+          athleteUserId: participant.athlete.userId,
+        })),
+      });
+      if (recipientUserIds.length > 0) {
+        const existingNotifications = await tx.notification.findMany({
+          where: {
+            userId: { in: recipientUserIds },
+            sourceType: BOOKING_REQUEST_EXPIRED_NOTIFICATION_SOURCE_TYPE,
+            sourceId: booking.id,
+          },
+          select: { userId: true },
+        });
+        const existingRecipientIds = new Set(
+          existingNotifications.map((notification) => notification.userId),
+        );
+        const missingRecipientIds = recipientUserIds.filter(
+          (userId) => !existingRecipientIds.has(userId),
+        );
+        const rows = bookingRequestResolutionNotificationRows({
+          action: 'expire',
+          bookingId: booking.id,
+          actorUserId: null,
+          recipientUserIds: missingRecipientIds,
+          reason,
+          scheduledAt: booking.scheduledAt.toISOString(),
+          now: now.toISOString(),
+        });
+        if (rows.length > 0) {
+          await tx.notification.createMany({
+            data: rows.map((row) => ({
+              id: asString(row.id) ?? newId('nfn'),
+              userId: asString(row.userId) ?? '',
+              type: asString(row.type) ?? 'BOOKING_REQUEST_EXPIRED',
+              title: asString(row.title) ?? 'Booking request expired',
+              body: asString(row.body) ?? null,
+              status: 'UNREAD',
+              sourceType: BOOKING_REQUEST_EXPIRED_NOTIFICATION_SOURCE_TYPE,
+              sourceId: booking.id,
+              deepLink: asString(row.deepLink) ?? `/bookings/${booking.id}`,
+              metadataJson: row.metadataJson as never,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          });
+        }
+      }
+      await tx.auditEvent.create({
+        data: {
+          id: newId('aud'),
+          occurredAt: now,
+          requestId: null,
+          actorUserId: null,
+          actingRole: 'system',
+          action: 'booking.request.expire',
+          resourceType: 'booking',
+          resourceId: booking.id,
+          subjectUserId: booking.bookedByUserId,
+          result: 'SUCCESS',
+          sensitiveRead: false,
+          metadataJson: {
+            previousStatus: booking.status,
+            requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+          },
+        },
+      });
+      return true;
+    }, API_DB_TRANSACTION_OPTIONS);
+    if (committed) {
+      expiredCount += 1;
+    }
+  }
+  return expiredCount;
+}
 class DbBookingRepository implements BookingRepository {
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
     if (shouldUseDbFixtureFallback()) {
@@ -1722,6 +2694,7 @@ class DbBookingRepository implements BookingRepository {
       };
     }
     const prisma = getPrismaClientOrThrow();
+    await expireDbBookingRequests(prisma, { authUserId: params.authUserId });
     const normalizedStatus = params.statusFilter?.toUpperCase();
     if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
       return {
@@ -1732,6 +2705,7 @@ class DbBookingRepository implements BookingRepository {
     const statusValue = normalizedStatus ? (normalizedStatus as BookingStatusCode) : undefined;
     const bookings = await prisma.booking.findMany({
       where: {
+        deletedAt: null,
         ...(statusValue
           ? {
               status: statusValue,
@@ -1748,12 +2722,14 @@ class DbBookingRepository implements BookingRepository {
             participants: {
               some: {
                 guardianUserId: params.authUserId,
+                deletedAt: null,
               },
             },
           },
           {
             participants: {
               some: {
+                deletedAt: null,
                 athlete: {
                   userId: params.authUserId,
                 },
@@ -1764,6 +2740,9 @@ class DbBookingRepository implements BookingRepository {
       },
       include: {
         participants: {
+          where: {
+            deletedAt: null,
+          },
           include: {
             athlete: {
               select: {
@@ -1794,6 +2773,7 @@ class DbBookingRepository implements BookingRepository {
       return bookingResponseSchema.parse({
         id: asString(booking.id),
         coachUserId: asString(booking.coachUserId),
+        clubId: asString(booking.clubId) ?? null,
         bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
         recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
         groupSessionId: asString(booking.groupSessionId) ?? null,
@@ -1812,6 +2792,9 @@ class DbBookingRepository implements BookingRepository {
         createdAt: asString(booking.createdAt) ?? isoNow(),
         updatedAt: asString(booking.updatedAt) ?? isoNow(),
         cancelledAt: asString(booking.cancelledAt) ?? null,
+        requestExpiresAt: asString(booking.requestExpiresAt) ?? null,
+        requestResolvedAt: asString(booking.requestResolvedAt) ?? null,
+        requestResolutionReason: asString(booking.requestResolutionReason) ?? null,
       });
     });
     return {
@@ -1825,12 +2808,20 @@ class DbBookingRepository implements BookingRepository {
       return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
     }
     const prisma = getPrismaClientOrThrow();
-    const booking = await prisma.booking.findUnique({
+    await expireDbBookingRequests(prisma, {
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+    });
+    const booking = await prisma.booking.findFirst({
       where: {
         id: params.bookingId,
+        deletedAt: null,
       },
       include: {
         participants: {
+          where: {
+            deletedAt: null,
+          },
           include: {
             athlete: {
               select: {
@@ -1862,6 +2853,7 @@ class DbBookingRepository implements BookingRepository {
       bookingResponseSchema.parse({
         id: booking.id,
         coachUserId: booking.coachUserId,
+        clubId: booking.clubId ?? null,
         bookedByUserId: booking.bookedByUserId ?? undefined,
         recurringSeriesId: booking.recurringSeriesId ?? null,
         groupSessionId: booking.groupSessionId ?? null,
@@ -1886,6 +2878,9 @@ class DbBookingRepository implements BookingRepository {
         createdAt: booking.createdAt.toISOString(),
         updatedAt: booking.updatedAt.toISOString(),
         cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+        requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+        requestResolvedAt: booking.requestResolvedAt?.toISOString() ?? null,
+        requestResolutionReason: booking.requestResolutionReason ?? null,
       }),
     );
   }
@@ -2000,7 +2995,7 @@ class DbBookingRepository implements BookingRepository {
         );
       }
       return rows;
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     return {
       note: savedNotes[0] ? mapSessionNoteRow(normalizeForJson(savedNotes[0]) as SeedRow) : null,
       dataVersion: null,
@@ -2029,6 +3024,8 @@ class DbBookingRepository implements BookingRepository {
     const nowIsoString = now.toISOString();
     const bookingId = newId('bok');
     const body = params.body;
+    const requestExpiresAt = bookingRequestExpiresAt(body.scheduledAt, now);
+    const bookingClubId = params.bookingRowOverrides?.clubId ?? body.clubId ?? null;
     const [guardianLinks, athleteRows] = await Promise.all([
       prisma.guardianChildLink.findMany({
         where: {
@@ -2087,10 +3084,11 @@ class DbBookingRepository implements BookingRepository {
     const response = bookingResponseSchema.parse({
       id: bookingId,
       coachUserId: body.coachUserId,
+      clubId: bookingClubId,
       bookedByUserId: body.bookedByUserId,
       recurringSeriesId: null,
       groupSessionId: null,
-      status: 'CONFIRMED',
+      status: 'AWAITING_CONFIRMATION',
       scheduledAt: body.scheduledAt,
       durationMinutes: body.durationMinutes,
       location: body.location,
@@ -2105,16 +3103,52 @@ class DbBookingRepository implements BookingRepository {
       createdAt: nowIsoString,
       updatedAt: nowIsoString,
       cancelledAt: null,
+      requestExpiresAt: requestExpiresAt.toISOString(),
+      requestResolvedAt: null,
+      requestResolutionReason: null,
     });
     try {
-      await prisma.$transaction(async (tx) => {
+      const persistedResponse = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw(
+          Prisma.sql`SELECT TRUE AS "locked" FROM pg_advisory_xact_lock(${bookingReservationLockKey(body.coachUserId)})`,
+        );
+        if (body.idempotencyKey) {
+          const lockedReplay = await tx.idempotencyKey.findUnique({
+            where: {
+              userId_endpointKey_idempotencyKey: {
+                userId: params.authUserId,
+                endpointKey: BOOKING_CREATE_ENDPOINT_KEY,
+                idempotencyKey: body.idempotencyKey,
+              },
+            },
+          });
+          if (lockedReplay) {
+            assertMatchingIdempotencyRequest(lockedReplay, hashCreateBookingRequest(body));
+            const parsedReplay = parseIdempotentBookingResponse(lockedReplay.responseBodyJson);
+            if (!parsedReplay) {
+              throw conflict('Stored idempotency response is no longer valid');
+            }
+            return parsedReplay;
+          }
+        }
+        const availability = await resolveCoachAvailabilityTables(body.coachUserId, tx);
+        assertCoachAvailabilitySlotOpen({
+          tables: availability.tables,
+          coachUserId: body.coachUserId,
+          scheduledAt: body.scheduledAt,
+          durationMinutes: body.durationMinutes,
+          sessionTemplateId: body.sessionTemplateId,
+          applySchedulingRules: true,
+          conflictOnUnavailable: true,
+          now,
+        });
         await tx.booking.create({
           data: {
             id: bookingId,
             coachUserId: body.coachUserId,
             bookedByUserId: body.bookedByUserId,
-            clubId: params.bookingRowOverrides?.clubId ?? null,
-            status: 'CONFIRMED',
+            clubId: bookingClubId,
+            status: 'AWAITING_CONFIRMATION',
             scheduledAt: new Date(body.scheduledAt),
             durationMinutes: body.durationMinutes,
             location: body.location,
@@ -2127,7 +3161,10 @@ class DbBookingRepository implements BookingRepository {
             priceMinor: body.priceMinor ?? null,
             currency: body.currency,
             confirmationMode: 'manual',
-            confirmedAt: now,
+            confirmedAt: null,
+            requestExpiresAt,
+            requestResolvedAt: null,
+            requestResolutionReason: null,
             createdByUserId: params.authUserId,
             updatedByUserId: params.authUserId,
           },
@@ -2152,8 +3189,8 @@ class DbBookingRepository implements BookingRepository {
           data: {
             id: newId('bse'),
             bookingId,
-            fromStatus: 'PENDING',
-            toStatus: 'CONFIRMED',
+            fromStatus: null,
+            toStatus: 'AWAITING_CONFIRMATION',
             actorUserId: params.authUserId,
             reason: 'Created via API booking endpoint.',
             metadataJson: {
@@ -2177,7 +3214,9 @@ class DbBookingRepository implements BookingRepository {
             },
           });
         }
-      });
+        return response;
+      }, API_DB_TRANSACTION_OPTIONS);
+      return normalizeForJson(persistedResponse);
     } catch (error) {
       if (body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
         const replay = await resolveCreateBookingIdempotency({
@@ -2190,7 +3229,6 @@ class DbBookingRepository implements BookingRepository {
       }
       throw error;
     }
-    return normalizeForJson(response);
   }
   async updateBooking(params: UpdateBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
@@ -2207,6 +3245,10 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
+    await expireDbBookingRequests(prisma, {
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+    });
     const booking = await prisma.booking.findUnique({
       where: {
         id: params.bookingId,
@@ -2253,7 +3295,7 @@ class DbBookingRepository implements BookingRepository {
         'Only the assigned coach, booking owner, or participant guardian can update this booking',
       );
     }
-    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+    if (isTerminalBookingStatus(booking.status)) {
       throw badRequest('Only active bookings can be updated');
     }
     assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
@@ -2266,6 +3308,7 @@ class DbBookingRepository implements BookingRepository {
       priceMinor?: number;
       currency?: 'GBP';
       objectivesJson?: Record<string, string | null>;
+      requestExpiresAt?: Date;
     } = {};
     const changedFields: string[] = [];
     if (params.body.scheduledAt !== undefined) {
@@ -2278,6 +3321,12 @@ class DbBookingRepository implements BookingRepository {
       }
       if (booking.scheduledAt.toISOString() !== scheduledAt.toISOString()) {
         updateData.scheduledAt = scheduledAt;
+        if (
+          isAwaitingBookingRequest(booking.status) &&
+          (!booking.requestExpiresAt || scheduledAt < booking.requestExpiresAt)
+        ) {
+          updateData.requestExpiresAt = scheduledAt;
+        }
         changedFields.push('scheduledAt');
       }
     }
@@ -2420,7 +3469,7 @@ class DbBookingRepository implements BookingRepository {
           });
         }
         return nextResponse;
-      });
+      }, API_DB_TRANSACTION_OPTIONS);
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -2496,6 +3545,7 @@ class DbBookingRepository implements BookingRepository {
         bookingResponseSchema.parse({
           id: booking.id,
           coachUserId: booking.coachUserId,
+          clubId: booking.clubId ?? null,
           bookedByUserId: booking.bookedByUserId ?? undefined,
           recurringSeriesId: booking.recurringSeriesId ?? null,
           groupSessionId: booking.groupSessionId ?? null,
@@ -2520,11 +3570,17 @@ class DbBookingRepository implements BookingRepository {
           createdAt: booking.createdAt.toISOString(),
           updatedAt: booking.updatedAt.toISOString(),
           cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: booking.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: booking.requestResolutionReason ?? null,
         }),
       );
     }
-    if (booking.status === 'COMPLETED') {
-      throw badRequest('Completed bookings cannot be cancelled');
+    if (isAwaitingBookingRequest(booking.status)) {
+      throw conflict('Awaiting requests must be declined or withdrawn, not cancelled');
+    }
+    if (isTerminalBookingStatus(booking.status)) {
+      throw badRequest('Terminal bookings cannot be cancelled');
     }
     if (booking.scheduledAt.getTime() <= Date.now()) {
       throw badRequest('Only upcoming bookings can be cancelled');
@@ -2585,9 +3641,65 @@ class DbBookingRepository implements BookingRepository {
             occurredAt: now,
           },
         });
+        const candidateRecipientIds = bookingCancellationRecipientIds({
+          actorUserId: params.authUserId,
+          coachUserId: booking.coachUserId,
+          bookedByUserId: booking.bookedByUserId,
+          participants: booking.participants.map((participant) => ({
+            guardianUserId: participant.guardianUserId,
+            athleteUserId: participant.athlete.userId,
+          })),
+        });
+        if (candidateRecipientIds.length > 0) {
+          const existingNotifications = await tx.notification.findMany({
+            where: {
+              userId: {
+                in: candidateRecipientIds,
+              },
+              sourceType: BOOKING_CANCELLED_NOTIFICATION_SOURCE_TYPE,
+              sourceId: params.bookingId,
+            },
+            select: {
+              userId: true,
+            },
+          });
+          const existingRecipientIds = new Set(
+            existingNotifications.map((notification) => notification.userId),
+          );
+          const missingRecipientIds = candidateRecipientIds.filter(
+            (userId) => !existingRecipientIds.has(userId),
+          );
+          if (missingRecipientIds.length > 0) {
+            const notificationRows = bookingCancellationNotificationRows({
+              bookingId: params.bookingId,
+              actorUserId: params.authUserId,
+              recipientUserIds: missingRecipientIds,
+              reason: params.body.reason,
+              scheduledAt: booking.scheduledAt.toISOString(),
+              now: now.toISOString(),
+            });
+            await tx.notification.createMany({
+              data: notificationRows.map((row, index) => ({
+                id: asString(row.id) ?? newId('nfn'),
+                userId: missingRecipientIds[index],
+                type: 'BOOKING_CANCELLED',
+                title: 'Booking cancelled',
+                body: asString(row.body) ?? null,
+                status: 'UNREAD',
+                sourceType: BOOKING_CANCELLED_NOTIFICATION_SOURCE_TYPE,
+                sourceId: params.bookingId,
+                deepLink: asString(row.deepLink) ?? `/bookings/${params.bookingId}`,
+                metadataJson: row.metadataJson as never,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            });
+          }
+        }
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
+          clubId: updated.clubId ?? null,
           bookedByUserId: updated.bookedByUserId ?? undefined,
           recurringSeriesId: updated.recurringSeriesId ?? null,
           groupSessionId: updated.groupSessionId ?? null,
@@ -2612,6 +3724,9 @@ class DbBookingRepository implements BookingRepository {
           createdAt: updated.createdAt.toISOString(),
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: updated.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: updated.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: updated.requestResolutionReason ?? null,
         });
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
@@ -2628,7 +3743,7 @@ class DbBookingRepository implements BookingRepository {
           });
         }
         return nextResponse;
-      });
+      }, API_DB_TRANSACTION_OPTIONS);
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -2636,6 +3751,206 @@ class DbBookingRepository implements BookingRepository {
           authUserId: params.authUserId,
           bookingId: params.bookingId,
           action: 'cancel',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+  }
+  async resolveBookingRequest(params: ResolveBookingRequestParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.resolveBookingRequest(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: params.action,
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+    await expireDbBookingRequests(prisma, {
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+    });
+    const booking = await prisma.booking.findFirst({
+      where: { id: params.bookingId, deletedAt: null },
+      include: {
+        participants: {
+          where: { deletedAt: null },
+          include: { athlete: { select: { userId: true } } },
+        },
+        objectives: true,
+      },
+    });
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    if (params.action === 'decline') {
+      if (booking.coachUserId !== params.authUserId) {
+        throw forbidden('Only the assigned coach can decline this booking request');
+      }
+    } else {
+      const isGuardianForEveryParticipant =
+        booking.participants.length > 0 &&
+        booking.participants.every(
+          (participant) => participant.guardianUserId === params.authUserId,
+        );
+      const canWithdraw =
+        booking.bookedByUserId === params.authUserId || isGuardianForEveryParticipant;
+      if (!canWithdraw) {
+        throw forbidden('Only the requester or an assigned guardian can withdraw this request');
+      }
+    }
+    const descriptor = bookingRequestResolutionDescriptor(params.action);
+    if (booking.status === descriptor.status) {
+      return normalizeForJson(mapNormalizedDbBookingRow(normalizeForJson(booking) as SeedRow));
+    }
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
+    if (!isAwaitingBookingRequest(booking.status)) {
+      throw conflict('Only awaiting booking requests can be resolved', {
+        bookingId: params.bookingId,
+        status: booking.status,
+      });
+    }
+    const now = new Date();
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, params.action);
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.booking.updateMany({
+          where: {
+            id: params.bookingId,
+            version: booking.version,
+            deletedAt: null,
+            status: { in: ['PENDING', 'AWAITING_CONFIRMATION'] },
+            requestExpiresAt: { gt: now },
+          },
+          data: {
+            status: descriptor.status,
+            requestResolvedAt: now,
+            requestResolutionReason: params.body.reason,
+            updatedByUserId: params.authUserId,
+            updatedAt: now,
+            version: { increment: 1 },
+          },
+        });
+        if (updateResult.count !== 1) {
+          throw conflict('Booking request changed or expired before it was resolved', {
+            currentVersion: Number(booking.version),
+          });
+        }
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: { id: params.bookingId },
+        });
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId: params.bookingId,
+            fromStatus: booking.status,
+            toStatus: descriptor.status,
+            actorUserId: params.authUserId,
+            reason: params.body.reason,
+            metadataJson: {
+              action: params.action,
+              note: params.body.note ?? null,
+              source: 'api-db-runtime',
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          },
+        });
+        const recipientUserIds = bookingRequestResolutionRecipientIds({
+          action: params.action,
+          actorUserId: params.authUserId,
+          coachUserId: booking.coachUserId,
+          bookedByUserId: booking.bookedByUserId,
+          participants: booking.participants.map((participant) => ({
+            guardianUserId: participant.guardianUserId,
+            athleteUserId: participant.athlete.userId,
+          })),
+        });
+        if (recipientUserIds.length > 0) {
+          const existingNotifications = await tx.notification.findMany({
+            where: {
+              userId: { in: recipientUserIds },
+              sourceType: descriptor.sourceType,
+              sourceId: params.bookingId,
+            },
+            select: { userId: true },
+          });
+          const existingRecipientIds = new Set(
+            existingNotifications.map((notification) => notification.userId),
+          );
+          const rows = bookingRequestResolutionNotificationRows({
+            action: params.action,
+            bookingId: params.bookingId,
+            actorUserId: params.authUserId,
+            recipientUserIds: recipientUserIds.filter(
+              (userId) => !existingRecipientIds.has(userId),
+            ),
+            reason: params.body.reason,
+            scheduledAt: booking.scheduledAt.toISOString(),
+            now: now.toISOString(),
+          });
+          if (rows.length > 0) {
+            await tx.notification.createMany({
+              data: rows.map((row) => ({
+                id: asString(row.id) ?? newId('nfn'),
+                userId: asString(row.userId) ?? '',
+                type: asString(row.type) ?? descriptor.notificationType,
+                title: asString(row.title) ?? descriptor.title,
+                body: asString(row.body) ?? null,
+                status: 'UNREAD',
+                sourceType: descriptor.sourceType,
+                sourceId: params.bookingId,
+                deepLink: asString(row.deepLink) ?? `/bookings/${params.bookingId}`,
+                metadataJson: row.metadataJson as never,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            });
+          }
+        }
+        const nextResponse = mapNormalizedDbBookingRow(
+          normalizeForJson({
+            ...updated,
+            participants: booking.participants,
+            objectives: booking.objectives,
+          }) as SeedRow,
+        );
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+        return nextResponse;
+      }, API_DB_TRANSACTION_OPTIONS);
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: params.action,
           body: params.body,
         });
         if (replay) {
@@ -2665,12 +3980,21 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
-    const booking = await prisma.booking.findUnique({
+    await expireDbBookingRequests(prisma, {
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+    });
+    const booking = await prisma.booking.findFirst({
       where: {
         id: params.bookingId,
+        deletedAt: null,
       },
       include: {
-        participants: true,
+        participants: {
+          where: {
+            deletedAt: null,
+          },
+        },
         objectives: true,
       },
     });
@@ -2687,6 +4011,7 @@ class DbBookingRepository implements BookingRepository {
         bookingResponseSchema.parse({
           id: booking.id,
           coachUserId: booking.coachUserId,
+          clubId: booking.clubId ?? null,
           bookedByUserId: booking.bookedByUserId ?? undefined,
           recurringSeriesId: booking.recurringSeriesId ?? null,
           groupSessionId: booking.groupSessionId ?? null,
@@ -2711,11 +4036,14 @@ class DbBookingRepository implements BookingRepository {
           createdAt: booking.createdAt.toISOString(),
           updatedAt: booking.updatedAt.toISOString(),
           cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: booking.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: booking.requestResolutionReason ?? null,
         }),
       );
     }
     assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
-    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+    if (isTerminalBookingStatus(booking.status)) {
       throw badRequest('Terminal bookings cannot be confirmed', {
         bookingId: params.bookingId,
         status: booking.status,
@@ -2728,6 +4056,11 @@ class DbBookingRepository implements BookingRepository {
       });
     }
     const now = new Date();
+    if (booking.scheduledAt <= now) {
+      throw badRequest('Only upcoming booking requests can be confirmed', {
+        bookingId: params.bookingId,
+      });
+    }
     const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'confirm');
     const requestHash = hashBookingLifecycleRequest({
       bookingId: params.bookingId,
@@ -2739,10 +4072,22 @@ class DbBookingRepository implements BookingRepository {
           where: {
             id: params.bookingId,
             version: booking.version,
+            deletedAt: null,
+            scheduledAt: {
+              gt: now,
+            },
+            status: {
+              in: ['PENDING', 'AWAITING_CONFIRMATION'],
+            },
+            requestExpiresAt: {
+              gt: now,
+            },
           },
           data: {
             status: 'CONFIRMED',
             confirmedAt: now,
+            requestResolvedAt: now,
+            requestResolutionReason: null,
             updatedByUserId: params.authUserId,
             updatedAt: now,
             version: {
@@ -2755,32 +4100,83 @@ class DbBookingRepository implements BookingRepository {
             currentVersion: Number(booking.version),
           });
         }
-        const [updated] = await Promise.all([
-          tx.booking.findUniqueOrThrow({
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: {
+            id: params.bookingId,
+          },
+        });
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId: params.bookingId,
+            fromStatus: booking.status,
+            toStatus: 'CONFIRMED',
+            actorUserId: params.authUserId,
+            reason: 'Booking confirmed',
+            metadataJson: {
+              note: params.body.note ?? null,
+              source: 'api-db-runtime',
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          },
+        });
+        const candidateRecipientIds = bookingFamilyRecipientIds({
+          actorUserId: params.authUserId,
+          bookedByUserId: booking.bookedByUserId,
+          participants: booking.participants.map((participant) => ({
+            guardianUserId: participant.guardianUserId,
+          })),
+        });
+        if (candidateRecipientIds.length > 0) {
+          const existingNotifications = await tx.notification.findMany({
             where: {
-              id: params.bookingId,
-            },
-          }),
-          tx.bookingStatusEvent.create({
-            data: {
-              id: newId('bse'),
-              bookingId: params.bookingId,
-              fromStatus: booking.status,
-              toStatus: 'CONFIRMED',
-              actorUserId: params.authUserId,
-              reason: 'Booking confirmed',
-              metadataJson: {
-                note: params.body.note ?? null,
-                source: 'api-db-runtime',
+              userId: {
+                in: candidateRecipientIds,
               },
-              requestId: params.requestId,
-              occurredAt: now,
+              sourceType: BOOKING_CONFIRMED_NOTIFICATION_SOURCE_TYPE,
+              sourceId: params.bookingId,
             },
-          }),
-        ]);
+            select: {
+              userId: true,
+            },
+          });
+          const existingRecipientIds = new Set(
+            existingNotifications.map((notification) => notification.userId),
+          );
+          const missingRecipientIds = candidateRecipientIds.filter(
+            (userId) => !existingRecipientIds.has(userId),
+          );
+          if (missingRecipientIds.length > 0) {
+            const notificationRows = bookingConfirmationNotificationRows({
+              bookingId: params.bookingId,
+              actorUserId: params.authUserId,
+              recipientUserIds: missingRecipientIds,
+              scheduledAt: booking.scheduledAt.toISOString(),
+              now: now.toISOString(),
+            });
+            await tx.notification.createMany({
+              data: notificationRows.map((row, index) => ({
+                id: asString(row.id) ?? newId('nfn'),
+                userId: missingRecipientIds[index],
+                type: 'BOOKING_CONFIRMED',
+                title: 'Booking confirmed',
+                body: asString(row.body) ?? null,
+                status: 'UNREAD',
+                sourceType: BOOKING_CONFIRMED_NOTIFICATION_SOURCE_TYPE,
+                sourceId: params.bookingId,
+                deepLink: asString(row.deepLink) ?? `/bookings/${params.bookingId}`,
+                metadataJson: row.metadataJson as never,
+                createdAt: now,
+                updatedAt: now,
+              })),
+            });
+          }
+        }
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
+          clubId: updated.clubId ?? null,
           bookedByUserId: updated.bookedByUserId ?? undefined,
           recurringSeriesId: updated.recurringSeriesId ?? null,
           groupSessionId: updated.groupSessionId ?? null,
@@ -2805,6 +4201,9 @@ class DbBookingRepository implements BookingRepository {
           createdAt: updated.createdAt.toISOString(),
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: updated.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: updated.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: updated.requestResolutionReason ?? null,
         });
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
@@ -2821,7 +4220,7 @@ class DbBookingRepository implements BookingRepository {
           });
         }
         return nextResponse;
-      });
+      }, API_DB_TRANSACTION_OPTIONS);
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -2969,6 +4368,7 @@ class DbBookingRepository implements BookingRepository {
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
+          clubId: updated.clubId ?? null,
           bookedByUserId: updated.bookedByUserId ?? undefined,
           recurringSeriesId: updated.recurringSeriesId ?? null,
           groupSessionId: updated.groupSessionId ?? null,
@@ -2993,6 +4393,9 @@ class DbBookingRepository implements BookingRepository {
           createdAt: updated.createdAt.toISOString(),
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: updated.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: updated.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: updated.requestResolutionReason ?? null,
         });
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
@@ -3009,7 +4412,7 @@ class DbBookingRepository implements BookingRepository {
           });
         }
         return nextResponse;
-      });
+      }, API_DB_TRANSACTION_OPTIONS);
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -3076,6 +4479,7 @@ class DbBookingRepository implements BookingRepository {
         bookingResponseSchema.parse({
           id: booking.id,
           coachUserId: booking.coachUserId,
+          clubId: booking.clubId ?? null,
           bookedByUserId: booking.bookedByUserId ?? undefined,
           recurringSeriesId: booking.recurringSeriesId ?? null,
           groupSessionId: booking.groupSessionId ?? null,
@@ -3100,6 +4504,9 @@ class DbBookingRepository implements BookingRepository {
           createdAt: booking.createdAt.toISOString(),
           updatedAt: booking.updatedAt.toISOString(),
           cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: booking.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: booking.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: booking.requestResolutionReason ?? null,
         }),
       );
     }
@@ -3303,9 +4710,71 @@ class DbBookingRepository implements BookingRepository {
             occurredAt: completedAt,
           },
         });
+        const candidateRecipientIds = bookingFamilyRecipientIds({
+          actorUserId: params.authUserId,
+          bookedByUserId: booking.bookedByUserId,
+          participants: booking.participants.map((participant) => ({
+            guardianUserId: participant.guardianUserId,
+            athleteUserId: participant.athlete.userId,
+          })),
+        });
+        if (candidateRecipientIds.length > 0) {
+          const existingNotifications = await tx.notification.findMany({
+            where: {
+              userId: {
+                in: candidateRecipientIds,
+              },
+              sourceType: {
+                in: [
+                  BOOKING_COMPLETED_NOTIFICATION_SOURCE_TYPE,
+                  BOOKING_REVIEW_PROMPT_NOTIFICATION_SOURCE_TYPE,
+                ],
+              },
+              sourceId: params.bookingId,
+            },
+            select: {
+              sourceType: true,
+              userId: true,
+            },
+          });
+          const existingKeys = new Set(
+            existingNotifications.map(
+              (notification) => `${notification.sourceType ?? ''}:${notification.userId}`,
+            ),
+          );
+          const notificationRows = bookingCompletionNotificationRows({
+            bookingId: params.bookingId,
+            actorUserId: params.authUserId,
+            recipientUserIds: candidateRecipientIds,
+            attendanceSummary,
+            now: completedAt.toISOString(),
+          }).filter(
+            (row) =>
+              !existingKeys.has(`${asString(row.sourceType) ?? ''}:${asString(row.userId) ?? ''}`),
+          );
+          if (notificationRows.length > 0) {
+            await tx.notification.createMany({
+              data: notificationRows.map((row) => ({
+                id: asString(row.id) ?? newId('nfn'),
+                userId: asString(row.userId) ?? '',
+                type: asString(row.type) ?? 'BOOKING_COMPLETED',
+                title: asString(row.title) ?? 'Booking update',
+                body: asString(row.body) ?? null,
+                status: 'UNREAD',
+                sourceType: asString(row.sourceType) ?? null,
+                sourceId: params.bookingId,
+                deepLink: asString(row.deepLink) ?? `/bookings/${params.bookingId}`,
+                metadataJson: row.metadataJson as never,
+                createdAt: completedAt,
+                updatedAt: completedAt,
+              })),
+            });
+          }
+        }
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
+          clubId: updated.clubId ?? null,
           bookedByUserId: updated.bookedByUserId ?? undefined,
           recurringSeriesId: updated.recurringSeriesId ?? null,
           groupSessionId: updated.groupSessionId ?? null,
@@ -3330,6 +4799,9 @@ class DbBookingRepository implements BookingRepository {
           createdAt: updated.createdAt.toISOString(),
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+          requestExpiresAt: updated.requestExpiresAt?.toISOString() ?? null,
+          requestResolvedAt: updated.requestResolvedAt?.toISOString() ?? null,
+          requestResolutionReason: updated.requestResolutionReason ?? null,
         });
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
@@ -3346,7 +4818,7 @@ class DbBookingRepository implements BookingRepository {
           });
         }
         return nextResponse;
-      });
+      }, API_DB_TRANSACTION_OPTIONS);
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {

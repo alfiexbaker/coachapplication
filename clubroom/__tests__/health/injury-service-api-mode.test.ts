@@ -30,6 +30,7 @@ function apiInjury(overrides: Record<string, unknown> = {}) {
     notes: 'Rolled ankle in training.',
     createdAt: '2026-07-01T10:00:00.000Z',
     updatedAt: '2026-07-01T10:00:00.000Z',
+    sharedWithCoach: false,
     ...overrides,
   };
 }
@@ -156,7 +157,6 @@ describe('injuryService API mode', () => {
       severity: 'MODERATE',
       occurredAt: '2026-07-01T10:00:00.000Z',
       expectedRecovery: '2026-07-20T00:00:00.000Z',
-      sharedWithCoach: true,
     });
     assert.equal(created.id, 'injury_api_created');
 
@@ -186,11 +186,12 @@ describe('injuryService API mode', () => {
       reportedAt: '2026-07-01T10:00:00.000Z',
       expectedRecoveryDate: '2026-07-20T00:00:00.000Z',
       notes: 'Rolled ankle in training.',
+      sharedWithCoach: false,
     });
     assert.deepEqual(calls[3]?.body, {
       status: 'resolved',
     });
-    assert.equal((updated as Injury | null)?.sharedWithCoach, true);
+    assert.equal((updated as Injury | null)?.sharedWithCoach, false);
   });
 
   it('patches uncached injuries through the API instead of returning null', async (t) => {

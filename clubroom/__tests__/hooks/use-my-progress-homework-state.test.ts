@@ -7,7 +7,9 @@ import {
   resolveHomeworkFeedbackIdsForPracticeTask,
 } from '@/hooks/use-my-progress';
 import { apiClient } from '@/services/api-client';
+import { coachService } from '@/services/coach-service';
 import type { PracticeTask } from '@/services/progress/progress-practice-task-service';
+import { err, ok, serviceError } from '@/types/result';
 
 function makeTask(overrides: Partial<PracticeTask> = {}): PracticeTask {
   const assignedAt = '2026-07-05T08:00:00.000Z';
@@ -64,8 +66,9 @@ describe('useMyProgress homework state mapping', () => {
     });
   });
 
-  it('does not read the mock coach directory in API mode', async (t) => {
+  it('loads coach trust metadata from v1 profiles in API mode', async (t) => {
     const originalGet = apiClient.get;
+    const originalGetCoach = coachService.getCoach;
     const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
 
     Object.defineProperty(apiClient, 'isMockMode', {
@@ -75,9 +78,22 @@ describe('useMyProgress homework state mapping', () => {
     apiClient.get = async () => {
       throw new Error('coach directory local storage should not be read in API mode');
     };
+    coachService.getCoach = async (coachId) =>
+      ok({
+        id: coachId,
+        name: 'Coach One',
+        certifications: [
+          {
+            name: 'UEFA B',
+            issuer: 'FA',
+            issueDate: '2024-01-01',
+          },
+        ],
+      } as never);
 
     t.after(() => {
       apiClient.get = originalGet;
+      coachService.getCoach = originalGetCoach;
       if (originalIsMockMode) {
         Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
       } else {
@@ -85,6 +101,38 @@ describe('useMyProgress homework state mapping', () => {
       }
     });
 
-    assert.deepEqual(await loadCoachDirectoryForProgress(), []);
+    assert.deepEqual(await loadCoachDirectoryForProgress(['coach_1', 'coach_1']), [
+      {
+        id: 'coach_1',
+        name: 'Coach One',
+        qualifications: ['UEFA B'],
+      },
+    ]);
+  });
+
+  it('fails closed when a referenced live coach profile cannot load', async (t) => {
+    const originalGetCoach = coachService.getCoach;
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    coachService.getCoach = async () =>
+      err(serviceError('NETWORK', 'Coach profile authority unavailable.'));
+
+    t.after(() => {
+      coachService.getCoach = originalGetCoach;
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      } else {
+        delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+      }
+    });
+
+    await assert.rejects(
+      () => loadCoachDirectoryForProgress(['coach_1']),
+      /Failed to load coach profile coach_1: Coach profile authority unavailable\./,
+    );
   });
 });

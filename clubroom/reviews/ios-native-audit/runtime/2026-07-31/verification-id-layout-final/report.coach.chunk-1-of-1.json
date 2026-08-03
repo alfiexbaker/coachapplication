@@ -1,0 +1,122 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T19:55:40.063Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "verification"
+    ],
+    "role": "coach",
+    "chunkIndex": 1,
+    "chunkSize": 5,
+    "retries": 1,
+    "pauseMs": 600
+  },
+  "totals": {
+    "total": 5,
+    "ok": 5,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 5
+  },
+  "results": [
+    {
+      "id": "coach_verification_hub",
+      "role": "coach",
+      "title": "Coach opens verification status",
+      "path": "/verification",
+      "finalPath": "/verification",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout-final/coach__coach_verification_hub.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3204
+    },
+    {
+      "id": "coach_verification_identity",
+      "role": "coach",
+      "title": "Coach opens identity verification",
+      "path": "/verification/id",
+      "finalPath": "/verification/id",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout-final/coach__coach_verification_identity.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3477
+    },
+    {
+      "id": "coach_verification_background",
+      "role": "coach",
+      "title": "Coach opens background verification",
+      "path": "/verification/background",
+      "finalPath": "/verification/background",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout-final/coach__coach_verification_background.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3269
+    },
+    {
+      "id": "coach_verification_insurance",
+      "role": "coach",
+      "title": "Coach opens insurance verification",
+      "path": "/verification/insurance",
+      "finalPath": "/verification/insurance",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout-final/coach__coach_verification_insurance.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4195
+    },
+    {
+      "id": "coach_verification_credentials",
+      "role": "coach",
+      "title": "Coach opens credential verification",
+      "path": "/verification/credentials",
+      "finalPath": "/verification/credentials",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/verification-id-layout-final/coach__coach_verification_credentials.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3856
+    }
+  ]
+}

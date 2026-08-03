@@ -7,11 +7,10 @@
  */
 
 import React, { type ReactNode } from 'react';
-import { ScrollView, StyleSheet, TextInput, View, Switch, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -26,8 +25,8 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useBookingCancel } from '@/hooks/use-booking-cancel';
 
 export default function CancelBookingScreen() {
-  const { id, mode } = useLocalSearchParams<{ id: string; mode?: 'coach' | 'parent' }>();
-  const cancel = useBookingCancel(id, mode);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const cancel = useBookingCancel(id);
   const palette = cancel.colors;
   const renderScreen = ({
     title,
@@ -187,35 +186,6 @@ export default function CancelBookingScreen() {
           />
         </SurfaceCard>
 
-        {/* Waitlist toggle */}
-        <SurfaceCard style={styles.waitlistCard}>
-          <Row style={styles.waitlistRow}>
-            <Row style={styles.waitlistInfo}>
-              <View
-                style={[styles.waitlistIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}
-              >
-                <Ionicons name="people-outline" size={16} color={palette.success} />
-              </View>
-              <View style={styles.waitlistTextWrap}>
-                <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
-                  Notify Waitlist
-                </ThemedText>
-                <ThemedText style={[styles.waitlistHelper, { color: palette.muted }]}>
-                  Alert athletes on the waitlist that a slot has opened
-                </ThemedText>
-              </View>
-            </Row>
-            <Switch
-              value={cancel.notifyWaitlist}
-              onValueChange={(v) => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                cancel.setNotifyWaitlist(v);
-              }}
-              trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor={palette.surface}
-            />
-          </Row>
-        </SurfaceCard>
       </ScrollView>
 
       {/* Footer */}
@@ -287,18 +257,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     ...Typography.body,
   },
-  waitlistCard: { padding: Spacing.sm },
-  waitlistRow: { alignItems: 'center', justifyContent: 'space-between' },
-  waitlistInfo: { alignItems: 'center', gap: Spacing.sm, flex: 1, marginRight: Spacing.sm },
-  waitlistIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: Radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waitlistTextWrap: { flex: 1 },
-  waitlistHelper: { ...Typography.caption, marginTop: 1 },
   footer: {
     padding: Spacing.md,
     borderTopWidth: 1,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Modal } from 'react-native';
-import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -68,7 +69,7 @@ function AvailabilityTutorialContent({ onComplete }: { onComplete: () => void | 
     slideAnim.set(
       withTiming(targetSlide, { duration: 150 }, (finished) => {
         if (finished) {
-          runOnJS(callback)();
+          scheduleOnRN(callback);
           // Phase 2: reset slide to opposite side, then fade in + slide in
           slideAnim.set(resetSlide);
           slideAnim.set(withTiming(0, { duration: 200 }));

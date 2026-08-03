@@ -4,7 +4,6 @@ import {
   POSITION_SKILLS,
   RATING_LABELS,
   UNIVERSAL_SKILLS,
-  SKILL_SUB_SKILLS,
   computeFourCorners,
   deriveParentRatingsFromSubSkills,
 } from '@/constants/position-skills';
@@ -178,15 +177,13 @@ export function useQuickRate({
     .map((athlete) => `${athlete.athleteId}:${athlete.athleteName}`)
     .join('|');
   const stableAthletesRef = useRef(athletes);
-  const stableAthleteKeyRef = useRef(athleteKey);
-  if (stableAthleteKeyRef.current !== athleteKey) {
+  useEffect(() => {
     stableAthletesRef.current = athletes;
-    stableAthleteKeyRef.current = athleteKey;
-  }
-  const stableAthletes = stableAthletesRef.current;
+  }, [athleteKey, athletes]);
 
   useEffect(() => {
     const controller = new AbortController();
+    const stableAthletes = stableAthletesRef.current;
 
     if (stableAthletes.length === 0) {
       startTransition(() => {
@@ -215,14 +212,14 @@ export function useQuickRate({
       };
     }
 
-    const prefillFromPrevious = async () => {
+    const prefillFromPrevious = () => {
       setIsPrefilling(true);
 
       const nextRatings: Record<string, QuickRateInput> = {};
       const nextPositions: Record<string, PositionRole> = {};
       const nextPositionsMulti: Record<string, PositionRole[]> = {};
 
-      await Promise.all(
+      void Promise.all(
         stableAthletes.map(async (athlete) => {
           try {
             const [positionResult, latestFeedback, childProfile] = await Promise.all([
@@ -279,6 +276,7 @@ export function useQuickRate({
 
             nextRatings[athlete.athleteId] = base;
           } catch (error) {
+            if (controller.signal.aborted) return;
             logger.error('Failed to prefill quick rate position ratings', {
               athleteId: athlete.athleteId,
               error,
@@ -294,24 +292,23 @@ export function useQuickRate({
             );
           }
         }),
-      );
-
-      if (!controller.signal.aborted) {
+      ).then(() => {
+        if (controller.signal.aborted) return;
         setRatingsByAthleteId(nextRatings);
         setPositionByAthleteId(nextPositions);
         setPositionsByAthleteId(nextPositionsMulti);
-      }
-      setCurrentIndex((prev) => Math.max(0, Math.min(prev, stableAthletes.length - 1)));
-      setIsPrefilling(false);
-      setIsSkippedAll(false);
+        setCurrentIndex((prev) => Math.max(0, Math.min(prev, stableAthletes.length - 1)));
+        setIsPrefilling(false);
+        setIsSkippedAll(false);
+      });
     };
 
-    void prefillFromPrevious();
+    prefillFromPrevious();
 
     return () => {
       controller.abort();
     };
-  }, [coachId, effortByAthleteId, sessionId, stableAthletes]);
+  }, [athleteKey, coachId, effortByAthleteId, sessionId]);
 
   const setIndex = (index: number) => {
     setCurrentIndex(Math.max(0, Math.min(index, Math.max(athletes.length - 1, 0))));

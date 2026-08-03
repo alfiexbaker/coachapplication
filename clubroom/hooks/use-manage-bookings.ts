@@ -72,7 +72,8 @@ function canPostAsClub(membership: ClubMembership): boolean {
 function toRoleLabel(role: ClubRole): string {
   return formatOrganizationRoleLabel(role);
 }
-function formatDateTimeLabel(iso: string): string {
+function formatDateTimeLabel(iso: string | null): string {
+  if (!iso) return 'Schedule not set';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {
     return 'Schedule TBC';
@@ -105,18 +106,25 @@ export function useManageBookings() {
         api.useMock ? Promise.resolve(null) : clubAuthorityService.listClubs(),
         inviteService.getCoachInvites(currentUser.id),
       ]);
-      if (authorityResult && !authorityResult.success) {
-        return err(authorityResult.error);
+
+      let memberships: ClubMembership[];
+      const authorityClubMap = new Map<string, { id: string; name: string }>();
+
+      if (api.useMock) {
+        memberships = await socialFeedService.getUserMembershipsHydrated(currentUser.id);
+      } else {
+        if (!authorityResult) {
+          return err(serviceError('UNKNOWN', 'Failed to load club authority.'));
+        }
+        if (!authorityResult.success) {
+          return err(authorityResult.error);
+        }
+        memberships = authorityResult.data.memberships;
+        authorityResult.data.clubs.forEach((club) => {
+          authorityClubMap.set(club.id, club);
+        });
       }
-      const memberships = api.useMock
-        ? await socialFeedService.getUserMembershipsHydrated(currentUser.id)
-        : (authorityResult?.data.memberships ?? []);
-      const authorityClubMap = new Map(
-        (authorityResult?.success ? authorityResult.data.clubs : []).map((club) => [
-          club.id,
-          club,
-        ]),
-      );
+
       const eligibleMemberships = memberships.filter(
         (membership) => membership.status === 'active' && canCreateSessions(membership.role),
       );
@@ -151,8 +159,6 @@ export function useManageBookings() {
           pendingInviteCount,
         });
       }
-      const selectedMembership =
-        nextClubs.find((club) => club.id === nextSelectedClubId)?.membership ?? null;
       const staffingResult = await orgStaffingService.getConsoleData(
         nextSelectedClubId,
         currentUser.id,
@@ -162,13 +168,7 @@ export function useManageBookings() {
           clubId: nextSelectedClubId,
           error: staffingResult.error,
         });
-        return ok({
-          ...EMPTY_MANAGE_BOOKINGS_DATA,
-          clubs: nextClubs,
-          resolvedSelectedClubId: nextSelectedClubId,
-          pendingInviteCount,
-          selectedClubRole: selectedMembership?.role ?? null,
-        });
+        return err(staffingResult.error);
       }
       const assignableChoices = staffingResult.data.staff.flatMap((member) =>
         member.canTakeAssignments
@@ -192,7 +192,7 @@ export function useManageBookings() {
         assignedWork: staffingResult.data.assignedWork,
         assigneeChoices: assignableChoices,
         canManageAssignments: staffingResult.data.canManageAssignments,
-        selectedClubRole: staffingResult.data.viewerMembership.role,
+        selectedClubRole: staffingResult.data.viewerMembership?.role ?? null,
         activeOrgSessionCount: staffingResult.data.summary.activeOrgSessions,
         assignedTodayCount: staffingResult.data.summary.assignedToday,
         unassignedCount: staffingResult.data.summary.unassignedCount,

@@ -146,6 +146,75 @@ describe('progressFeedbackService', () => {
     }
   });
 
+  it('API quick-rate preserves live session-feedback authority errors before saving', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const originalGetCurrentUser = authService.getCurrentUser;
+    const originalFetch = globalThis.fetch;
+    const requestedUrls: string[] = [];
+
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    authService.getCurrentUser = async () => ({
+      id: 'coach_api_feedback',
+      email: 'coach.api.feedback@example.test',
+      accountType: 'COACH',
+      firstName: 'API',
+      lastName: 'Coach',
+      isVerified: true,
+      onboardingComplete: true,
+      createdAt: '2026-07-05T10:00:00.000Z',
+      updatedAt: '2026-07-05T10:00:00.000Z',
+    });
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+      requestedUrls.push(String(input));
+      return new Response(
+        JSON.stringify({
+          message: 'session feedback authority unavailable',
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }) as typeof fetch;
+
+    try {
+      const result = await progressFeedbackService.createFeedbackFromQuickRate(
+        {
+          athleteId: 'ath_api_quick_rate',
+          athleteName: 'Athlete API',
+          sessionId: 'session_api_quick_rate',
+          coachId: 'coach_api_feedback',
+          effort: 4,
+          technical: 4,
+          physical: 3,
+          psychological: 4,
+          social: 5,
+          visibility: 'parent',
+        },
+        'API Coach',
+        'Athlete API',
+      );
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'UNKNOWN');
+        assert.equal(result.error.message, 'session feedback authority unavailable');
+      }
+      assert.deepEqual(requestedUrls, [
+        'http://localhost:4000/v1/athletes/ath_api_quick_rate/session-feedback?viewerRole=coach',
+      ]);
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+      authService.getCurrentUser = originalGetCurrentUser;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('saves and returns session notes', async () => {
     await progressFeedbackService.saveSessionNote('booking_pf_1', {
       summary: 'Good rhythm',

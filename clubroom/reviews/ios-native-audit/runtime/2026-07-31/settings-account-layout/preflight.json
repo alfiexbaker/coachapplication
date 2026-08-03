@@ -1,0 +1,17 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T20:17:28.234Z",
+  "results": [
+    {
+      "role": "coach",
+      "status": "ok",
+      "details": [
+        "base_url_http_200",
+        "login_attempts:1",
+        "proof_path:/schedule",
+        "current_path:/schedule",
+        "screenshot:reviews/ios-native-audit/runtime/2026-07-31/settings-account-layout/preflight.coach.png"
+      ]
+    }
+  ]
+}

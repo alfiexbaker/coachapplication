@@ -1,7 +1,7 @@
 /**
  * Hook: useCalendarSync
  *
- * Manages calendar sync settings state: load, save, toggle, export.
+ * Manages device-local calendar export preferences and the export action.
  * Used by app/settings/calendar-sync.tsx
  */
 
@@ -10,11 +10,12 @@ import { useState, useEffect, startTransition } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { calendarService } from '@/services/calendar-service';
+import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { eventService } from '@/services/event';
 import { createLogger } from '@/utils/logger';
-import type { CalendarSyncSettings, CalendarProvider, CalendarEvent } from '@/constants/types';
+import type { CalendarSyncSettings, CalendarEvent } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
@@ -42,7 +43,7 @@ export function useCalendarSync() {
 
   const loadSettings = async () => {
     if (!userId) {
-      return err(serviceError('UNAUTHORIZED', 'Sign in to manage calendar sync settings.'));
+      return err(serviceError('UNAUTHORIZED', 'Sign in to manage calendar export settings.'));
     }
 
     try {
@@ -82,7 +83,7 @@ export function useCalendarSync() {
 
   const saveSettings = async (updates: Partial<CalendarSyncSettings>) => {
     if (!userId) {
-      uiFeedback.showToast('Sign in to manage calendar sync settings.', 'error');
+      uiFeedback.showToast('Sign in to manage calendar export settings.', 'error');
       return;
     }
 
@@ -113,14 +114,11 @@ export function useCalendarSync() {
     });
   };
 
-  const handleToggleEnabled = (enabled: boolean) => saveSettings({ enabled });
-  const handleToggleAutoSync = (autoSync: boolean) => saveSettings({ autoSync });
   const handleToggleLocation = (includeLocation: boolean) => saveSettings({ includeLocation });
   const handleToggleNotes = (includeNotes: boolean) => saveSettings({ includeNotes });
-  const handleProviderChange = (provider: CalendarProvider) => saveSettings({ provider });
   const handleReminderChange = (reminderMinutes: number) => saveSettings({ reminderMinutes });
 
-  const handleExportAllSessions = async () => {
+  const handleExportCalendar = async () => {
     if (!userId) {
       uiFeedback.showToast('Sign in before exporting your calendar.', 'error');
       return;
@@ -150,6 +148,12 @@ export function useCalendarSync() {
         allEvents.push(...activeSessions.map((s) => calendarService.groupSessionToEvent(s)));
       } catch (gsError) {
         logger.warn('Could not fetch group sessions for export', gsError);
+        if (!apiClient.isMockMode) {
+          const message = 'Could not load all group sessions for export. Please try again.';
+          setActionError(message);
+          uiFeedback.showToast(message, 'error');
+          return;
+        }
       }
 
       // Club events
@@ -158,16 +162,22 @@ export function useCalendarSync() {
         allEvents.push(...upcomingEvents.map((e) => calendarService.clubEventToEvent(e)));
       } catch (evError) {
         logger.warn('Could not fetch club events for export', evError);
+        if (!apiClient.isMockMode) {
+          const message = 'Could not load all club events for export. Please try again.';
+          setActionError(message);
+          uiFeedback.showToast(message, 'error');
+          return;
+        }
       }
 
       if (allEvents.length === 0) {
-        uiFeedback.showToast('You have no upcoming sessions to export.');
+        uiFeedback.showToast('You have no upcoming calendar items to export.');
         return;
       }
 
       const result = await calendarService.generateICSFileFromEvents(allEvents, undefined, settings);
       if (!result.success || !result.filePath) {
-        const message = result.error || 'Failed to export sessions.';
+        const message = result.error || 'Failed to export calendar.';
         setActionError(message);
         uiFeedback.showToast(message, 'error');
         return;
@@ -183,13 +193,13 @@ export function useCalendarSync() {
 
       await Sharing.shareAsync(result.filePath, {
         mimeType: 'text/calendar',
-        dialogTitle: 'Export All Sessions',
+        dialogTitle: 'Export Calendar',
         UTI: 'public.calendar-event',
       });
     }, async exportError => {
-      logger.error('Failed to export sessions', exportError);
-      setActionError('Failed to export sessions. Please try again.');
-      uiFeedback.showToast('Failed to export sessions. Please try again.', 'error');
+      logger.error('Failed to export calendar', exportError);
+      setActionError('Failed to export calendar. Please try again.');
+      uiFeedback.showToast('Failed to export calendar. Please try again.', 'error');
     }, () => {
       setIsExporting(false);
     });
@@ -211,13 +221,10 @@ export function useCalendarSync() {
     isSaving,
     isExporting,
     settings,
-    handleToggleEnabled,
-    handleToggleAutoSync,
     handleToggleLocation,
     handleToggleNotes,
-    handleProviderChange,
     handleReminderChange,
-    handleExportAllSessions,
+    handleExportCalendar,
   } satisfies {
     isLoading: boolean;
     status: ScreenStatus;
@@ -228,12 +235,9 @@ export function useCalendarSync() {
     isSaving: boolean;
     isExporting: boolean;
     settings: CalendarSyncSettings;
-    handleToggleEnabled: (enabled: boolean) => void;
-    handleToggleAutoSync: (autoSync: boolean) => void;
     handleToggleLocation: (includeLocation: boolean) => void;
     handleToggleNotes: (includeNotes: boolean) => void;
-    handleProviderChange: (provider: CalendarProvider) => void;
     handleReminderChange: (reminderMinutes: number) => void;
-    handleExportAllSessions: () => Promise<void>;
+    handleExportCalendar: () => Promise<void>;
   };
 }

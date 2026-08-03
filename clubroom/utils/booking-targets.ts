@@ -1,8 +1,15 @@
 import type { BookingDraft } from '@/services/booking-service';
+import {
+  isSelfAthleteTarget,
+  resolveSelfAthleteId,
+  resolveSelfAthleteName,
+} from '@/utils/athlete-identity';
 import { resolveNonGenericPersonName, resolveUserProfileName } from '@/utils/person-name';
 
 export interface BookingTargetUser {
   id: string;
+  athleteId?: string | null;
+  athleteName?: string | null;
   fullName?: string | null;
   name?: string | null;
 }
@@ -36,8 +43,11 @@ export function resolveBookingTargetName({
   children: readonly BookingTargetChild[];
   draftAthleteName?: string | null;
 }): string | undefined {
-  if (currentUser?.id === targetId) {
-    return resolveUserProfileName(currentUser);
+  if (isSelfAthleteTarget(currentUser, targetId)) {
+    return (
+      resolveNonGenericPersonName(resolveSelfAthleteName(currentUser)) ??
+      resolveUserProfileName(currentUser)
+    );
   }
 
   const child = children.find(
@@ -100,8 +110,11 @@ export function resolveDefaultBookingTarget({
   children: readonly BookingTargetChild[];
 }): { id: string; name?: string } | null {
   if (preferredChildId) {
-    if (currentUser?.id === preferredChildId) {
-      return resolveBookingTarget({ targetId: currentUser.id, currentUser, children });
+    if (isSelfAthleteTarget(currentUser, preferredChildId)) {
+      const selfAthleteId = resolveSelfAthleteId(currentUser);
+      return selfAthleteId
+        ? resolveBookingTarget({ targetId: selfAthleteId, currentUser, children })
+        : null;
     }
 
     const preferredChild = children.find((child) => child.id === preferredChildId);
@@ -114,8 +127,9 @@ export function resolveDefaultBookingTarget({
     return resolveBookingTarget({ targetId: children[0].id, currentUser, children });
   }
 
-  if (children.length === 0 && currentUser?.id) {
-    return resolveBookingTarget({ targetId: currentUser.id, currentUser, children });
+  const selfAthleteId = resolveSelfAthleteId(currentUser);
+  if (children.length === 0 && selfAthleteId) {
+    return resolveBookingTarget({ targetId: selfAthleteId, currentUser, children });
   }
 
   return null;
@@ -131,7 +145,10 @@ export function resolveBookingDraftTargets({
   children: readonly BookingTargetChild[];
 }): ResolvedBookingTargets {
   const athleteIds = uniqueIds(
-    draft.childIds?.length ? draft.childIds : [draft.childId ?? draft.athleteId],
+    (draft.childIds?.length ? draft.childIds : [draft.childId ?? draft.athleteId]).map(
+      (targetId) =>
+        isSelfAthleteTarget(currentUser, targetId) ? resolveSelfAthleteId(currentUser) : targetId,
+    ),
   );
   return {
     athleteIds,

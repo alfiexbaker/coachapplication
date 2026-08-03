@@ -29,10 +29,10 @@ import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { badRequest, conflict, forbidden } from '../../lib/http-errors.js';
 import {
-  applyBookingCancellationInvoiceEffects,
   applyBookingCancellationInvoiceEffectsInDbTransaction,
-  applyBookingInvoiceAdjustments,
+  applyBookingCancellationInvoiceEffectsInTables,
   applyBookingInvoiceAdjustmentsInDbTransaction,
+  applyBookingInvoiceAdjustmentsInTables,
 } from '../../lib/invoice-runtime.js';
 import { normalizeForJson } from './normalize.js';
 import { createBookingInSeedTables, type SeedRow, type SeedTables } from './booking-repository.js';
@@ -1141,6 +1141,8 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
         bookingRowOverrides: {
           recurringSeriesId: seriesId,
           seriesIndex: index,
+          status: 'CONFIRMED',
+          confirmedAt: now,
         },
       }),
     );
@@ -1222,16 +1224,14 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
         scheduledAtMs <= nowMs
       );
     });
-    await Promise.all(
-      cancellableBookings.map((booking) =>
-        applyBookingCancellationInvoiceEffects({
-          bookingId: asString(booking.id) ?? '',
-          actorUserId: params.authUserId,
-          reason: cancelReason,
-          requestId: params.requestId,
-        }),
-      ),
-    );
+    for (const booking of cancellableBookings) {
+      applyBookingCancellationInvoiceEffectsInTables(store.tables, {
+        bookingId: asString(booking.id) ?? '',
+        actorUserId: params.authUserId,
+        reason: cancelReason,
+        requestId: params.requestId,
+      });
+    }
     for (const booking of cancellableBookings) {
       const currentStatus = asString(booking.status)?.toUpperCase();
       booking.status = 'CANCELLED';
@@ -1605,7 +1605,7 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
         invoice.version = (asNumber(invoice.version) ?? 1) + 1;
       }
     }
-    await applyBookingInvoiceAdjustments({
+    applyBookingInvoiceAdjustmentsInTables(store.tables, {
       bookingIds: mutableBookingIds,
       actorUserId: params.authUserId,
       reason: 'Linked booking series was updated.',
@@ -2458,7 +2458,7 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
                 data: {
                   id: newId('bse'),
                   bookingId,
-                  fromStatus: 'PENDING',
+                  fromStatus: null,
                   toStatus: 'CONFIRMED',
                   actorUserId: params.authUserId,
                   reason: 'Created via API booking series endpoint.',

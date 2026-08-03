@@ -82,6 +82,7 @@ export default function ProfileScreen() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('none');
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const { data, status, error, retry, refreshing, onRefresh, colors, showLoadingState } =
     useScreen<User | null>({
@@ -156,9 +157,14 @@ export default function ProfileScreen() {
     startTransition(() => {
       void getConnectionSnapshot(currentUser?.id, data.id)
         .then((snapshot) => {
+          setConnectionError(null);
           applyConnectionSnapshot(snapshot, setConnectionState, setIncomingRequestId);
         })
         .catch(() => {
+          if (!api.useMock) {
+            setConnectionError('Could not load connection status. Pull to retry.');
+            return;
+          }
           applyConnectionSnapshot(
             { connectionState: 'none', incomingRequestId: null },
             setConnectionState,
@@ -170,6 +176,7 @@ export default function ProfileScreen() {
 
   const connectionButtonLabel = (() => {
     if (connectionActionLoading) return 'Updating...';
+    if (connectionError) return 'Connection unavailable';
     if (connectionState === 'connected') return 'Connected';
     if (connectionState === 'outgoing_pending') return 'Request sent';
     if (connectionState === 'incoming_pending') return 'Review request';
@@ -178,6 +185,7 @@ export default function ProfileScreen() {
 
   const canTriggerConnectionAction =
     !connectionActionLoading &&
+    !connectionError &&
     canManageConnection &&
     (connectionState === 'none' ||
       (connectionState === 'incoming_pending' && Boolean(incomingRequestId)));
@@ -282,13 +290,20 @@ export default function ProfileScreen() {
 
       <View style={styles.actions}>
         {canManageConnection && (
-          <Button
-            onPress={handleConnectionAction}
-            disabled={!canTriggerConnectionAction}
-            variant={connectionState === 'none' ? 'outline' : 'secondary'}
-            accessibilityLabel={connectionButtonLabel}
-            label={connectionButtonLabel}
-          />
+          <>
+            <Button
+              onPress={handleConnectionAction}
+              disabled={!canTriggerConnectionAction}
+              variant={connectionState === 'none' ? 'outline' : 'secondary'}
+              accessibilityLabel={connectionButtonLabel}
+              label={connectionButtonLabel}
+            />
+            {connectionError ? (
+              <ThemedText style={[styles.connectionError, { color: colors.error }]}>
+                {connectionError}
+              </ThemedText>
+            ) : null}
+          </>
         )}
         {canMessage ? (
           <Button onPress={() => router.push(Routes.chat(data!.id))} label="Message" />
@@ -450,6 +465,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
     marginHorizontal: Spacing.lg,
     gap: Spacing.sm,
+  },
+  connectionError: {
+    ...Typography.caption,
   },
   updatesHeader: {
     marginTop: Spacing.xl,

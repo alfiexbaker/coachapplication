@@ -25,6 +25,7 @@ export default function FamilyRecurringScreen() {
     refreshing,
     onRefresh,
     retry,
+    canManageFamilyRecurring,
     plans,
     highlightedPlan,
     handlePause,
@@ -59,6 +60,20 @@ export default function FamilyRecurringScreen() {
         minute: '2-digit',
       })
     : null;
+
+  if (!canManageFamilyRecurring) {
+    return (
+      <PageContainer
+        header={<PageHeader title="Recurring Plans" subtitle="Manage weekly and monthly sessions" showBack />}
+      >
+        <EmptyState
+          icon="repeat"
+          title="Recurring plans unavailable"
+          message="Recurring plans are available to linked guardians."
+        />
+      </PageContainer>
+    );
+  }
 
   if (status === 'loading') {
     return (

@@ -73,7 +73,10 @@ export async function resolveFamilyAuthorityContext(
   });
 }
 
-function splitDisplayName(displayName: string | null | undefined): { firstName: string; lastName: string } {
+function splitDisplayName(displayName: string | null | undefined): {
+  firstName: string;
+  lastName: string;
+} {
   const trimmed = displayName?.trim() ?? '';
   if (!trimmed) {
     return { firstName: 'Young', lastName: 'Athlete' };
@@ -123,7 +126,8 @@ export function mapApiFamilyAthleteToChildProfile(
     photoUrl: athlete.photoUrl ?? athlete.avatarUrl ?? undefined,
     disabilities: athlete.disabilities ?? [],
     specialNeeds: athlete.specialNeeds ?? [],
-    hasSpecialNeeds: (athlete.disabilities?.length ?? 0) > 0 || (athlete.specialNeeds?.length ?? 0) > 0,
+    hasSpecialNeeds:
+      (athlete.disabilities?.length ?? 0) > 0 || (athlete.specialNeeds?.length ?? 0) > 0,
     allergies: [],
     medicalConditions: [],
     medications: [],
@@ -134,10 +138,10 @@ export function mapApiFamilyAthleteToChildProfile(
     emergencyContactRelation: '',
     secondaryEmergencyName: undefined,
     secondaryEmergencyPhone: undefined,
-    photoConsent: true,
-    videoConsent: true,
+    photoConsent: false,
+    videoConsent: false,
     socialMediaConsent: false,
-    emergencyTreatmentConsent: true,
+    emergencyTreatmentConsent: false,
     createdAt: athlete.createdAt ?? new Date().toISOString(),
     updatedAt: athlete.updatedAt ?? athlete.createdAt ?? new Date().toISOString(),
   };

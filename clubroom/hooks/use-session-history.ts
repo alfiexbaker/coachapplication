@@ -60,13 +60,14 @@ export function useSessionHistory(athleteIdParam?: string | null) {
         mediaService.listMediaForAthlete(resolvedAthleteId),
       ]);
 
-      const media = mediaResult.success ? mediaResult.data : [];
       if (!mediaResult.success) {
         logger.error('Failed to load media for session history', {
           athleteId: resolvedAthleteId,
           error: mediaResult.error,
         });
+        return err(mediaResult.error);
       }
+      const media = mediaResult.data;
 
       const sessions = buildPastSessions({
         feedback,

@@ -27,6 +27,7 @@ interface CoachDetailHeroProps {
   profileSummary: string;
   offeringSummary: CoachOfferingSummary;
   isBlocked: boolean;
+  actionsUnavailable?: boolean;
   onFollow: () => void | Promise<void>;
   onMessage: () => void;
 }
@@ -45,11 +46,13 @@ export const CoachDetailHero = function CoachDetailHero({
   profileSummary,
   offeringSummary,
   isBlocked,
+  actionsUnavailable = false,
   onFollow,
   onMessage,
 }: CoachDetailHeroProps) {
   const { colors: palette } = useTheme();
   const { width } = useWindowDimensions();
+  const disableActions = isBlocked || actionsUnavailable;
   const isMutedFollowButton = isFollowing || !canFollowAction;
   const followTextColor = isMutedFollowButton ? palette.text : palette.onPrimary;
   const availabilityLabel = formatCoachAvailabilityLabel(
@@ -175,7 +178,7 @@ export const CoachDetailHero = function CoachDetailHero({
             {showFollowAction ? (
               <Clickable
                 onPress={onFollow}
-                disabled={!canFollowAction || followLoading || isBlocked}
+                disabled={!canFollowAction || followLoading || disableActions}
                 style={[
                   styles.followButton,
                   {
@@ -196,6 +199,7 @@ export const CoachDetailHero = function CoachDetailHero({
             ) : null}
             <Clickable
               onPress={onMessage}
+              disabled={disableActions}
               accessibilityLabel={contactLabel}
               style={[styles.messageButton, { borderColor: palette.border }]}
             >

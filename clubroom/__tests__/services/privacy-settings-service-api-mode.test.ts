@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
@@ -12,7 +14,26 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
+
 describe('privacySettingsService API mode', () => {
+  it('does not log raw privacy update values on failures', () => {
+    const source = readProjectFile('services/privacy-settings-service.ts');
+
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to update privacy settings',\s*\{\s*userId,\s*updates,/,
+      'privacy update failure logs must not include the full updates payload',
+    );
+    assert.match(
+      source,
+      /changedFields,\s*\n\s*changedFieldCount: changedFields\.length/,
+      'privacy update diagnostics should log changed field names and counts instead of raw values',
+    );
+  });
+
   it('uses self-scoped /v1 privacy settings and never local privacy storage', async (t) => {
     const [{ privacySettingsService }, { apiClient }] = await Promise.all([
       import('@/services/privacy-settings-service'),

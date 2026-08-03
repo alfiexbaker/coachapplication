@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -11,11 +10,11 @@ import { VerificationBadge } from '@/components/verification/verification-badge'
 import { VerificationItemRow } from '@/components/verification/verification-item-row';
 import { Row } from '@/components/primitives/row';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
 
-const VERIFICATION_HEADER = <PageHeader title="Verification" subtitle="Build trust with parents" />;
+const VERIFICATION_HEADER = <PageHeader title="Verification" />;
 
 export default function VerificationHubScreen() {
   const { colors: palette } = useTheme();
@@ -50,15 +49,6 @@ export default function VerificationHubScreen() {
     );
   }
 
-  const levelLabel =
-    status.overallLevel === 'PREMIUM'
-      ? 'Fully verified - Premium coach status'
-      : status.overallLevel === 'VERIFIED'
-        ? 'Verified - Add credentials for Premium'
-        : status.overallLevel === 'BASIC'
-          ? 'Basic - Complete ID and background check'
-          : 'Get started with verification';
-
   return (
     <VerificationScreenState
       colors={palette}
@@ -75,13 +65,13 @@ export default function VerificationHubScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <SurfaceCard style={styles.progressCard}>
+        <SurfaceCard style={styles.statusCard}>
           <Row justify="space-between" align="center">
             <View>
-              <ThemedText type="defaultSemiBold">Verification Progress</ThemedText>
+              <ThemedText type="defaultSemiBold">Profile status</ThemedText>
               <ThemedText style={{ color: palette.muted }}>{progress}% complete</ThemedText>
             </View>
-            <VerificationBadge level={status.overallLevel} size="large" />
+            <VerificationBadge level={status.overallLevel} />
           </Row>
           <View style={[styles.progressBarBg, { backgroundColor: palette.border }]}>
             <View
@@ -91,14 +81,11 @@ export default function VerificationHubScreen() {
               ]}
             />
           </View>
-          <ThemedText style={[styles.levelLabel, { color: palette.muted }]}>
-            {levelLabel}
-          </ThemedText>
         </SurfaceCard>
 
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Identity Verification
+            Account
           </ThemedText>
           <SurfaceCard>
             <VerificationItemRow
@@ -106,9 +93,7 @@ export default function VerificationHubScreen() {
               icon="mail"
               title="Email"
               description={
-                status.email.status === 'VERIFIED'
-                  ? 'Verified on your current sign-in email'
-                  : 'Email verification is not available in-app yet'
+                status.email.status === 'VERIFIED' ? 'Sign-in email verified' : 'Email not verified'
               }
               item={status.email}
             />
@@ -118,34 +103,32 @@ export default function VerificationHubScreen() {
               icon="call"
               title="Phone"
               description={
-                status.phone.status === 'VERIFIED'
-                  ? 'Verified phone number on file'
-                  : 'Phone verification is managed outside the app in this build'
+                status.phone.status === 'VERIFIED' ? 'Phone number verified' : 'Phone not verified'
               }
               item={status.phone}
-            />
-            <View style={[styles.divider, { backgroundColor: palette.border }]} />
-            <VerificationItemRow
-              colors={palette}
-              icon="card"
-              title="Photo ID"
-              description="Upload a government-issued ID"
-              item={status.identity}
-              onPress={() => router.push(Routes.VERIFICATION_ID)}
             />
           </SurfaceCard>
         </View>
 
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Background & Credentials
+            Documents
           </ThemedText>
           <SurfaceCard>
             <VerificationItemRow
               colors={palette}
+              icon="card"
+              title="Photo ID"
+              description="Passport, driving licence or national ID"
+              item={status.identity}
+              onPress={() => router.push(Routes.VERIFICATION_ID)}
+            />
+            <View style={[styles.divider, { backgroundColor: palette.border }]} />
+            <VerificationItemRow
+              colors={palette}
               icon="shield-checkmark"
-              title="Background Check"
-              description="Complete DBS or equivalent check"
+              title="DBS certificate"
+              description="Enhanced DBS evidence"
               item={status.backgroundCheck}
               onPress={() => router.push(Routes.VERIFICATION_BACKGROUND)}
             />
@@ -153,11 +136,11 @@ export default function VerificationHubScreen() {
             <VerificationItemRow
               colors={palette}
               icon="ribbon"
-              title="Coaching Credentials"
+              title="Coaching credentials"
               description={
                 hasCredentials
-                  ? `${status.credentials.length} credential(s) uploaded`
-                  : 'Upload coaching certifications'
+                  ? `${status.credentials.length} submitted`
+                  : 'Coaching qualifications'
               }
               item={credentialStatus}
               onPress={() => router.push(Routes.VERIFICATION_CREDENTIALS)}
@@ -166,21 +149,13 @@ export default function VerificationHubScreen() {
             <VerificationItemRow
               colors={palette}
               icon="document-text"
-              title="Insurance"
-              description="Public liability insurance"
+              title="Insurance certificate"
+              description="Public liability cover"
               item={status.insurance}
               onPress={() => router.push(Routes.VERIFICATION_INSURANCE)}
             />
           </SurfaceCard>
         </View>
-
-        <Row gap="sm" style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color={palette.tint} />
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            Verified coaches appear higher in search results and receive a trust badge on their
-            profile.
-          </ThemedText>
-        </Row>
       </ScrollView>
     </VerificationScreenState>
   );
@@ -188,13 +163,10 @@ export default function VerificationHubScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  progressCard: { gap: Spacing.sm },
+  statusCard: { gap: Spacing.sm },
   progressBarBg: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: Radii.xs },
-  levelLabel: { ...Typography.small },
   section: { gap: Spacing.sm },
   sectionTitle: { marginLeft: Spacing.xs },
   divider: { height: 1, marginLeft: 52 },
-  infoBox: { padding: Spacing.md, borderRadius: Radii.md },
-  infoText: { flex: 1, ...Typography.small },
 });

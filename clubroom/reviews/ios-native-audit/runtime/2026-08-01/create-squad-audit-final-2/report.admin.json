@@ -1,0 +1,72 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T11:46:59.342Z",
+  "meta": {
+    "roles": [
+      "admin"
+    ],
+    "profiles": [
+      "create-squad-audit"
+    ],
+    "role": "admin",
+    "chunkSize": 2,
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 250
+  },
+  "totals": {
+    "total": 2,
+    "ok": 2,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 2
+  },
+  "results": [
+    {
+      "id": "admin_squad_create_ready",
+      "role": "admin",
+      "title": "Club admin sees the lean squad creator",
+      "path": "/club/squad/create?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/club/squad/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/create-squad-audit-final-2/admin__admin_squad_create_ready.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 2735
+    },
+    {
+      "id": "admin_squad_create_interactions",
+      "role": "admin",
+      "title": "Club admin completes squad fields and recovers from a failed create",
+      "path": "/club/squad/create?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "finalPath": "/club/squad/create",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/create-squad-audit-final-2/admin__admin_squad_create_interactions.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [
+        "response:503:POST:http://localhost:4000/v1/clubs/clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1/squads",
+        "console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "console:[ERROR] [",
+        "console:Error data: {code: UNKNOWN, message: Squad was not created., details: undefined}"
+      ],
+      "attempts": 1,
+      "durationMs": 5271
+    }
+  ]
+}

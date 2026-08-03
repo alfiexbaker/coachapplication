@@ -3,6 +3,11 @@ import { getPrismaClient } from '@clubroom/db';
 import type { PrismaClient } from '@clubroom/db';
 import { serviceUnavailable } from './http-errors.js';
 
+export const API_DB_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 30_000,
+} as const;
+
 function isTestRuntime(): boolean {
   if (env.NODE_ENV === 'test' || process.env.NODE_ENV === 'test') {
     return true;

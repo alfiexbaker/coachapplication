@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, startTransition } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,6 +36,7 @@ import { hasResolvedBookingTargets, resolveBookingDraftTargets } from '@/utils/b
 import type { OrganizationCommercialMode } from '@/constants/types';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 const logger = createLogger('ConfirmationScreen');
 
@@ -55,7 +56,13 @@ export default function ConfirmationScreen() {
   const [error, setError] = useState<string | null>(null);
   const [resolvedCoachName, setResolvedCoachName] = useState(draft.coachName ?? '');
   const [clubLabel, setClubLabel] = useState<string | null>(null);
+  const [clubContextLoading, setClubContextLoading] = useState(Boolean(draft.clubId));
+  const [clubContextError, setClubContextError] = useState<string | null>(null);
   const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
+  const [assigneeContextLoading, setAssigneeContextLoading] = useState(
+    Boolean(draft.assigneeCoachId),
+  );
+  const [assigneeContextError, setAssigneeContextError] = useState<string | null>(null);
   const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
     draft.commercialMode ?? null,
   );
@@ -139,56 +146,172 @@ export default function ConfirmationScreen() {
     if (!draft.clubId) {
       startTransition(() => {
         setClubLabel(null);
+        setClubContextLoading(false);
+        setClubContextError(null);
+        setCommercialMode(draft.commercialMode ?? null);
       });
       return;
     }
     let cancelled = false;
-    void clubAuthorityService.getClubById(draft.clubId).then((result) => {
-      if (cancelled) return;
-      const club = result.success ? result.data : null;
-      if (club?.name) {
-        setClubLabel(club.name);
-        setCommercialMode(club.commercialMode ?? 'COACH_OWNED');
-      } else {
-        setClubLabel(safeDisplayLabel(draft.clubId, 'Club session'));
-        setCommercialMode('COACH_OWNED');
-      }
+    startTransition(() => {
+      setClubContextLoading(true);
+      setClubContextError(null);
+      setClubLabel(null);
+      setCommercialMode(null);
     });
+
+    void clubAuthorityService
+      .getClubById(draft.clubId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          const message = result.error.message || 'Could not load organization context.';
+          logger.error('Failed to load booking club context', {
+            clubId: draft.clubId,
+            error: result.error,
+          });
+          setClubContextError(message);
+          setClubLabel(null);
+          setCommercialMode(null);
+          return;
+        }
+
+        const club = result.data;
+        const nextCommercialMode = club.commercialMode ?? null;
+        if (!nextCommercialMode) {
+          logger.error('Booking club context missing commercial mode', {
+            clubId: draft.clubId,
+          });
+          setClubContextError('Could not load organization billing context.');
+          setClubLabel(null);
+          setCommercialMode(null);
+          return;
+        }
+        setClubLabel(club.name?.trim() || safeDisplayLabel(draft.clubId, 'Organization'));
+        setCommercialMode(nextCommercialMode);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        logger.error('Failed to load booking club context', {
+          clubId: draft.clubId,
+          error: loadError,
+        });
+        setClubContextError('Could not load organization context.');
+        setClubLabel(null);
+        setCommercialMode(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setClubContextLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [draft.clubId]);
+  }, [draft.clubId, draft.commercialMode]);
 
   useEffect(() => {
     if (!draft.assigneeCoachId) {
       startTransition(() => {
         setAssigneeLabel(null);
+        setAssigneeContextLoading(false);
+        setAssigneeContextError(null);
       });
       return;
     }
     let cancelled = false;
-    void userService.getUserById(draft.assigneeCoachId).then((result) => {
-      if (cancelled) return;
-      if (result.success) {
-        setAssigneeLabel(
-          result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'),
-        );
-      } else {
-        setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
-      }
+    startTransition(() => {
+      setAssigneeContextLoading(true);
+      setAssigneeContextError(null);
+      setAssigneeLabel(null);
     });
+    void userService
+      .getUserById(draft.assigneeCoachId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.success) {
+          const message = result.error.message || 'Could not load delivery coach context.';
+          logger.error('Failed to load booking delivery coach context', {
+            assigneeCoachId: draft.assigneeCoachId,
+            error: result.error,
+          });
+          setAssigneeContextError(message);
+          setAssigneeLabel(null);
+          return;
+        }
+
+        const resolvedName = result.data.name?.trim();
+        if (!resolvedName) {
+          logger.error('Booking delivery coach context missing display name', {
+            assigneeCoachId: draft.assigneeCoachId,
+          });
+          setAssigneeContextError('Could not load delivery coach context.');
+          setAssigneeLabel(null);
+          return;
+        }
+
+        setAssigneeLabel(resolvedName);
+      })
+      .catch((loadError) => {
+        if (cancelled) return;
+        logger.error('Failed to load booking delivery coach context', {
+          assigneeCoachId: draft.assigneeCoachId,
+          error: loadError,
+        });
+        setAssigneeContextError('Could not load delivery coach context.');
+        setAssigneeLabel(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAssigneeContextLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
   }, [draft.assigneeCoachId]);
+  const deliveredByLabel = draft.assigneeCoachId
+    ? assigneeContextError
+      ? 'Delivery coach unavailable'
+      : (assigneeLabel ?? 'Loading delivery coach...')
+    : resolvedCoachName || draft.coachName || 'Coach';
   const relationshipContext = getBookingRelationshipContext({
     actingAs: draft.actingAs,
     organizationLabel: clubLabel,
     coachLabel: resolvedCoachName || draft.coachName || 'Coach',
-    deliveredByLabel: assigneeLabel || resolvedCoachName || draft.coachName || 'Coach',
+    deliveredByLabel,
     commercialMode,
   });
   const hasCreatedBooking = Boolean(bookingId);
+  const resolvedTargets = resolveBookingDraftTargets({ draft, currentUser, children });
+  const resolvedBookerName = (currentUser?.name || currentUser?.fullName || '').trim();
+  const resolvedDraftCoachName = (draft.coachName || resolvedCoachName || '').trim();
+  const bookingDraftReady = Boolean(
+    resolvedCoachId &&
+    resolvedDraftCoachName &&
+    currentUser?.id &&
+    resolvedBookerName &&
+    hasResolvedBookingTargets(resolvedTargets) &&
+    draft.date &&
+    draft.slot &&
+    typeof draft.duration === 'number' &&
+    Number.isFinite(draft.duration) &&
+    draft.duration > 0 &&
+    draft.locationText?.trim() &&
+    typeof draft.price === 'number' &&
+    Number.isFinite(draft.price) &&
+    draft.sessionType?.trim() &&
+    (draft.sessionTypeLabel?.trim() || formatServiceTypeLabel(draft.sessionType)),
+  );
+  const confirmationBlocked =
+    !hasCreatedBooking &&
+    (!bookingDraftReady ||
+      Boolean(
+        draft.clubId && (clubContextLoading || clubContextError || !clubLabel || !commercialMode),
+      ) ||
+      Boolean(
+        draft.assigneeCoachId && (assigneeContextLoading || assigneeContextError || !assigneeLabel),
+      ));
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -203,10 +326,10 @@ export default function ConfirmationScreen() {
     return await runAsyncTryCatchFinally(
       async () => {
         const resolvedCoach = coachId || draft.coachId;
-        const coachName = (draft.coachName || resolvedCoachName || '').trim();
+        const coachName = resolvedDraftCoachName;
         const { athleteIds: selectedAthleteIds, athleteNames: selectedAthleteNames } =
-          resolveBookingDraftTargets({ draft, currentUser, children });
-        const bookedByName = (currentUser?.name || currentUser?.fullName || '').trim();
+          resolvedTargets;
+        const bookedByName = resolvedBookerName;
         const location = draft.locationText?.trim() ?? '';
         const duration =
           typeof draft.duration === 'number' && Number.isFinite(draft.duration)
@@ -251,7 +374,42 @@ export default function ConfirmationScreen() {
           setIsCreating(false);
           return;
         }
-        if (accountHasChildren && selectedAthleteIds.includes(currentUser.id)) {
+        if (draft.clubId) {
+          if (clubContextLoading) {
+            trackConfirmStep('validation_fail', 'club_context_loading');
+            setError('Still loading organization context. Please try again in a moment.');
+            setIsCreating(false);
+            return;
+          }
+          if (clubContextError || !clubLabel || !commercialMode) {
+            trackConfirmStep('validation_fail', 'club_context_unavailable');
+            setError(
+              clubContextError ||
+                'Could not load organization billing context. Please go back and retry.',
+            );
+            setIsCreating(false);
+            return;
+          }
+        }
+        if (draft.assigneeCoachId) {
+          if (assigneeContextLoading) {
+            trackConfirmStep('validation_fail', 'assignee_context_loading');
+            setError('Still loading delivery coach context. Please try again in a moment.');
+            setIsCreating(false);
+            return;
+          }
+          if (assigneeContextError || !assigneeLabel) {
+            trackConfirmStep('validation_fail', 'assignee_context_unavailable');
+            setError(
+              assigneeContextError ||
+                'Could not load delivery coach context. Please go back and retry.',
+            );
+            setIsCreating(false);
+            return;
+          }
+        }
+        const selfAthleteId = resolveSelfAthleteId(currentUser);
+        if (accountHasChildren && selfAthleteId && selectedAthleteIds.includes(selfAthleteId)) {
           let canBookSelf = false;
           try {
             canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
@@ -321,7 +479,9 @@ export default function ConfirmationScreen() {
           sessionSourceEntityId: draft.sessionSourceEntityId || draft.sessionOfferingId,
           clubId: draft.clubId,
           actingAs: draft.actingAs,
-          commercialMode: commercialMode ?? draft.commercialMode,
+          commercialMode: draft.clubId
+            ? (commercialMode ?? undefined)
+            : (commercialMode ?? draft.commercialMode),
           ownerCoachId: draft.ownerCoachId,
           assigneeCoachId: draft.assigneeCoachId,
           createdByUserId: draft.createdByUserId,
@@ -338,8 +498,8 @@ export default function ConfirmationScreen() {
           // Trigger celebration with haptics
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           celebrationRef.current?.celebrate({
-            title: 'Booking Confirmed!',
-            subtitle: `Session with ${coachName} is all set`,
+            title: 'Booking sent',
+            subtitle: `Waiting for ${coachName} to confirm`,
             icon: 'checkmark-circle',
             iconColor: palette.success,
             duration: 2500,
@@ -377,50 +537,32 @@ export default function ConfirmationScreen() {
     );
   };
 
+  const visibleError = error ?? clubContextError ?? assigneeContextError;
   return (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}
       edges={['top', 'bottom']}
     >
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <BookingWizardHeader
-          title={hasCreatedBooking ? 'Booking confirmed' : 'Confirm booking'}
+          title={hasCreatedBooking ? 'Booking sent' : 'Confirm booking'}
           subtitle={
-            hasCreatedBooking
-              ? 'Your coach will confirm within 24 hours'
-              : 'Review the details before we place this booking'
+            hasCreatedBooking ? 'Waiting for coach confirmation' : 'Check the details below'
           }
           step={5}
           onBack={handleBack}
         />
 
-        <View
-          style={[
-            styles.checkCircle,
-            { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.07) },
-          ]}
-        >
-          <Ionicons
-            name={hasCreatedBooking ? 'checkmark' : 'calendar-outline'}
-            size={48}
-            color={palette.tint}
-          />
-        </View>
-
         <View style={{ gap: Spacing.sm }}>
-          <ThemedText type="defaultSemiBold">
-            {hasCreatedBooking ? "What's next" : 'Before you confirm'}
-          </ThemedText>
+          <ThemedText type="defaultSemiBold">{hasCreatedBooking ? 'Next' : 'Payment'}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
             {hasCreatedBooking
-              ? `${
-                  draft.actingAs === 'club'
-                    ? relationshipContext.commercialMode === 'ORG_OWNED'
-                      ? `Your booking request is in with ${relationshipContext.bookedWithLabel}.`
-                      : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}.`
-                    : 'Your booking request is in.'
-                } ${relationshipContext.paymentSummary} You can message your coach anytime or add this to your calendar.`
-              : `We will only place this booking after Clubroom confirms the slot, booking target, and coach rules through the live booking API. ${relationshipContext.paymentSummary}`}
+              ? `${relationshipContext.bookedWithLabel} has the request. ${relationshipContext.paymentSummary}`
+              : relationshipContext.paymentSummary}
           </ThemedText>
         </View>
 
@@ -464,6 +606,14 @@ export default function ConfirmationScreen() {
               </ThemedText>
             </Row>
           ) : null}
+          {draft.assigneeCoachId && assigneeContextLoading ? (
+            <Row align="center" gap="sm">
+              <Ionicons name="hourglass-outline" size={18} color={palette.muted} />
+              <ThemedText style={{ color: palette.text }}>
+                Loading delivery coach context...
+              </ThemedText>
+            </Row>
+          ) : null}
           <Row align="center" gap="sm">
             <Ionicons name="card-outline" size={18} color={palette.muted} />
             <ThemedText style={{ color: palette.text }}>
@@ -484,7 +634,7 @@ export default function ConfirmationScreen() {
           )}
         </View>
 
-        {error && (
+        {visibleError && (
           <Row
             align="center"
             gap="sm"
@@ -494,16 +644,22 @@ export default function ConfirmationScreen() {
             ]}
           >
             <Ionicons name="alert-circle" size={20} color={palette.error} />
-            <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
+            <ThemedText style={{ color: palette.error, flex: 1 }}>{visibleError}</ThemedText>
           </Row>
         )}
-      </View>
+      </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
           onPress={handleViewBooking}
-          style={[styles.cta, { backgroundColor: palette.tint }]}
-          disabled={isCreating}
+          style={[
+            styles.cta,
+            {
+              backgroundColor:
+                isCreating || confirmationBlocked ? withAlpha(palette.tint, 0.45) : palette.tint,
+            },
+          ]}
+          disabled={isCreating || confirmationBlocked}
         >
           {isCreating ? (
             <ActivityIndicator size="small" color={palette.onPrimary} />
@@ -543,16 +699,8 @@ function formatDate(dateStr: string): string {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  content: { padding: Spacing.lg, gap: Spacing.lg, flex: 1 },
-  checkCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    alignSelf: 'center',
-  },
+  scroll: { flex: 1 },
+  content: { padding: Spacing.lg, gap: Spacing.lg, paddingBottom: Spacing.xl },
   summaryCard: {
     padding: Spacing.md,
     borderRadius: Radii.lg,

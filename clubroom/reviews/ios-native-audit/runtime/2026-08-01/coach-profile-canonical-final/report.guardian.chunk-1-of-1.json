@@ -1,0 +1,47 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T19:49:00.309Z",
+  "meta": {
+    "roles": [
+      "guardian"
+    ],
+    "profiles": [
+      "coach-profile-canonical"
+    ],
+    "role": "guardian",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 700
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "guardian_coach_profile_denied",
+      "role": "guardian",
+      "title": "guardian cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final/guardian__guardian_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4213
+    }
+  ]
+}

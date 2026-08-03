@@ -1,14 +1,40 @@
 import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { isClubStaffRole, parseOrganizationRole } from '@clubroom/shared-contracts';
+import {
+  clubMatchPlayerStatusSchema as matchPlayerStatusSchema,
+  clubMatchResponseSchema,
+  clubMatchStatusSchema as matchStatusSchema,
+  clubMatchTypeSchema as matchTypeSchema,
+  createClubMatchRequestSchema as createClubMatchBodySchema,
+  importClubMatchItemSchema,
+  importClubMatchesRequestSchema as importClubMatchesBodySchema,
+  importClubMatchesResponseSchema,
+  isClubStaffRole,
+  listClubMatchesQuerySchema,
+  listClubMatchesResponseSchema,
+  parseOrganizationRole,
+} from '@clubroom/shared-contracts';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  ApiProblemError,
+  badRequest,
+  conflict,
+  forbidden,
+  isZodValidationError,
+  notFound,
+  serviceUnavailable,
+} from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import {
+  formatInstantInTimeZone,
+  isSupportedTimeZone,
+  localDateTimeToUtc,
+} from '../../lib/time-zone.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
 
 type SeedRow = Record<string, unknown>;
@@ -16,45 +42,16 @@ type SeedTables = Record<string, SeedRow[]>;
 
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
-const matchTypeSchema = z.enum(['FRIENDLY', 'LEAGUE', 'CUP', 'TOURNAMENT']);
-const matchStatusSchema = z.enum([
-  'SCHEDULED',
-  'LINEUP_SET',
-  'IN_PROGRESS',
-  'COMPLETED',
-  'CANCELLED',
-]);
-
 const clubMatchParamsSchema = z.object({
   clubId: z.string().min(1),
 });
 
+const coachMatchParamsSchema = z.object({
+  coachId: z.string().min(1),
+});
+
 const matchParamsSchema = z.object({
   matchId: z.string().min(1),
-});
-
-const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
-
-const localTimeSchema = z.string().regex(/^\d{2}:\d{2}$/, 'time must be HH:mm');
-
-const createClubMatchBodySchema = z.object({
-  squadId: z.string().min(1).nullable().optional(),
-  title: z.string().trim().min(2).max(160),
-  matchType: matchTypeSchema,
-  opponent: z.string().trim().min(2).max(120),
-  isHome: z.boolean().default(true),
-  date: localDateSchema,
-  kickoffTime: localTimeSchema,
-  meetTime: localTimeSchema.optional(),
-  venue: z.string().trim().min(2).max(160),
-  address: z.string().trim().max(240).optional(),
-  maxPlayers: z.coerce.number().int().min(1).max(30).default(14),
-  notes: z.string().trim().max(1000).optional(),
-});
-
-const listClubMatchesQuerySchema = z.object({
-  status: matchStatusSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
 const recordResultBodySchema = z.object({
@@ -68,28 +65,24 @@ const updateStatusBodySchema = z.object({
   status: matchStatusSchema,
 });
 
-const matchPlayerStatusSchema = z.enum([
-  'INVITED',
-  'AVAILABLE',
-  'UNAVAILABLE',
-  'SELECTED',
-  'RESERVE',
-]);
-
 const hasUniqueAthleteIds = (players: Array<{ athleteId: string }>) =>
   new Set(players.map((player) => player.athleteId)).size === players.length;
 
 const inviteMatchPlayersBodySchema = z.object({
-  players: z.array(
-    z.object({
-      athleteId: z.string().min(1),
-      athleteName: z.string().min(1).optional(),
-      parentId: z.string().min(1),
-      parentName: z.string().optional(),
+  players: z
+    .array(
+      z.object({
+        athleteId: z.string().min(1),
+        athleteName: z.string().min(1).optional(),
+        parentId: z.string().min(1),
+        parentName: z.string().optional(),
+      }),
+    )
+    .min(1)
+    .max(40)
+    .refine(hasUniqueAthleteIds, {
+      message: 'players must not contain duplicate athletes',
     }),
-  ).min(1).max(40).refine(hasUniqueAthleteIds, {
-    message: 'players must not contain duplicate athletes',
-  }),
 });
 
 const respondMatchPlayerBodySchema = z.object({
@@ -100,16 +93,20 @@ const respondMatchPlayerBodySchema = z.object({
 });
 
 const setMatchLineupBodySchema = z.object({
-  lineup: z.array(
-    z.object({
-      athleteId: z.string().min(1),
-      position: z.string().max(80).optional(),
-      jerseyNumber: z.coerce.number().int().min(0).max(99).optional(),
-      isReserve: z.boolean().optional(),
+  lineup: z
+    .array(
+      z.object({
+        athleteId: z.string().min(1),
+        position: z.string().max(80).optional(),
+        jerseyNumber: z.coerce.number().int().min(0).max(99).optional(),
+        isReserve: z.boolean().optional(),
+      }),
+    )
+    .min(1)
+    .max(40)
+    .refine(hasUniqueAthleteIds, {
+      message: 'lineup must not contain duplicate athletes',
     }),
-  ).min(1).max(40).refine(hasUniqueAthleteIds, {
-    message: 'lineup must not contain duplicate athletes',
-  }),
 });
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
@@ -119,12 +116,38 @@ const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
+const asRecord = (value: unknown): SeedRow | null =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : null;
 
 function requireAuthUserId(authUserId: string | undefined): string {
   if (!authUserId) {
     throw forbidden('Authenticated user is required');
   }
   return authUserId;
+}
+
+function parseClubMatchListResponse(payload: unknown) {
+  const parsed = listClubMatchesResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Club match list response invalid');
+  }
+  return parsed.data;
+}
+
+function parseClubMatchResponse(payload: unknown) {
+  const parsed = clubMatchResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Club match response invalid');
+  }
+  return parsed.data;
+}
+
+function parseClubMatchImportResponse(payload: unknown) {
+  const parsed = importClubMatchesResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Club match import response invalid');
+  }
+  return parsed.data;
 }
 
 function toIso(value: unknown): string | undefined {
@@ -134,9 +157,51 @@ function toIso(value: unknown): string | undefined {
   return asString(value);
 }
 
-function toStartsAt(date: string, kickoffTime: string): Date {
-  const parsed = new Date(`${date}T${kickoffTime}:00.000Z`);
-  if (Number.isNaN(parsed.getTime())) {
+function validateMatchActorTimeZone(value: unknown): string {
+  const timeZone = asString(value)?.trim();
+  if (!timeZone) {
+    throw conflict('Set an account time zone before creating club matches');
+  }
+  if (!isSupportedTimeZone(timeZone)) {
+    throw serviceUnavailable('Stored user time zone is invalid');
+  }
+  return timeZone;
+}
+
+function validatePersistedMatchTimeZone(value: unknown): string {
+  const timeZone = asString(value)?.trim() || 'UTC';
+  if (!isSupportedTimeZone(timeZone)) {
+    throw serviceUnavailable('Persisted club match time zone is invalid');
+  }
+  return timeZone;
+}
+
+async function resolveMatchActorTimeZone(authUserId: string): Promise<string> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const user = await prisma.user.findFirst({
+      where: { id: authUserId, deletedAt: null },
+      select: { timeZone: true },
+    });
+    if (!user) {
+      throw serviceUnavailable('Authenticated user profile is unavailable');
+    }
+    return validateMatchActorTimeZone(user.timeZone);
+  }
+
+  const store = resolveStore();
+  const user = asRows(store.tables.users).find(
+    (row) => asString(row.id) === authUserId && !asString(row.deletedAt),
+  );
+  if (!user) {
+    throw serviceUnavailable('Authenticated user profile is unavailable');
+  }
+  return validateMatchActorTimeZone(user.timeZone);
+}
+
+function toStartsAt(date: string, kickoffTime: string, timeZone: string): Date {
+  const parsed = localDateTimeToUtc(date, kickoffTime, timeZone);
+  if (!parsed) {
     throw badRequest('Match date and kickoff time are invalid');
   }
   return parsed;
@@ -157,6 +222,18 @@ function activeMembership(row: SeedRow | null | undefined): boolean {
 function canMutateWithMembership(row: SeedRow | null | undefined): boolean {
   const role = parseOrganizationRole(asString(row?.role));
   return Boolean(role && isClubStaffRole(role));
+}
+
+function canManageClubMatch(
+  membership: SeedRow | null | undefined,
+  isPrivilegedAdmin: boolean,
+): boolean {
+  return isPrivilegedAdmin || canMutateWithMembership(membership);
+}
+
+function canImportWithMembership(row: SeedRow | null | undefined): boolean {
+  const role = parseOrganizationRole(asString(row?.role));
+  return role === 'OWNER' || role === 'ADMIN';
 }
 
 function canViewClub(params: {
@@ -223,6 +300,19 @@ function requireStoreClubMatchWriteAccess(params: {
     return;
   }
   throw forbidden('Only club staff can manage matches');
+}
+
+function requireStoreClubMatchImportAccess(params: {
+  tables: SeedTables;
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): void {
+  const { membership } = getStoreClubAccess(params);
+  if (params.isPrivilegedAdmin || canImportWithMembership(membership)) {
+    return;
+  }
+  throw forbidden('Only club owners and admins can import matches');
 }
 
 function getStoreMatchAccess(params: {
@@ -321,6 +411,18 @@ async function requireDbClubMatchWriteAccess(params: {
   throw forbidden('Only club staff can manage matches');
 }
 
+async function requireDbClubMatchImportAccess(params: {
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<void> {
+  const { membership } = await getDbClubAccess(params);
+  if (params.isPrivilegedAdmin || canImportWithMembership(membership)) {
+    return;
+  }
+  throw forbidden('Only club owners and admins can import matches');
+}
+
 async function getDbMatchAccess(params: {
   matchId: string;
   authUserId: string;
@@ -336,6 +438,13 @@ async function getDbMatchAccess(params: {
       players: {
         where: {
           deletedAt: null,
+        },
+        include: {
+          athlete: {
+            select: {
+              userId: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'asc',
@@ -388,6 +497,10 @@ function parseResult(value: unknown): { home: number; away: number } | undefined
 
 function mapClubMatch(row: SeedRow) {
   const startsAt = toIso(row.startsAt);
+  const timeZone = validatePersistedMatchTimeZone(row.timeZone);
+  const localStartsAt = startsAt
+    ? formatInstantInTimeZone(new Date(startsAt), timeZone)
+    : undefined;
   const id = asString(row.id) ?? '';
   const result = parseResult(row.resultJson);
   return {
@@ -399,9 +512,13 @@ function mapClubMatch(row: SeedRow) {
     matchType: matchTypeSchema.catch('FRIENDLY').parse(asString(row.matchType)),
     opponent: asString(row.opponent) ?? 'Opponent',
     isHome: asBoolean(row.isHome) ?? true,
-    date: asString(row.date) ?? toDatePart(startsAt),
+    date: asString(row.date) ?? localStartsAt?.date ?? toDatePart(startsAt),
     kickoffTime:
-      asString(row.kickoffTime) ?? asString(row.kickoffTimeLocal) ?? toTimePart(startsAt),
+      asString(row.kickoffTime) ??
+      asString(row.kickoffTimeLocal) ??
+      localStartsAt?.time ??
+      toTimePart(startsAt),
+    timeZone,
     meetTime: asString(row.meetTime) ?? asString(row.meetTimeLocal),
     venue: asString(row.venue) ?? 'Match venue',
     address: asString(row.address),
@@ -423,6 +540,55 @@ function mapClubMatch(row: SeedRow) {
   };
 }
 
+function mapClubMatchForViewer(params: {
+  match: SeedRow;
+  membership: SeedRow | null;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  tables?: SeedTables;
+}) {
+  const canManageMatch = canManageClubMatch(params.membership, params.isPrivilegedAdmin);
+  const players = canManageMatch
+    ? asRows(params.match.players)
+    : asRows(params.match.players).filter((player) =>
+        isMatchPlayerVisibleToUser({
+          tables: params.tables,
+          player,
+          authUserId: params.authUserId,
+        }),
+      );
+
+  return {
+    ...mapClubMatch({ ...params.match, players }),
+    canManageMatch,
+  };
+}
+
+function mapClubMatchToSquadInvite(match: ReturnType<typeof mapClubMatch>): SeedRow | null {
+  if (!match.squadId || match.selectedPlayers.length === 0) {
+    return null;
+  }
+  const accepted = match.selectedPlayers.filter((player) =>
+    ['AVAILABLE', 'SELECTED', 'RESERVE'].includes(player.status),
+  ).length;
+  const declined = match.selectedPlayers.filter((player) => player.status === 'UNAVAILABLE').length;
+  const pending = match.selectedPlayers.filter((player) => player.status === 'INVITED').length;
+  return {
+    id: `squad_match_${match.id}`,
+    squadId: match.squadId,
+    targetType: 'MATCH',
+    targetId: match.id,
+    invitedBy: match.coachId,
+    invitedAt: match.createdAt,
+    memberCount: match.selectedPlayers.length,
+    responses: {
+      accepted,
+      declined,
+      pending,
+    },
+  };
+}
+
 function sortMatches(rows: SeedRow[]): SeedRow[] {
   return [...rows].sort((left, right) => {
     const leftAt = new Date(toIso(left.startsAt) ?? asString(left.date) ?? '').getTime();
@@ -431,8 +597,33 @@ function sortMatches(rows: SeedRow[]): SeedRow[] {
   });
 }
 
+type ImportClubMatchItem = z.infer<typeof importClubMatchItemSchema>;
+type ImportClubMatchesBody = z.infer<typeof importClubMatchesBodySchema>;
+type ImportKey = { source: string; externalId: string };
+
+function titleForImportedMatch(match: ImportClubMatchItem): string {
+  return match.title ?? `${match.isHome ? 'Home' : 'Away'} vs ${match.opponent}`;
+}
+
+function importKeyForMatch(
+  source: string | undefined,
+  match: ImportClubMatchItem,
+): ImportKey | null {
+  if (!match.externalId) {
+    return null;
+  }
+  return {
+    source: match.source ?? source ?? 'manual',
+    externalId: match.externalId,
+  };
+}
+
+function serializedImportKey(key: ImportKey): string {
+  return `${key.source}:${key.externalId}`;
+}
+
 function isMatchPlayerVisibleToUser(params: {
-  tables: SeedTables;
+  tables?: SeedTables;
   player: SeedRow;
   authUserId: string;
 }): boolean {
@@ -441,8 +632,12 @@ function isMatchPlayerVisibleToUser(params: {
     return true;
   }
 
+  if (asString(asRecord(params.player.athlete)?.userId) === params.authUserId) {
+    return true;
+  }
+
   const athleteId = asString(params.player.athleteId);
-  if (!athleteId) {
+  if (!athleteId || !params.tables) {
     return false;
   }
   return asRows(params.tables.athletes).some(
@@ -469,6 +664,21 @@ async function recordClubMatchAudit(params: {
     result: params.result,
     metadata: params.metadata,
   });
+}
+
+const isMatchValidationError = isZodValidationError;
+
+function clubMatchAuditResult(error: unknown): 'DENY' | 'ERROR' {
+  return isMatchValidationError(error) || (error instanceof ApiProblemError && error.status < 500)
+    ? 'DENY'
+    : 'ERROR';
+}
+
+function clubMatchAuditErrorCode(error: unknown): string {
+  if (isMatchValidationError(error)) {
+    return 'VALIDATION_FAILED';
+  }
+  return error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR';
 }
 
 function matchNotification(params: {
@@ -955,7 +1165,7 @@ async function listClubMatches(params: {
   limit?: number;
 }) {
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
-    await getDbClubAccess(params);
+    const { membership } = await getDbClubAccess(params);
     const prisma = getPrismaClientOrThrow();
     const rows = await prisma.clubMatch.findMany({
       where: {
@@ -968,6 +1178,13 @@ async function listClubMatches(params: {
           where: {
             deletedAt: null,
           },
+          include: {
+            athlete: {
+              select: {
+                userId: true,
+              },
+            },
+          },
           orderBy: {
             createdAt: 'asc',
           },
@@ -978,11 +1195,18 @@ async function listClubMatches(params: {
       },
       take: params.limit,
     });
-    return normalizeForJson(rows).map((row) => mapClubMatch(row as SeedRow));
+    return normalizeForJson(rows).map((row) =>
+      mapClubMatchForViewer({
+        match: row as SeedRow,
+        membership,
+        authUserId: params.authUserId,
+        isPrivilegedAdmin: params.isPrivilegedAdmin,
+      }),
+    );
   }
 
   const store = resolveStore();
-  getStoreClubAccess({
+  const { membership } = getStoreClubAccess({
     tables: store.tables as SeedTables,
     clubId: params.clubId,
     authUserId: params.authUserId,
@@ -996,7 +1220,15 @@ async function listClubMatches(params: {
       return !params.status || asString(row.status) === params.status;
     }),
   );
-  return rows.slice(0, params.limit).map(mapClubMatch);
+  return rows.slice(0, params.limit).map((match) =>
+    mapClubMatchForViewer({
+      match,
+      membership,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+      tables: store.tables as SeedTables,
+    }),
+  );
 }
 
 async function listCurrentUserMatches(params: {
@@ -1086,22 +1318,92 @@ async function listCurrentUserMatches(params: {
   );
 }
 
+async function listCoachMatchInvites(params: {
+  coachId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  status?: z.infer<typeof matchStatusSchema>;
+  limit?: number;
+}) {
+  if (!params.isPrivilegedAdmin && params.coachId !== params.authUserId) {
+    throw forbidden('Coach match invites are only visible to that coach');
+  }
+
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const rows = await prisma.clubMatch.findMany({
+      where: {
+        coachUserId: params.coachId,
+        squadId: {
+          not: null,
+        },
+        deletedAt: null,
+        status: params.status,
+        players: {
+          some: {
+            deletedAt: null,
+          },
+        },
+      },
+      include: {
+        players: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        startsAt: 'desc',
+      },
+      take: params.limit,
+    });
+    return normalizeForJson(rows)
+      .map((row) => mapClubMatchToSquadInvite(mapClubMatch(row as SeedRow)))
+      .filter((invite): invite is SeedRow => invite !== null);
+  }
+
+  const store = resolveStore();
+  return sortMatches(
+    asRows(store.tables.matches).filter((row) => {
+      const match = mapClubMatch(row);
+      if (match.coachId !== params.coachId) {
+        return false;
+      }
+      if (asString(row.deletedAt) || (params.status && asString(row.status) !== params.status)) {
+        return false;
+      }
+      return Boolean(match.squadId && match.selectedPlayers.length > 0);
+    }),
+  )
+    .slice(0, params.limit)
+    .map((row) => mapClubMatchToSquadInvite(mapClubMatch(row)))
+    .filter((invite): invite is SeedRow => invite !== null);
+}
+
 async function getClubMatch(params: {
   matchId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
 }) {
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
-    const { match } = await getDbMatchAccess(params);
-    return mapClubMatch(match);
+    const { match, membership } = await getDbMatchAccess(params);
+    return mapClubMatchForViewer({ ...params, match, membership });
   }
 
   const store = resolveStore();
-  const { match } = getStoreMatchAccess({
+  const { match, membership } = getStoreMatchAccess({
     tables: store.tables as SeedTables,
     ...params,
   });
-  return mapClubMatch(match);
+  return mapClubMatchForViewer({
+    ...params,
+    match,
+    membership,
+    tables: store.tables as SeedTables,
+  });
 }
 
 async function createClubMatch(params: {
@@ -1110,10 +1412,11 @@ async function createClubMatch(params: {
   isPrivilegedAdmin: boolean;
   body: z.infer<typeof createClubMatchBodySchema>;
 }) {
-  const startsAt = toStartsAt(params.body.date, params.body.kickoffTime);
   const now = new Date().toISOString();
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     await requireDbClubMatchWriteAccess(params);
+    const timeZone = await resolveMatchActorTimeZone(params.authUserId);
+    const startsAt = toStartsAt(params.body.date, params.body.kickoffTime, timeZone);
     if (params.body.squadId) {
       const prisma = getPrismaClientOrThrow();
       const squad = await prisma.squad.findFirst({
@@ -1142,6 +1445,7 @@ async function createClubMatch(params: {
         opponent: params.body.opponent,
         isHome: params.body.isHome,
         startsAt,
+        timeZone,
         kickoffTimeLocal: params.body.kickoffTime,
         meetTimeLocal: params.body.meetTime,
         venue: params.body.venue,
@@ -1162,6 +1466,8 @@ async function createClubMatch(params: {
     authUserId: params.authUserId,
     isPrivilegedAdmin: params.isPrivilegedAdmin,
   });
+  const timeZone = await resolveMatchActorTimeZone(params.authUserId);
+  const startsAt = toStartsAt(params.body.date, params.body.kickoffTime, timeZone);
   if (params.body.squadId) {
     const squad = asRows(store.tables.squads).find(
       (row) =>
@@ -1183,6 +1489,7 @@ async function createClubMatch(params: {
     opponent: params.body.opponent,
     isHome: params.body.isHome,
     startsAt: startsAt.toISOString(),
+    timeZone,
     date: params.body.date,
     kickoffTime: params.body.kickoffTime,
     kickoffTimeLocal: params.body.kickoffTime,
@@ -1204,6 +1511,255 @@ async function createClubMatch(params: {
   };
   ensureRows(store.tables as SeedTables, 'matches').push(match);
   return mapClubMatch(match);
+}
+
+async function importClubMatches(params: {
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  body: ImportClubMatchesBody;
+}) {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    await requireDbClubMatchImportAccess(params);
+    const timeZone = await resolveMatchActorTimeZone(params.authUserId);
+    const prisma = getPrismaClientOrThrow();
+    const squadIds = [
+      ...new Set(
+        params.body.matches
+          .map((match) => match.squadId ?? undefined)
+          .filter((squadId): squadId is string => Boolean(squadId)),
+      ),
+    ];
+    if (squadIds.length > 0) {
+      const squads = await prisma.squad.findMany({
+        where: {
+          id: {
+            in: squadIds,
+          },
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      const foundSquadIds = new Set(squads.map((squad) => squad.id));
+      if (squadIds.some((squadId) => !foundSquadIds.has(squadId))) {
+        throw badRequest('Squad does not belong to this club');
+      }
+    }
+
+    const importKeys = params.body.matches
+      .map((match) => importKeyForMatch(params.body.source, match))
+      .filter((key): key is ImportKey => key !== null);
+    const existingRows =
+      importKeys.length > 0
+        ? await prisma.clubMatch.findMany({
+            where: {
+              clubId: params.clubId,
+              deletedAt: null,
+              OR: importKeys.map((key) => ({
+                importSource: key.source,
+                importExternalId: key.externalId,
+              })),
+            },
+            select: {
+              id: true,
+              importSource: true,
+              importExternalId: true,
+            },
+          })
+        : [];
+    const existingByImportKey = new Map(
+      existingRows
+        .filter((row) => row.importSource && row.importExternalId)
+        .map((row) => [
+          serializedImportKey({
+            source: row.importSource as string,
+            externalId: row.importExternalId as string,
+          }),
+          row.id,
+        ]),
+    );
+    const skipped: Array<{ source: string; externalId: string; matchId: string; reason: string }> =
+      [];
+    const createInputs = params.body.matches
+      .map((match) => ({
+        match,
+        importKey: importKeyForMatch(params.body.source, match),
+      }))
+      .filter((input) => {
+        if (!input.importKey) {
+          return true;
+        }
+        const existingMatchId = existingByImportKey.get(serializedImportKey(input.importKey));
+        if (!existingMatchId) {
+          return true;
+        }
+        skipped.push({
+          source: input.importKey.source,
+          externalId: input.importKey.externalId,
+          matchId: existingMatchId,
+          reason: 'already_imported',
+        });
+        return false;
+      });
+
+    const created = await prisma.$transaction(
+      createInputs.map((input) =>
+        prisma.clubMatch.create({
+          data: {
+            id: newId('mat'),
+            clubId: params.clubId,
+            squadId: input.match.squadId ?? null,
+            coachUserId: params.authUserId,
+            title: titleForImportedMatch(input.match),
+            matchType: input.match.matchType,
+            opponent: input.match.opponent,
+            isHome: input.match.isHome,
+            startsAt: toStartsAt(input.match.date, input.match.kickoffTime, timeZone),
+            timeZone,
+            kickoffTimeLocal: input.match.kickoffTime,
+            meetTimeLocal: input.match.meetTime,
+            venue: input.match.venue,
+            address: input.match.address,
+            maxPlayers: input.match.maxPlayers,
+            notes: input.match.notes,
+            importSource: input.importKey?.source ?? null,
+            importExternalId: input.importKey?.externalId ?? null,
+            resultJson: input.importKey
+              ? {
+                  import: {
+                    source: input.importKey.source,
+                    externalId: input.importKey.externalId,
+                  },
+                }
+              : undefined,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+          },
+        }),
+      ),
+    );
+    return {
+      imported: normalizeForJson(created).map((row) => mapClubMatch(row as SeedRow)),
+      skipped,
+      total: params.body.matches.length,
+    };
+  }
+
+  const store = resolveStore();
+  const tables = store.tables as SeedTables;
+  requireStoreClubMatchImportAccess({
+    tables,
+    clubId: params.clubId,
+    authUserId: params.authUserId,
+    isPrivilegedAdmin: params.isPrivilegedAdmin,
+  });
+  const timeZone = await resolveMatchActorTimeZone(params.authUserId);
+  const squadIds = [
+    ...new Set(
+      params.body.matches
+        .map((match) => match.squadId ?? undefined)
+        .filter((squadId): squadId is string => Boolean(squadId)),
+    ),
+  ];
+  if (
+    squadIds.some(
+      (squadId) =>
+        !asRows(tables.squads).some(
+          (row) =>
+            asString(row.id) === squadId &&
+            asString(row.clubId) === params.clubId &&
+            !asString(row.deletedAt),
+        ),
+    )
+  ) {
+    throw badRequest('Squad does not belong to this club');
+  }
+
+  const matches = ensureRows(tables, 'matches');
+  const existingByImportKey = new Map(
+    matches
+      .filter((row) => asString(row.clubId) === params.clubId && !asString(row.deletedAt))
+      .map((row) => {
+        const source = asString(row.importSource);
+        const externalId = asString(row.importExternalId);
+        return source && externalId
+          ? ([serializedImportKey({ source, externalId }), asString(row.id) ?? ''] as const)
+          : null;
+      })
+      .filter((entry): entry is readonly [string, string] => entry !== null),
+  );
+  const skipped: Array<{ source: string; externalId: string; matchId: string; reason: string }> =
+    [];
+  const imported = [];
+  const now = new Date().toISOString();
+  for (const input of params.body.matches) {
+    const importKey = importKeyForMatch(params.body.source, input);
+    if (importKey) {
+      const existingMatchId = existingByImportKey.get(serializedImportKey(importKey));
+      if (existingMatchId) {
+        skipped.push({
+          source: importKey.source,
+          externalId: importKey.externalId,
+          matchId: existingMatchId,
+          reason: 'already_imported',
+        });
+        continue;
+      }
+    }
+    const startsAt = toStartsAt(input.date, input.kickoffTime, timeZone);
+    const match: SeedRow = {
+      id: newId('mat'),
+      clubId: params.clubId,
+      squadId: input.squadId ?? null,
+      coachUserId: params.authUserId,
+      title: titleForImportedMatch(input),
+      matchType: input.matchType,
+      opponent: input.opponent,
+      isHome: input.isHome,
+      startsAt: startsAt.toISOString(),
+      timeZone,
+      date: input.date,
+      kickoffTime: input.kickoffTime,
+      kickoffTimeLocal: input.kickoffTime,
+      meetTime: input.meetTime,
+      meetTimeLocal: input.meetTime,
+      venue: input.venue,
+      address: input.address,
+      maxPlayers: input.maxPlayers,
+      status: 'SCHEDULED',
+      resultJson: importKey
+        ? {
+            import: {
+              source: importKey.source,
+              externalId: importKey.externalId,
+            },
+          }
+        : null,
+      importSource: importKey?.source ?? null,
+      importExternalId: importKey?.externalId ?? null,
+      notes: input.notes,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    matches.push(match);
+    if (importKey) {
+      existingByImportKey.set(serializedImportKey(importKey), asString(match.id) ?? '');
+    }
+    imported.push(mapClubMatch(match));
+  }
+  return {
+    imported,
+    skipped,
+    total: params.body.matches.length,
+  };
 }
 
 async function recordClubMatchResult(params: {
@@ -1317,35 +1873,105 @@ export function registerClubMatchRoutes(app: FastifyInstance): void {
     });
   });
 
+  app.get('/coaches/:coachId/match-invites', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = coachMatchParamsSchema.parse(request.params ?? {});
+    const query = listClubMatchesQuerySchema.parse(request.query ?? {});
+    try {
+      const invites = await listCoachMatchInvites({
+        coachId: params.coachId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        status: query.status,
+        limit: query.limit,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.invites.read',
+        resourceId: params.coachId,
+        result: 'SUCCESS',
+        metadata: {
+          count: invites.length,
+          status: query.status ?? null,
+        },
+      });
+      return reply.send({
+        coachId: params.coachId,
+        invites,
+        total: invites.length,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.invites.read',
+        resourceId: params.coachId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  });
+
   app.get('/clubs/:clubId/matches', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubMatchParamsSchema.parse(request.params ?? {});
     const query = listClubMatchesQuerySchema.parse(request.query ?? {});
-    const matches = await listClubMatches({
-      clubId: params.clubId,
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      status: query.status,
-      limit: query.limit,
-    });
-    return reply.send({
-      clubId: params.clubId,
-      matches,
-      total: matches.length,
-      requestId: request.requestId,
-    });
+    try {
+      const matches = await listClubMatches({
+        clubId: params.clubId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        status: query.status,
+        limit: query.limit,
+      });
+      const payload = parseClubMatchListResponse({
+        clubId: params.clubId,
+        matches,
+        total: matches.length,
+        requestId: request.requestId,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.list',
+        resourceId: params.clubId,
+        result: 'SUCCESS',
+        metadata: {
+          count: matches.length,
+          status: query.status ?? null,
+        },
+      });
+      return reply.send(payload);
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.list',
+        resourceId: params.clubId,
+        result: clubMatchAuditResult(error),
+        metadata: {
+          errorCode: clubMatchAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/clubs/:clubId/matches', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubMatchParamsSchema.parse(request.params ?? {});
-    const body = createClubMatchBodySchema.parse(request.body ?? {});
     try {
+      const body = createClubMatchBodySchema.parse(request.body ?? {});
       const match = await createClubMatch({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         body,
+      });
+      const payload = parseClubMatchResponse({
+        match,
+        requestId: request.requestId,
       });
       await recordClubMatchAudit({
         request,
@@ -1358,19 +1984,67 @@ export function registerClubMatchRoutes(app: FastifyInstance): void {
           status: match.status,
         },
       });
-      return reply.code(201).send({
-        match,
-        requestId: request.requestId,
-      });
+      return reply.code(201).send(payload);
     } catch (error) {
       await recordClubMatchAudit({
         request,
         action: 'club_match.create',
         resourceId: params.clubId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result: clubMatchAuditResult(error),
         metadata: {
           clubId: params.clubId,
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          errorCode: clubMatchAuditErrorCode(error),
+        },
+      });
+      if (isMatchValidationError(error)) {
+        throw badRequest('Request payload did not match contract');
+      }
+      throw error;
+    }
+  });
+
+  app.post('/clubs/:clubId/matches/import', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubMatchParamsSchema.parse(request.params ?? {});
+    let source: string | null = null;
+    try {
+      const body = importClubMatchesBodySchema.parse(request.body ?? {});
+      source = body.source ?? null;
+      const result = await importClubMatches({
+        clubId: params.clubId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        body,
+      });
+      const payload = parseClubMatchImportResponse({
+        clubId: params.clubId,
+        imported: result.imported,
+        skipped: result.skipped,
+        total: result.total,
+        requestId: request.requestId,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.import',
+        resourceId: params.clubId,
+        result: 'SUCCESS',
+        metadata: {
+          source,
+          importedCount: result.imported.length,
+          skippedCount: result.skipped.length,
+          total: result.total,
+        },
+      });
+      return reply.code(result.imported.length > 0 ? 201 : 200).send(payload);
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.import',
+        resourceId: params.clubId,
+        result: clubMatchAuditResult(error),
+        metadata: {
+          source,
+          errorCode: clubMatchAuditErrorCode(error),
         },
       });
       throw error;
@@ -1380,15 +2054,40 @@ export function registerClubMatchRoutes(app: FastifyInstance): void {
   app.get('/matches/:matchId', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = matchParamsSchema.parse(request.params ?? {});
-    const match = await getClubMatch({
-      matchId: params.matchId,
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-    });
-    return reply.send({
-      match,
-      requestId: request.requestId,
-    });
+    try {
+      const match = await getClubMatch({
+        matchId: params.matchId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      const payload = parseClubMatchResponse({
+        match,
+        requestId: request.requestId,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.read',
+        resourceId: params.matchId,
+        result: 'SUCCESS',
+        metadata: {
+          clubId: match.clubId,
+          canManageMatch: match.canManageMatch,
+          visiblePlayerCount: match.selectedPlayers.length,
+        },
+      });
+      return reply.send(payload);
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.read',
+        resourceId: params.matchId,
+        result: clubMatchAuditResult(error),
+        metadata: {
+          errorCode: clubMatchAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/matches/:matchId/players/invite', async (request, reply) => {

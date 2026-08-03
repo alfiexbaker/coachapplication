@@ -40,6 +40,18 @@ interface CoachPaymentInstructionsCardProps {
 
 const MODAL_FOOTER_HEIGHT = 96;
 
+async function runWithBusyState<T>(
+  setBusy: (busy: boolean) => void,
+  work: () => Promise<T>,
+): Promise<T> {
+  setBusy(true);
+  try {
+    return await work();
+  } finally {
+    setBusy(false);
+  }
+}
+
 function CoachPaymentInstructionsCardInner({
   coachId,
   coachName,
@@ -59,6 +71,8 @@ function CoachPaymentInstructionsCardInner({
   const canSavePaymentInstructions = coachPaymentInstructionsService.canSavePaymentInstructions();
 
   useEffect(() => {
+    let active = true;
+
     const loadInstructions = async () => {
       if (!coachId) {
         setInstructions(null);
@@ -66,19 +80,28 @@ function CoachPaymentInstructionsCardInner({
         return;
       }
 
-      setLoading(true);
-      const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(coachId);
+      const result = await runWithBusyState(
+        (busy) => {
+          if (active) setLoading(busy);
+        },
+        () => coachPaymentInstructionsService.getCoachPaymentInstructions(coachId),
+      );
+      if (!active) return;
+
       if (result.success) {
         setInstructions(result.data);
       } else {
         uiFeedback.showToast(result.error.message, 'error');
       }
-      setLoading(false);
     };
 
     startTransition(() => {
       void loadInstructions();
     });
+
+    return () => {
+      active = false;
+    };
   }, [coachId]);
 
   const openEdit = () => {
@@ -163,9 +186,9 @@ function CoachPaymentInstructionsCardInner({
   const handleSave = async () => {
     if (!draft) return;
 
-    setSaving(true);
-    const result = await coachPaymentInstructionsService.saveCoachPaymentInstructions(draft);
-    setSaving(false);
+    const result = await runWithBusyState(setSaving, () =>
+      coachPaymentInstructionsService.saveCoachPaymentInstructions(draft),
+    );
 
     if (!result.success) {
       showToast(result.error.message, 'error');

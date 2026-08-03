@@ -3,7 +3,11 @@ import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import {
+  API_DB_TRANSACTION_OPTIONS,
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -27,6 +31,7 @@ const GROUP_MESSAGE_CREATE_ENDPOINT_KEY = 'community.group-message.create';
 const THREAD_MESSAGE_CREATE_ENDPOINT_KEY = 'community.thread-message.create';
 const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
 const POST_CREATE_ENDPOINT_KEY = 'community.post.create';
+const BLOCKED_MESSAGING_MESSAGE = 'Messaging is unavailable because one side blocked the other.';
 const COMMUNITY_GROUP_INVITE_TYPE = 'community_group_invite';
 const COMMUNITY_GROUP_JOIN_REQUEST_TYPE = 'community_group_join_request';
 const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
@@ -1850,6 +1855,36 @@ function assertCanWriteStoreThreadMessages(
   }
   return thread;
 }
+
+function assertNoStoreBlockedThreadParticipant(
+  tables: SeedTables,
+  messageThreadId: string,
+  authUserId: string,
+): void {
+  const otherUserIds = new Set<string>();
+  for (const row of asRows(tables.messageParticipants)) {
+    const userId = asString(row.userId);
+    if (
+      asString(row.messageThreadId) === messageThreadId &&
+      asString(row.leftAt) == null &&
+      userId &&
+      userId !== authUserId
+    ) {
+      otherUserIds.add(userId);
+    }
+  }
+  const blocked = activeRows(asRows(tables.userBlocks)).some((row) => {
+    const blockerUserId = asString(row.blockerUserId);
+    const blockedUserId = asString(row.blockedUserId);
+    return (
+      (blockerUserId === authUserId && Boolean(blockedUserId && otherUserIds.has(blockedUserId))) ||
+      (blockedUserId === authUserId && Boolean(blockerUserId && otherUserIds.has(blockerUserId)))
+    );
+  });
+  if (blocked) {
+    throw conflict(BLOCKED_MESSAGING_MESSAGE);
+  }
+}
 function assertCanDeleteStoreMessage(
   tables: SeedTables,
   messageId: string,
@@ -3572,6 +3607,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       params.authUserId,
     );
     const threadId = asString(thread.id) as string;
+    if (asString(thread.threadType)?.toUpperCase() === 'DIRECT') {
+      assertNoStoreBlockedThreadParticipant(store.tables, threadId, params.authUserId);
+    }
     const message: SeedRow = {
       id: newId('msg'),
       messageThreadId: threadId,
@@ -5116,7 +5154,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
   private async assertCanWriteThreadMessages(
     messageThreadId: string,
     authUserId: string,
-  ): Promise<void> {
+  ): Promise<{ threadType: string }> {
     const prisma = getPrismaClientOrThrow();
     const thread = await prisma.messageThread.findFirst({
       where: {
@@ -5125,6 +5163,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       },
       select: {
         id: true,
+        threadType: true,
       },
     });
     if (!thread) {
@@ -5147,6 +5186,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         messageThreadId,
       });
     }
+    return thread;
   }
   private async getHydratedThread(threadId: string): Promise<SeedRow> {
     const prisma = getPrismaClientOrThrow();
@@ -7573,170 +7613,172 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       return this.fallback.updateNotificationPreferences(params);
     }
     const prisma = getPrismaClientOrThrow();
-    const now = new Date();
-    const existing = await prisma.notificationPreference.findUnique({
-      where: {
-        userId: params.authUserId,
-      },
-    });
-    const existingSettings = coerceMetadata(existing?.settingsJson);
-    const typePreferences = normalizeTypePreferences(params.typePreferences);
-    const quietHoursPromise = params.quietHours
-      ? prisma.quietHours.upsert({
+    return prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const existing = await tx.notificationPreference.findUnique({
+        where: {
+          userId: params.authUserId,
+        },
+      });
+      const existingSettings = coerceMetadata(existing?.settingsJson);
+      const typePreferences = normalizeTypePreferences(params.typePreferences);
+      const quietHoursPromise = params.quietHours
+        ? tx.quietHours.upsert({
+            where: {
+              userId: params.authUserId,
+            },
+            create: {
+              userId: params.authUserId,
+              enabled: params.quietHours.enabled ?? false,
+              startTimeLocal: params.quietHours.startTime ?? '22:00',
+              endTimeLocal: params.quietHours.endTime ?? '07:00',
+              timeZone: params.quietHours.timezone ?? 'Europe/London',
+              createdAt: now,
+              updatedAt: now,
+            },
+            update: {
+              ...(params.quietHours.enabled == null
+                ? {}
+                : {
+                    enabled: params.quietHours.enabled,
+                  }),
+              ...(params.quietHours.startTime == null
+                ? {}
+                : {
+                    startTimeLocal: params.quietHours.startTime,
+                  }),
+              ...(params.quietHours.endTime == null
+                ? {}
+                : {
+                    endTimeLocal: params.quietHours.endTime,
+                  }),
+              ...(params.quietHours.timezone == null
+                ? {}
+                : {
+                    timeZone: params.quietHours.timezone,
+                  }),
+            },
+          })
+        : tx.quietHours.findUnique({
+            where: {
+              userId: params.authUserId,
+            },
+          });
+      const existingCoachMutesPromise = params.mutedCoaches
+        ? tx.mutedSource.findMany({
+            where: {
+              userId: params.authUserId,
+              sourceType: 'coach',
+            },
+          })
+        : Promise.resolve(null);
+      const [preferences, quietHours, existingCoachMutes] = await Promise.all([
+        tx.notificationPreference.upsert({
           where: {
             userId: params.authUserId,
           },
           create: {
             userId: params.authUserId,
-            enabled: params.quietHours.enabled ?? false,
-            startTimeLocal: params.quietHours.startTime ?? '22:00',
-            endTimeLocal: params.quietHours.endTime ?? '07:00',
-            timeZone: params.quietHours.timezone ?? 'Europe/London',
+            pushEnabled: params.channels?.push ?? true,
+            emailEnabled: params.channels?.email ?? true,
+            smsEnabled: params.channels?.sms ?? false,
+            settingsJson: {
+              ...existingSettings,
+              ...(typePreferences
+                ? {
+                    typePreferences,
+                  }
+                : {}),
+            },
             createdAt: now,
             updatedAt: now,
           },
           update: {
-            ...(params.quietHours.enabled == null
+            ...(params.channels?.push == null
               ? {}
               : {
-                  enabled: params.quietHours.enabled,
+                  pushEnabled: params.channels.push,
                 }),
-            ...(params.quietHours.startTime == null
+            ...(params.channels?.email == null
               ? {}
               : {
-                  startTimeLocal: params.quietHours.startTime,
+                  emailEnabled: params.channels.email,
                 }),
-            ...(params.quietHours.endTime == null
+            ...(params.channels?.sms == null
               ? {}
               : {
-                  endTimeLocal: params.quietHours.endTime,
+                  smsEnabled: params.channels.sms,
                 }),
-            ...(params.quietHours.timezone == null
-              ? {}
-              : {
-                  timeZone: params.quietHours.timezone,
-                }),
-          },
-        })
-      : prisma.quietHours.findUnique({
-          where: {
-            userId: params.authUserId,
-          },
-        });
-    const existingCoachMutesPromise = params.mutedCoaches
-      ? prisma.mutedSource.findMany({
-          where: {
-            userId: params.authUserId,
-            sourceType: 'coach',
-          },
-        })
-      : Promise.resolve(null);
-    const [preferences, quietHours, existingCoachMutes] = await Promise.all([
-      prisma.notificationPreference.upsert({
-        where: {
-          userId: params.authUserId,
-        },
-        create: {
-          userId: params.authUserId,
-          pushEnabled: params.channels?.push ?? true,
-          emailEnabled: params.channels?.email ?? true,
-          smsEnabled: params.channels?.sms ?? false,
-          settingsJson: {
-            ...existingSettings,
             ...(typePreferences
               ? {
-                  typePreferences,
+                  settingsJson: {
+                    ...existingSettings,
+                    typePreferences,
+                  },
                 }
               : {}),
           },
-          createdAt: now,
-          updatedAt: now,
-        },
-        update: {
-          ...(params.channels?.push == null
-            ? {}
-            : {
-                pushEnabled: params.channels.push,
-              }),
-          ...(params.channels?.email == null
-            ? {}
-            : {
-                emailEnabled: params.channels.email,
-              }),
-          ...(params.channels?.sms == null
-            ? {}
-            : {
-                smsEnabled: params.channels.sms,
-              }),
-          ...(typePreferences
-            ? {
-                settingsJson: {
-                  ...existingSettings,
-                  typePreferences,
-                },
-              }
-            : {}),
-        },
-      }),
-      quietHoursPromise,
-      existingCoachMutesPromise,
-    ]);
-    if (params.mutedCoaches && existingCoachMutes) {
-      const desired = new Map(
-        params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
-      );
-      const muteWrites = existingCoachMutes.map((source) => {
-        if (!desired.has(source.sourceId)) {
-          return prisma.mutedSource.update({
+        }),
+        quietHoursPromise,
+        existingCoachMutesPromise,
+      ]);
+      if (params.mutedCoaches && existingCoachMutes) {
+        const desired = new Map(
+          params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
+        );
+        const muteWrites = existingCoachMutes.map((source) => {
+          if (!desired.has(source.sourceId)) {
+            return tx.mutedSource.update({
+              where: {
+                id: source.id,
+              },
+              data: {
+                unmutedAt: source.unmutedAt ?? now,
+              },
+            });
+          }
+          const reason = desired.get(source.sourceId);
+          desired.delete(source.sourceId);
+          return tx.mutedSource.update({
             where: {
               id: source.id,
             },
             data: {
-              unmutedAt: source.unmutedAt ?? now,
-            },
-          });
-        }
-        const reason = desired.get(source.sourceId);
-        desired.delete(source.sourceId);
-        return prisma.mutedSource.update({
-          where: {
-            id: source.id,
-          },
-          data: {
-            reason,
-            unmutedAt: null,
-          },
-        });
-      });
-      muteWrites.push(
-        ...Array.from(desired.entries()).map(([coachId, reason]) =>
-          prisma.mutedSource.create({
-            data: {
-              id: newId('mut'),
-              userId: params.authUserId,
-              sourceType: 'coach',
-              sourceId: coachId,
               reason,
-              mutedAt: now,
               unmutedAt: null,
             },
-          }),
-        ),
-      );
-      await Promise.all(muteWrites);
-    }
-    const mutedSources = await prisma.mutedSource.findMany({
-      where: {
-        userId: params.authUserId,
-        unmutedAt: null,
-      },
-    });
-    return {
-      preferences: normalizeAs<SeedRow>(preferences),
-      mutedSources: normalizeAs<SeedRow[]>(mutedSources),
-      quietHours: normalizeAs<SeedRow | null>(quietHours),
-      dataVersion: null,
-    };
+          });
+        });
+        muteWrites.push(
+          ...Array.from(desired.entries()).map(([coachId, reason]) =>
+            tx.mutedSource.create({
+              data: {
+                id: newId('mut'),
+                userId: params.authUserId,
+                sourceType: 'coach',
+                sourceId: coachId,
+                reason,
+                mutedAt: now,
+                unmutedAt: null,
+              },
+            }),
+          ),
+        );
+        await Promise.all(muteWrites);
+      }
+      const mutedSources = await tx.mutedSource.findMany({
+        where: {
+          userId: params.authUserId,
+          unmutedAt: null,
+        },
+      });
+      return {
+        preferences: normalizeAs<SeedRow>(preferences),
+        mutedSources: normalizeAs<SeedRow[]>(mutedSources),
+        quietHours: normalizeAs<SeedRow | null>(quietHours),
+        dataVersion: null,
+      };
+    }, API_DB_TRANSACTION_OPTIONS);
   }
   async createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult> {
     if (shouldUseDbFixtureFallback()) {
@@ -7952,14 +7994,17 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         });
       }
       return messageResponse;
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     return response;
   }
   async createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createThreadMessage(params);
     }
-    await this.assertCanWriteThreadMessages(params.messageThreadId, params.authUserId);
+    const thread = await this.assertCanWriteThreadMessages(
+      params.messageThreadId,
+      params.authUserId,
+    );
     const body = params.body.trim();
     if (!body) {
       throw badRequest('Message body cannot be empty');
@@ -8001,6 +8046,32 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         throw forbidden('Message thread does not belong to authenticated user', {
           messageThreadId: params.messageThreadId,
         });
+      }
+      const otherUserIds = participants.flatMap((participant) =>
+        participant.userId === params.authUserId ? [] : [participant.userId],
+      );
+      if (thread.threadType === 'DIRECT' && otherUserIds.length > 0) {
+        const blocked = await tx.userBlock.findFirst({
+          where: {
+            deletedAt: null,
+            OR: [
+              {
+                blockerUserId: params.authUserId,
+                blockedUserId: { in: otherUserIds },
+              },
+              {
+                blockerUserId: { in: otherUserIds },
+                blockedUserId: params.authUserId,
+              },
+            ],
+          },
+          select: {
+            id: true,
+          },
+        });
+        if (blocked) {
+          throw conflict(BLOCKED_MESSAGING_MESSAGE);
+        }
       }
       const messageId = newId('msg');
       await Promise.all([
@@ -8105,7 +8176,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         });
       }
       return messageResponse;
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     return response;
   }
   async deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult> {

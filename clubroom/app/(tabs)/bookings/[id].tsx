@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, startTransition } from 'react';
-import { View, RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,18 +11,14 @@ import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-
 import { BookingCoachView } from '@/components/bookings/booking-coach-view';
 import { BookingDeliveryOutcomeCard } from '@/components/bookings/booking-delivery-outcome-card';
 import { BookingParentView } from '@/components/bookings/booking-parent-view';
-import { BookingTrustCard } from '@/components/bookings/booking-trust-card';
 import {
-  DateTimeCard,
-  LocationCard,
-  BookingWeatherCard,
+  BookingEssentialsCard,
   PaymentCard,
   BookingCoachCard,
   BookingAthleteCard,
-  BookingOwnershipCard,
 } from '@/components/bookings/booking-info-cards';
 import { BookingParticipantsCard } from '@/components/bookings/booking-participants-card';
-import { BookingNotesCard, BookingFollowUpsCard } from '@/components/bookings/booking-notes-card';
+import { BookingNotesCard } from '@/components/bookings/booking-notes-card';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
@@ -47,7 +43,7 @@ import { buildBookingDeliverySummary } from '@/utils/booking-delivery';
 
 interface PaymentSnapshot {
   amount: number | null;
-  invoiceStatus: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE';
+  invoiceStatus: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE' | 'UNKNOWN';
   dueDate?: string;
 }
 
@@ -73,7 +69,7 @@ function resolveAllowedReturnTo(raw: string | undefined): string | null {
 
 export default function SessionDetailScreen() {
   const bookingIdParam = useRequiredParam('id');
-  const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
+  const bookingId = bookingIdParam.valid ? bookingIdParam.value : undefined;
   const detailParams = useLocalSearchParams<{ returnTo?: string }>();
   const safeReturnTo = (() => {
     const raw = typeof detailParams.returnTo === 'string' ? detailParams.returnTo.trim() : '';
@@ -91,6 +87,11 @@ export default function SessionDetailScreen() {
     isCoach,
     canCancelBooking,
     canReopenBooking,
+    canConfirmBooking,
+    isConfirmingBooking,
+    canDeclineRequest,
+    canWithdrawRequest,
+    isResolvingRequest,
     sessionNote,
     deliveryFeedback,
     handlers,
@@ -125,7 +126,10 @@ export default function SessionDetailScreen() {
   };
 
   useEffect(() => {
-    if (!booking?.coachId) return;
+    if (!booking?.coachId || !canCancelBooking) {
+      startTransition(() => setCancellationPolicy(null));
+      return;
+    }
 
     let isMounted = true;
 
@@ -139,7 +143,7 @@ export default function SessionDetailScreen() {
     return () => {
       isMounted = false;
     };
-  }, [booking?.coachId]);
+  }, [booking?.coachId, canCancelBooking]);
 
   useEffect(() => {
     const fallbackAmount = typeof booking?.price === 'number' ? booking.price : null;
@@ -167,7 +171,7 @@ export default function SessionDetailScreen() {
       })
       .catch(() => {
         if (isMounted) {
-          setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+          setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'UNKNOWN' });
         }
       });
 
@@ -251,11 +255,17 @@ export default function SessionDetailScreen() {
     });
   })();
   const paymentHelperText = (() => {
-    if (!relationshipContext) return undefined;
-    if (isCoach) {
-      return `Billing is handled by ${relationshipContext.billingLabel} outside the app. Track invoice status in your reconciler.`;
+    if (paymentSnapshot.invoiceStatus === 'UNKNOWN') {
+      return 'Payment status unavailable. Pull to refresh.';
     }
-    return relationshipContext.paymentSummary;
+    if (!relationshipContext) return undefined;
+    if (relationshipContext.billingLabel === 'Organization billing unavailable') {
+      return 'Payment details unavailable.';
+    }
+    if (isCoach) {
+      return `Handled by ${relationshipContext.billingLabel}. Track it in Earnings.`;
+    }
+    return `Pay ${relationshipContext.billingLabel} directly.`;
   })();
   const deliverySummary = buildBookingDeliverySummary({
     feedback: deliveryFeedback,
@@ -265,6 +275,23 @@ export default function SessionDetailScreen() {
     if (!booking?.clientId) return;
     router.push(Routes.developmentChildProgress(booking.clientId, { tab: 'feedback' }));
   };
+
+  if (!bookingIdParam.valid) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
+        <EmptyState
+          icon="link-outline"
+          title="Invalid booking link"
+          message="Open the session again from your bookings."
+          actionLabel="Back to bookings"
+          onPressAction={handleGoBack}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (status === 'loading' && !booking) {
     return (
@@ -294,21 +321,23 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (!bookingIdParam.valid) {
-    return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState
-          message="Invalid link. The booking you are trying to open could not be found."
-          onRetry={handleGoBack}
-        />
-      </SafeAreaView>
-    );
-  }
-
   if (status === 'error' && !booking) {
+    if (error?.code === 'UNAUTHORIZED' || error?.code === 'NOT_FOUND') {
+      return (
+        <SafeAreaView
+          style={[styles.container, { backgroundColor: palette.background }]}
+          edges={['top', 'bottom']}
+        >
+          <EmptyState
+            icon="lock-closed-outline"
+            title="Booking unavailable"
+            message="This session is not available to your account."
+            actionLabel="Back to bookings"
+            onPressAction={handleGoBack}
+          />
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: palette.background }]}
@@ -355,63 +384,73 @@ export default function SessionDetailScreen() {
             <Clickable onPress={handleGoBack} accessibilityLabel="Go back" style={styles.backBtn}>
               <Ionicons name="chevron-back" size={24} color={palette.text} />
             </Clickable>
-            <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
-              {booking.service}
-            </ThemedText>
+            <ThemedText style={[styles.backLabel, { color: palette.muted }]}>Bookings</ThemedText>
+            <ThemedView style={styles.flex1} />
             <StatusBadge status={booking.status} label={statusLabel} />
           </Row>
+          <ThemedText type="title" style={styles.sessionTitle}>
+            {booking.service}
+          </ThemedText>
         </ThemedView>
 
-        {/* Info Cards */}
-        <DateTimeCard
+        <BookingEssentialsCard
           weekday={formatted.weekday}
           dateStr={formatted.dateStr}
           time={formatted.time}
+          locationLabel={booking.locationLabel}
         />
-        <LocationCard locationLabel={booking.locationLabel} />
-        <BookingWeatherCard locationLabel={booking.locationLabel} bookingStartIso={booking.start} />
+
+        {isCoach ? (
+          <BookingCoachView
+            booking={booking}
+            onMessageClient={handlers.messageCoach}
+            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
+            onCancelBooking={handlers.cancelBooking}
+            canCancelBooking={canCancelBooking}
+            onConfirmBooking={canConfirmBooking ? handlers.confirmBooking : undefined}
+            onDeclineRequest={canDeclineRequest ? handlers.declineRequest : undefined}
+            isConfirmingBooking={isConfirmingBooking}
+            isResolvingRequest={isResolvingRequest}
+            onCompleteSession={handlers.completeSession}
+            canCompleteSession={canCompleteSession}
+          />
+        ) : (
+          <BookingParentView
+            bookingStatus={booking.status}
+            onMessageCoach={handlers.messageCoach}
+            onCancelBooking={handlers.cancelBooking}
+            onReportProblem={handlers.reportProblem}
+            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
+            onRebook={handlers.rebook}
+            onManageRecurring={booking.recurringBookingId ? handlers.manageRecurring : undefined}
+            onWithdrawRequest={canWithdrawRequest ? handlers.withdrawRequest : undefined}
+            isResolvingRequest={isResolvingRequest}
+            canCancelBooking={canCancelBooking}
+            messageLabel="Message coach"
+            reportProblemLabel={relationshipContext?.reportProblemLabel}
+          />
+        )}
+
         <PaymentCard
           amount={paymentSnapshot.amount}
           invoiceStatus={paymentSnapshot.invoiceStatus}
           dueDate={paymentSnapshot.dueDate}
           isCoachView={isCoach}
-          onPressAction={isCoach ? () => router.push(Routes.EARNINGS) : handlers.messageCoach}
           helperTextOverride={paymentHelperText}
         />
-        {booking.coachId && (
+        {booking.coachId && canCancelBooking && (
           <CancellationPolicyCard
             coachId={booking.coachId}
             policy={cancellationPolicy ?? undefined}
           />
         )}
-        {!isCoach && booking.status === 'Confirmed' && !canCancelBooking ? (
-          <ThemedView
-            style={[
-              styles.noticeCard,
-              {
-                backgroundColor: withAlpha(palette.warning, 0.08),
-                borderColor: withAlpha(palette.warning, 0.22),
-              },
-            ]}
-          >
-            <Row align="start" gap="xs">
-              <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
-              <ThemedText style={[styles.noticeText, { color: palette.text }]}>
-                Free cancellation is unavailable within 24 hours of the session. Contact{' '}
-                {relationshipContext?.supportLabel || 'support'} to discuss options.
-              </ThemedText>
-            </Row>
-          </ThemedView>
-        ) : null}
-        <BookingCoachCard
-          coachId={booking.coachId}
-          bookingId={booking.id}
-          coachName={coachName}
-          coachPhotoUrl={formatted.coachPhotoUrl}
-        />
-        <BookingOwnershipCard booking={booking} coachLabel={coachName} showAuditTrail={isCoach} />
-        {!isCoach && relationshipContext ? (
-          <BookingTrustCard relationshipContext={relationshipContext} />
+        {!isCoach ? (
+          <BookingCoachCard
+            coachId={booking.coachId}
+            bookingId={booking.id}
+            coachName={coachName}
+            coachPhotoUrl={formatted.coachPhotoUrl}
+          />
         ) : null}
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
@@ -436,21 +475,14 @@ export default function SessionDetailScreen() {
             />
           )}
 
-        {/* Session Notes */}
-        <BookingNotesCard
-          bookingId={bookingId}
-          sessionNote={sessionNote.note}
-          loading={sessionNote.loading}
-          error={sessionNote.error}
-          isCoach={isCoach}
-          onRefresh={sessionNote.refresh}
-        />
-
-        {/* Follow-ups (coach only) */}
-        {isCoach ? (
-          <BookingFollowUpsCard
+        {(isCoach && (canCompleteSession || booking.status === 'Completed')) ||
+        (!isCoach && booking.status === 'Completed') ? (
+          <BookingNotesCard
+            bookingId={booking.id}
             sessionNote={sessionNote.note}
             loading={sessionNote.loading}
+            error={sessionNote.error}
+            isCoach={isCoach}
             onRefresh={sessionNote.refresh}
           />
         ) : null}
@@ -510,33 +542,6 @@ export default function SessionDetailScreen() {
           </ThemedView>
         )}
 
-        {/* Action Buttons */}
-        {isCoach ? (
-          <BookingCoachView
-            booking={booking}
-            onMessageClient={handlers.messageCoach}
-            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
-            onRefund={handlers.refund}
-            onCancelBooking={handlers.cancelBooking}
-            canCancelBooking={canCancelBooking}
-            onCompleteSession={handlers.completeSession}
-            canCompleteSession={canCompleteSession}
-          />
-        ) : (
-          <BookingParentView
-            bookingStatus={booking.status}
-            onMessageCoach={handlers.messageCoach}
-            onCancelBooking={handlers.cancelBooking}
-            onReportProblem={handlers.reportProblem}
-            onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
-            onRebook={handlers.rebook}
-            onManageRecurring={booking.recurringBookingId ? handlers.manageRecurring : undefined}
-            canCancelBooking={canCancelBooking}
-            messageLabel="Message delivery coach"
-            reportProblemLabel={relationshipContext?.reportProblemLabel}
-          />
-        )}
-
         {!isCoach && booking.status === 'Completed' && deliverySummary ? (
           <BookingDeliveryOutcomeCard
             childName={childName}
@@ -555,6 +560,8 @@ const styles = StyleSheet.create({
   headerSection: { gap: Spacing.sm, marginBottom: Spacing.sm },
   backRow: { marginTop: Spacing.xs },
   backBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  backLabel: { ...Typography.bodySmall, fontWeight: '600' },
+  sessionTitle: { paddingHorizontal: Spacing.xs },
   flex1: { flex: 1 },
   reviewCard: {
     borderWidth: 1,
@@ -585,15 +592,5 @@ const styles = StyleSheet.create({
   reviewStatusText: {
     fontSize: Typography.caption.fontSize,
     fontWeight: '700',
-  },
-  noticeCard: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-  },
-  noticeText: {
-    flex: 1,
-    fontSize: Typography.bodySmall.fontSize,
-    lineHeight: Typography.bodySmall.lineHeight,
   },
 });

@@ -18,6 +18,7 @@ const smoke = require(path.join(process.cwd(), 'scripts/password-reset-webhook-s
     timeoutMs: number;
   }) => unknown;
   classifySmtpFailure: (error: unknown) => { reason: string; action: string };
+  redactReport: (report: Record<string, unknown>) => Record<string, unknown>;
 };
 
 describe('password reset smoke diagnostics', () => {
@@ -72,6 +73,18 @@ describe('password reset smoke diagnostics', () => {
     assert.equal(classified.reason, 'auth_failed');
     assert.match(classified.action, /API_PASSWORD_RESET_SMTP_PASSWORD/);
     assert.match(classified.action, /Brevo SMTP settings/);
+  });
+
+  it('redacts top-level smoke recipient in shareable reports', () => {
+    const report = smoke.redactReport({
+      status: 'ready',
+      provider: 'brevo_api',
+      recipient: 'smoke-recipient@example.test',
+    });
+
+    const serialized = JSON.stringify(report);
+    assert.equal(serialized.includes('smoke-recipient@example.test'), false);
+    assert.equal(report.recipient, 'smok***@example.test');
   });
 
   it('reports missing SMTP required fields without secrets', () => {

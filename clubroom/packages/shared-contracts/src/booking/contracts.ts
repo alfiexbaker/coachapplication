@@ -8,10 +8,14 @@ export const bookingStatusSchema = z.enum([
   'AWAITING_COMPLETION',
   'COMPLETED',
   'CANCELLED',
+  'DECLINED',
+  'WITHDRAWN',
+  'EXPIRED',
 ]);
 
 export const createBookingRequestSchema = z.object({
   coachUserId: userIdSchema,
+  clubId: z.string().min(1).max(160).optional(),
   athleteIds: z.array(athleteIdSchema).min(1).max(20),
   bookedByUserId: userIdSchema,
   scheduledAt: z.string().datetime(),
@@ -141,6 +145,13 @@ export const confirmBookingRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const resolveBookingRequestSchema = z.object({
+  reason: z.string().trim().min(1).max(200),
+  note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
 export const bookingCompletionAttendanceStatusSchema = z.enum(['ATTENDED', 'NO_SHOW']);
 
 export const bookingCompletionAttendanceInputSchema = z.object({
@@ -188,6 +199,7 @@ export const bookingParticipantSchema = z.object({
 export const bookingResponseSchema = z.object({
   id: bookingIdSchema,
   coachUserId: userIdSchema,
+  clubId: z.string().nullable().optional(),
   bookedByUserId: userIdSchema.optional(),
   recurringSeriesId: z.string().nullable().optional(),
   groupSessionId: z.string().nullable().optional(),
@@ -206,6 +218,9 @@ export const bookingResponseSchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   cancelledAt: z.string().datetime().nullable().optional(),
+  requestExpiresAt: z.string().datetime().nullable().optional(),
+  requestResolvedAt: z.string().datetime().nullable().optional(),
+  requestResolutionReason: z.string().nullable().optional(),
 });
 
 export const bookingListResponseSchema = z.object({
@@ -289,6 +304,39 @@ export const groupSessionRegistrationStatusSchema = z.enum([
   'NO_SHOW',
 ]);
 
+export const markGroupSessionAttendanceRequestSchema = z
+  .object({
+    date: z.string().date(),
+    status: bookingCompletionAttendanceStatusSchema.nullable().optional(),
+    attended: z.boolean().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.status === undefined && value.attended === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'status or attended is required',
+      });
+    }
+    if (value.status !== undefined && value.attended !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'status and attended cannot both be supplied',
+      });
+    }
+  });
+
+export const completeGroupSessionAttendanceInputSchema = z.object({
+  registrationId: z.string().min(1),
+  status: bookingCompletionAttendanceStatusSchema,
+  notes: z.string().max(1000).optional(),
+  effortRating: z.number().int().min(1).max(5).optional(),
+});
+
+export const completeGroupSessionRequestSchema = z.object({
+  occurrenceDate: z.string().date(),
+  attendance: z.array(completeGroupSessionAttendanceInputSchema).max(200),
+});
+
 export const groupSessionRegistrationResponseSchema = z.object({
   id: z.string().min(1),
   sessionId: z.string().min(1),
@@ -329,6 +377,7 @@ export type ResumeBookingSeriesRequest = z.infer<typeof resumeBookingSeriesReque
 export type UpdateBookingSeriesRequest = z.infer<typeof updateBookingSeriesRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
 export type ConfirmBookingRequest = z.infer<typeof confirmBookingRequestSchema>;
+export type ResolveBookingRequest = z.infer<typeof resolveBookingRequestSchema>;
 export type BookingCompletionAttendanceInput = z.infer<
   typeof bookingCompletionAttendanceInputSchema
 >;
@@ -346,6 +395,13 @@ export type InviteResponseRequest = z.infer<typeof inviteResponseRequestSchema>;
 export type InviteResponseResult = z.infer<typeof inviteResponseResultSchema>;
 export type RegisterGroupSessionRequest = z.infer<typeof registerGroupSessionRequestSchema>;
 export type JoinGroupSessionWaitlistRequest = z.infer<typeof joinGroupSessionWaitlistRequestSchema>;
+export type MarkGroupSessionAttendanceRequest = z.infer<
+  typeof markGroupSessionAttendanceRequestSchema
+>;
+export type CompleteGroupSessionAttendanceInput = z.infer<
+  typeof completeGroupSessionAttendanceInputSchema
+>;
+export type CompleteGroupSessionRequest = z.infer<typeof completeGroupSessionRequestSchema>;
 export type GroupSessionRegistrationResponse = z.infer<
   typeof groupSessionRegistrationResponseSchema
 >;

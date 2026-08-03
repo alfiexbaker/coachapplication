@@ -60,6 +60,7 @@ interface BookingInfo {
   scheduledAt: string;
   status: Booking['status'];
   existingReview: StoredCoachReview | null;
+  reviewAccess: 'allowed' | 'denied';
 }
 
 export default function ReviewScreen() {
@@ -96,6 +97,7 @@ export default function ReviewScreen() {
         scheduledAt: found.scheduledAt,
         status: found.status,
         existingReview: null,
+        reviewAccess: 'allowed',
       };
       const reviewStatus = await getBookingReviewStatus({
         booking: bookingInfo,
@@ -103,11 +105,14 @@ export default function ReviewScreen() {
       });
       if (reviewStatus.success) {
         bookingInfo.existingReview = reviewStatus.data;
+      } else if (reviewStatus.error.code === 'UNAUTHORIZED') {
+        bookingInfo.reviewAccess = 'denied';
       } else {
-        logger.warn('Failed to load booking review status', {
+        logger.error('Failed to load booking review status', {
           bookingId,
           error: reviewStatus.error,
         });
+        return err(reviewStatus.error);
       }
 
       return ok<BookingInfo | null>(bookingInfo);
@@ -160,7 +165,7 @@ export default function ReviewScreen() {
     setIsSubmitting(true);
 
     return await runAsyncTryCatchFinally(async () => {
-      if (!booking || !bookingId) {
+      if (!booking || !bookingId || booking.reviewAccess === 'denied') {
         uiFeedback.showToast('This session could not be reviewed.', 'error');
         return;
       }
@@ -271,7 +276,7 @@ export default function ReviewScreen() {
     );
   }
 
-  if (currentUser?.role === 'COACH') {
+  if (booking.reviewAccess === 'denied' && !reviewFromStorage) {
     return renderShell(
       <EmptyState
         icon="star-outline"

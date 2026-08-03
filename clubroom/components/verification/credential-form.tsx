@@ -40,77 +40,91 @@ export const CredentialForm = function CredentialForm({
   onClose,
 }: CredentialFormProps) {
   const customNameError =
-    selectedType === 'other'
+    selectedType === 'other' && customName.length > 0
       ? customName.trim().length < 3
         ? 'Enter a credential name'
         : null
       : null;
-  const canSubmit =
-    Boolean(selectedType && uploaded && !submitting && (selectedType !== 'other' || !customNameError));
+  const canSubmit = Boolean(
+    selectedType &&
+    uploaded &&
+    !submitting &&
+    (selectedType !== 'other' || customName.trim().length >= 3),
+  );
 
   return (
     <SurfaceCard style={styles.card}>
       <Row justify="space-between" align="center">
-        <ThemedText type="defaultSemiBold">Add Credential</ThemedText>
-        <Clickable accessibilityLabel="Close" onPress={onClose}>
+        <ThemedText type="defaultSemiBold">Add credential</ThemedText>
+        <Clickable
+          accessibilityLabel="Close credential form"
+          disabled={submitting}
+          onPress={onClose}
+        >
           <Ionicons name="close" size={24} color={colors.muted} />
         </Clickable>
       </Row>
 
       <View style={styles.section}>
-        <ThemedText style={styles.label}>Credential Type</ThemedText>
+        <ThemedText style={styles.label}>Credential type</ThemedText>
         <View style={styles.typeList}>
-          {CREDENTIAL_TYPES.map((type) => (
-            <Clickable
-              key={type.id}
-              onPress={() => onSelectType(type.id)}
-              style={[
-                styles.typeItem,
-                {
-                  borderColor: selectedType === type.id ? colors.tint : colors.border,
-                  backgroundColor:
-                    selectedType === type.id ? withAlpha(colors.tint, 0.03) : colors.card,
-                },
-              ]}
-            >
-              <Column flex>
-                <ThemedText
-                  style={{
-                    fontWeight: selectedType === type.id ? '600' : '400',
-                    color: selectedType === type.id ? colors.tint : colors.text,
-                  }}
+          {CREDENTIAL_TYPES.map((type, index) => {
+            const selected = selectedType === type.id;
+            return (
+              <View key={type.id}>
+                <Clickable
+                  accessibilityLabel={`${type.label}, ${type.category}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  disabled={submitting}
+                  onPress={() => onSelectType(type.id)}
+                  style={[
+                    styles.typeItem,
+                    selected ? { backgroundColor: withAlpha(colors.tint, 0.06) } : undefined,
+                  ]}
                 >
-                  {type.label}
-                </ThemedText>
-                <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
-                  {type.category}
-                </ThemedText>
-              </Column>
-              <Ionicons
-                name={selectedType === type.id ? 'radio-button-on' : 'radio-button-off'}
-                size={20}
-                color={selectedType === type.id ? colors.tint : colors.muted}
-              />
-            </Clickable>
-          ))}
+                  <Column flex>
+                    <ThemedText
+                      style={{
+                        fontWeight: selected ? '600' : '400',
+                        color: selected ? colors.tint : colors.text,
+                      }}
+                    >
+                      {type.label}
+                    </ThemedText>
+                    <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+                      {type.category}
+                    </ThemedText>
+                  </Column>
+                  <Ionicons
+                    name={selected ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={selected ? colors.tint : colors.muted}
+                  />
+                </Clickable>
+                {index < CREDENTIAL_TYPES.length - 1 ? (
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                ) : null}
+              </View>
+            );
+          })}
         </View>
       </View>
 
       {selectedType === 'other' && (
         <View style={styles.section}>
-          <ThemedText style={styles.label}>Qualification Name</ThemedText>
-          <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-            e.g., Grassroots Coach Award, First Aid Certificate
-          </ThemedText>
+          <ThemedText style={styles.label}>Qualification name</ThemedText>
           <TextInput
             style={[
               styles.input,
               { borderColor: customNameError ? colors.error : colors.border, color: colors.text },
             ]}
-            placeholder="Enter qualification name"
+            placeholder="Qualification name"
             placeholderTextColor={colors.muted}
+            accessibilityLabel="Qualification name"
             value={customName}
             onChangeText={onCustomNameChange}
+            editable={!submitting}
             maxLength={50}
           />
           <ThemedText
@@ -122,14 +136,22 @@ export const CredentialForm = function CredentialForm({
             {customName.length}/50
           </ThemedText>
           {customNameError ? (
-            <ThemedText style={[Typography.caption, { color: colors.error }]}>{customNameError}</ThemedText>
+            <ThemedText
+              accessibilityLiveRegion="polite"
+              style={[Typography.caption, { color: colors.error }]}
+            >
+              {customNameError}
+            </ThemedText>
           ) : null}
         </View>
       )}
 
       {selectedType && (
         <View style={styles.section}>
-          <ThemedText style={styles.label}>Upload Document</ThemedText>
+          <ThemedText style={styles.label}>Document</ThemedText>
+          <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
+            PDF, JPG, PNG, WebP or HEIC · 20 MB max
+          </ThemedText>
           {uploaded ? (
             <Row
               gap="md"
@@ -141,23 +163,21 @@ export const CredentialForm = function CredentialForm({
             >
               <Ionicons name="document-text" size={24} color={colors.success} />
               <Column flex>
-                <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
+                <ThemedText type="defaultSemiBold">Document selected</ThemedText>
                 <ThemedText style={{ color: colors.muted, ...Typography.caption }}>
-                  credential.pdf
+                  Ready to submit
                 </ThemedText>
               </Column>
-              <Clickable accessibilityLabel="Remove uploaded document" onPress={onRemoveUpload}>
+              <Clickable
+                accessibilityLabel="Remove selected document"
+                disabled={submitting}
+                onPress={onRemoveUpload}
+              >
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
               </Clickable>
             </Row>
           ) : (
-            <Clickable
-              onPress={onUpload}
-              style={[styles.uploadArea, { borderColor: colors.border }]}
-            >
-              <Ionicons name="cloud-upload-outline" size={32} color={colors.muted} />
-              <ThemedText style={{ color: colors.muted }}>Tap to upload certificate</ThemedText>
-            </Clickable>
+            <Button onPress={onUpload} variant="outline" label="Choose document" />
           )}
         </View>
       )}
@@ -165,15 +185,8 @@ export const CredentialForm = function CredentialForm({
       <Button
         onPress={onSubmit}
         disabled={!canSubmit}
-        label={submitting ? 'Submitting...' : !uploaded ? 'Upload Required' : 'Submit Credential'}
+        label={submitting ? 'Submitting...' : 'Submit for review'}
       />
-      {!uploaded && selectedType && (
-        <ThemedText
-          style={[Typography.small, { textAlign: 'center', marginTop: Spacing.xs, color: colors.muted }]}
-        >
-          Upload a document to enable submission
-        </ThemedText>
-      )}
     </SurfaceCard>
   );
 };
@@ -189,28 +202,21 @@ const styles = StyleSheet.create({
     ...Typography.bodySmallSemiBold,
   },
   typeList: {
-    gap: Spacing.xs,
+    gap: 0,
   },
   typeItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 52,
     padding: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
+    borderRadius: Radii.sm,
   },
+  divider: { height: 1, marginLeft: Spacing.sm },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
-  },
-  uploadArea: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.lg,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    borderStyle: 'dashed',
   },
   uploadedRow: {
     padding: Spacing.sm,

@@ -138,12 +138,12 @@ export function useTimeOffForm({
   const adjustDate = (target: 'start' | 'end', days: number) => {
     hapticTap();
     if (target === 'start') {
-      setStartDate((prev) => {
-        const newDate = new Date(prev);
-        newDate.setDate(newDate.getDate() + days);
-        setEndDate((prevEnd) => (newDate > prevEnd ? newDate : prevEnd));
-        return newDate;
-      });
+      const nextStartDate = new Date(startDate);
+      nextStartDate.setDate(nextStartDate.getDate() + days);
+      setStartDate(nextStartDate);
+      if (nextStartDate > endDate) {
+        setEndDate(nextStartDate);
+      }
     } else {
       setEndDate((prev) => {
         const newDate = new Date(prev);

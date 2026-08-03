@@ -13,6 +13,7 @@ import {
 import { eventService } from '@/services/event-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { isBrowserFetchFailure } from '@/utils/network-errors';
+import { shouldLoadFamilyChildren } from '@/hooks/child-context-helpers';
 
 const logger = createLogger('FamilyCalendarScreen');
 
@@ -23,6 +24,7 @@ interface FamilyCalendarData {
 
 export function useFamilyCalendar() {
   const { currentUser } = useAuth();
+  const canViewFamilyCalendar = shouldLoadFamilyChildren(currentUser);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function useFamilyCalendar() {
   });
 
   const loadData = async () => {
-    if (!currentUser?.id) {
+    if (!currentUser?.id || !canViewFamilyCalendar) {
       return ok<FamilyCalendarData>({ members: [], events: [] });
     }
 
@@ -86,7 +88,7 @@ export function useFamilyCalendar() {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyCalendarData>({
     load: loadData,
-    deps: [currentUser?.id, dateRange.startDate, dateRange.endDate],
+    deps: [currentUser?.id, canViewFamilyCalendar, dateRange.startDate, dateRange.endDate],
     isEmpty: (value) => value.events.length === 0,
     refetchOnFocus: true,
   });
@@ -131,6 +133,7 @@ export function useFamilyCalendar() {
     refreshing,
     onRefresh,
     retry,
+    canViewFamilyCalendar,
     members,
     events,
     selectedDate,

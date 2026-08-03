@@ -9,6 +9,10 @@ describe('deep-link utils', () => {
     assert.equal(resolveDeepLink('/booking/bk_1'), '/bookings/bk_1');
   });
 
+  test('rewrites legacy availability links to the canonical Schedule segment', () => {
+    assert.equal(resolveDeepLink('/availability'), '/(tabs)/schedule?segment=availability');
+  });
+
   test('normalizes custom scheme links', () => {
     assert.equal(resolveDeepLink('clubroom://session-invites/invite_1'), '/session-invites/invite_1');
     assert.equal(resolveDeepLink('clubroom:session-invites/invite_2'), '/session-invites/invite_2');

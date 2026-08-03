@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { FastifyRequest } from 'fastify';
+import { env } from '@clubroom/config';
 import { getApiDataBackend } from './data-backend.js';
 import { getMarketplaceSeedStore } from './marketplace-seed-store.js';
 import { getDbFixtureStore } from './db-fixture-store.js';
@@ -12,7 +13,7 @@ type AuditResult = 'SUCCESS' | 'DENY' | 'ERROR';
 type SecuritySeverity = 'low' | 'medium' | 'high' | 'critical';
 type AuditableRequest = Pick<FastifyRequest, 'auth' | 'ip' | 'requestId'>;
 
-interface AuditEventInput {
+export interface AuditEventInput {
   request?: AuditableRequest;
   action: string;
   resourceType: string;
@@ -35,6 +36,18 @@ const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as 
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const now = () => new Date();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const DEFAULT_DEV_AUDIT_REFERENCE_SECRET = 'clubroom-development-audit-reference-secret';
+
+export function buildAuditSecretReference(kind: string, value: string): string {
+  const normalizedKind = kind.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_') || 'secret';
+  const secret = env.API_JWT_SECRET?.trim() || DEFAULT_DEV_AUDIT_REFERENCE_SECRET;
+  const digest = crypto
+    .createHmac('sha256', secret)
+    .update(`${normalizedKind}:${value.trim().toUpperCase()}`)
+    .digest('hex')
+    .slice(0, 32);
+  return `${normalizedKind}:${digest}`;
+}
 
 function hashIpAddress(request: Pick<FastifyRequest, 'ip'> | undefined): string | null {
   if (!request) {
@@ -61,11 +74,11 @@ function toJsonValue(value: Record<string, unknown> | undefined): unknown {
   return JSON.parse(JSON.stringify(value ?? {}));
 }
 
-export async function recordAuditEvent(input: AuditEventInput): Promise<void> {
+export function buildAuditEventData(input: AuditEventInput) {
   const occurredAt = now();
   const actorUserId = input.request?.auth?.userId ?? null;
   const actingRole = input.request?.auth?.actingRole ?? input.request?.auth?.roles?.[0] ?? null;
-  const payload = {
+  return {
     id: newId('aev'),
     occurredAt,
     requestId: input.request?.requestId ?? null,
@@ -80,12 +93,18 @@ export async function recordAuditEvent(input: AuditEventInput): Promise<void> {
     ipHash: hashIpAddress(input.request),
     metadataJson: toJsonValue(input.metadata) as never,
   };
+}
+
+export type AuditEventData = ReturnType<typeof buildAuditEventData>;
+
+export async function recordAuditEvent(input: AuditEventInput): Promise<void> {
+  const payload = buildAuditEventData(input);
 
   const tables = resolveMutableTables();
   if (tables) {
     asRows(tables.auditEvents).push({
       ...payload,
-      occurredAt: occurredAt.toISOString(),
+      occurredAt: payload.occurredAt.toISOString(),
     });
     return;
   }

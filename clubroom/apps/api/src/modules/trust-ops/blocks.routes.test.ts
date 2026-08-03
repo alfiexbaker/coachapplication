@@ -63,6 +63,11 @@ describe('block relationship routes', () => {
     assert.ok(actorId, 'expected actor user');
     assert.ok(targetId, 'expected target user');
     assert.notEqual(actorId, targetId);
+    const targetUser = asRows(tables.users).find((row) => asString(row.id) === targetId);
+    const targetName = asString(targetUser?.name);
+    const targetEmail = asString(targetUser?.email);
+    assert.ok(targetName, 'expected target name');
+    assert.ok(targetEmail, 'expected target email');
 
     const emptyList = await app.inject({
       method: 'GET',
@@ -71,6 +76,7 @@ describe('block relationship routes', () => {
     });
     assert.equal(emptyList.statusCode, 200);
     assert.deepEqual((emptyList.json() as { blockedUserIds: string[] }).blockedUserIds, []);
+    assert.deepEqual((emptyList.json() as { blockedUsers: unknown[] }).blockedUsers, []);
 
     const blocked = await app.inject({
       method: 'POST',
@@ -93,7 +99,16 @@ describe('block relationship routes', () => {
       headers: authHeaders(tables, actorId),
     });
     assert.equal(listed.statusCode, 200);
-    assert.deepEqual((listed.json() as { blockedUserIds: string[] }).blockedUserIds, [targetId]);
+    const listedPayload = listed.json() as {
+      blockedUserIds: string[];
+      blockedUsers: { id: string; name: string | null; blockedAt: string }[];
+    };
+    assert.deepEqual(listedPayload.blockedUserIds, [targetId]);
+    assert.equal(listedPayload.blockedUsers.length, 1);
+    assert.equal(listedPayload.blockedUsers[0]?.id, targetId);
+    assert.equal(listedPayload.blockedUsers[0]?.name, targetName);
+    assert.equal(Number.isNaN(Date.parse(listedPayload.blockedUsers[0]?.blockedAt ?? '')), false);
+    assert.equal(listed.body.includes(targetEmail), false);
 
     const status = await app.inject({
       method: 'GET',
@@ -146,6 +161,7 @@ describe('block relationship routes', () => {
     });
     assert.equal(afterRemovalList.statusCode, 200);
     assert.deepEqual((afterRemovalList.json() as { blockedUserIds: string[] }).blockedUserIds, []);
+    assert.deepEqual((afterRemovalList.json() as { blockedUsers: unknown[] }).blockedUsers, []);
 
     const unauthenticated = await app.inject({
       method: 'GET',
@@ -166,5 +182,10 @@ describe('block relationship routes', () => {
     assert.equal(auditRows(tables, 'users.block.create', 'SUCCESS').length, 2);
     assert.equal(auditRows(tables, 'users.block.remove', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'users.block.read', 'SUCCESS').length >= 4, true);
+    const blockAudits = asRows(tables.auditEvents).filter((row) =>
+      asString(row.action)?.startsWith('users.block.'),
+    );
+    assert.equal(JSON.stringify(blockAudits).includes(targetName), false);
+    assert.equal(JSON.stringify(blockAudits).includes(targetEmail), false);
   });
 });

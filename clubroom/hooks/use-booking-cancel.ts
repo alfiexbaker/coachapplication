@@ -17,12 +17,17 @@ import type { Ionicons } from '@expo/vector-icons';
 import { getBookingAthleteName } from '@/utils/booking-display';
 import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { useAuth } from '@/hooks/use-auth';
+import { buildAuthScopedSnapshotKey } from '@/utils/auth-scoped-snapshot-key';
+import { apiClient } from '@/services/api-client';
+import { accountIdsMatch } from '@/utils/account-id';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CancelBookingScreen');
 
 interface CancelLoadData {
+  coachId: string;
   bookingAmount: number;
   sessionTime: Date;
   coachName: string;
@@ -94,25 +99,14 @@ export function formatSessionDate(d: Date): string {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} \u00B7 ${hour}${mins}${ampm}`;
 }
 
-export function useBookingCancel(id: string, mode?: string) {
-  const isCoach = mode === 'coach';
+export function useBookingCancel(id: string) {
+  const { currentUser } = useAuth();
+  const snapshotKey = buildAuthScopedSnapshotKey(currentUser?.id, 'booking-cancel', id);
 
   const [step, setStep] = useState<FlowStep>('details');
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
-  const [notifyWaitlist, setNotifyWaitlist] = useState(true);
   const [processing, setProcessing] = useState(false);
-
-  const filteredReasons = CANCELLATION_REASONS.filter((r) => {
-    if (isCoach && r.parentOnly) return false;
-    if (!isCoach && r.coachOnly) return false;
-    return true;
-  });
-
-  const canProceed = (() => {
-    if (isCoach) return reason !== '';
-    return true;
-  })();
 
   const loadBookingDetails = useCallback(async () => {
     if (!id) {
@@ -125,7 +119,15 @@ export function useBookingCancel(id: string, mode?: string) {
       }
 
       const bookingExt = booking as Booking & Record<string, unknown>;
-      const bookingPrice = (bookingExt.price as number) ?? 35;
+      const bookingPrice = bookingExt.price;
+      if (typeof bookingPrice !== 'number' || !Number.isFinite(bookingPrice) || bookingPrice < 0) {
+        return err(
+          serviceError(
+            'VALIDATION',
+            'Booking price is unavailable from the live booking record. Cancellation estimate blocked.',
+          ),
+        );
+      }
       const scheduledAt = new Date(booking.scheduledAt);
       if (Number.isNaN(scheduledAt.getTime())) {
         return err(serviceError('UNKNOWN', 'Booking session time is invalid.'));
@@ -137,9 +139,24 @@ export function useBookingCancel(id: string, mode?: string) {
         return err(serviceError('VALIDATION', 'This booking is no longer cancellable.'));
       }
       const coachPolicyResult = await schedulingRulesService.getCancellationPolicy(booking.coachId);
-      const coachPolicy = coachPolicyResult.success ? coachPolicyResult.data : null;
       if (!coachPolicyResult.success) {
         logger.error('Failed to load coach cancellation policy', coachPolicyResult.error);
+        return err(
+          serviceError(
+            'UNKNOWN',
+            coachPolicyResult.error.message || 'Failed to load cancellation policy.',
+            coachPolicyResult.error.details,
+          ),
+        );
+      }
+      const coachPolicy = coachPolicyResult.data;
+      if (!coachPolicy && !apiClient.isMockMode) {
+        return err(
+          serviceError(
+            'VALIDATION',
+            'Cancellation terms are unavailable from the live coach policy. Cancellation estimate blocked.',
+          ),
+        );
       }
 
       const calculation = schedulingRulesService.calculateRefund(
@@ -149,6 +166,7 @@ export function useBookingCancel(id: string, mode?: string) {
       );
 
       return ok<CancelLoadData | null>({
+        coachId: booking.coachId,
         bookingAmount: bookingPrice,
         sessionTime: scheduledAt,
         coachName: booking.coachName || 'Coach',
@@ -168,20 +186,37 @@ export function useBookingCancel(id: string, mode?: string) {
   const { data, status, error, refreshing, onRefresh, retry, colors } =
     useScreen<CancelLoadData | null>({
       load: loadBookingDetails,
-      deps: [loadBookingDetails],
+      deps: [loadBookingDetails, currentUser?.id],
       isEmpty: (value) => value === null,
       refetchOnFocus: true,
       loadingStrategy: 'section-skeleton',
     });
 
   useEffect(() => {
-    if (data) {
-      cancelLoadSnapshots.set(id, data);
+    if (data && snapshotKey) {
+      cancelLoadSnapshots.set(snapshotKey, data);
     }
-  }, [data, id]);
+  }, [data, snapshotKey]);
 
-  const resolvedData = data ?? cancelLoadSnapshots.get(id) ?? null;
+  const resolvedData =
+    data ??
+    (status === 'loading' && snapshotKey ? cancelLoadSnapshots.get(snapshotKey) : null) ??
+    null;
   const bookingAmount = resolvedData?.bookingAmount ?? 0;
+  const coachId = resolvedData?.coachId ?? '';
+  const isCoach = Boolean(
+    currentUser?.id &&
+      currentUser.accountType === 'COACH' &&
+      coachId &&
+      accountIdsMatch(currentUser.id, coachId),
+  );
+  const isParent = currentUser?.accountType === 'PARENT';
+  const filteredReasons = CANCELLATION_REASONS.filter((r) => {
+    if (!isParent && r.parentOnly) return false;
+    if (!isCoach && r.coachOnly) return false;
+    return true;
+  });
+  const canProceed = !isCoach || reason !== '';
   const sessionTime = resolvedData?.sessionTime ?? null;
   const coachName = resolvedData?.coachName ?? '';
   const athleteName = resolvedData?.athleteName ?? '';
@@ -196,54 +231,61 @@ export function useBookingCancel(id: string, mode?: string) {
 
     setProcessing(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const cancelledBooking = await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent', {
-        note: note.trim() || undefined,
-      });
-      if (!cancelledBooking) {
-        throw new Error('Cancellation failed');
-      }
-
-      if (notifyWaitlist) {
-        logger.debug('Waitlist notified for freed slot', { bookingId: id });
-      }
-
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      if (isCoach) {
-        uiFeedback.showToast(
-          `The session has been cancelled and ${athleteName}'s parent has been notified.${
-            refundCalc.netRefundAmount > 0
-              ? ` If payment has already been made, arrange any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly and update your reconciler.`
-              : ''
-          }`,
-          'success',
+    await runAsyncTryCatchFinally(
+      async () => {
+        const cancelledBooking = await bookingService.cancel(
+          id,
+          reasonLabel,
+          isCoach ? 'coach' : 'parent',
+          {
+            note: note.trim() || undefined,
+          },
         );
-router.back();
-      } else if (refundCalc.netRefundAmount > 0) {
-        uiFeedback.showToast(
-          `Your booking has been cancelled. If payment has already been made, the coach or organization will confirm any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly outside the app.`,
-          'success',
-        );
-router.back();
-      } else {
-        uiFeedback.showToast('Your booking has been cancelled. The coach has been notified.', 'success');
-router.back();
-      }
+        if (!cancelledBooking) {
+          throw new Error('Cancellation failed');
+        }
 
-      logger.success('BookingCancelled', {
-        bookingId: id,
-        role: isCoach ? 'coach' : 'parent',
-        reason: reasonLabel,
-        refundAmount: refundCalc.netRefundAmount,
-        waitlistNotified: notifyWaitlist,
-      });
-    }, async error => {
-      logger.error('Failed to cancel booking', error);
-      uiFeedback.showToast('Failed to cancel booking. Please try again.', 'error');
-    }, () => {
-      setProcessing(false);
-    });
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        if (isCoach) {
+          uiFeedback.showToast(
+            `The session has been cancelled and ${athleteName}'s parent has been notified.${
+              refundCalc.netRefundAmount > 0
+                ? ` If payment has already been made, arrange any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly and update your reconciler.`
+                : ''
+            }`,
+            'success',
+          );
+          router.back();
+        } else if (refundCalc.netRefundAmount > 0) {
+          uiFeedback.showToast(
+            `Your booking has been cancelled. If payment has already been made, the coach or organization will confirm any \u00A3${refundCalc.netRefundAmount.toFixed(2)} adjustment directly outside the app.`,
+            'success',
+          );
+          router.back();
+        } else {
+          uiFeedback.showToast(
+            'Your booking has been cancelled. The coach has been notified.',
+            'success',
+          );
+          router.back();
+        }
+
+        logger.success('BookingCancelled', {
+          bookingId: id,
+          role: isCoach ? 'coach' : 'parent',
+          reason: reasonLabel,
+          refundAmount: refundCalc.netRefundAmount,
+        });
+      },
+      async (error) => {
+        logger.error('Failed to cancel booking', error);
+        uiFeedback.showToast('Failed to cancel booking. Please try again.', 'error');
+      },
+      () => {
+        setProcessing(false);
+      },
+    );
   };
 
   const handleGoBack = () => {
@@ -251,7 +293,9 @@ router.back();
   };
 
   const effectivePolicy = policy || schedulingRulesService.getDefaultCancellationPolicy();
-  const sortedTiers = Array.from(effectivePolicy.tiers).toSorted((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+  const sortedTiers = Array.from(effectivePolicy.tiers).toSorted(
+    (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+  );
 
   return {
     isCoach,
@@ -267,8 +311,6 @@ router.back();
     setReason,
     note,
     setNote,
-    notifyWaitlist,
-    setNotifyWaitlist,
     loading: status === 'loading' && resolvedData === null,
     processing,
     bookingAmount,

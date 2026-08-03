@@ -1,6 +1,6 @@
 # Clubroom Source Of Truth
 
-Last updated: 2026-07-03
+Last updated: 2026-07-15
 Purpose: the smallest durable truth map for Clubroom. If this conflicts with executable code, trust code and update this file.
 
 ## Product
@@ -28,18 +28,21 @@ Do not grow Clubroom into a generic football social app. Feeds, profiles, commen
 - Route ownership goes through `navigation/routes.ts`.
 - Storage keys come from `constants/storage-keys.ts`.
 - Club governance executable truth lives in `contracts/club-governance.ts` and `packages/shared-contracts/src/club/`.
-- Normal app runtime is API-first. Retained mock compatibility is test-only scaffolding while remaining `/v1` cutover work is completed.
+- Clubroom V1 product truth is DB/API-backed: real product data belongs behind Fastify `/v1` contracts and the `db` backend, not local mock/demo mirrors.
+- Normal app runtime is API-first. Retained mock compatibility is test-only scaffolding while remaining `/v1` cutover work is completed; do not add new mock-first product paths.
 - Pre-API live mode is compatibility wiring only, not live product truth.
 - Runtime `/v1` auth uses bearer JWT/session handling. Header identity override is test-harness only.
-- Non-test API data backend defaults toward `db`; API tests explicitly use seed/fixture paths.
+- Non-test API data backend defaults to `db`; seed/fixture paths are for explicit tests, import/bootstrap tooling, or named temporary seams only.
 - Hosted payments and payout provider flows are still simulated behind backend provider boundaries. The app must not mark money state as paid from a client callback alone.
 - Backend release readiness is guarded by `/v1/ready` and `npm --prefix apps/api run release:preflight`.
-- Sentry wiring exists for Expo native/web and API release builds, but production issue review and release rehearsal remain active work.
+- Sentry wiring exists for Expo native/web and API release builds. Native app-hang tracking is disabled only in development clients to prevent simulator/debug noise; release builds retain app-hang monitoring. Production issue review and release rehearsal remain active work.
 
 ## Architecture Rules
 
 - Add or change service behavior behind the existing service facade when one exists.
 - Keep server-owned product data behind named `/v1` contracts in non-mock mode.
+- For V1 product behavior, prefer a DB-backed `/v1` route before adding any mock/demo storage. If an API does not exist yet, fail closed, return an honest empty/no-op state, or record a named cutover task instead of inventing local authority.
+- Mock/demo fixtures are allowed only for test harnesses, deterministic seed/import tooling, or unavoidable temporary provider gaps; they must not claim production success or become the source of truth.
 - Keep `Result<T, ServiceError>` service flow unless the local service already uses a different established pattern.
 - Do not add local-storage authority for trust-sensitive or money-sensitive data.
 - Do not add parallel route strings when `navigation/routes.ts` should own the route.

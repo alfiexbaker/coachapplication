@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import MapContent from '@/components/discover/map-content';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useScreen } from '@/hooks/use-screen';
+import { resolveAuthoritativeScreenState } from '@/hooks/use-authoritative-screen-state';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
@@ -32,7 +33,6 @@ import type { CoachSearchFilters, SessionOffering } from '@/constants/types';
 
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
 const logger = createLogger('DiscoverMapScreen');
-let lastMapSnapshot: MapScreenData | null = null;
 
 interface InitialMapSearchState {
   filters: CoachSearchFilters;
@@ -110,6 +110,7 @@ export default function MapScreen() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedCoachId, setSelectedCoachId] = useState<string | undefined>();
   const filtersRef = useRef(filters);
+  const queryKey = JSON.stringify(filters);
 
   useEffect(() => {
     filtersRef.current = filters;
@@ -125,27 +126,37 @@ export default function MapScreen() {
     });
   };
 
-  const { data, status, error, onRefresh, retry } = useScreen<MapScreenData>({
+  const {
+    data,
+    status,
+    error,
+    silentError,
+    onRefresh,
+    retry,
+    isPending,
+    hasRequestedTruthfulFrame,
+  } = useScreen<MapScreenData>({
     load: loadMapData,
     deps: [filters],
     isEmpty: (value) => value.coaches.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
+    dataKey: queryKey,
   });
-
-  useEffect(() => {
-    if (data) {
-      lastMapSnapshot = data;
-    }
-  }, [data]);
-
-  const resolvedData = data ?? lastMapSnapshot;
+  const { blocked: searchBlocked, status: visibleStatus } = resolveAuthoritativeScreenState({
+    status,
+    isPending,
+    hasRequestedTruthfulFrame,
+    hasSilentError: Boolean(silentError),
+  });
+  const resolvedData = searchBlocked ? null : data;
   const coaches = resolvedData?.coaches ?? [];
   const filterOptions = resolvedData?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
-  const coldLoading = status === 'loading' && resolvedData === null;
-  const blockingError = status === 'error' && resolvedData === null;
-  const blockingEmpty = status === 'empty' && resolvedData === null;
+  const hasActiveFilters = discoverService.hasActiveFilters(filters);
+  const coldLoading = visibleStatus === 'loading';
+  const blockingError = visibleStatus === 'error';
+  const blockingEmpty = visibleStatus === 'empty';
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleSearch = () => {
@@ -158,8 +169,16 @@ export default function MapScreen() {
   };
 
   const handleFilterChange = (next: CoachSearchFilters) => {
-    setFilters((prev) => ({ ...prev, ...next, location: prev.location }));
+    setSearchQuery(next.query ?? '');
+    setFilters((prev) => ({
+      ...next,
+      location: next.location ?? prev.location ?? DEFAULT_LOCATION,
+    }));
     setShowFilterModal(false);
+  };
+
+  const handleClearFilters = () => {
+    handleFilterChange({});
   };
 
   const handleCoachSelect = (coachId: string) => {
@@ -222,7 +241,10 @@ export default function MapScreen() {
   if (blockingError) {
     return (
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <ErrorState message={error?.message ?? 'Failed to load coaches.'} onRetry={retry} />
+        <ErrorState
+          message={(error ?? silentError)?.message ?? 'Failed to load coaches.'}
+          onRetry={retry}
+        />
       </View>
     );
   }
@@ -234,8 +256,8 @@ export default function MapScreen() {
           icon="map-outline"
           title="No coaches nearby"
           message="Try expanding your search or adjusting filters."
-          actionLabel={activeFilterCount > 0 ? 'Clear filters' : 'Refresh'}
-          onPressAction={activeFilterCount > 0 ? () => handleFilterChange({}) : onRefresh}
+          actionLabel={hasActiveFilters ? 'Clear filters' : 'Refresh'}
+          onPressAction={hasActiveFilters ? handleClearFilters : onRefresh}
         />
       </View>
     );

@@ -24,6 +24,35 @@ function importRuntimeConfig(env: Record<string, string>): void {
   );
 }
 
+function readRuntimeConfig(env: Record<string, string>): {
+  apiBaseUrl: string;
+  apiTimeout: number;
+  paymentsEnabled: boolean;
+  sentryDsn: string;
+  currency: string;
+} {
+  const script = [
+    `const config = require(${JSON.stringify(configPath)});`,
+    'process.stdout.write(JSON.stringify({',
+    'apiBaseUrl: config.api.baseUrl,',
+    'apiTimeout: config.api.timeout,',
+    'paymentsEnabled: config.features.payments,',
+    'sentryDsn: config.analytics.sentryDsn,',
+    'currency: config.ui.defaultCurrency,',
+    '}));',
+  ].join('');
+  const output = execFileSync(process.execPath, ['--require', registerPath, '-e', script], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      ...env,
+    },
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+  return JSON.parse(output) as ReturnType<typeof readRuntimeConfig>;
+}
+
 describe('runtime mode config', () => {
   it('allows retained mock compatibility only in test runtime', () => {
     assert.doesNotThrow(() =>
@@ -47,6 +76,28 @@ describe('runtime mode config', () => {
         /EXPO_PUBLIC_USE_MOCK=true is test-only/,
       );
     }
+  });
+
+  it('allows mock fixtures only for an explicitly gated debug native audit', () => {
+    assert.doesNotThrow(() =>
+      importRuntimeConfig({
+        NODE_ENV: 'development',
+        EXPO_PUBLIC_ENV: 'development',
+        EXPO_PUBLIC_USE_MOCK: 'true',
+        EXPO_PUBLIC_NATIVE_AUDIT_TEST_MODE: 'true',
+      }),
+    );
+
+    assert.throws(
+      () =>
+        importRuntimeConfig({
+          NODE_ENV: 'development',
+          EXPO_PUBLIC_ENV: 'staging',
+          EXPO_PUBLIC_USE_MOCK: 'true',
+          EXPO_PUBLIC_NATIVE_AUDIT_TEST_MODE: 'true',
+        }),
+      /EXPO_PUBLIC_USE_MOCK=true is test-only/,
+    );
   });
 
   it('blocks retired pre-API live mode in every runtime config', () => {
@@ -97,5 +148,30 @@ describe('runtime mode config', () => {
     assert.equal(envExample.includes('EXPO_PUBLIC_AUTH_PROVIDER=mock'), false);
     assert.ok(configSource.includes("getEnv('AUTH_PROVIDER', 'api')"));
     assert.ok(envExample.includes('EXPO_PUBLIC_AUTH_PROVIDER=api'));
+  });
+
+  it('reads Expo public runtime values through statically inlined keys', () => {
+    const configSource = fs.readFileSync(path.join(repoRoot, 'constants/config.ts'), 'utf8');
+    const runtime = readRuntimeConfig({
+      NODE_ENV: 'test',
+      EXPO_PUBLIC_ENV: 'staging',
+      EXPO_PUBLIC_USE_MOCK: 'false',
+      EXPO_PUBLIC_API_URL: 'https://api.staging.clubroom.test',
+      EXPO_PUBLIC_API_TIMEOUT: '12345',
+      EXPO_PUBLIC_FEATURE_PAYMENTS: 'true',
+      EXPO_PUBLIC_SENTRY_DSN: 'https://public@example.invalid/1',
+      EXPO_PUBLIC_DEFAULT_CURRENCY: 'EUR',
+    });
+
+    assert.equal(configSource.includes('process.env['), false);
+    assert.ok(configSource.includes('process.env.EXPO_PUBLIC_API_URL'));
+    assert.ok(configSource.includes('process.env.EXPO_PUBLIC_SENTRY_DSN'));
+    assert.deepEqual(runtime, {
+      apiBaseUrl: 'https://api.staging.clubroom.test',
+      apiTimeout: 12345,
+      paymentsEnabled: true,
+      sentryDsn: 'https://public@example.invalid/1',
+      currency: 'EUR',
+    });
   });
 });

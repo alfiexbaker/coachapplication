@@ -131,7 +131,7 @@ export function useChildrenHub() {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load children hub data.', loadError));
     }
-  }, [contextChildrenSignature, currentUser?.id]);
+  }, [contextChildren, currentUser?.id]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildrenHubData>({
     load: loadData,

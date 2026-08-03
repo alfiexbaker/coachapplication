@@ -1,0 +1,131 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T21:14:09.206Z",
+  "meta": {
+    "roles": [
+      "coach",
+      "parent",
+      "guardian",
+      "athlete",
+      "admin"
+    ],
+    "profiles": [
+      "coach-profile-canonical"
+    ],
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 900,
+    "failOn": "medium",
+    "outDir": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4"
+  },
+  "totals": {
+    "total": 5,
+    "ok": 5,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 5
+  },
+  "results": [
+    {
+      "id": "coach_profile_editor_redirect",
+      "role": "coach",
+      "title": "Coach profile compatibility link opens the canonical editor",
+      "path": "/coach-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4/coach__coach_profile_editor_redirect.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4963
+    },
+    {
+      "id": "parent_coach_profile_denied",
+      "role": "parent",
+      "title": "parent cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4/parent__parent_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4341
+    },
+    {
+      "id": "guardian_coach_profile_denied",
+      "role": "guardian",
+      "title": "guardian cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4/guardian__guardian_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 6301
+    },
+    {
+      "id": "athlete_coach_profile_denied",
+      "role": "athlete",
+      "title": "athlete cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4/athlete__athlete_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4014
+    },
+    {
+      "id": "admin_coach_profile_denied",
+      "role": "admin",
+      "title": "admin cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-canonical-final-4/admin__admin_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 3711
+    }
+  ]
+}

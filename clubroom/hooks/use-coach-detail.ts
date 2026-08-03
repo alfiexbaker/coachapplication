@@ -46,6 +46,7 @@ interface CoachConnectionSnapshot {
   connectionState: CoachConnectionState;
   incomingRequestId: string | null;
   isBlocked: boolean;
+  blockStatusError: string | null;
 }
 
 function isLegacyCoachProfileId(coachId: string | undefined): boolean {
@@ -62,6 +63,7 @@ async function getCoachConnectionSnapshot(
       connectionState: 'none',
       incomingRequestId: null,
       isBlocked: false,
+      blockStatusError: null,
     };
   }
 
@@ -70,6 +72,7 @@ async function getCoachConnectionSnapshot(
       connectionState: 'self',
       incomingRequestId: null,
       isBlocked: false,
+      blockStatusError: null,
     };
   }
 
@@ -79,13 +82,20 @@ async function getCoachConnectionSnapshot(
     followService.getPendingRequests(currentUserId),
     blockService.isBlocked(currentUserId, coachId),
   ]);
-  const isBlocked = blockedResult.success ? blockedResult.data : false;
+  let isBlocked = false;
+  let blockStatusError: string | null = null;
+  if (blockedResult.success) {
+    isBlocked = blockedResult.data;
+  } else {
+    blockStatusError = blockedResult.error.message || 'Unable to verify block status.';
+  }
 
   if (isFriends) {
     return {
       connectionState: 'connected',
       incomingRequestId: null,
       isBlocked,
+      blockStatusError,
     };
   }
 
@@ -95,6 +105,7 @@ async function getCoachConnectionSnapshot(
       connectionState: 'incoming_pending',
       incomingRequestId: incomingRequest.id,
       isBlocked,
+      blockStatusError,
     };
   }
 
@@ -106,6 +117,7 @@ async function getCoachConnectionSnapshot(
       connectionState: 'outgoing_pending',
       incomingRequestId: null,
       isBlocked,
+      blockStatusError,
     };
   }
 
@@ -113,6 +125,7 @@ async function getCoachConnectionSnapshot(
     connectionState: 'none',
     incomingRequestId: null,
     isBlocked,
+    blockStatusError,
   };
 }
 
@@ -121,10 +134,14 @@ function applyCoachConnectionSnapshot(
   setConnectionState: (state: CoachConnectionState) => void,
   setIncomingRequestId: (requestId: string | null) => void,
   setIsBlocked: (isBlocked: boolean) => void,
+  setBlockStatusError: (error: string | null) => void,
+  markBlockStatusReady: () => void,
 ) {
   setConnectionState(snapshot.connectionState);
   setIncomingRequestId(snapshot.incomingRequestId);
   setIsBlocked(snapshot.isBlocked);
+  setBlockStatusError(snapshot.blockStatusError);
+  markBlockStatusReady();
 }
 
 export function useCoachDetail(coachId: string | undefined) {
@@ -135,6 +152,8 @@ export function useCoachDetail(coachId: string | undefined) {
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [blockStatusError, setBlockStatusError] = useState<string | null>(null);
+  const [blockStatusReadyKey, setBlockStatusReadyKey] = useState<string | null>(null);
 
   const currentUserId = currentUser?.id;
   const isOwnProfile = currentUser?.id === coachId;
@@ -216,41 +235,79 @@ export function useCoachDetail(coachId: string | undefined) {
   const sessionOfferings = data?.sessionOfferings ?? [];
   const offeringSummary = summarizeCoachOfferings(sessionOfferings);
   const usesBackendRelationshipActions = !isLegacyCoachProfileId(coachId);
+  const shouldVerifyBlockStatus =
+    usesBackendRelationshipActions && Boolean(coachId && currentUserId) && !isOwnProfile;
+  const blockStatusAuthorityKey = `${currentUserId ?? 'anonymous'}:${coachId ?? 'missing'}:${
+    isOwnProfile ? 'self' : 'target'
+  }`;
+  const blockStatusReady = blockStatusReadyKey === blockStatusAuthorityKey;
+  const blockStatusUnavailable =
+    shouldVerifyBlockStatus && (!blockStatusReady || Boolean(blockStatusError));
+  const profileActionsBlocked = isBlocked || blockStatusUnavailable;
   const canFollowAction =
     usesBackendRelationshipActions &&
     !followLoading &&
     !isOwnProfile &&
-    !isBlocked &&
+    !profileActionsBlocked &&
     (connectionState === 'none' ||
       (connectionState === 'incoming_pending' && Boolean(incomingRequestId)));
   const followLabel = (() => {
+    if (blockStatusUnavailable) return 'Unavailable';
     if (followLoading) return 'Updating...';
     return getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }).relationshipLabel;
   })();
   const isFollowing = connectionState === 'connected';
-  const relationshipDisplay = getCoachRelationshipDisplay(connectionState, { blocked: isBlocked });
+  const relationshipDisplayBase = getCoachRelationshipDisplay(connectionState, {
+    blocked: isBlocked,
+  });
+  const relationshipDisplay = blockStatusUnavailable
+    ? {
+        ...relationshipDisplayBase,
+        contactLabel: 'Contact unavailable',
+        profileSummary: 'Unable to verify this profile relationship. Pull to refresh and try again.',
+      }
+    : relationshipDisplayBase;
 
   useEffect(() => {
+    let isCurrentSnapshot = true;
+    const markBlockStatusReady = () => setBlockStatusReadyKey(blockStatusAuthorityKey);
+    setBlockStatusReadyKey(null);
     startTransition(() => {
       void getCoachConnectionSnapshot(currentUserId, coachId, isOwnProfile)
         .then((snapshot) => {
+          if (!isCurrentSnapshot) return;
           applyCoachConnectionSnapshot(
             snapshot,
             setConnectionState,
             setIncomingRequestId,
             setIsBlocked,
+            setBlockStatusError,
+            markBlockStatusReady,
           );
         })
         .catch(() => {
+          if (!isCurrentSnapshot) return;
           applyCoachConnectionSnapshot(
-            { connectionState: 'none', incomingRequestId: null, isBlocked: false },
+            {
+              connectionState: 'none',
+              incomingRequestId: null,
+              isBlocked: false,
+              blockStatusError: apiClient.isMockMode
+                ? null
+                : 'Unable to verify profile relationship. Please retry.',
+            },
             setConnectionState,
             setIncomingRequestId,
             setIsBlocked,
+            setBlockStatusError,
+            markBlockStatusReady,
           );
         });
     });
-  }, [currentUserId, coachId, isOwnProfile]);
+    return () => {
+      isCurrentSnapshot = false;
+    };
+  }, [currentUserId, coachId, isOwnProfile, blockStatusAuthorityKey]);
 
   const handleFollow = async () => {
     if (
@@ -258,7 +315,7 @@ export function useCoachDetail(coachId: string | undefined) {
       !currentUser?.id ||
       !canFollowAction ||
       followLoading ||
-      isBlocked ||
+      profileActionsBlocked ||
       !usesBackendRelationshipActions
     )
       return;
@@ -287,6 +344,8 @@ export function useCoachDetail(coachId: string | undefined) {
           setConnectionState,
           setIncomingRequestId,
           setIsBlocked,
+          setBlockStatusError,
+          () => setBlockStatusReadyKey(blockStatusAuthorityKey),
         );
       },
       async (error) => {
@@ -298,6 +357,13 @@ export function useCoachDetail(coachId: string | undefined) {
     );
   };
   const handleBook = () => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
@@ -305,6 +371,13 @@ export function useCoachDetail(coachId: string | undefined) {
     router.push(Routes.bookCoach(coachId!));
   };
   const handleOfferingPress = (offering: SessionOffering) => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
@@ -317,6 +390,13 @@ export function useCoachDetail(coachId: string | undefined) {
     );
   };
   const handleMessage = () => {
+    if (blockStatusUnavailable) {
+      uiFeedback.showToast(
+        blockStatusError ?? 'Unable to verify block status. Please retry.',
+        'error',
+      );
+      return;
+    }
     if (isBlocked) {
       uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
       return;
@@ -326,13 +406,21 @@ export function useCoachDetail(coachId: string | undefined) {
   const handleRefresh = () => {
     onRefresh();
     if (!usesBackendRelationshipActions) return;
+    setBlockStatusReadyKey(null);
     void getCoachConnectionSnapshot(currentUserId, coachId, isOwnProfile).then((snapshot) => {
       applyCoachConnectionSnapshot(
         snapshot,
         setConnectionState,
         setIncomingRequestId,
         setIsBlocked,
+        setBlockStatusError,
+        () => setBlockStatusReadyKey(blockStatusAuthorityKey),
       );
+    }).catch(() => {
+      setBlockStatusError(
+        apiClient.isMockMode ? null : 'Unable to verify profile relationship. Please retry.',
+      );
+      setBlockStatusReadyKey(blockStatusAuthorityKey);
     });
   };
 
@@ -384,6 +472,9 @@ export function useCoachDetail(coachId: string | undefined) {
     followLoading,
     isOwnProfile,
     isBlocked,
+    blockStatusError,
+    blockStatusUnavailable,
+    profileActionsBlocked,
     relationshipDisplay,
     showFollowAction: usesBackendRelationshipActions,
     handleRefresh,
@@ -416,6 +507,9 @@ export function useCoachDetail(coachId: string | undefined) {
     followLoading: boolean;
     isOwnProfile: boolean;
     isBlocked: boolean;
+    blockStatusError: string | null;
+    blockStatusUnavailable: boolean;
+    profileActionsBlocked: boolean;
     relationshipDisplay: ReturnType<typeof getCoachRelationshipDisplay>;
     showFollowAction: boolean;
     handleRefresh: () => void;

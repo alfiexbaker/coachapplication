@@ -48,7 +48,7 @@ import { toDateStr } from '@/utils/format';
 import { accountIdsMatch } from '@/utils/account-id';
 import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, serviceError } from '@/types/result';
+import { ok, err, serviceError, unsupportedError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { sessionInviteAuthorityService } from './session-invite-authority-service';
 const logger = createLogger('SessionInviteService');
@@ -396,16 +396,38 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
   return {};
 }
 export async function loadFromStorage(): Promise<SessionInvite[]> {
+  if (!isMockMode()) {
+    return [];
+  }
+
   return cloneInvites(invitesCache);
 }
 export async function saveToStorage(invites: SessionInvite[]): Promise<Result<void, ServiceError>> {
+  if (!isMockMode()) {
+    invitesCache = [];
+    return err(
+      unsupportedError('Session invite mirror writes are unavailable in API mode.', {
+        authority: '/v1/invites',
+      }),
+    );
+  }
+
   invitesCache = cloneInvites(invites);
   return ok(undefined);
 }
 export function getInvitesCache(): SessionInvite[] {
+  if (!isMockMode()) {
+    return [];
+  }
+
   return cloneInvites(invitesCache);
 }
 export function setInvitesCache(invites: SessionInvite[]): void {
+  if (!isMockMode()) {
+    invitesCache = [];
+    return;
+  }
+
   invitesCache = cloneInvites(invites);
 }
 export function getMockInvites(): SessionInvite[] {

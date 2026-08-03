@@ -29,7 +29,7 @@ export function useConsents() {
   const coachId = currentUser?.id ?? null;
 
   const loadData = async () => {
-    if (!coachId) {
+    if (!coachId || currentUser?.role !== 'COACH') {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view roster consents.'));
     }
 
@@ -46,11 +46,12 @@ export function useConsents() {
 
       if (!summaryResult.success) {
         logger.error('Failed to load consent summary', summaryResult.error);
+        return err(summaryResult.error);
       }
 
       return ok<ConsentsLoadData>({
-        consents: consentsResult.success ? consentsResult.data : [],
-        summary: summaryResult.success ? summaryResult.data : null,
+        consents: consentsResult.data,
+        summary: summaryResult.data,
       });
     } catch (error) {
       logger.error('Failed to load consents:', error);
@@ -60,7 +61,7 @@ export function useConsents() {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ConsentsLoadData>({
     load: loadData,
-    deps: [coachId, filters, searchQuery],
+    deps: [coachId, currentUser?.role, filters, searchQuery],
     isEmpty: (value) => value.consents.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
@@ -76,11 +77,12 @@ export function useConsents() {
   };
 
   const handleStatCardPress = (type: ConsentType) => {
-    setSelectedType((prev) => {
-      const newType = prev === type ? null : type;
-      setFilters((f) => ({ ...f, type: newType || undefined }));
-      return newType;
-    });
+    const newType = selectedType === type ? null : type;
+    setSelectedType(newType);
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      type: newType || undefined,
+    }));
   };
 
   const toggleFilters = () => {

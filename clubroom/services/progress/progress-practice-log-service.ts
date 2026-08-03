@@ -7,7 +7,20 @@ import {
   resolveSignedInApiUser,
   toApiAthleteId,
 } from '@/services/api-auth-context';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  parseApiPracticeLogListResponse,
+  parseApiPracticeLogMutationResponse,
+  parseApiPracticeLogTodayResponse,
+  type ApiPracticeLogEntry,
+} from '@/services/progress/practice-log-response-contract';
+import {
+  err,
+  ok,
+  storageError,
+  validationError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressPracticeLogService');
@@ -15,6 +28,7 @@ const logger = createLogger('ProgressPracticeLogService');
 export interface PracticeLogEntry {
   id: string;
   athleteId: string;
+  authorUserId?: string;
   dateKey: string; // YYYY-MM-DD
   minutes: number;
   createdAt: string;
@@ -28,20 +42,14 @@ export interface LogPracticeInput {
   note?: string;
 }
 
+export interface PracticeLogTodaySummary {
+  log: PracticeLogEntry | null;
+  dateKey: string;
+  timeZone: string;
+}
+
 function toDateKey(date = new Date()): string {
   return date.toISOString().slice(0, 10);
-}
-
-interface ApiPracticeLogsResponse {
-  logs: PracticeLogEntry[];
-}
-
-interface ApiTodayPracticeLogResponse {
-  log: PracticeLogEntry | null;
-}
-
-interface ApiPracticeLogMutationResponse {
-  log: PracticeLogEntry;
 }
 
 function isApiMode(): boolean {
@@ -77,11 +85,24 @@ async function saveLogs(logs: PracticeLogEntry[]): Promise<void> {
   await apiClient.set(STORAGE_KEYS.PROGRESS_PRACTICE_LOGS, logs);
 }
 
+function toPracticeLogEntry(entry: ApiPracticeLogEntry): PracticeLogEntry {
+  return {
+    id: entry.id,
+    athleteId: entry.athleteId,
+    authorUserId: entry.authorUserId,
+    dateKey: entry.dateKey,
+    minutes: entry.minutes,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    ...(entry.note === null ? {} : { note: entry.note }),
+  };
+}
+
 async function listAthleteLogsResult(
   athleteId: string,
 ): Promise<Result<PracticeLogEntry[], ServiceError>> {
   if (!athleteId) {
-    return ok([]);
+    return err(validationError('Missing athlete for practice logs'));
   }
   if (isApiMode()) {
     const access = await resolvePracticeLogApiAccess(athleteId);
@@ -89,7 +110,7 @@ async function listAthleteLogsResult(
       logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
       return err(access.error);
     }
-    const result = await apiFetch<ApiPracticeLogsResponse>(
+    const result = await apiFetch<unknown>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs?limit=100`,
       {
         method: 'GET',
@@ -100,7 +121,11 @@ async function listAthleteLogsResult(
       logger.error('practice_log_api_list_failed', { athleteId, error: result.error });
       return err(result.error);
     }
-    return ok(result.data.logs);
+    const response = parseApiPracticeLogListResponse(result.data, access.data.apiAthleteId);
+    if (!response) {
+      return err(storageError('Practice log API response did not match contract'));
+    }
+    return ok(response.logs.map(toPracticeLogEntry));
   }
 
   const logs = await getLogs();
@@ -123,14 +148,17 @@ async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
   return [];
 }
 
-async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> {
+async function getTodaySummary(athleteId: string): Promise<PracticeLogTodaySummary> {
   if (isApiMode()) {
+    if (!athleteId) {
+      throw new Error('Missing athlete for practice log');
+    }
     const access = await resolvePracticeLogApiAccess(athleteId);
     if (!access.success) {
       logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
       throw new Error(access.error.message);
     }
-    const result = await apiFetch<ApiTodayPracticeLogResponse>(
+    const result = await apiFetch<unknown>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs/today`,
       {
         method: 'GET',
@@ -141,59 +169,90 @@ async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> 
       logger.error('practice_log_api_today_failed', { athleteId, error: result.error });
       throw new Error(result.error.message);
     }
-    return result.data.log;
+    const response = parseApiPracticeLogTodayResponse(result.data, access.data.apiAthleteId);
+    if (!response) {
+      throw new Error('Today practice log API response did not match contract');
+    }
+    return {
+      log: response.log ? toPracticeLogEntry(response.log) : null,
+      dateKey: response.dateKey,
+      timeZone: response.timeZone,
+    };
   }
 
   const today = toDateKey();
   const logs = await listAthleteLogs(athleteId);
-  return logs.find((entry) => entry.dateKey === today) ?? null;
+  return {
+    log: logs.find((entry) => entry.dateKey === today) ?? null,
+    dateKey: today,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  };
+}
+
+async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> {
+  return (await getTodaySummary(athleteId)).log;
 }
 
 async function logPractice(
   input: LogPracticeInput,
 ): Promise<Result<PracticeLogEntry, ServiceError>> {
   if (!input.athleteId) {
-    return err(storageError('Missing athlete for practice log'));
+    return err(validationError('Missing athlete for practice log'));
+  }
+  const normalizedNote = input.note?.trim();
+  if (isApiMode()) {
+    if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 24 * 60) {
+      return err(validationError('Practice minutes must be a whole number between 1 and 1440'));
+    }
+    if (input.note !== undefined && (!normalizedNote || normalizedNote.length > 1000)) {
+      return err(validationError('Practice note must be between 1 and 1000 characters'));
+    }
   }
 
-  const roundedMinutes = Math.max(1, Math.round(input.minutes));
   try {
     if (isApiMode()) {
       const access = await resolvePracticeLogApiAccess(input.athleteId);
       if (!access.success) {
         return err(access.error);
       }
-      const result = await apiFetch<ApiPracticeLogMutationResponse>(
+      const result = await apiFetch<unknown>(
         `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs`,
         {
           method: 'POST',
           headers: access.data.headers,
           body: JSON.stringify({
-            minutes: roundedMinutes,
-            ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+            minutes: input.minutes,
+            ...(normalizedNote ? { note: normalizedNote } : {}),
+            idempotencyKey: apiClient.generateId('practice-log'),
           }),
         },
       );
       if (!result.success) {
         return err(result.error);
       }
+      const response = parseApiPracticeLogMutationResponse(
+        result.data,
+        access.data.apiAthleteId,
+      );
+      if (!response) {
+        return err(storageError('Practice log API response did not match contract'));
+      }
       logger.info('practice_logged_via_api', {
         athleteId: input.athleteId,
-        dateKey: result.data.log.dateKey,
-        minutes: roundedMinutes,
-        totalToday: result.data.log.minutes,
+        dateKey: response.log.dateKey,
+        minutes: response.addedMinutes,
+        totalToday: response.log.minutes,
       });
-      return ok(result.data.log);
+      return ok(toPracticeLogEntry(response.log));
     }
 
+    const roundedMinutes = Math.max(1, Math.round(input.minutes));
     const nowIso = new Date().toISOString();
     const today = toDateKey();
     const logs = await getLogs();
     const existingIndex = logs.findIndex(
       (entry) => entry.athleteId === input.athleteId && entry.dateKey === today,
     );
-
-    const normalizedNote = input.note?.trim();
 
     let nextEntry: PracticeLogEntry;
     if (existingIndex >= 0) {
@@ -234,6 +293,7 @@ async function logPractice(
 export const progressPracticeLogService = {
   listAthleteLogs,
   listAthleteLogsResult,
+  getTodaySummary,
   getTodayLog,
   logPractice,
 };

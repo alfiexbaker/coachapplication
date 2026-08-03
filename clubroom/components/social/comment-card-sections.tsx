@@ -20,8 +20,11 @@ export interface CommentActionsProps {
   isLiked: boolean;
   likeCount: number;
   isReply: boolean;
+  isOwnComment: boolean;
+  pending?: boolean;
   onLike: (commentId: string) => void;
   onReply: (commentId: string, authorName: string) => void;
+  onDelete: (commentId: string) => void;
   palette: ThemeColors;
 }
 
@@ -31,8 +34,11 @@ export const CommentActions = function CommentActions({
   isLiked,
   likeCount,
   isReply,
+  isOwnComment,
+  pending = false,
   onLike,
   onReply,
+  onDelete,
   palette,
 }: CommentActionsProps) {
   const handleLike = () => {
@@ -50,13 +56,22 @@ export const CommentActions = function CommentActions({
     onReply(commentId, authorName);
   };
 
+  const handleDelete = () => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    onDelete(commentId);
+  };
+
   return (
     <Row gap="sm" style={styles.actionsRow}>
       <Clickable
         onPress={handleLike}
-        hitSlop={10}
+        disabled={pending}
         style={styles.actionButton}
         accessibilityLabel={isLiked ? 'Unlike comment' : 'Like comment'}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: pending, busy: pending, selected: isLiked }}
       >
         <Ionicons
           name={isLiked ? 'heart' : 'heart-outline'}
@@ -75,14 +90,30 @@ export const CommentActions = function CommentActions({
       {!isReply && (
         <Clickable
           onPress={handleReply}
-          hitSlop={10}
+          disabled={pending}
           style={styles.actionButton}
           accessibilityLabel="Reply to comment"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: pending, busy: pending }}
         >
           <Ionicons name="chatbubble-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.actionText, { color: palette.muted }]}>Reply</ThemedText>
         </Clickable>
       )}
+
+      {isOwnComment ? (
+        <Clickable
+          onPress={handleDelete}
+          disabled={pending}
+          style={styles.actionButton}
+          accessibilityLabel={`Delete comment by ${authorName}`}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: pending, busy: pending }}
+        >
+          <Ionicons name="trash-outline" size={14} color={palette.error} />
+          <ThemedText style={[styles.actionText, { color: palette.error }]}>Delete</ThemedText>
+        </Clickable>
+      ) : null}
     </Row>
   );
 };
@@ -95,7 +126,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.micro,
-    minHeight: 36,
+    minWidth: 44,
+    minHeight: 44,
+    paddingHorizontal: Spacing.xxs,
   },
   actionText: {
     ...Typography.caption,

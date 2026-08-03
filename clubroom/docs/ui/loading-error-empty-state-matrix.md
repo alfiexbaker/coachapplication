@@ -47,6 +47,7 @@ Source of truth:
 - `ErrorState`
   - retry CTA
   - user-facing error code support
+  - terminal `NOT_FOUND` or `UNAUTHORIZED` states omit retry and use a concise unavailable message
 - `EmptyState`
   - contextual icon
   - optional action CTA

@@ -182,35 +182,90 @@ describe('userService', () => {
     assert.deepEqual(emitted.sort(), ['profile', 'updated']);
   });
 
-  it('uses only the signed-in auth profile as API-mode user display source', async () => {
+  it('loads API-mode current-user identity from /v1/auth/me instead of local cache', async () => {
     await withApiMode(async () => {
-      await apiClient.set(STORAGE_KEYS.USERS, USERS_SEED);
+      const originalFetch = global.fetch;
+      const fetchCalls: string[] = [];
+      global.fetch = (async (input: RequestInfo | URL) => {
+        const url = String(input);
+        fetchCalls.push(url);
+        return new Response(
+          JSON.stringify({
+            user: {
+              id: 'api-user-live',
+              firstName: 'Live',
+              lastName: 'Authority',
+              email: 'live.authority@example.com',
+              accountType: 'COACH',
+            },
+            requestId: 'req-current-user',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
       await apiClient.set(STORAGE_KEYS.AUTH_USER, {
-        id: 'auth-user-live',
-        firstName: 'Live',
-        lastName: 'Profile',
-        email: 'live.profile@example.com',
+        id: 'stale-local-user',
+        firstName: 'Stale',
+        lastName: 'Cache',
+        email: 'stale.cache@example.com',
         accountType: 'PARENT',
       });
 
-      const current = await userService.getCurrentUser();
-      assert.equal(current.success, true);
-      if (!current.success) return;
-      assert.equal(current.data.id, 'auth-user-live');
-      assert.equal(current.data.name, 'Live Profile');
+      try {
+        const current = await userService.getCurrentUser();
+        assert.equal(current.success, true);
+        if (!current.success) return;
+        assert.equal(current.data.id, 'api-user-live');
+        assert.equal(current.data.name, 'Live Authority');
+        assert.equal(current.data.role, 'COACH');
+        assert.equal(fetchCalls.length, 1);
+        assert.equal(fetchCalls[0].includes('/v1/auth/me'), true);
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+  });
 
-      const localOnly = await userService.getUserById('user-a');
-      assert.equal(localOnly.success, false);
-      if (localOnly.success) return;
-      assert.equal(localOnly.error.code, 'NOT_FOUND');
+  it('fails closed when API-mode current-user authority is unavailable', async () => {
+    await withApiMode(async () => {
+      const originalFetch = global.fetch;
+      const fetchCalls: string[] = [];
+      global.fetch = (async (input: RequestInfo | URL) => {
+        fetchCalls.push(String(input));
+        return new Response(
+          JSON.stringify({
+            title: 'Service unavailable',
+            detail: 'Current-user authority is unavailable',
+          }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/problem+json' },
+          },
+        );
+      }) as typeof fetch;
 
-      const byIds = await userService.getUsersByIds(['auth-user-live', 'user-a']);
-      assert.equal(byIds.success, true);
-      if (!byIds.success) return;
-      assert.deepEqual(
-        byIds.data.map((user) => user.id),
-        ['auth-user-live'],
-      );
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+        id: 'stale-local-user',
+        name: 'Stale Cache',
+        email: 'stale.cache@example.com',
+        accountType: 'PARENT',
+      });
+
+      try {
+        const current = await userService.getCurrentUser();
+        assert.equal(current.success, false);
+        if (current.success) return;
+        assert.equal(current.error.code, 'UNKNOWN');
+        assert.equal(current.error.message, 'Current-user authority is unavailable');
+        assert.equal(fetchCalls.length, 1);
+        assert.equal(fetchCalls[0].includes('/v1/auth/me'), true);
+      } finally {
+        global.fetch = originalFetch;
+      }
     });
   });
 

@@ -27,6 +27,12 @@ import {
   resolveSignedInApiUser,
   toApiAthleteId,
 } from '@/services/api-auth-context';
+import {
+  parseApiSkillHistoryResponse,
+  parseApiSkillUpdateResponse,
+  type ApiSkillHistorySkill,
+  type ApiSkillUpdateResponse,
+} from '@/services/progress/skill-history-response-contract';
 const logger = createLogger('ProgressSkillsService');
 
 const USE_MOCK = api.useMock;
@@ -51,36 +57,7 @@ export interface SkillLevel {
 export interface AthleteSkillLevels {
   athleteId: string;
   skills: Record<string, SkillLevel>;
-  lastUpdated: string;
-}
-
-interface ApiSkillProgress {
-  skillName: string;
-  category: string;
-  currentLevel: number;
-  previousLevel: number;
-  changePercent: number;
-  history: { date: string; level: number }[];
-}
-
-interface ApiSkillHistoryResponse {
-  athleteId: string;
-  skills: ApiSkillProgress[];
-}
-
-interface ApiSkillUpdateResponse {
-  skillAssessment: {
-    id?: string;
-    assessorUserId?: string;
-    score?: number;
-    assessedAt?: string;
-    createdAt?: string;
-  };
-  skillDefinition: {
-    name?: string;
-  };
-  previousScore?: number | null;
-  score: number;
+  lastUpdated: string | null;
 }
 
 async function resolveAthleteSkillApiContext(
@@ -130,7 +107,7 @@ function trendFromLevels(previousLevel: number | undefined, level: number): Skil
   return 'consistent';
 }
 
-function mapApiSkillProgress(skill: ApiSkillProgress): SkillLevel {
+function mapApiSkillProgress(skill: ApiSkillHistorySkill): SkillLevel {
   const level = percentToTenPoint(skill.currentLevel);
   const previousLevel = percentToTenPoint(skill.previousLevel);
   const history = skill.history.map((entry) => ({
@@ -142,33 +119,26 @@ function mapApiSkillProgress(skill: ApiSkillProgress): SkillLevel {
     skill: skill.skillName,
     level,
     previousLevel,
-    lastUpdated: history[history.length - 1]?.date ?? new Date().toISOString(),
+    lastUpdated: history[history.length - 1]!.date,
     updatedBy: '',
     trend: trendFromLevels(previousLevel, level),
     history,
   };
 }
 
-function mapApiSkillUpdate(
-  skill: string,
-  coachId: string,
-  response: ApiSkillUpdateResponse,
-): SkillLevel {
-  const level = tenPointLevel(response.score);
+function mapApiSkillUpdate(response: ApiSkillUpdateResponse): SkillLevel {
+  const level = response.score;
   const previousLevel =
-    response.previousScore == null ? undefined : tenPointLevel(response.previousScore);
-  const date =
-    response.skillAssessment.assessedAt ??
-    response.skillAssessment.createdAt ??
-    new Date().toISOString();
+    response.previousScore == null ? undefined : response.previousScore;
+  const date = response.skillAssessment.assessedAt;
   return {
-    skill: response.skillDefinition.name ?? skill,
+    skill: response.skillDefinition.name,
     level,
     previousLevel,
     lastUpdated: date,
-    updatedBy: response.skillAssessment.assessorUserId ?? coachId,
+    updatedBy: response.skillAssessment.assessorUserId,
     trend: trendFromLevels(previousLevel, level),
-    history: [{ date, level, coachId: response.skillAssessment.assessorUserId ?? coachId }],
+    history: [{ date, level, coachId: response.skillAssessment.assessorUserId }],
   };
 }
 
@@ -182,7 +152,7 @@ async function getAllSkillLevels(): Promise<Record<string, AthleteSkillLevels>> 
 async function getAthleteSkillLevels(athleteId: string): Promise<AthleteSkillLevels | null> {
   if (!USE_MOCK) {
     const context = await resolveAthleteSkillApiContext(athleteId);
-    const result = await apiFetch<ApiSkillHistoryResponse>(
+    const result = await apiFetch<unknown>(
       `/v1/athletes/${context.apiAthleteId}/skills/history`,
       {
         method: 'GET',
@@ -192,8 +162,12 @@ async function getAthleteSkillLevels(athleteId: string): Promise<AthleteSkillLev
     if (!result.success) {
       throw new Error(result.error.message);
     }
+    const response = parseApiSkillHistoryResponse(result.data, context.apiAthleteId);
+    if (!response) {
+      throw new Error('Athlete skill history API response did not match contract');
+    }
     const skills = Object.fromEntries(
-      result.data.skills.map((skill) => [skill.skillName, mapApiSkillProgress(skill)]),
+      response.skills.map((skill) => [skill.skillName, mapApiSkillProgress(skill)]),
     );
     return {
       athleteId,
@@ -202,7 +176,7 @@ async function getAthleteSkillLevels(athleteId: string): Promise<AthleteSkillLev
         Object.values(skills)
           .map((skill) => skill.lastUpdated)
           .sort()
-          .at(-1) ?? new Date().toISOString(),
+          .at(-1) ?? null,
     };
   }
 
@@ -216,29 +190,41 @@ async function updateSkillLevel(
   coachId: string,
   sourceSessionId?: string,
 ): Promise<SkillLevel> {
-  // Validate and clamp level to 1-10 range
-  const safeLevel = tenPointLevel(newLevel);
-  newLevel = safeLevel;
-
   if (!USE_MOCK) {
+    if (!Number.isInteger(newLevel) || newLevel < 1 || newLevel > 10) {
+      throw new Error('Skill level must be an integer from 1 to 10');
+    }
+    const normalizedSkill = skill.trim();
+    if (!normalizedSkill || normalizedSkill.length > 120) {
+      throw new Error('Skill name must contain 1 to 120 characters');
+    }
     const context = await resolveAthleteSkillApiContext(athleteId);
-    const result = await apiFetch<ApiSkillUpdateResponse>(
+    const result = await apiFetch<unknown>(
       `/v1/athletes/${context.apiAthleteId}/skill-updates`,
       {
         method: 'POST',
         headers: context.headers,
         body: JSON.stringify({
-          skillName: skill,
-          score: safeLevel,
+          skillName: normalizedSkill,
+          score: newLevel,
           sessionId: sourceSessionId,
+          idempotencyKey: apiClient.generateId('skill-update'),
         }),
       },
     );
     if (!result.success) {
       throw new Error(result.error.message);
     }
-    return mapApiSkillUpdate(skill, coachId, result.data);
+    const response = parseApiSkillUpdateResponse(result.data, context.apiAthleteId);
+    if (!response || response.score !== newLevel) {
+      throw new Error('Athlete skill update API response did not match contract');
+    }
+    return mapApiSkillUpdate(response);
   }
+
+  // Mock compatibility keeps the historical clamping behavior for test-only callers.
+  const safeLevel = tenPointLevel(newLevel);
+  newLevel = safeLevel;
 
   const allLevels = await getAllSkillLevels();
   const athleteData = allLevels[athleteId] ?? {

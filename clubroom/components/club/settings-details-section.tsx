@@ -12,6 +12,7 @@ interface SettingsDetailsSectionProps {
   editName: string;
   editTagline: string;
   editCity: string;
+  canEdit: boolean;
   colors: ThemeColors;
   onNameChange: (text: string) => void;
   onTaglineChange: (text: string) => void;
@@ -23,6 +24,7 @@ export const SettingsDetailsSection = function SettingsDetailsSection({
   editName,
   editTagline,
   editCity,
+  canEdit,
   colors,
   onNameChange,
   onTaglineChange,
@@ -33,7 +35,7 @@ export const SettingsDetailsSection = function SettingsDetailsSection({
     <Animated.View entering={FadeInDown.springify()}>
       <SurfaceCard style={styles.card}>
         <ThemedText type="defaultSemiBold" style={Typography.heading}>
-          Club Information
+          Club details
         </ThemedText>
         {[
           { label: 'Club Name', value: editName, onChange: onNameChange },
@@ -49,25 +51,37 @@ export const SettingsDetailsSection = function SettingsDetailsSection({
             <ThemedText style={[Typography.smallSemiBold, { color: colors.muted }]}>
               {label}
             </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
-              ]}
-              value={value}
-              onChangeText={onChange}
-              placeholder={placeholder}
-              placeholderTextColor={colors.muted}
-
-            maxLength={100}
-          />
+            {canEdit ? (
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                    color: colors.text,
+                  },
+                ]}
+                value={value}
+                onChangeText={onChange}
+                placeholder={placeholder}
+                placeholderTextColor={colors.muted}
+                accessibilityLabel={label}
+                maxLength={100}
+              />
+            ) : (
+              <ThemedText style={[Typography.body, { color: colors.text }]}>
+                {value.trim() || 'Not set'}
+              </ThemedText>
+            )}
           </View>
         ))}
-        <Clickable style={[styles.saveBtn, { backgroundColor: colors.tint }]} onPress={onSave}>
-          <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>
-            Save Changes
-          </ThemedText>
-        </Clickable>
+        {canEdit ? (
+          <Clickable style={[styles.saveBtn, { backgroundColor: colors.tint }]} onPress={onSave}>
+            <ThemedText style={{ color: colors.onPrimary, fontWeight: '600' }}>
+              Save changes
+            </ThemedText>
+          </Clickable>
+        ) : null}
       </SurfaceCard>
     </Animated.View>
   );

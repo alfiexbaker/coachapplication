@@ -310,28 +310,28 @@ export const bulkInviteService = {
       }
     });
 
-    // Track squad invite
-    const squadInvite: SquadInvite = {
-      id: groupId,
-      squadId: input.squadId,
-      targetType: 'SESSION',
-      targetId: input.sessionId,
-      invitedBy: input.coachId,
-      invitedAt: new Date().toISOString(),
-      memberCount: eligibleMembers.length,
-      excludedMemberIds: input.excludeMemberIds,
-      responses: {
-        accepted: 0,
-        declined: 0,
-        pending: parentMap.size,
-      },
-    };
+    if (USE_MOCK) {
+      const squadInvite: SquadInvite = {
+        id: groupId,
+        squadId: input.squadId,
+        targetType: 'SESSION',
+        targetId: input.sessionId,
+        invitedBy: input.coachId,
+        invitedAt: new Date().toISOString(),
+        memberCount: eligibleMembers.length,
+        excludedMemberIds: input.excludeMemberIds,
+        responses: {
+          accepted: 0,
+          declined: 0,
+          pending: parentMap.size,
+        },
+      };
 
-    // Import and use squad invite storage functions
-    const { loadSquadInvites, saveSquadInvites } = await import('./squad-invite-service');
-    let squadInvitesCache = await loadSquadInvites();
-    squadInvitesCache.push(squadInvite);
-    await saveSquadInvites(squadInvitesCache);
+      const { loadSquadInvites, saveSquadInvites } = await import('./squad-invite-service');
+      const squadInvitesCache = await loadSquadInvites();
+      squadInvitesCache.push(squadInvite);
+      await saveSquadInvites(squadInvitesCache);
+    }
 
     return {
       sent,
@@ -489,38 +489,40 @@ export const bulkInviteService = {
       result,
     };
 
-    // Save to storage
-    let squadSessionInvitesCache = await loadSquadSessionInvites();
-    squadSessionInvitesCache.push(squadInvite);
-    await Promise.all([
-      saveSquadSessionInvites(squadSessionInvitesCache),
-      squadInviteService.addToInviteHistory({
-        id: groupId,
-        squadId: input.squadId,
-        sessionId: input.sessionId,
-        sessionType: input.sessionType,
-        focus: input.focus,
-        sentAt: new Date().toISOString(),
-        sentBy: input.coachId,
-        inviteCount: sent,
-        acceptedCount: 0,
-        declinedCount: 0,
-        pendingCount: sent,
-        status: 'ACTIVE',
-      }),
-      notificationService.create({
-        id: `notif_bulk_${Date.now()}`,
-        type: 'booking',
-        notificationType: 'SESSION_INVITE',
-        title: 'Squad Invites Sent',
-        body: `${sent} invite${sent !== 1 ? 's' : ''} sent to ${squad.name}${failed > 0 ? ` (${failed} failed)` : ''}`,
-        timeLabel: 'Just now',
-        recipientId: input.coachId,
-        recipientRole: 'coach',
-        deepLink: `/invites`,
-        data: { squadId: input.squadId },
-      }),
-    ]);
+    if (USE_MOCK) {
+      const squadSessionInvitesCache = await loadSquadSessionInvites();
+      squadSessionInvitesCache.push(squadInvite);
+      await Promise.all([
+        saveSquadSessionInvites(squadSessionInvitesCache),
+        squadInviteService.addToInviteHistory({
+          id: groupId,
+          squadId: input.squadId,
+          sessionId: input.sessionId,
+          sessionType: input.sessionType,
+          focus: input.focus,
+          sentAt: new Date().toISOString(),
+          sentBy: input.coachId,
+          inviteCount: sent,
+          acceptedCount: 0,
+          declinedCount: 0,
+          pendingCount: sent,
+          status: 'ACTIVE',
+        }),
+      ]);
+    }
+
+    await notificationService.create({
+      id: `notif_bulk_${Date.now()}`,
+      type: 'booking',
+      notificationType: 'SESSION_INVITE',
+      title: 'Squad Invites Sent',
+      body: `${sent} invite${sent !== 1 ? 's' : ''} sent to ${squad.name}${failed > 0 ? ` (${failed} failed)` : ''}`,
+      timeLabel: 'Just now',
+      recipientId: input.coachId,
+      recipientRole: 'coach',
+      deepLink: `/invites`,
+      data: { squadId: input.squadId },
+    });
 
     return ok({ squadInvite, result });
   },

@@ -11,7 +11,14 @@
 import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  serviceError,
+  storageError,
+} from '@/types/result';
 
 const logger = createLogger('BlockService');
 
@@ -28,13 +35,30 @@ export interface BlockStatus {
   blockedId: string | null;
 }
 
+export interface BlockedUserSummary {
+  id: string;
+  name: string | null;
+  blockedAt: string | null;
+}
+
 interface BlocksApiResponse {
   blockedUserIds: string[];
+  blockedUsers: BlockedUserSummary[];
   status?: BlockStatus | null;
 }
 
 interface BlockMutationApiResponse {
   status: BlockStatus;
+}
+
+function isBlockedUserSummary(value: unknown): value is BlockedUserSummary {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === 'string' &&
+    (typeof candidate.name === 'string' || candidate.name === null) &&
+    (typeof candidate.blockedAt === 'string' || candidate.blockedAt === null)
+  );
 }
 
 export function getBlockActionMessage(action: 'booking' | 'messaging'): string {
@@ -45,8 +69,8 @@ export function getBlockActionMessage(action: 'booking' | 'messaging'): string {
 
 export const blockService = {
   /**
-   * Block a user. The blocked user will not be able to message, invite,
-   * or find the blocking user in search.
+   * Block a user. The relationship is enforced by backend messaging,
+   * booking, discovery, and search authorities.
    */
   async blockUser(userId: string, blockedUserId: string): Promise<Result<void, ServiceError>> {
     if (!apiClient.isMockMode) {
@@ -119,6 +143,30 @@ export const blockService = {
     }
   },
 
+  async getBlockedUserSummaries(
+    userId: string,
+  ): Promise<Result<BlockedUserSummary[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<BlocksApiResponse>('/v1/blocks');
+      if (!result.success) {
+        return err(result.error);
+      }
+      if (
+        !Array.isArray(result.data.blockedUsers) ||
+        !result.data.blockedUsers.every(isBlockedUserSummary)
+      ) {
+        return err(serviceError('UNKNOWN', 'Blocked account response was incomplete.'));
+      }
+      return ok(result.data.blockedUsers);
+    }
+
+    const ids = await this.getBlockedUsers(userId);
+    if (!ids.success) {
+      return err(ids.error);
+    }
+    return ok(ids.data.map((id) => ({ id, name: null, blockedAt: null })));
+  },
+
   /**
    * Check whether userId has blocked targetId, or vice versa.
    */
@@ -141,14 +189,10 @@ export const blockService = {
       if (!result.success) {
         return err(result.error);
       }
-      return ok(
-        result.data.status ?? {
-          relationship: 'none',
-          blocked: false,
-          blockerId: null,
-          blockedId: null,
-        },
-      );
+      if (!result.data.status) {
+        return err(serviceError('UNKNOWN', 'Block status response was incomplete.'));
+      }
+      return ok(result.data.status);
     }
 
     try {

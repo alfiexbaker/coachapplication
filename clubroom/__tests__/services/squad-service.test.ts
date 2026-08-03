@@ -19,8 +19,6 @@ describe('squadService', () => {
       clubId: 'club_lions',
       name: 'U13 Dev Squad',
       level: 'U13 · Development',
-      description: 'Development pathway squad',
-      meetingLocation: 'Pitch 4',
     });
     assert.ok(created.id.startsWith('squad_'));
 
@@ -44,5 +42,17 @@ describe('squadService', () => {
     const label = squadService.formatSquadLabel(summary.squad);
     assert.ok(label.includes(summary.squad.name));
     assert.equal(squadService.getAgeGroupLabel(summary.squad), 'U15');
+  });
+
+  it('does not invent an age group when the API omits squad level', () => {
+    assert.equal(
+      squadService.getAgeGroupLabel({
+        id: 'squad_without_level',
+        clubId: 'club_lions',
+        name: 'Open age squad',
+        memberCount: 0,
+      }),
+      null,
+    );
   });
 });

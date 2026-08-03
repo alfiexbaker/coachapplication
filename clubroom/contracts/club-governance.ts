@@ -5,6 +5,7 @@ export type {
   ClubRole,
   ClubVisibilityArea,
   OrganizationCommercialMode,
+  OrganizationJoinPolicy,
   OrganizationRole,
 } from '../packages/shared-contracts/src/club/definitions';
 
@@ -14,6 +15,7 @@ export {
   CLUB_CAPABILITY_MATRIX,
   CLUB_VISIBILITY_MATRIX,
   ORGANIZATION_COMMERCIAL_MODE_LABELS,
+  ORGANIZATION_JOIN_POLICY_LABELS,
   ORGANIZATION_ROLE_LABELS,
   ORGANIZATION_ROLE_ORDER,
   ORGANIZATION_ROLE_RANK,
@@ -27,6 +29,7 @@ export {
   compareOrganizationRoles,
   formatOrganizationRoleLabel,
   formatOrganizationCommercialModeLabel,
+  formatOrganizationJoinPolicyLabel,
   getAssignableClubRoles,
   getClubCapabilityAccess,
   getClubGovernanceSnapshot,

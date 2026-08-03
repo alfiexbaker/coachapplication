@@ -45,7 +45,9 @@ function mapGroupRegistrationToSessionRegistration(
   return {
     id: registration.id,
     userId: registration.athleteId,
-    userName: registration.athleteId,
+    ...(registration.athleteName ? { userName: registration.athleteName } : {}),
+    ...(registration.parentId ? { parentId: registration.parentId } : {}),
+    ...(registration.parentName ? { parentName: registration.parentName } : {}),
     bookedAt: registration.registeredAt,
     status: registration.status === 'ATTENDED' ? 'completed' : 'confirmed',
   };

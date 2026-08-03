@@ -46,12 +46,14 @@ export default function AthleteDetailScreen() {
     awards,
     childProfile,
     progressionSummary,
-    trend,
-    level,
   } = useAthleteDevelopment(resolvedAthleteId ?? '');
   const [editingPosition, setEditingPosition] = useState(false);
   const [savingPosition, setSavingPosition] = useState(false);
   const [positionDraft, setPositionDraft] = useState<PositionRole | null>(null);
+  const canManageProfile =
+    currentUser?.accountType === 'PARENT' ||
+    currentUser?.role === 'PARENT' ||
+    Boolean(currentUser?.hasChildren || currentUser?.children?.length);
   const header = (
     <PageHeader
       title="Athlete Progress"
@@ -131,13 +133,14 @@ export default function AthleteDetailScreen() {
   }
 
   if (status === 'error') {
+    const accessDenied = error?.code === 'UNAUTHORIZED';
     return (
       <PageContainer edges={['top', 'bottom']} gap={Spacing.lg} header={header}>
         <ErrorState
           title="Athlete progress unavailable"
           message={error?.message ?? 'Failed to load athlete progress.'}
           error={error ?? undefined}
-          onRetry={retry}
+          onRetry={accessDenied ? undefined : retry}
         />
       </PageContainer>
     );
@@ -165,11 +168,9 @@ export default function AthleteDetailScreen() {
       >
         <DevAthleteHero
           athleteName={athlete.name}
-          avatar={athlete.avatar}
-          sessions={sessions}
-          sortedSessions={sortedSessions}
-          trend={trend}
-          level={level}
+          avatarUri={athlete.avatar}
+          sessionCount={sessions.length}
+          lastSessionAt={sortedSessions[0]?.completedAt}
           colors={colors}
         />
 
@@ -180,25 +181,29 @@ export default function AthleteDetailScreen() {
                 <ThemedText type="defaultSemiBold">Primary Position</ThemedText>
                 <ThemedText style={{ color: colors.muted }}>{positionLabel}</ThemedText>
               </Column>
-              <Clickable
-                onPress={handleToggleEditing}
-                style={[
-                  styles.positionEditButton,
-                  {
-                    borderColor: colors.tint,
-                    backgroundColor: withAlpha(colors.tint, 0.1),
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={editingPosition ? 'Close position editor' : 'Edit primary position'}
-              >
-                <ThemedText style={[styles.positionEditText, { color: colors.tint }]}>
-                  {editingPosition ? 'Close' : 'Edit'}
-                </ThemedText>
-              </Clickable>
+              {canManageProfile ? (
+                <Clickable
+                  onPress={handleToggleEditing}
+                  style={[
+                    styles.positionEditButton,
+                    {
+                      borderColor: colors.tint,
+                      backgroundColor: withAlpha(colors.tint, 0.1),
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    editingPosition ? 'Close position editor' : 'Edit primary position'
+                  }
+                >
+                  <ThemedText style={[styles.positionEditText, { color: colors.tint }]}>
+                    {editingPosition ? 'Close' : 'Edit'}
+                  </ThemedText>
+                </Clickable>
+              ) : null}
             </Row>
 
-            {editingPosition ? (
+            {canManageProfile && editingPosition ? (
               <Column gap="xs">
                 <PositionSelector
                   value={positionDraft}
@@ -265,7 +270,8 @@ export default function AthleteDetailScreen() {
         <Column gap="xs" style={{ marginTop: Spacing.xs }}>
           <ThemedText type="heading">Session History</ThemedText>
           <ThemedText style={{ color: colors.muted }}>
-            {sortedSessions.length} sessions completed. Tap any card to open feedback.
+            {sortedSessions.length} session{sortedSessions.length === 1 ? '' : 's'} completed. Tap any
+            card to open feedback.
           </ThemedText>
         </Column>
 

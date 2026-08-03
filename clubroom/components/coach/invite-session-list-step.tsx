@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -12,18 +12,51 @@ import { styles } from './invite-session-step-styles';
 
 export interface SessionListStepProps {
   sessions: UpcomingSession[];
+  loading?: boolean;
+  loadError?: string | null;
   onSelect: (session: UpcomingSession) => void;
   onCreateNew: () => void;
+  onRetry?: () => void;
 }
 
-export function SessionListStep({ sessions, onSelect, onCreateNew }: SessionListStepProps) {
+export function SessionListStep({
+  sessions,
+  loading,
+  loadError,
+  onSelect,
+  onCreateNew,
+  onRetry,
+}: SessionListStepProps) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.sessionList}>
       <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
         Select an upcoming session to add athletes to
       </ThemedText>
-      {sessions.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={palette.tint} />
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            Loading existing sessions...
+          </ThemedText>
+        </View>
+      ) : loadError ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
+          <ThemedText style={[styles.emptyText, { color: palette.error }]}>{loadError}</ThemedText>
+          {onRetry ? (
+            <Clickable
+              style={[styles.createButton, { backgroundColor: palette.tint }]}
+              onPress={onRetry}
+            >
+              <Ionicons name="refresh" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>
+                Retry
+              </ThemedText>
+            </Clickable>
+          ) : null}
+        </View>
+      ) : sessions.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="calendar-outline" size={48} color={palette.muted} />
           <ThemedText style={[styles.emptyText, { color: palette.muted }]}>

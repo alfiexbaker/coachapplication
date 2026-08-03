@@ -344,7 +344,11 @@ export default function GroupChatScreen() {
 
   const handleOpenClubHub = () => {
     if (!group?.clubId) return;
-    router.push(Routes.clubHub({ clubId: group.clubId }));
+    router.push(
+      USE_LOCAL_GROUP_MANAGEMENT
+        ? Routes.clubHub({ clubId: group.clubId })
+        : Routes.club(group.clubId),
+    );
   };
 
   const renderStateShell = (content: ReactNode) => (

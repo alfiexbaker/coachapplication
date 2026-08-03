@@ -17,7 +17,7 @@ import { Row } from '@/components/primitives/row';
 import { InviteRoleSelector } from '@/components/club/invite-role-selector';
 import { InvitePastSessionsTab } from '@/components/club/invite-past-sessions-tab';
 import { InviteManualTab } from '@/components/club/invite-manual-tab';
-import { LoadingState, EmptyState } from '@/components/ui/screen-states';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubInvite, type InviteTab } from '@/hooks/use-club-invite';
@@ -31,6 +31,8 @@ export default function InviteMembersScreen() {
   const { colors } = useTheme();
   const {
     loading,
+    loadError,
+    retry,
     activeTab,
     setActiveTab,
     searchQuery,
@@ -55,6 +57,28 @@ export default function InviteMembersScreen() {
         edges={['top', 'bottom']}
       >
         <LoadingState variant="list" />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
+        <PageHeader
+          title="Invite Members"
+          showBack
+          backIcon="close"
+          onBackPress={() => router.back()}
+          centerTitle
+        />
+        <ErrorState
+          title="Invite context unavailable"
+          message={loadError}
+          onRetry={retry}
+        />
       </SafeAreaView>
     );
   }

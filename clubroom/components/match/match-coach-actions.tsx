@@ -8,27 +8,23 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface MatchCoachActionsProps {
-  isComplete: boolean;
-  isUpcoming: boolean;
-  isCancelled: boolean;
-  hasResult: boolean;
+  canRecordResult: boolean;
+  canCancelMatch: boolean;
   onRecordResult: () => void;
   onCancelMatch: () => void;
 }
 
 // react-doctor-disable-next-line react-doctor/no-many-boolean-props -- match action visibility depends on independent lifecycle and permission facts.
 export const MatchCoachActions = function MatchCoachActions({
-  isComplete,
-  isUpcoming,
-  isCancelled,
-  hasResult,
+  canRecordResult,
+  canCancelMatch,
   onRecordResult,
   onCancelMatch,
 }: MatchCoachActionsProps) {
   const { colors } = useTheme();
 
-  const showRecordResult = isComplete && !hasResult;
-  const showCancel = isUpcoming && !isCancelled;
+  const showRecordResult = canRecordResult;
+  const showCancel = canCancelMatch;
 
   if (!showRecordResult && !showCancel) return null;
 

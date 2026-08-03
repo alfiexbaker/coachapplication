@@ -64,6 +64,7 @@ describe('academyService API mode', () => {
     const authority = clubAuthorityService as unknown as {
       listClubs: typeof clubAuthorityService.listClubs;
       createClub: typeof clubAuthorityService.createClub;
+      updateClubDetails: typeof clubAuthorityService.updateClubDetails;
       updateClubCommercialMode: typeof clubAuthorityService.updateClubCommercialMode;
       createInviteCode: typeof clubAuthorityService.createInviteCode;
       joinWithCode: typeof clubAuthorityService.joinWithCode;
@@ -78,6 +79,7 @@ describe('academyService API mode', () => {
     const originals = {
       listClubs: authority.listClubs,
       createClub: authority.createClub,
+      updateClubDetails: authority.updateClubDetails,
       updateClubCommercialMode: authority.updateClubCommercialMode,
       createInviteCode: authority.createInviteCode,
       joinWithCode: authority.joinWithCode,
@@ -99,6 +101,8 @@ describe('academyService API mode', () => {
       ownerId: 'owner_api',
       inviteCode: 'NLA2026',
       commercialMode: 'COACH_OWNED' as const,
+      visibility: 'public' as const,
+      joinPolicy: 'INVITE_ONLY' as const,
     };
     const ownerMembership = {
       clubId: club.id,
@@ -125,6 +129,19 @@ describe('academyService API mode', () => {
           expiresAt: '2026-12-31T00:00:00.000Z',
           remainingUses: 10,
         },
+      });
+    };
+    authority.updateClubDetails = async (_clubId, changes) => {
+      calls.push(
+        `authority.updateClubDetails:${changes.name ?? '-'}:${changes.visibility ?? '-'}:${changes.joinPolicy ?? '-'}`,
+      );
+      return ok({
+        ...club,
+        name: changes.name ?? club.name,
+        tagline: changes.tagline ?? club.tagline,
+        city: changes.city ?? club.city,
+        visibility: changes.visibility ?? club.visibility,
+        joinPolicy: changes.joinPolicy ?? club.joinPolicy,
       });
     };
     authority.updateClubCommercialMode = async (_clubId, commercialMode) => {
@@ -253,10 +270,12 @@ describe('academyService API mode', () => {
       assert.equal(settings.success && settings.data.slug, 'renamed-academy');
 
       const visibility = await academyService.updateSettings(club.id, { isPublic: false });
-      assert.equal(visibility.success, false);
-      if (!visibility.success) {
-        assert.equal(visibility.error.code, 'UNSUPPORTED');
-      }
+      assert.equal(visibility.success, true);
+      assert.equal(visibility.success && visibility.data.isPublic, false);
+
+      const approval = await academyService.updateSettings(club.id, { requiresApproval: true });
+      assert.equal(approval.success, true);
+      assert.equal(approval.success && approval.data.requiresApproval, true);
 
       const commercial = await academyService.updateCommercialMode(club.id, 'ORG_OWNED');
       assert.equal(commercial.success, true);
@@ -298,6 +317,7 @@ describe('academyService API mode', () => {
     } finally {
       authority.listClubs = originals.listClubs;
       authority.createClub = originals.createClub;
+      authority.updateClubDetails = originals.updateClubDetails;
       authority.updateClubCommercialMode = originals.updateClubCommercialMode;
       authority.createInviteCode = originals.createInviteCode;
       authority.joinWithCode = originals.joinWithCode;
@@ -315,8 +335,9 @@ describe('academyService API mode', () => {
       'authority.createClub:API Academy',
       'authority.listClubs',
       'club.updateBranding:club_api_academy',
-      'authority.listClubs',
-      'club.updateBranding:club_api_academy',
+      'authority.updateClubDetails:Renamed Academy:-:-',
+      'authority.updateClubDetails:-:private:-',
+      'authority.updateClubDetails:-:-:REQUEST_TO_JOIN',
       'authority.updateClubCommercialMode:ORG_OWNED',
       'club.getMembers:club_api_academy',
       'authority.createInviteCode:COACH',

@@ -1,111 +1,119 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { PageContainer } from '@/components/primitives/page-container';
+import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { ScreenHeader } from '@/components/primitives/screen-header';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography } from '@/constants/theme';
-import { hasChildren } from '@/utils/user-helpers';
+import { useAdminUserSummary } from '@/hooks/use-admin-user-summary';
 import { useTheme } from '@/hooks/useTheme';
-import { useAuth } from '@/hooks/use-auth';
-import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visibility';
-import { Row } from '@/components/primitives';
-import { router } from 'expo-router';
-import { DemoWalkthroughCard } from '@/components/ui/demo-walkthrough-card';
-import { buildPrimaryDemoWalkthrough } from '@/utils/demo-walkthrough';
+
+const HEADER = <ScreenHeader title="Users" subtitle="Active accounts by role" />;
 
 export function AdminUsersScreen() {
-  const { colors: palette } = useTheme();
-  const { availableUsers, currentUser } = useAuth();
-  const walkthrough = buildPrimaryDemoWalkthrough({ user: currentUser });
-  const { walkthrough: visibleWalkthrough, dismissWalkthrough } = useDemoWalkthroughVisibility(
-    currentUser?.id,
-    walkthrough,
-  );
+  const { colors } = useTheme();
+  const { summary, status, error, refreshing, onRefresh, retry } = useAdminUserSummary();
 
-  const userCounts = {
-    coaches: availableUsers.filter((user) => user.role === 'COACH').length,
-    users: availableUsers.filter((user) => user.role === 'USER').length,
-    parents: availableUsers.filter((user) => hasChildren(user)).length,
-  };
+  if (status === 'loading') {
+    return (
+      <PageContainer header={HEADER}>
+        <LoadingState variant="detail" />
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error' || !summary) {
+    return (
+      <PageContainer header={HEADER}>
+        <ErrorState
+          message={error?.message ?? 'Could not load active account counts.'}
+          onRetry={retry}
+        />
+      </PageContainer>
+    );
+  }
+
+  const roleCounts = [
+    { label: 'Coaches', value: summary.coaches },
+    { label: 'Athletes', value: summary.athletes },
+    { label: 'Parents', value: summary.parents },
+  ];
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Users
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            System overview and management
+    <PageContainer
+      header={HEADER}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      contentStyle={styles.content}
+    >
+      <SurfaceCard style={styles.summaryCard} tactile={false}>
+        <View style={styles.total}>
+          <ThemedText style={styles.totalValue}>{summary.total}</ThemedText>
+          <ThemedText style={[styles.totalLabel, { color: colors.muted }]}>
+            Active accounts
           </ThemedText>
         </View>
 
-        <Row style={styles.statsGrid}>
-          <SurfaceCard style={styles.statCard}>
-            <Ionicons name="people" size={32} color={palette.tint} />
-            <ThemedText type="title" style={styles.statNumber}>
-              {userCounts.coaches}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Coaches</ThemedText>
-          </SurfaceCard>
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          <SurfaceCard style={styles.statCard}>
-            <Ionicons name="person" size={32} color={palette.tint} />
-            <ThemedText type="title" style={styles.statNumber}>
-              {userCounts.users}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Athletes</ThemedText>
-          </SurfaceCard>
-
-          <SurfaceCard style={styles.statCard}>
-            <Ionicons name="people-circle" size={32} color={palette.tint} />
-            <ThemedText type="title" style={styles.statNumber}>
-              {userCounts.parents}
-            </ThemedText>
-            <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Parents</ThemedText>
-          </SurfaceCard>
-        </Row>
-
-        {visibleWalkthrough ? (
-          <DemoWalkthroughCard
-            walkthrough={visibleWalkthrough}
-            onPressStep={(step) => router.push(step.route)}
-            onDismiss={dismissWalkthrough}
-          />
-        ) : null}
-      </ScrollView>
-    </View>
+        <View accessibilityRole="list">
+          {roleCounts.map((role, index) => (
+            <Row
+              key={role.label}
+              align="center"
+              justify="between"
+              style={[
+                styles.roleRow,
+                index < roleCounts.length - 1
+                  ? {
+                      borderBottomColor: colors.border,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                    }
+                  : undefined,
+              ]}
+              accessibilityLabel={`${role.label}: ${role.value}`}
+            >
+              <ThemedText style={styles.roleLabel}>{role.label}</ThemedText>
+              <ThemedText style={styles.roleValue}>{role.value}</ThemedText>
+            </Row>
+          ))}
+        </View>
+      </SurfaceCard>
+    </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
+    paddingTop: Spacing.md,
   },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: { ...Typography.body, fontWeight: '500' },
-  statsGrid: {
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: 140,
+  summaryCard: {
     padding: Spacing.lg,
-    gap: Spacing.sm,
-    alignItems: 'center',
   },
-  statNumber: { ...Typography.display },
-  statLabel: { ...Typography.smallSemiBold, textTransform: 'uppercase', letterSpacing: 0.5 },
+  total: {
+    gap: Spacing.xxs,
+    paddingBottom: Spacing.md,
+  },
+  totalValue: {
+    ...Typography.display,
+    fontVariant: ['tabular-nums'],
+  },
+  totalLabel: {
+    ...Typography.bodySmall,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  roleRow: {
+    minHeight: 52,
+  },
+  roleLabel: {
+    ...Typography.body,
+  },
+  roleValue: {
+    ...Typography.bodySemiBold,
+    fontVariant: ['tabular-nums'],
+  },
 });

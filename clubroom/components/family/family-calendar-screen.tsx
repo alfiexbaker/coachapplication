@@ -39,6 +39,7 @@ export function FamilyCalendarScreen({
     refreshing,
     onRefresh,
     retry,
+    canViewFamilyCalendar,
     members,
     events,
     selectedDate,
@@ -72,6 +73,18 @@ export function FamilyCalendarScreen({
     return (
       <PageContainer header={header}>
         <ErrorState message={error?.message || 'Failed to load family calendar.'} onRetry={retry} />
+      </PageContainer>
+    );
+  }
+
+  if (!canViewFamilyCalendar) {
+    return (
+      <PageContainer header={header}>
+        <EmptyState
+          icon="calendar-outline"
+          title="Family calendar unavailable"
+          message="Family schedules are available to linked guardians."
+        />
       </PageContainer>
     );
   }

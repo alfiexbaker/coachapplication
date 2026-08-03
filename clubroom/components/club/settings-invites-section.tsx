@@ -12,10 +12,7 @@ import { clubService } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubRole } from '@/constants/types';
 import type { InviteCodeItem } from '@/hooks/use-club-settings';
-import {
-  ORGANIZATION_ROLE_LABELS,
-  getAssignableClubRoles,
-} from '@/contracts/club-governance';
+import { ORGANIZATION_ROLE_LABELS, getAssignableClubRoles } from '@/contracts/club-governance';
 
 interface SettingsInvitesSectionProps {
   inviteCodes: InviteCodeItem[];
@@ -36,29 +33,34 @@ export const SettingsInvitesSection = function SettingsInvitesSection({
   onGenerate,
   onDelete,
 }: SettingsInvitesSectionProps) {
-  const inviteRoles =
-    viewerRole ? getAssignableClubRoles(viewerRole) : (['MEMBER'] as ClubRole[]);
+  const inviteRoles = (
+    viewerRole ? getAssignableClubRoles(viewerRole) : (['MEMBER'] as ClubRole[])
+  ).filter((role) => role === 'MEMBER' || role === 'COACH' || role === 'ADMIN');
 
   return (
     <Animated.View entering={FadeInDown.springify()}>
       <SurfaceCard style={styles.card}>
         <ThemedText type="defaultSemiBold" style={Typography.heading}>
-          Invite Codes
+          Invite codes
         </ThemedText>
         <ThemedText style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}>
-          Share codes to invite coaches and members
+          Create and share club access codes.
         </ThemedText>
 
-        {inviteCodes.map((invite) => (
-          <Row key={invite.code} style={[styles.inviteRow, { borderColor: colors.border }]}>
-            <View style={{ flex: 1, gap: Spacing.xs }}>
+        {inviteCodes.map((invite) => {
+          const roleLabel = clubService.formatRole(invite.role);
+          return (
+            <View key={invite.code} style={[styles.inviteRow, { borderColor: colors.border }]}>
               <ThemedText
                 type="defaultSemiBold"
-                style={[Typography.subheading, { fontFamily: 'monospace' }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.code, { color: colors.text }]}
               >
                 {invite.code}
               </ThemedText>
-              <Row gap="sm" align="center">
+              <Row gap="xs" align="center" wrap>
                 <View
                   style={[
                     styles.roleBadge,
@@ -68,7 +70,7 @@ export const SettingsInvitesSection = function SettingsInvitesSection({
                   <ThemedText
                     style={[Typography.caption, { color: clubService.getRoleColor(invite.role) }]}
                   >
-                    {clubService.formatRole(invite.role)}
+                    {roleLabel}
                   </ThemedText>
                 </View>
                 <ThemedText style={[Typography.caption, { color: colors.muted }]}>
@@ -84,34 +86,42 @@ export const SettingsInvitesSection = function SettingsInvitesSection({
                   </View>
                 )}
               </Row>
-            </View>
-            <Row gap="xs">
-              <Clickable
-                accessibilityLabel={`Copy ${invite.code}`}
-                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
-                onPress={() => onCopy(invite.code)}
-              >
-                <Ionicons name="copy-outline" size={18} color={colors.tint} />
-              </Clickable>
-              <Clickable
-                accessibilityLabel="Share invite link"
-                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
-                onPress={() => onShare(invite.code, invite.role)}
-              >
-                <Ionicons name="share-outline" size={18} color={colors.tint} />
-              </Clickable>
-              <Clickable
-                accessibilityLabel={`Delete ${invite.code}`}
-                style={[styles.iconBtn, { backgroundColor: withAlpha(colors.error, 0.08) }]}
-                onPress={() => onDelete(invite.code)}
-              >
-                <Ionicons name="trash-outline" size={18} color={colors.error} />
-              </Clickable>
-            </Row>
-          </Row>
-        ))}
 
-        <Row gap="sm" wrap>
+              <Row gap="xs" style={styles.actionRow}>
+                <Clickable
+                  accessibilityLabel={`Copy ${roleLabel} invite code`}
+                  style={[styles.actionButton, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                  onPress={() => onCopy(invite.code)}
+                >
+                  <Ionicons name="copy-outline" size={18} color={colors.tint} />
+                  <ThemedText style={[Typography.caption, { color: colors.tint }]}>Copy</ThemedText>
+                </Clickable>
+                <Clickable
+                  accessibilityLabel={`Share ${roleLabel} invite code`}
+                  style={[styles.actionButton, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                  onPress={() => onShare(invite.code, invite.role)}
+                >
+                  <Ionicons name="share-outline" size={18} color={colors.tint} />
+                  <ThemedText style={[Typography.caption, { color: colors.tint }]}>
+                    Share
+                  </ThemedText>
+                </Clickable>
+                <Clickable
+                  accessibilityLabel={`Revoke ${roleLabel} invite code`}
+                  style={[styles.actionButton, { backgroundColor: withAlpha(colors.error, 0.08) }]}
+                  onPress={() => onDelete(invite.code)}
+                >
+                  <Ionicons name="remove-circle-outline" size={18} color={colors.error} />
+                  <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                    Revoke
+                  </ThemedText>
+                </Clickable>
+              </Row>
+            </View>
+          );
+        })}
+
+        <View style={styles.createActions}>
           {inviteRoles.map((role) => (
             <Clickable
               key={role}
@@ -119,12 +129,12 @@ export const SettingsInvitesSection = function SettingsInvitesSection({
               onPress={() => onGenerate(role)}
             >
               <Ionicons name="add" size={18} color={colors.tint} />
-              <ThemedText style={{ color: colors.tint, fontWeight: '600' }}>
-                {ORGANIZATION_ROLE_LABELS[role]} Invite
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+                Create {ORGANIZATION_ROLE_LABELS[role].toLowerCase()} code
               </ThemedText>
             </Clickable>
           ))}
-        </Row>
+        </View>
       </SurfaceCard>
     </Animated.View>
   );
@@ -133,11 +143,15 @@ export const SettingsInvitesSection = function SettingsInvitesSection({
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },
   inviteRow: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  code: {
+    ...Typography.subheading,
+    fontFamily: 'monospace',
+    letterSpacing: 0.8,
   },
   roleBadge: {
     paddingHorizontal: Spacing.sm,
@@ -149,18 +163,29 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
+  actionRow: {
+    width: '100%',
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.micro,
+  },
+  createActions: {
+    gap: Spacing.xs,
   },
   genBtn: {
+    minHeight: 48,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },

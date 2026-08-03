@@ -34,6 +34,78 @@ function apiParentUser() {
 }
 
 describe('badgeService API mode', () => {
+  it('loads badge definition stats from /v1 instead of global local badge storage', async () => {
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
+      import('@/services/badge-service'),
+      import('@/services/api-client'),
+      import('@/services/auth-service'),
+    ]);
+
+    const originalGet = apiClient.get;
+    const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
+    const originalFetch = globalThis.fetch;
+    const requestedUrls: string[] = [];
+
+    authService.getCurrentUser = async () =>
+      apiCoachUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
+    apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
+      if (key === STORAGE_KEYS.AUTH_USER) {
+        return apiCoachUser() as T;
+      }
+      void fallback;
+      throw new Error('local badge reads should not run in API mode');
+    };
+    apiClient.set = async () => {
+      throw new Error('local badge writes should not run in API mode');
+    };
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+      requestedUrls.push(String(input));
+      return new Response(
+        JSON.stringify({
+          badgeDefinitions: [
+            {
+              id: 'badge_definition_api',
+              name: 'API Badge',
+              description: 'Loaded from backend',
+              category: 'technical',
+              awardCount: 3,
+            },
+          ],
+          requestId: 'req_badge_definition_api',
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }) as typeof fetch;
+
+    try {
+      const definitions = await badgeService.listDefinitionsWithStats();
+
+      assert.deepEqual(requestedUrls, ['http://localhost:4000/v1/badge-definitions']);
+      assert.deepEqual(definitions, [
+        {
+          id: 'badge_definition_api',
+          label: 'API Badge',
+          description: 'Loaded from backend',
+          category: 'technical',
+          awardCount: 3,
+        },
+      ]);
+      await assert.rejects(
+        () => badgeService.listAwards(),
+        /Global badge award listing is unavailable in API mode/,
+      );
+    } finally {
+      apiClient.get = originalGet;
+      apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('lists athlete badge awards from /v1 instead of local badge storage', async () => {
     const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/badge-service'),

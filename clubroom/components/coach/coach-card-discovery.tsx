@@ -1,6 +1,4 @@
-/**
- * DiscoveryCard — Full-featured coach card for discovery (Airbnb-quality).
- */
+/** Coach search result card. */
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,7 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 
 import { CoachAvatar, CoachNameRow } from './coach-card-header';
-import { RatingDisplay, ReviewQuote } from './coach-card-reviews';
+import { RatingDisplay } from './coach-card-reviews';
 import { MetaRow } from './coach-card-availability';
 import { SpecialtyTags } from './coach-card-services';
 import { FavouriteButton, ActionRow } from './coach-card-cta';
@@ -71,7 +69,6 @@ function DiscoveryCardInner({
           <FavouriteButton isFavourite={favourited} onPress={handleFavourite} size="lg" />
         </Row>
         {specialties.length > 0 && <SpecialtyTags specialties={specialties} />}
-        {coach.reviewQuote && <ReviewQuote quote={coach.reviewQuote} author={coach.reviewAuthor} />}
         <ActionRow
           nextAvailable={coach.nextAvailable}
           coachName={coach.fullName}

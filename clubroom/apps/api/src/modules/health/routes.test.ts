@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { env, type AppEnv } from '@clubroom/config';
 import { buildApp } from '../../app.js';
-import { getReleaseGuardrailIssues, getStartupConfigIssues } from '../../lib/ops-runtime.js';
+import {
+  buildReadinessReport,
+  getReleaseGuardrailIssues,
+  getStartupConfigIssues,
+} from '../../lib/ops-runtime.js';
+import { createReadinessAlertReporter } from './routes.js';
 
 function makeProductionEnv(overrides: Partial<AppEnv> = {}): AppEnv {
   return {
@@ -25,6 +30,7 @@ function makeProductionEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     API_PAYMENT_ALLOWED_RETURN_ORIGINS: 'clubroom://invoices,https://clubroom.app',
     API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: 'https://email.clubroom.app/password-reset',
     API_PASSWORD_RESET_DEV_OUTBOX: false,
+    API_UPLOAD_SCAN_RESULT_TOKEN: 'clubroom-production-scan-token',
     SENTRY_DSN: 'https://public@example.ingest.sentry.io/123',
     SENTRY_RELEASE: 'clubroom-api@test',
     ...overrides,
@@ -32,6 +38,42 @@ function makeProductionEnv(overrides: Partial<AppEnv> = {}): AppEnv {
 }
 
 describe('health routes', () => {
+  it('reports readiness failures on transitions and a bounded repeat interval', () => {
+    const captured: Array<{ status: string; issueCodes: string[] }> = [];
+    const report = createReadinessAlertReporter(
+      (alert) => captured.push({ status: alert.status, issueCodes: alert.issueCodes }),
+      1_000,
+    );
+    const down = {
+      status: 'down' as const,
+      checks: {
+        api: 'ok' as const,
+        config: 'ok' as const,
+        database: 'down' as const,
+        objectStorage: 'ok' as const,
+      },
+      issues: [
+        {
+          check: 'database' as const,
+          status: 'down' as const,
+          code: 'UPLOAD_SCANNER_UNAVAILABLE',
+          message: 'No healthy upload scanner worker heartbeat is active.',
+        },
+      ],
+    };
+
+    assert.equal(report(down, 1_000), true);
+    assert.equal(report(down, 1_500), false);
+    assert.equal(report(down, 2_000), true);
+    assert.deepEqual(captured, [
+      { status: 'down', issueCodes: ['UPLOAD_SCANNER_UNAVAILABLE'] },
+      { status: 'down', issueCodes: ['UPLOAD_SCANNER_UNAVAILABLE'] },
+    ]);
+
+    assert.equal(report({ ...down, status: 'ready', issues: [] }, 2_100), false);
+    assert.equal(report(down, 2_200), true);
+  });
+
   it('returns a 503 readiness payload when the runtime is not production-ready', async () => {
     const app = buildApp({ allowTestAuthHeaders: false });
     const response = await app.inject({
@@ -64,6 +106,7 @@ describe('health routes', () => {
       API_PAYMENT_ALLOWED_RETURN_ORIGINS: undefined,
       API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: undefined,
       API_PASSWORD_RESET_DEV_OUTBOX: true,
+      API_UPLOAD_SCAN_RESULT_TOKEN: undefined,
       SENTRY_DSN: undefined,
     }));
 
@@ -74,6 +117,7 @@ describe('health routes', () => {
     assert(codes.includes('PAYMENT_RETURN_ORIGINS_MISSING'));
     assert(codes.includes('PASSWORD_RESET_EMAIL_DELIVERY_MISSING'));
     assert(codes.includes('PASSWORD_RESET_DEV_OUTBOX_ENABLED'));
+    assert(codes.includes('UPLOAD_SCAN_RESULT_TOKEN_MISSING'));
     assert(codes.includes('SENTRY_DSN_MISSING'));
   });
 
@@ -107,10 +151,34 @@ describe('health routes', () => {
     assert.equal(codes.includes('PASSWORD_RESET_EMAIL_DELIVERY_MISSING'), false);
   });
 
+  it('requires an explicit Prisma limit for Supabase session-pooler connections', () => {
+    const unboundedIssues = getStartupConfigIssues(makeProductionEnv({
+      DATABASE_URL:
+        'postgresql://postgres.project:secret@aws-1-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require',
+    }));
+    assert(unboundedIssues.some((issue) => issue.code === 'DATABASE_POOL_LIMIT_MISSING'));
+
+    const invalidIssues = getStartupConfigIssues(makeProductionEnv({
+      DATABASE_URL:
+        'postgresql://postgres.project:secret@aws-1-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require&connection_limit=0',
+    }));
+    assert(invalidIssues.some((issue) => issue.code === 'DATABASE_POOL_LIMIT_MISSING'));
+
+    const boundedIssues = getStartupConfigIssues(makeProductionEnv({
+      DATABASE_URL:
+        'postgresql://postgres.project:secret@aws-1-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require&connection_limit=5&pool_timeout=30',
+    }));
+    assert.equal(
+      boundedIssues.some((issue) => issue.code === 'DATABASE_POOL_LIMIT_MISSING'),
+      false,
+    );
+  });
+
   it('fails release guardrails when storage runtime is still scaffolded or migrations are missing', async () => {
     const issues = await getReleaseGuardrailIssues(makeProductionEnv(), {
       hasPrismaMigrations: false,
       probeDatabase: async () => {},
+      probeUploadScanner: async () => true,
     });
 
     const codes = issues.map((issue) => issue.code);
@@ -121,8 +189,22 @@ describe('health routes', () => {
     const issues = await getReleaseGuardrailIssues(makeProductionEnv(), {
       hasPrismaMigrations: true,
       probeDatabase: async () => {},
+      probeUploadScanner: async () => true,
     });
 
     assert.deepEqual(issues, []);
+  });
+
+  it('fails readiness when no upload scanner worker heartbeat is active', async () => {
+    const readiness = await buildReadinessReport(makeProductionEnv(), {
+      probeDatabase: async () => {},
+      probeUploadScanner: async () => false,
+    });
+
+    assert.equal(readiness.status, 'down');
+    assert.equal(readiness.checks.database, 'down');
+    assert(
+      readiness.issues.some((issue) => issue.code === 'UPLOAD_SCANNER_UNAVAILABLE'),
+    );
   });
 });

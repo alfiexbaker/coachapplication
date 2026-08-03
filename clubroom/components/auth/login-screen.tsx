@@ -6,7 +6,7 @@
  * (Expo 54 / Hermes / RN 0.81).
  */
 
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
@@ -18,16 +18,9 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withDelay,
-} from 'react-native-reanimated';
-
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { api as apiConfig } from '@/constants/config';
+import { api as apiConfig, nativeAudit } from '@/constants/config';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -38,10 +31,9 @@ import { runAsyncFinally } from '@/utils/async-control';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type ScreenMode = 'login' | 'signup' | 'coach-signup';
+type ScreenMode = 'login' | 'signup';
 
 const LazyOnboardingScreen = lazy(() => import('./onboarding-screen'));
-const LazyCoachSignupScreen = lazy(() => import('./coach-signup-screen'));
 const MOCK_API_MODE = apiConfig.useMock;
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -49,7 +41,7 @@ const MOCK_API_MODE = apiConfig.useMock;
 export default function LoginScreen() {
   const { colors: palette } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
-  const { login, registerCoach, error, availableUsers } = useAuth();
+  const { login, error, availableUsers } = useAuth();
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
   const [username, setUsername] = useState('');
@@ -60,20 +52,6 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const displayError = error || localError;
-
-  // ── Animations ────────────────────────────────────────────────────────
-  const cardOpacity = useSharedValue(0);
-  const cardTranslate = useSharedValue(24);
-
-  useEffect(() => {
-    cardOpacity.set(withDelay(100, withTiming(1, { duration: 500 })));
-    cardTranslate.set(withDelay(100, withTiming(0, { duration: 500 })));
-  }, [cardOpacity, cardTranslate]);
-
-  const cardStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-    transform: [{ translateY: cardTranslate.value }],
-  }));
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -137,43 +115,19 @@ export default function LoginScreen() {
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
   const demoRoleEntries = buildDemoRoleEntries(availableUsers);
   const demoCredentialRows = buildDemoCredentialRows(availableUsers);
-  const showRoleEntry = MOCK_API_MODE && (__DEV__ || availableUsers.length > 0);
-  const loginHint = MOCK_API_MODE ? 'e.g. coach1 or user1' : 'e.g. coach username or email';
+  const showRoleEntry = MOCK_API_MODE && !nativeAudit.testMode && (__DEV__ || availableUsers.length > 0);
+  const loginHint = MOCK_API_MODE ? 'e.g. coach1 or user1' : 'Enter your account email';
   const lazyFallback = (
     <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
       <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading…</ThemedText>
     </View>
   );
 
-  // ── Signup / Coach signup — lazy load to keep this file lean ─────────
+  // ── Signup — lazy load to keep this file lean ────────────────────────
   if (screenMode === 'signup') {
     return (
       <Suspense fallback={lazyFallback}>
         <LazyOnboardingScreen onComplete={() => {}} onBackToLogin={() => setScreenMode('login')} />
-      </Suspense>
-    );
-  }
-
-  if (screenMode === 'coach-signup' && MOCK_API_MODE) {
-    return (
-      <Suspense fallback={lazyFallback}>
-        <LazyCoachSignupScreen
-          signupError={error}
-          onSignupComplete={async (data: {
-            fullName: string;
-            email: string;
-            phone: string;
-            password: string;
-            inviteCode: string;
-            schoolId: string;
-            schoolName: string;
-          }) => {
-            // registerCoach calls setCurrentUser which makes isAuthenticated=true,
-            // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
-            await registerCoach(data);
-          }}
-          onBackToLogin={() => setScreenMode('login')}
-        />
       </Suspense>
     );
   }
@@ -194,21 +148,13 @@ export default function LoginScreen() {
         >
           {/* ── Hero ──────────────────────────────────────────────── */}
           <View style={styles.hero}>
-            <View style={[styles.badge, { backgroundColor: withAlpha(palette.onPrimary, 0.14) }]}>
-              <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>
-                Clubroom
-              </ThemedText>
-            </View>
-            <ThemedText style={[styles.heroTitle, { color: palette.onPrimary }]}>
-              JUST TRAIN.
-            </ThemedText>
-            <ThemedText style={[styles.heroSub, { color: withAlpha(palette.onPrimary, 0.8) }]}>
-              Find coaches. Book sessions. Track every rep.
+            <ThemedText style={[styles.wordmark, { color: palette.onPrimary }]}>
+              CLUBROOM
             </ThemedText>
           </View>
 
           {/* ── Auth Card ─────────────────────────────────────────── */}
-          <Animated.View
+          <View
             style={[
               styles.card,
               {
@@ -216,13 +162,9 @@ export default function LoginScreen() {
                 borderColor: withAlpha(palette.text, 0.08),
                 maxWidth: isDesktop ? 440 : undefined,
               },
-              cardStyle,
             ]}
           >
-            <ThemedText style={styles.cardTitle}>Welcome back</ThemedText>
-            <ThemedText style={[styles.cardSub, { color: palette.muted }]}>
-              Sign in or create your account.
-            </ThemedText>
+            <ThemedText style={styles.cardTitle}>Sign in</ThemedText>
 
             {/* Email / username */}
             <View style={styles.fieldWrap}>
@@ -244,6 +186,9 @@ export default function LoginScreen() {
                 placeholderTextColor={withAlpha(palette.text, 0.35)}
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username"
+                textContentType="username"
+                accessibilityLabel="Email or username"
                 returnKeyType="next"
                 maxLength={80}
               />
@@ -268,6 +213,9 @@ export default function LoginScreen() {
                   placeholder="••••••••"
                   placeholderTextColor={withAlpha(palette.text, 0.35)}
                   secureTextEntry={!showPassword}
+                  autoComplete="current-password"
+                  textContentType="password"
+                  accessibilityLabel="Password"
                   returnKeyType="go"
                   onSubmitEditing={handleLogin}
                   maxLength={100}
@@ -276,6 +224,8 @@ export default function LoginScreen() {
                   onPress={() => setShowPassword((p) => !p)}
                   style={styles.eyeBtn}
                   hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
                   <ThemedText style={[styles.eyeText, { color: palette.muted }]}>
                     {showPassword ? 'Hide' : 'Show'}
@@ -292,18 +242,14 @@ export default function LoginScreen() {
                   {displayError}
                 </ThemedText>
               </View>
-            ) : (
-              <ThemedText style={[styles.hint, { color: palette.muted }]}>
-                {MOCK_API_MODE
-                  ? 'Mock mode accepts the seeded username for the active story.'
-                  : 'Enter the email or username for your Clubroom account.'}
-              </ThemedText>
-            )}
+            ) : null}
 
             {/* Login button */}
             <Pressable
               onPress={handleLogin}
               disabled={!canSubmit}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canSubmit, busy: submitting }}
               style={[
                 styles.btn,
                 {
@@ -338,26 +284,16 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            {/* Create account / Invite code */}
+            {/* Create account */}
             <Pressable
               onPress={() => setScreenMode('signup')}
+              accessibilityRole="button"
               style={[styles.secondaryBtn, { borderColor: withAlpha(palette.tint, 0.2) }]}
             >
               <ThemedText style={[styles.secondaryLabel, { color: palette.tint }]}>
                 Create account
               </ThemedText>
             </Pressable>
-
-            {MOCK_API_MODE ? (
-              <Pressable
-                onPress={() => setScreenMode('coach-signup')}
-                style={[styles.secondaryBtn, { borderColor: withAlpha(palette.text, 0.12) }]}
-              >
-                <ThemedText style={[styles.secondaryLabel, { color: palette.text }]}>
-                  Use invite code
-                </ThemedText>
-              </Pressable>
-            ) : null}
 
             {/* Demo accounts — DEV builds only */}
             {__DEV__ && MOCK_API_MODE && (
@@ -395,20 +331,12 @@ export default function LoginScreen() {
                   ))}
               </>
             )}
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
-
-// Re-exports for backward compat (used by other files)
-export { SignupCard, InviteCodeCard, DemoAccountsCard } from './login-screen-sections';
-export type {
-  SignupCardProps,
-  InviteCodeCardProps,
-  DemoAccountsCardProps,
-} from './login-screen-sections';
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 
@@ -429,39 +357,22 @@ const styles = StyleSheet.create({
   hero: {
     paddingTop: Spacing['3xl'],
     paddingBottom: Spacing.lg,
-    gap: Spacing.sm,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-  },
-  badgeLabel: {
+  wordmark: {
     ...Typography.caption,
-    letterSpacing: 1.3,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    ...Typography.display,
     fontWeight: '700',
-  },
-  heroSub: {
-    ...Typography.subheading,
+    letterSpacing: 2.6,
+    textTransform: 'uppercase',
   },
   // Card
   card: {
-    borderRadius: Radii['2xl'],
+    borderRadius: Radii.card,
     borderWidth: 1,
     padding: Spacing.md,
     gap: Spacing.md,
   },
   cardTitle: {
     ...Typography.title,
-  },
-  cardSub: {
-    ...Typography.bodySmall,
-    marginTop: -Spacing.xs,
   },
   // Fields
   fieldWrap: { gap: Spacing.xxs },

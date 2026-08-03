@@ -17,6 +17,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 import { createLogger } from '@/utils/logger';
 import { isBrowserFetchFailure } from '@/utils/network-errors';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
@@ -48,6 +49,8 @@ import type {
 import type { TimeFilter } from '@/components/bookings/BookingsList';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncFinally } from '@/utils/async-control';
+import { buildAuthScopedSnapshotKey } from '@/utils/auth-scoped-snapshot-key';
+import { isSelfAthleteTarget } from '@/utils/athlete-identity';
 const logger = createLogger('useBookings');
 const mapBookingStatus = (status: string): BookingSummary['status'] => {
   if (status === 'CONFIRMED') return 'Confirmed';
@@ -55,6 +58,9 @@ const mapBookingStatus = (status: string): BookingSummary['status'] => {
   if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
   if (status === 'COMPLETED') return 'Completed';
   if (status === 'CANCELLED') return 'Cancelled';
+  if (status === 'DECLINED') return 'Declined';
+  if (status === 'WITHDRAWN') return 'Withdrawn';
+  if (status === 'EXPIRED') return 'Expired';
   return 'Pending';
 };
 function isOffPlatformAudienceLabel(label: string): boolean {
@@ -112,8 +118,7 @@ interface BookingsScreenData {
   pendingInvitesList: SessionInvite[];
 }
 
-// Keep the most recent bookings payload so tab remounts do not flash loading.
-let lastBookingsSnapshot: BookingsScreenData | null = null;
+const bookingsSnapshots = new Map<string, BookingsScreenData>();
 export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
   const { children: contextChildren } = useChildContext();
@@ -144,6 +149,12 @@ export function useBookings(): UseBookingsResult {
       ].join(':'),
     )
     .join('|');
+  const snapshotKey = buildAuthScopedSnapshotKey(
+    currentUser?.id,
+    'bookings',
+    currentUser?.role,
+    contextChildrenSignature,
+  );
   // Load all data
   const loadData = useCallback(async () => {
     const loadId = ++loadCycleRef.current;
@@ -186,7 +197,7 @@ export function useBookings(): UseBookingsResult {
           : undefined;
         const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
         const athleteName = getBookingAthleteName(booking);
-        const isSelfBooking = Boolean(currentUser?.id && athleteId && athleteId === currentUser.id);
+        const isSelfBooking = isSelfAthleteTarget(currentUser, athleteId);
         const audienceLabel = safeDisplayLabel(
           isSelfBooking ? 'You' : viewerNameById.get(athleteId) || athleteName,
           'Athlete',
@@ -268,6 +279,9 @@ export function useBookings(): UseBookingsResult {
           loadId,
           error: sessionError,
         });
+        if (!apiClient.isMockMode) {
+          throw sessionError;
+        }
         return [];
       });
       const groupRegistrationsPromise = sessionRegistrationService
@@ -277,6 +291,9 @@ export function useBookings(): UseBookingsResult {
             loadId,
             error: registrationError,
           });
+          if (!apiClient.isMockMode) {
+            throw registrationError;
+          }
           return [];
         });
       const [groupSessions, groupRegistrations] = await Promise.all([
@@ -343,6 +360,9 @@ export function useBookings(): UseBookingsResult {
           } else {
             logger.error('Failed to load pending invites', details);
           }
+          if (!apiClient.isMockMode) {
+            throw inviteErr;
+          }
         }
       }
       logger.debug('Load cycle complete', {
@@ -365,16 +385,7 @@ export function useBookings(): UseBookingsResult {
         serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
       );
     }
-  }, [
-    contextChildrenSignature,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
-    currentUser?.role,
-    hasParentInviteScope,
-    hasChildProfiles,
-    isCoachUser,
-  ]);
+  }, [contextChildren, currentUser, hasParentInviteScope, hasChildProfiles, isCoachUser]);
   const {
     data,
     status,
@@ -402,11 +413,14 @@ export function useBookings(): UseBookingsResult {
     loadingStrategy: 'warm-first',
   });
   useEffect(() => {
-    if (data) {
-      lastBookingsSnapshot = data;
+    if (data && snapshotKey) {
+      bookingsSnapshots.set(snapshotKey, data);
     }
-  }, [data]);
-  const resolvedData = data ?? lastBookingsSnapshot;
+  }, [data, snapshotKey]);
+  const resolvedData =
+    data ??
+    (status === 'loading' && snapshotKey ? bookingsSnapshots.get(snapshotKey) : null) ??
+    null;
   const sessionBookings = resolvedData?.sessionBookings;
   const sessionOfferings = resolvedData?.sessionOfferings;
   const pendingInvitesList = resolvedData?.pendingInvitesList ?? [];
@@ -421,6 +435,9 @@ export function useBookings(): UseBookingsResult {
     const isPastBooking = (booking: BookingSummary) =>
       booking.status === 'Completed' ||
       booking.status === 'Cancelled' ||
+      booking.status === 'Declined' ||
+      booking.status === 'Withdrawn' ||
+      booking.status === 'Expired' ||
       new Date(booking.start) < now;
     const isPastOffering = (offering: SessionOffering) =>
       offering.status === 'completed' ||
@@ -506,10 +523,8 @@ export function useBookings(): UseBookingsResult {
         ];
   }, [
     businessFilter,
-    contextChildrenSignature,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
+    contextChildren,
+    currentUser,
     isCoachUser,
     sessionBookings,
     sessionOfferings,
@@ -583,9 +598,9 @@ export function useBookings(): UseBookingsResult {
   // Navigation handlers
   const handleCalendarPress = () => {
     logger.press('CalendarButton', {
-      route: '/(tabs)/availability',
+      route: Routes.SCHEDULE_AVAILABILITY,
     });
-    router.push(Routes.AVAILABILITY);
+    router.push(Routes.SCHEDULE_AVAILABILITY);
   };
   const handleSettingsPress = () => {
     logger.press('SettingsButton', {
@@ -692,7 +707,7 @@ export function useBookings(): UseBookingsResult {
     logger.debug('Session detail modal requested bookings refresh');
     onRefresh();
   };
-  const processingInviteIdsRef = useRef<Set<string>>(new Set());
+  const processingInviteIdsRef = useLazyRef(() => new Set<string>());
   const handleAcceptInvite = async (
     invite: SessionInvite,
     selectedSlot?: SessionInvite['proposedSlots'][0],

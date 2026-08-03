@@ -181,6 +181,25 @@ interface ApiAvailabilityOverridesResponse {
 interface ApiAvailabilitySlotsResponse {
   slots: AvailabilitySlot[];
 }
+interface AvailabilityConflictSummary {
+  bookingCount: number;
+  holdCount: number;
+  bookings: {
+    id: string;
+    date: string;
+    time: string;
+    location?: string;
+    athleteName?: string;
+  }[];
+  holds: {
+    date: string;
+    time: string;
+    inviteId: string;
+  }[];
+}
+interface ApiAvailabilityConflictsResponse extends AvailabilityConflictSummary {
+  coachId: string;
+}
 async function loadAuthoritativeAvailabilitySlots(params: {
   coachId: string;
   startDate: string;
@@ -214,6 +233,29 @@ async function loadAuthoritativeAvailabilitySlots(params: {
     throw new Error(result.error.message);
   }
   return result.data.slots;
+}
+async function loadAuthoritativeAvailabilityConflicts(
+  coachId: string,
+  dates: string[],
+): Promise<AvailabilityConflictSummary> {
+  const searchParams = new URLSearchParams({
+    dates: dates.join(','),
+  });
+  const result = await apiFetch<ApiAvailabilityConflictsResponse>(
+    `/v1/coaches/${encodeURIComponent(coachId)}/availability/conflicts?${searchParams.toString()}`,
+    {
+      method: 'GET',
+    },
+  );
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return {
+    bookingCount: result.data.bookingCount,
+    holdCount: result.data.holdCount,
+    bookings: result.data.bookings,
+    holds: result.data.holds,
+  };
 }
 async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   try {
@@ -955,22 +997,7 @@ export const availabilityService = {
   async checkConflicts(
     coachId: string,
     dates: string[],
-  ): Promise<{
-    bookingCount: number;
-    holdCount: number;
-    bookings: {
-      id: string;
-      date: string;
-      time: string;
-      location?: string;
-      athleteName?: string;
-    }[];
-    holds: {
-      date: string;
-      time: string;
-      inviteId: string;
-    }[];
-  }> {
+  ): Promise<AvailabilityConflictSummary> {
     if (dates.length === 0)
       return {
         bookingCount: 0,
@@ -979,12 +1006,7 @@ export const availabilityService = {
         holds: [],
       };
     if (!USE_MOCK) {
-      return {
-        bookingCount: 0,
-        holdCount: 0,
-        bookings: [],
-        holds: [],
-      };
+      return loadAuthoritativeAvailabilityConflicts(coachId, dates);
     }
     const dateSet = new Set(dates);
     const activeHolds = await inviteHoldService.getActiveHolds(coachId);

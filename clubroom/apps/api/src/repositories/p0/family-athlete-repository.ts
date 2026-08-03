@@ -6,9 +6,8 @@ import type {
   MedicalRecordResponse,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
-import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import { getPrismaClientOrThrow } from '../../lib/prisma-runtime.js';
 import { notFound } from '../../lib/http-errors.js';
 import { normalizeForJson } from './normalize.js';
 type SeedRow = Record<string, unknown>;
@@ -50,6 +49,7 @@ export interface CreateAthleteInput {
   specialNeeds?: SpecialNeedRecord[];
   communicationNotes?: string;
   behavioralNotes?: string;
+  trustData?: CreateAthleteTrustData;
 }
 export interface UpdateAthleteInput {
   firstName?: string;
@@ -72,16 +72,16 @@ export interface CreateInjuryInput {
   reportedAt?: string;
   expectedRecoveryDate?: string | null;
   notes?: string | null;
+  sharedWithCoach?: boolean;
 }
 export interface UpdateInjuryInput {
   title?: string;
   type?: string;
   severity?: string;
   status?: string;
-  reportedAt?: string;
   expectedRecoveryDate?: string | null;
-  resolvedAt?: string | null;
   notes?: string | null;
+  sharedWithCoach?: boolean;
 }
 export interface UpdateMedicalRecordInput {
   conditions?: string[];
@@ -115,8 +115,31 @@ export interface UpsertConsentsInput {
     expiryAt?: string;
   }>;
 }
+export interface CreateAthleteTrustData {
+  medical?: UpdateMedicalRecordInput;
+  emergencyContacts?: UpdateEmergencyContactsInput;
+  consents?: UpsertConsentsInput;
+}
 export interface FamilyAthleteRepository {
+  isFamilyActive(familyId: string): Promise<boolean>;
   hasFamilyMembership(familyId: string, authUserId: string): Promise<boolean>;
+  hasFamilyAdminAccess(familyId: string, authUserId: string): Promise<boolean>;
+  hasFamilyAthleteAccess(familyId: string, athleteId: string, authUserId: string): Promise<boolean>;
+  hasFamilyAthleteManageAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean>;
+  hasFamilyAthleteAttendanceWriteAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean>;
+  hasFamilyAthleteRemoveAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean>;
   resolveAthleteFamilyId(athleteId: string): Promise<string | null>;
   getAthlete(athleteId: string): Promise<Record<string, unknown> | null>;
   getInjury(injuryId: string): Promise<InjuryRecord | null>;
@@ -181,6 +204,7 @@ const seededInjuries: InjuryRecord[] = [
     expectedRecoveryDate: '2026-03-10T00:00:00.000Z',
     resolvedAt: null,
     notes: 'Injury logged from group roster flow test fixture.',
+    sharedWithCoach: true,
     createdByUserId: 'usr_coach1',
     createdAt: '2026-02-24T10:00:00.000Z',
     updatedAt: '2026-02-27T09:00:00.000Z',
@@ -196,6 +220,7 @@ const seededInjuries: InjuryRecord[] = [
     expectedRecoveryDate: '2026-03-18T00:00:00.000Z',
     resolvedAt: null,
     notes: 'Fixture injury for health dashboard and detail testing.',
+    sharedWithCoach: true,
     createdByUserId: 'usr_parent1',
     createdAt: '2026-02-28T16:30:00.000Z',
     updatedAt: '2026-02-28T16:30:00.000Z',
@@ -416,6 +441,7 @@ function buildInjuryRecord(input: {
   expectedRecoveryDate: string | Date | null | undefined;
   resolvedAt: string | Date | null | undefined;
   notes: string | null | undefined;
+  sharedWithCoach: boolean | undefined;
   createdByUserId: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -431,6 +457,7 @@ function buildInjuryRecord(input: {
     expectedRecoveryDate: input.expectedRecoveryDate ?? null,
     resolvedAt: input.resolvedAt ?? null,
     notes: input.notes ?? null,
+    sharedWithCoach: input.sharedWithCoach ?? false,
     createdByUserId: input.createdByUserId,
     createdAt: input.createdAt,
     updatedAt: input.updatedAt,
@@ -483,11 +510,26 @@ function buildAthleteDisplayFields(athlete: SeedRow): {
     : Array.isArray(athlete.disabilities)
       ? (athlete.disabilities as DisabilityRecord[])
       : [];
-  const specialNeeds = Array.isArray(athlete.specialNeedsJson)
+  const storedSpecialNeeds = Array.isArray(athlete.specialNeedsJson)
     ? (athlete.specialNeedsJson as SpecialNeedRecord[])
     : Array.isArray(athlete.specialNeeds)
       ? (athlete.specialNeeds as SpecialNeedRecord[])
       : [];
+  const legacyTagNeeds = asRows(athlete.senTags).flatMap((tag) => {
+    const name = asString(tag.tag)?.trim();
+    if (!name) {
+      return [];
+    }
+    return [
+      {
+        id: asString(tag.id),
+        category: 'OTHER' as const,
+        name,
+        severity: asBoolean(tag.isCritical) ? ('SEVERE' as const) : undefined,
+      },
+    ];
+  });
+  const specialNeeds = storedSpecialNeeds.length > 0 ? storedSpecialNeeds : legacyTagNeeds;
   return {
     firstName: asString(athlete.firstName)?.trim() || splitName.firstName,
     lastName: asString(athlete.lastName)?.trim() || splitName.lastName,
@@ -573,9 +615,160 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       ) ?? null
     );
   }
+  async isFamilyActive(familyId: string): Promise<boolean> {
+    return this.activeRows('families').some((row) => asString(row.id) === familyId);
+  }
   async hasFamilyMembership(familyId: string, authUserId: string): Promise<boolean> {
+    if (!this.activeRows('families').some((row) => asString(row.id) === familyId)) {
+      return false;
+    }
     return this.activeRows('familyMemberships').some(
       (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+  }
+  async hasFamilyAdminAccess(familyId: string, authUserId: string): Promise<boolean> {
+    const membership = this.activeRows('familyMemberships').find(
+      (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+    const family = this.activeRows('families').find((row) => asString(row.id) === familyId);
+    if (!membership || !family) {
+      return false;
+    }
+    const role = asString(membership.role)?.toLowerCase();
+    const permissions = asStringArray(membership.permissions).map((permission) =>
+      permission.toLowerCase(),
+    );
+    return (
+      role === 'owner' ||
+      role === 'admin' ||
+      asString(family.primaryGuardianUserId) === authUserId ||
+      permissions.includes('admin')
+    );
+  }
+  async hasFamilyAthleteAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const membership = this.activeRows('familyMemberships').find(
+      (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+    if (!membership) {
+      return false;
+    }
+    const family = this.activeRows('families').find((row) => asString(row.id) === familyId);
+    if (!family) {
+      return false;
+    }
+    const role = asString(membership.role)?.toLowerCase();
+    const permissions = asStringArray(membership.permissions).map((permission) =>
+      permission.toLowerCase(),
+    );
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      asString(family?.primaryGuardianUserId) === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (!asStringArray(membership.childAccessAthleteIds).includes(athleteId)) {
+      return false;
+    }
+    return this.activeRows('guardianChildLinks').some(
+      (row) =>
+        asString(row.familyId) === familyId &&
+        asString(row.athleteId) === athleteId &&
+        asString(row.guardianUserId) === authUserId,
+    );
+  }
+  async hasFamilyAthleteManageAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const membership = this.activeRows('familyMemberships').find(
+      (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+    if (!membership) {
+      return false;
+    }
+    const family = this.activeRows('families').find((row) => asString(row.id) === familyId);
+    if (!family) {
+      return false;
+    }
+    const role = asString(membership.role)?.toLowerCase();
+    const permissions = asStringArray(membership.permissions).map((permission) =>
+      permission.toLowerCase(),
+    );
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      asString(family?.primaryGuardianUserId) === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (!permissions.includes('medical') && !permissions.includes('profile')) {
+      return false;
+    }
+    return this.hasFamilyAthleteAccess(familyId, athleteId, authUserId);
+  }
+  async hasFamilyAthleteAttendanceWriteAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const membership = this.activeRows('familyMemberships').find(
+      (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+    const family = this.activeRows('families').find((row) => asString(row.id) === familyId);
+    if (!membership || !family) {
+      return false;
+    }
+    const role = asString(membership.role)?.toLowerCase();
+    const permissions = asStringArray(membership.permissions).map((permission) =>
+      permission.toLowerCase(),
+    );
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      asString(family.primaryGuardianUserId) === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (!permissions.includes('book')) {
+      return false;
+    }
+    return this.hasFamilyAthleteAccess(familyId, athleteId, authUserId);
+  }
+  async hasFamilyAthleteRemoveAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const membership = this.activeRows('familyMemberships').find(
+      (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+    );
+    const family = this.activeRows('families').find((row) => asString(row.id) === familyId);
+    if (!membership || !family) {
+      return false;
+    }
+    const role = asString(membership.role)?.toLowerCase();
+    const permissions = asStringArray(membership.permissions).map((permission) =>
+      permission.toLowerCase(),
+    );
+    const isFamilyAdmin =
+      role === 'owner' ||
+      role === 'admin' ||
+      asString(family.primaryGuardianUserId) === authUserId ||
+      permissions.includes('admin');
+    return (
+      isFamilyAdmin &&
+      this.activeRows('guardianChildLinks').some(
+        (row) => asString(row.familyId) === familyId && asString(row.athleteId) === athleteId,
+      )
     );
   }
   async resolveAthleteFamilyId(athleteId: string): Promise<string | null> {
@@ -602,8 +795,14 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const athletes = ensureStoreTable(this.tables(), 'athletes');
     const guardianLinks = ensureStoreTable(this.tables(), 'guardianChildLinks');
     const childSenTags = ensureStoreTable(this.tables(), 'childSenTags');
+    const medicalRecords = ensureStoreTable(this.tables(), 'childMedicalRecords');
+    const emergencyContacts = ensureStoreTable(this.tables(), 'childEmergencyContacts');
+    const consents = ensureStoreTable(this.tables(), 'childConsents');
     const disabilities = normalizeDisabilities(input.disabilities) ?? [];
     const specialNeeds = normalizeSpecialNeeds(input.specialNeeds) ?? [];
+    const normalizedContacts = normalizeEmergencyContacts(
+      input.trustData?.emergencyContacts?.contacts ?? [],
+    );
     const firstName = input.firstName.trim();
     const lastName = input.lastName.trim();
     const photoUrl = normalizeOptionalString(input.photoUrl);
@@ -632,29 +831,15 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       deletedAt: null,
       deletedByUserId: null,
     };
-    athletes.push(athlete);
-    guardianLinks.push({
-      id: newId('gcl'),
-      familyId: input.familyId,
-      guardianUserId: authUserId,
-      athleteId,
-      relationshipType: (input.relationship ?? 'OTHER').toLowerCase(),
-      isPrimary: true,
-      createdByUserId: authUserId,
-      updatedByUserId: authUserId,
-      createdAt: now,
-      updatedAt: now,
-      version: 1,
-      deletedAt: null,
-      deletedByUserId: null,
-    });
-    for (const need of specialNeeds) {
-      childSenTags.push({
-        id: newId('sen'),
+    try {
+      athletes.push(athlete);
+      guardianLinks.push({
+        id: newId('gcl'),
+        familyId: input.familyId,
+        guardianUserId: authUserId,
         athleteId,
-        tag: need.name,
-        priority: 2,
-        isCritical: need.severity === 'SEVERE',
+        relationshipType: (input.relationship ?? 'OTHER').toLowerCase(),
+        isPrimary: true,
         createdByUserId: authUserId,
         updatedByUserId: authUserId,
         createdAt: now,
@@ -663,8 +848,107 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
         deletedAt: null,
         deletedByUserId: null,
       });
+
+      for (const need of specialNeeds) {
+        childSenTags.push({
+          id: newId('sen'),
+          athleteId,
+          tag: need.name,
+          priority: 2,
+          isCritical: need.severity === 'SEVERE',
+          createdByUserId: authUserId,
+          updatedByUserId: authUserId,
+          createdAt: now,
+          updatedAt: now,
+          version: 1,
+          deletedAt: null,
+          deletedByUserId: null,
+        });
+      }
+
+      if (input.trustData?.medical) {
+        const medical = input.trustData.medical;
+        medicalRecords.push({
+          id: newId('med'),
+          athleteId,
+          conditions: medical.conditions ?? [],
+          allergies: medical.allergies ?? [],
+          medications: medical.medications ?? [],
+          restrictions: medical.restrictions ?? [],
+          doctorName: medical.doctorName ?? null,
+          doctorPhoneE164: medical.doctorPhone ?? null,
+          insuranceProvider: medical.insuranceProvider ?? null,
+          insuranceNumber: medical.insuranceNumber ?? null,
+          emergencyNotes: medical.emergencyNotes ?? null,
+          senNotes: medical.senNotes ?? null,
+          effectiveFrom: now,
+          isCurrent: true,
+          createdByUserId: authUserId,
+          updatedByUserId: authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      for (const contact of normalizedContacts) {
+        emergencyContacts.push({
+          id: contact.id,
+          athleteId,
+          name: contact.name,
+          relationshipLabel: contact.relationship,
+          phoneE164: contact.phone,
+          email: contact.email ?? null,
+          isPrimary: contact.isPrimary,
+          canPickup: contact.canPickup,
+          createdByUserId: authUserId,
+          updatedByUserId: authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+          deletedByUserId: null,
+        });
+      }
+
+      if (input.trustData?.consents) {
+        const providedConsents = new Map(
+          input.trustData.consents.consents.map((consent) => [consent.type, consent]),
+        );
+        for (const type of EXPOSED_CONSENT_TYPES) {
+          const consent = providedConsents.get(type);
+          consents.push({
+            id: newId('ccn'),
+            athleteId,
+            consentType: type,
+            granted: consent?.granted ?? false,
+            grantedByUserId: authUserId,
+            grantedAt: consent?.granted ? (consent.grantedAt ?? now) : null,
+            expiresAt: consent?.expiryAt ?? null,
+            revokedAt: consent?.granted === false ? now : null,
+            supersededById: null,
+            metadataJson: {
+              grantedByLabel: consent?.grantedBy ?? '',
+            },
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      }
+      return this.withAthleteRelations(athlete);
+    } catch (error) {
+      removeRowsWhere(athletes, (row) => asString(row.id) === athleteId);
+      for (const rows of [
+        guardianLinks,
+        childSenTags,
+        medicalRecords,
+        emergencyContacts,
+        consents,
+      ]) {
+        removeRowsWhere(rows, (row) => asString(row.athleteId) === athleteId);
+      }
+      throw error;
     }
-    return this.withAthleteRelations(athlete);
   }
   async updateAthlete(
     athleteId: string,
@@ -810,6 +1094,7 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
           expectedRecoveryDate: asString(row.expectedRecoveryDate) ?? null,
           resolvedAt: asString(row.resolvedAt) ?? null,
           notes: asString(row.notes) ?? null,
+          sharedWithCoach: asBoolean(row.sharedWithCoach, false),
           createdByUserId: asString(row.createdByUserId) ?? '',
           createdAt: asString(row.createdAt) ?? isoNow(),
           updatedAt: asString(row.updatedAt) ?? asString(row.createdAt) ?? isoNow(),
@@ -834,6 +1119,7 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       expectedRecoveryDate: input.expectedRecoveryDate ?? null,
       resolvedAt: null,
       notes: input.notes ?? null,
+      sharedWithCoach: input.sharedWithCoach ?? false,
       createdByUserId: userId,
       updatedByUserId: userId,
       createdAt: now,
@@ -868,22 +1154,18 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     if (input.severity !== undefined) {
       injury.severity = input.severity;
     }
-    if (input.reportedAt !== undefined) {
-      injury.reportedAt = input.reportedAt;
-    }
     if (input.expectedRecoveryDate !== undefined) {
       injury.expectedRecoveryDate = input.expectedRecoveryDate;
     }
     if (input.notes !== undefined) {
       injury.notes = input.notes;
     }
+    if (input.sharedWithCoach !== undefined) {
+      injury.sharedWithCoach = input.sharedWithCoach;
+    }
     injury.status = nextStatus;
     injury.resolvedAt =
-      input.resolvedAt !== undefined
-        ? input.resolvedAt
-        : nextStatus === 'resolved'
-          ? (asString(injury.resolvedAt) ?? now)
-          : (injury.resolvedAt ?? null);
+      nextStatus === 'resolved' ? (asString(injury.resolvedAt) ?? now) : null;
     injury.updatedAt = now;
     injury.updatedByUserId = userId;
     injury.version = Number(injury.version ?? 1) + 1;
@@ -1151,32 +1433,296 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
         consentTypeIsExposed(asString(item.consentType)) &&
         !asString(item.supersededById),
     )) {
-      row.supersededById = newIdByType.get(asString(row.consentType) as ContractConsentType) ?? null;
+      row.supersededById =
+        newIdByType.get(asString(row.consentType) as ContractConsentType) ?? null;
     }
     consents.push(...newRows);
     return this.getConsents(athleteId, userId);
   }
 }
 class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
-  private fallback = new StoreFamilyAthleteRepository(() => getDbFixtureStore().tables);
+  async isFamilyActive(familyId: string): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const count = await prisma.family.count({
+      where: {
+        id: familyId,
+        deletedAt: null,
+      },
+    });
+    return count > 0;
+  }
   async hasFamilyMembership(familyId: string, authUserId: string): Promise<boolean> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.hasFamilyMembership(familyId, authUserId);
-    }
     const prisma = getPrismaClientOrThrow();
     const count = await prisma.familyMembership.count({
       where: {
         familyId,
         userId: authUserId,
         deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
       },
     });
     return count > 0;
   }
-  async resolveAthleteFamilyId(athleteId: string): Promise<string | null> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.resolveAthleteFamilyId(athleteId);
+  async hasFamilyAdminAccess(familyId: string, authUserId: string): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.familyMembership.findFirst({
+      where: {
+        familyId,
+        userId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+        permissions: true,
+        family: {
+          select: {
+            primaryGuardianUserId: true,
+          },
+        },
+      },
+    });
+    if (!membership) {
+      return false;
     }
+    const role = membership.role.toLowerCase();
+    const permissions = membership.permissions.map((permission) => permission.toLowerCase());
+    return (
+      role === 'owner' ||
+      role === 'admin' ||
+      membership.family.primaryGuardianUserId === authUserId ||
+      permissions.includes('admin')
+    );
+  }
+  async hasFamilyAthleteAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.familyMembership.findFirst({
+      where: {
+        familyId,
+        userId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+        permissions: true,
+        childAccessAthleteIds: true,
+        family: {
+          select: {
+            primaryGuardianUserId: true,
+          },
+        },
+      },
+    });
+    if (!membership) {
+      return false;
+    }
+    const role = membership.role.toLowerCase();
+    const permissions = membership.permissions.map((permission) => permission.toLowerCase());
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      membership.family.primaryGuardianUserId === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (!membership.childAccessAthleteIds.includes(athleteId)) {
+      return false;
+    }
+    const link = await prisma.guardianChildLink.findFirst({
+      where: {
+        familyId,
+        athleteId,
+        guardianUserId: authUserId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    return Boolean(link);
+  }
+  async hasFamilyAthleteManageAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.familyMembership.findFirst({
+      where: {
+        familyId,
+        userId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+        permissions: true,
+        childAccessAthleteIds: true,
+        family: {
+          select: {
+            primaryGuardianUserId: true,
+          },
+        },
+      },
+    });
+    if (!membership) {
+      return false;
+    }
+    const role = membership.role.toLowerCase();
+    const permissions = membership.permissions.map((permission) => permission.toLowerCase());
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      membership.family.primaryGuardianUserId === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (
+      (!permissions.includes('medical') && !permissions.includes('profile')) ||
+      !membership.childAccessAthleteIds.includes(athleteId)
+    ) {
+      return false;
+    }
+    const link = await prisma.guardianChildLink.findFirst({
+      where: {
+        familyId,
+        athleteId,
+        guardianUserId: authUserId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    return Boolean(link);
+  }
+  async hasFamilyAthleteAttendanceWriteAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.familyMembership.findFirst({
+      where: {
+        familyId,
+        userId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+        permissions: true,
+        childAccessAthleteIds: true,
+        family: {
+          select: {
+            primaryGuardianUserId: true,
+          },
+        },
+      },
+    });
+    if (!membership) {
+      return false;
+    }
+    const role = membership.role.toLowerCase();
+    const permissions = membership.permissions.map((permission) => permission.toLowerCase());
+    if (
+      role === 'owner' ||
+      role === 'admin' ||
+      membership.family.primaryGuardianUserId === authUserId ||
+      permissions.includes('admin')
+    ) {
+      return true;
+    }
+    if (!permissions.includes('book') || !membership.childAccessAthleteIds.includes(athleteId)) {
+      return false;
+    }
+    const link = await prisma.guardianChildLink.findFirst({
+      where: {
+        familyId,
+        athleteId,
+        guardianUserId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    return Boolean(link);
+  }
+  async hasFamilyAthleteRemoveAccess(
+    familyId: string,
+    athleteId: string,
+    authUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.familyMembership.findFirst({
+      where: {
+        familyId,
+        userId: authUserId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        role: true,
+        permissions: true,
+        family: {
+          select: {
+            primaryGuardianUserId: true,
+          },
+        },
+      },
+    });
+    if (!membership) {
+      return false;
+    }
+    const role = membership.role.toLowerCase();
+    const permissions = membership.permissions.map((permission) => permission.toLowerCase());
+    const isFamilyAdmin =
+      role === 'owner' ||
+      role === 'admin' ||
+      membership.family.primaryGuardianUserId === authUserId ||
+      permissions.includes('admin');
+    if (!isFamilyAdmin) {
+      return false;
+    }
+    const link = await prisma.guardianChildLink.findFirst({
+      where: {
+        familyId,
+        athleteId,
+        deletedAt: null,
+        family: {
+          deletedAt: null,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    return Boolean(link);
+  }
+  async resolveAthleteFamilyId(athleteId: string): Promise<string | null> {
     const prisma = getPrismaClientOrThrow();
     const link = await prisma.guardianChildLink.findFirst({
       where: {
@@ -1259,15 +1805,9 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     );
   }
   async getAthlete(athleteId: string): Promise<Record<string, unknown> | null> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getAthlete(athleteId);
-    }
-    return (await this.getAthletePayload(athleteId)) ?? buildLegacyAthlete(athleteId);
+    return this.getAthletePayload(athleteId);
   }
   async getInjury(injuryId: string): Promise<InjuryRecord | null> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getInjury(injuryId);
-    }
     const prisma = getPrismaClientOrThrow();
     const injury = await prisma.athleteInjury.findFirst({
       where: {
@@ -1289,6 +1829,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
       expectedRecoveryDate: injury.expectedRecoveryDate,
       resolvedAt: injury.resolvedAt,
       notes: injury.notes,
+      sharedWithCoach: injury.sharedWithCoach,
       createdByUserId: injury.createdByUserId,
       createdAt: injury.createdAt,
       updatedAt: injury.updatedAt,
@@ -1298,16 +1839,16 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: CreateAthleteInput,
     authUserId: string,
   ): Promise<Record<string, unknown>> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.createAthlete(input, authUserId);
-    }
     const prisma = getPrismaClientOrThrow();
     const now = new Date();
     const athleteId = newId('ath');
     const disabilities = normalizeDisabilities(input.disabilities) ?? [];
     const specialNeeds = normalizeSpecialNeeds(input.specialNeeds) ?? [];
-    await prisma.$transaction(async (tx) => {
-      await tx.athlete.create({
+    const normalizedContacts = normalizeEmergencyContacts(
+      input.trustData?.emergencyContacts?.contacts ?? [],
+    );
+    const created = await prisma.$transaction(async (tx) => {
+      const athlete = await tx.athlete.create({
         data: {
           id: athleteId,
           userId: null,
@@ -1363,23 +1904,84 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
           })),
         });
       }
+      if (input.trustData?.medical) {
+        const medical = input.trustData.medical;
+        await tx.childMedicalRecord.create({
+          data: {
+            id: newId('med'),
+            athleteId,
+            conditions: medical.conditions ?? [],
+            allergies: medical.allergies ?? [],
+            medications: medical.medications ?? [],
+            restrictions: medical.restrictions ?? [],
+            doctorName: medical.doctorName ?? null,
+            doctorPhoneE164: medical.doctorPhone ?? null,
+            insuranceProvider: medical.insuranceProvider ?? null,
+            insuranceNumber: medical.insuranceNumber ?? null,
+            emergencyNotes: medical.emergencyNotes ?? null,
+            senNotes: medical.senNotes ?? null,
+            isCurrent: true,
+            createdByUserId: authUserId,
+            updatedByUserId: authUserId,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+      if (normalizedContacts.length > 0) {
+        await tx.childEmergencyContact.createMany({
+          data: normalizedContacts.map((contact) => ({
+            id: contact.id,
+            athleteId,
+            name: contact.name,
+            relationshipLabel: contact.relationship,
+            phoneE164: contact.phone,
+            email: contact.email ?? null,
+            isPrimary: contact.isPrimary,
+            canPickup: contact.canPickup,
+            createdByUserId: authUserId,
+            updatedByUserId: authUserId,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        });
+      }
+      if (input.trustData?.consents) {
+        const providedConsents = new Map(
+          input.trustData.consents.consents.map((consent) => [consent.type, consent]),
+        );
+        await tx.childConsent.createMany({
+          data: EXPOSED_CONSENT_TYPES.map((type) => {
+            const consent = providedConsents.get(type);
+            return {
+              id: newId('ccn'),
+              athleteId,
+              consentType: type,
+              granted: consent?.granted ?? false,
+              grantedByUserId: authUserId,
+              grantedAt: consent?.granted ? new Date(consent.grantedAt ?? now) : null,
+              expiresAt: consent?.expiryAt ? new Date(consent.expiryAt) : null,
+              revokedAt: consent?.granted === false ? now : null,
+              supersededById: null,
+              metadataJson: {
+                grantedByLabel: consent?.grantedBy ?? '',
+              },
+              createdAt: now,
+            };
+          }),
+        });
+      }
+      return athlete;
     });
-    const created = await this.getAthletePayload(athleteId);
-    if (!created) {
-      throw notFound('Athlete not found', {
-        athleteId,
-      });
-    }
-    return created;
+    return decorateFamilyAthleteRecord(normalizeForJson(created), authUserId);
   }
   async updateAthlete(
     athleteId: string,
     input: UpdateAthleteInput,
     authUserId: string,
   ): Promise<Record<string, unknown> | null> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.updateAthlete(athleteId, input, authUserId);
-    }
     const prisma = getPrismaClientOrThrow();
     const current = await prisma.athlete.findFirst({
       where: {
@@ -1486,9 +2088,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return this.getAthletePayload(athleteId);
   }
   async deleteAthlete(athleteId: string, authUserId: string): Promise<boolean> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.deleteAthlete(athleteId, authUserId);
-    }
     const prisma = getPrismaClientOrThrow();
     const athlete = await prisma.athlete.findFirst({
       where: {
@@ -1580,9 +2179,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return true;
   }
   async listInjuries(athleteId: string): Promise<InjuryRecord[]> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.listInjuries(athleteId);
-    }
     const prisma = getPrismaClientOrThrow();
     const injuries = await prisma.athleteInjury.findMany({
       where: {
@@ -1605,6 +2201,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         expectedRecoveryDate: injury.expectedRecoveryDate,
         resolvedAt: injury.resolvedAt,
         notes: injury.notes,
+        sharedWithCoach: injury.sharedWithCoach,
         createdByUserId: injury.createdByUserId,
         createdAt: injury.createdAt,
         updatedAt: injury.updatedAt,
@@ -1616,9 +2213,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: CreateInjuryInput,
     userId: string,
   ): Promise<InjuryRecord> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.createInjury(athleteId, input, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const created = await prisma.athleteInjury.create({
       data: {
@@ -1634,6 +2228,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
           : null,
         resolvedAt: null,
         notes: input.notes ?? null,
+        sharedWithCoach: input.sharedWithCoach ?? false,
         createdByUserId: userId,
         updatedByUserId: userId,
         version: 1,
@@ -1650,6 +2245,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
       expectedRecoveryDate: created.expectedRecoveryDate,
       resolvedAt: created.resolvedAt,
       notes: created.notes,
+      sharedWithCoach: created.sharedWithCoach,
       createdByUserId: created.createdByUserId,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
@@ -1660,9 +2256,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: UpdateInjuryInput,
     userId: string,
   ): Promise<InjuryRecord | null> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.updateInjury(injuryId, input, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const current = await prisma.athleteInjury.findFirst({
       where: {
@@ -1695,11 +2288,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
               severity: input.severity,
             }
           : {}),
-        ...(input.reportedAt !== undefined
-          ? {
-              reportedAt: new Date(input.reportedAt),
-            }
-          : {}),
         ...(input.expectedRecoveryDate !== undefined
           ? {
               expectedRecoveryDate: input.expectedRecoveryDate
@@ -1712,15 +2300,14 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
               notes: input.notes,
             }
           : {}),
+        ...(input.sharedWithCoach !== undefined
+          ? {
+              sharedWithCoach: input.sharedWithCoach,
+            }
+          : {}),
         status: nextStatus,
         resolvedAt:
-          input.resolvedAt !== undefined
-            ? input.resolvedAt
-              ? new Date(input.resolvedAt)
-              : null
-            : nextStatus === 'resolved'
-              ? (current.resolvedAt ?? now)
-              : current.resolvedAt,
+          nextStatus === 'resolved' ? (current.resolvedAt ?? now) : null,
         updatedByUserId: userId,
         version: {
           increment: 1,
@@ -1738,15 +2325,13 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
       expectedRecoveryDate: updated.expectedRecoveryDate,
       resolvedAt: updated.resolvedAt,
       notes: updated.notes,
+      sharedWithCoach: updated.sharedWithCoach,
       createdByUserId: updated.createdByUserId,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
     });
   }
   async getMedical(athleteId: string, userId: string): Promise<MedicalRecordResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getMedical(athleteId, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const record = await prisma.childMedicalRecord.findFirst({
       where: {
@@ -1781,9 +2366,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: UpdateMedicalRecordInput,
     userId: string,
   ): Promise<MedicalRecordResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.upsertMedical(athleteId, input, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const current = await prisma.childMedicalRecord.findFirst({
       where: {
@@ -1868,9 +2450,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     athleteId: string,
     userId: string,
   ): Promise<EmergencyContactsResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getEmergencyContacts(athleteId, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const contacts = await prisma.childEmergencyContact.findMany({
       where: {
@@ -1896,7 +2475,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         name: contact.name,
         relationship: contact.relationshipLabel,
         phone: contact.phoneE164,
-        email: contact.email,
+        email: contact.email ?? undefined,
         isPrimary: contact.isPrimary,
         canPickup: contact.canPickup,
       })),
@@ -1909,9 +2488,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: UpdateEmergencyContactsInput,
     userId: string,
   ): Promise<EmergencyContactsResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.replaceEmergencyContacts(athleteId, input, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const normalized = normalizeEmergencyContacts(input.contacts);
     const deletedAt = new Date();
@@ -1951,9 +2527,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return this.getEmergencyContacts(athleteId, userId);
   }
   async getConsents(athleteId: string, userId: string): Promise<ConsentsResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.getConsents(athleteId, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const rows = await prisma.childConsent.findMany({
       where: {
@@ -2016,9 +2589,6 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     input: UpsertConsentsInput,
     userId: string,
   ): Promise<ConsentsResponse> {
-    if (shouldUseDbFixtureFallback()) {
-      return this.fallback.replaceConsents(athleteId, input, userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const providedByType = new Map(input.consents.map((consent) => [consent.type, consent]));
     const now = new Date();

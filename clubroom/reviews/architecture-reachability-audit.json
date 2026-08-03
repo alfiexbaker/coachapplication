@@ -1,28 +1,28 @@
 {
   "summary": {
-    "generatedAt": "2026-07-03T21:48:26.381Z",
+    "generatedAt": "2026-08-03T17:19:54.236Z",
     "totals": {
-      "allFilesScanned": 1598,
-      "sourceFilesScanned": 1343,
-      "routeFiles": 152,
-      "componentFiles": 676,
-      "reachableSourceFilesFromApp": 1326,
-      "reachableComponentsFromApp": 672,
+      "allFilesScanned": 1823,
+      "sourceFilesScanned": 1331,
+      "routeFiles": 151,
+      "componentFiles": 656,
+      "reachableSourceFilesFromApp": 1312,
+      "reachableComponentsFromApp": 652,
       "nonReachableComponents": 4
     },
     "componentStatusCounts": {
-      "reachable": 672,
+      "reachable": 652,
       "not_reachable_from_app": 1,
       "unreferenced": 3
     },
     "architectureCounts": {
-      "componentImportsServices": 198,
+      "componentImportsServices": 196,
       "servicesImportUi": 0,
       "servicesImportHooks": 0,
       "hardcodedRoutes": 0,
-      "resultDotOkRefs": 10,
+      "resultDotOkRefs": 11,
       "resultDotIsOkRefs": 0,
-      "servicesWithThrowStatements": 28
+      "servicesWithThrowStatements": 53
     }
   },
   "likelyDeadComponents": [
@@ -88,6 +88,13 @@
         "imports": [
           "@/services/safety-service",
           "@/services/child-service"
+        ]
+      },
+      {
+        "file": "components/athlete/athlete-progress.tsx",
+        "imports": [
+          "@/services/api-client",
+          "@/services/progress-service"
         ]
       },
       {
@@ -174,9 +181,7 @@
         "file": "components/bookings/booking-info-cards.tsx",
         "imports": [
           "@/services/coach-service",
-          "@/services/social-feed-service",
-          "@/services/ui-feedback",
-          "@/services/booking-weather-service"
+          "@/services/ui-feedback"
         ]
       },
       {
@@ -188,7 +193,7 @@
       {
         "file": "components/bookings/booking-ownership-block.tsx",
         "imports": [
-          "@/services/social-feed-service"
+          "@/services/club-authority-service"
         ]
       },
       {
@@ -311,7 +316,7 @@
       {
         "file": "components/coach/availability-tutorial.tsx",
         "imports": [
-          "@/services/api-client"
+          "@/services/seen-service"
         ]
       },
       {
@@ -353,7 +358,7 @@
       {
         "file": "components/coach/onboarding-checklist.tsx",
         "imports": [
-          "@/services/api-client"
+          "@/services/seen-service"
         ]
       },
       {
@@ -561,12 +566,6 @@
         ]
       },
       {
-        "file": "components/family/add-child-basic-step-sections.tsx",
-        "imports": [
-          "@/services/child-service"
-        ]
-      },
-      {
         "file": "components/family/add-child-basic-step.tsx",
         "imports": [
           "@/services/child-service"
@@ -644,12 +643,6 @@
         ]
       },
       {
-        "file": "components/health/RecoveryTimeline.tsx",
-        "imports": [
-          "@/services/injury-service"
-        ]
-      },
-      {
         "file": "components/health/body-part-selector-helpers.ts",
         "imports": [
           "@/services/injury-service"
@@ -675,12 +668,6 @@
       },
       {
         "file": "components/health/injury-summary-card.tsx",
-        "imports": [
-          "@/services/injury-service"
-        ]
-      },
-      {
-        "file": "components/health/recovery-timeline-sections.tsx",
         "imports": [
           "@/services/injury-service"
         ]
@@ -898,7 +885,7 @@
       {
         "file": "components/progress/daily-challenge-banner.tsx",
         "imports": [
-          "@/services/api-client"
+          "@/services/seen-service"
         ]
       },
       {
@@ -1294,11 +1281,12 @@
       "dotOk": [
         "app/session/[id]/complete.tsx",
         "hooks/use-auth.tsx",
+        "hooks/use-session-completion.ts",
         "services/api-client.ts",
         "services/auth-service.ts",
-        "services/booking-weather-service.ts",
         "services/invoice-service.ts",
         "services/media-service.ts",
+        "services/verification-service.ts",
         "services/video-service.ts",
         "constants/booking-types.ts",
         "constants/relational-demo-seeds.legacy.ts"
@@ -1307,20 +1295,36 @@
       "serviceThrows": [
         "services/api-client.ts",
         "services/availability-service.ts",
+        "services/badge-service.ts",
+        "services/base-service.ts",
         "services/booking/booking-crud-service.ts",
+        "services/booking/booking-search-service.ts",
+        "services/booking-self-setting-service.ts",
         "services/child-service.ts",
         "services/club-service.ts",
+        "services/coach-profile-service.ts",
+        "services/coach-travel-service.ts",
+        "services/coach-venue-service.ts",
         "services/discover-service.ts",
+        "services/drill-service.ts",
         "services/earnings/earnings-report-service.ts",
+        "services/earnings/index.ts",
         "services/event/event-attendance-service.ts",
         "services/event/event-crud-service.ts",
         "services/event/event-rsvp-service.ts",
+        "services/family/family-member-service.ts",
+        "services/family/family-permission-service.ts",
         "services/family/family-relationship-service.ts",
+        "services/follow-service.ts",
         "services/group-session/session-crud-service.ts",
         "services/group-session/session-registration-service.ts",
         "services/group-session/session-scheduling-service.ts",
         "services/injury-service.ts",
+        "services/invite/bulk-invite-service.ts",
+        "services/invite/event-invite-service.ts",
+        "services/invite/match-invite-service.ts",
         "services/invite/session-invite-service.ts",
+        "services/invite/squad-invite-service.ts",
         "services/invoice-service.ts",
         "services/local-overlay-store.ts",
         "services/match-service.ts",
@@ -1328,10 +1332,19 @@
         "services/notification/notification-preferences.ts",
         "services/progress/progress-feedback-service.ts",
         "services/progress/progress-goals-service.ts",
+        "services/progress/progress-position-service.ts",
+        "services/progress/progress-practice-log-service.ts",
+        "services/progress/progress-practice-task-service.ts",
+        "services/progress/progress-report-service.ts",
+        "services/progress/progress-self-assessment-service.ts",
         "services/progress/progress-skills-service.ts",
+        "services/progress/progress-termly-report-service.ts",
+        "services/roster-service.ts",
         "services/rsvp-service.ts",
         "services/session-template-service.ts",
         "services/squad-service.ts",
+        "services/trial-service.ts",
+        "services/verification-service.ts",
         "services/video-service.ts"
       ]
     }

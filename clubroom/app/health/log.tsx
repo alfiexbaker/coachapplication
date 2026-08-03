@@ -34,6 +34,7 @@ import {
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
 import { ok } from '@/types/result';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
@@ -51,7 +52,7 @@ export default function LogInjuryScreen() {
 
   const [loading, setLoading] = useState(false);
 
-  const requestedChildId = (Array.isArray(childIdParam) ? childIdParam[0] : childIdParam);
+  const requestedChildId = Array.isArray(childIdParam) ? childIdParam[0] : childIdParam;
 
   const subjectOptions = buildProfileSubjectOptions({
     currentUser,
@@ -61,7 +62,7 @@ export default function LogInjuryScreen() {
 
   const selectedSubjectId = resolveProfileSubjectId({
     explicitSubjectId: requestedChildId,
-    currentUserId: currentUser?.id,
+    currentUserId: resolveSelfAthleteId(currentUser),
     profileMode,
     profileSubjectId,
     subjectOptions,
@@ -101,16 +102,20 @@ export default function LogInjuryScreen() {
     }
     setLoading(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      await injuryService.logInjury(userId, data, userName);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
-    }, async error => {
-      logger.error('Failed to log injury:', error);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }, () => {
-      setLoading(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        await injuryService.logInjury(userId, data, userName);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      },
+      async (error) => {
+        logger.error('Failed to log injury:', error);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      },
+      () => {
+        setLoading(false);
+      },
+    );
   };
 
   const handleCancel = () => {
@@ -190,7 +195,9 @@ export default function LogInjuryScreen() {
                   >
                     <Row align="center" gap="xxs">
                       <Ionicons name="create-outline" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>Edit</ThemedText>
+                      <ThemedText style={[styles.editKidText, { color: palette.tint }]}>
+                        Edit
+                      </ThemedText>
                     </Row>
                   </Clickable>
                 </Row>
@@ -199,7 +206,11 @@ export default function LogInjuryScreen() {
           </View>
         )}
         <ErrorBoundary>
-          <InjuryForm onSubmit={handleSubmit} onCancel={handleCancel} loading={loading || !userId} />
+          <InjuryForm
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            loading={loading || !userId}
+          />
         </ErrorBoundary>
       </KeyboardAvoidingView>
     </SafeAreaView>

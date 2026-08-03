@@ -1,4 +1,7 @@
-import { LegalDocumentScreen, type LegalDocumentSection } from '@/components/settings/legal-document-screen';
+import {
+  LegalDocumentScreen,
+  type LegalDocumentSection,
+} from '@/components/settings/legal-document-screen';
 
 const TERMS_SECTIONS: LegalDocumentSection[] = [
   {
@@ -49,10 +52,6 @@ const TERMS_SECTIONS: LegalDocumentSection[] = [
 
 export default function TermsOfServiceScreen() {
   return (
-    <LegalDocumentScreen
-      title="Terms of Service"
-      lastUpdated="1 January 2025"
-      sections={TERMS_SECTIONS}
-    />
+    <LegalDocumentScreen title="Terms" lastUpdated="1 January 2025" sections={TERMS_SECTIONS} />
   );
 }

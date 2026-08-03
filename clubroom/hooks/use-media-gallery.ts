@@ -4,6 +4,7 @@ import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { mediaService } from '@/services/media-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 const logger = createLogger('UseMediaGallery');
 
@@ -76,7 +77,7 @@ export function useMediaGallery(athleteIdParam?: string | null) {
     if (currentUser?.role === 'COACH') {
       return null;
     }
-    return currentUser?.id ?? null;
+    return resolveSelfAthleteId(currentUser);
   })();
 
   const load = async () => {
@@ -122,8 +123,7 @@ export function useMediaGallery(athleteIdParam?: string | null) {
     }
 
     items.sort(
-      (left, right) =>
-        new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime(),
+      (left, right) => new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime(),
     );
 
     return ok<MediaGalleryData>({ items });

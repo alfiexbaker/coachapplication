@@ -28,6 +28,21 @@ test('create match uses live club squad authority in API mode', () => {
   assert.ok(liveSquadSet > liveSquadLoad, 'API mode should expose live squads to the selector');
   assert.ok(source.includes('liveSquads.find((squad) => squad.id === routeSquadId)'));
   assert.ok(source.includes("uiFeedback.showToast('Select a squad from this club.', 'error')"));
+  assert.ok(
+    source.includes(
+      "const SQUAD_MEMBER_CONTEXT_MESSAGE = 'Failed to load squad members for match invites.';",
+    ),
+  );
+  assert.ok(
+    source.includes(
+      'const [squadMemberError, setSquadMemberError] = useState<string | null>(null);',
+    ),
+  );
+  assert.ok(source.includes('if (squadId !== selectedSquadId) {'));
+  assert.ok(source.includes('const members = await squadService.getSquadMembers(selectedSquadId);'));
+  assert.ok(source.includes('setSquadMemberError(SQUAD_MEMBER_CONTEXT_MESSAGE);'));
+  assert.ok(source.includes('setAutoInvite(false);'));
+  assert.ok(source.includes('if (autoInvite && squadMemberError)'));
 
   const submitStart = source.indexOf('const handleSubmit = async () => {');
   assert.ok(submitStart >= 0, 'test should find submit handler');
@@ -47,8 +62,18 @@ test('create match uses live club squad authority in API mode', () => {
   assert.ok(screenSource.includes('if (clubContextLoading)'));
   assert.ok(screenSource.includes('if (clubContextError)'));
   assert.ok(screenSource.includes('if (!activeClubId) return;'));
+  assert.ok(screenSource.includes('squadMembersLoading={squadMembersLoading}'));
+  assert.ok(screenSource.includes('squadMemberError={squadMemberError}'));
   assert.ok(screenSource.includes('router.push(Routes.clubSquadCreate(activeClubId));'));
   assert.equal(screenSource.includes('router.push(Routes.CLUB_SQUAD_CREATE);'), false);
+
+  const squadStepSource = readProjectFile('components/match/create-match-squad.tsx');
+  assert.ok(squadStepSource.includes('Member list unavailable for invites'));
+  assert.ok(squadStepSource.includes('disabled={squadMembersLoading || Boolean(squadMemberError)}'));
+
+  const reviewStepSource = readProjectFile('components/match/create-match-review.tsx');
+  assert.ok(reviewStepSource.includes("selectedSquad?.name ?? 'Club-level fixture'"));
+  assert.ok(reviewStepSource.includes('member list unavailable'));
 
   const matchesScreenHookSource = readProjectFile('hooks/use-matches-screen.ts');
   assert.ok(matchesScreenHookSource.includes('clubId: club.id, clubName: club.name'));

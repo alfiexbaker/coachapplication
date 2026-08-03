@@ -27,7 +27,7 @@ const ROUTES = [
   { path: '/coach-profile', name: '14-coach-profile' },
   { path: '/children', name: '16-children' },
   { path: '/club-hub', name: '17-club-hub' },
-  { path: '/availability', name: '18-availability' },
+  { path: '/schedule?segment=availability', name: '18-availability' },
   { path: '/edit-profile', name: '19-edit-profile' },
   // Discover
   { path: '/discover-sessions', name: '20-discover-sessions' },

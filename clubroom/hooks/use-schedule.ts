@@ -140,13 +140,14 @@ export function useSchedule() {
 
       if (!rulesResult.success) {
         logger.error('Failed to load scheduling rules', rulesResult.error);
+        return err(rulesResult.error);
       }
 
       return ok({
         templates: templatesData,
         offerings: offeringsData,
         bookings: bookingsData,
-        rules: rulesResult.success ? rulesResult.data : null,
+        rules: rulesResult.data,
         blockedDates: blockedDatesData,
         overrides: overridesData,
         sessionTemplates: sessionTemplatesData,

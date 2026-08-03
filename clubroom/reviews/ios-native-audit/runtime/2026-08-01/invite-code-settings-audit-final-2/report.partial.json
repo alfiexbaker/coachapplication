@@ -1,0 +1,128 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T15:06:46.974Z",
+  "meta": {
+    "roles": [
+      "admin",
+      "coach",
+      "parent",
+      "guardian",
+      "athlete"
+    ],
+    "profiles": [
+      "invite-code-settings-audit"
+    ],
+    "chunkIndex": null,
+    "retries": 1
+  },
+  "totals": {
+    "total": 5,
+    "ok": 5,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 5
+  },
+  "results": [
+    {
+      "id": "admin_invite_code_settings_ready",
+      "role": "admin",
+      "title": "Club admin sees the canonical club invite controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit-final-2/admin__admin_invite_code_settings_ready.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4508
+    },
+    {
+      "id": "coach_invite_code_settings_denied",
+      "role": "coach",
+      "title": "coach does not receive club invite-management controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit-final-2/coach__coach_invite_code_settings_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4412
+    },
+    {
+      "id": "parent_invite_code_settings_denied",
+      "role": "parent",
+      "title": "parent does not receive club invite-management controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit-final-2/parent__parent_invite_code_settings_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4496
+    },
+    {
+      "id": "guardian_invite_code_settings_denied",
+      "role": "guardian",
+      "title": "guardian does not receive club invite-management controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit-final-2/guardian__guardian_invite_code_settings_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4422
+    },
+    {
+      "id": "athlete_invite_code_settings_denied",
+      "role": "athlete",
+      "title": "athlete does not receive club invite-management controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit-final-2/athlete__athlete_invite_code_settings_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4645
+    }
+  ]
+}

@@ -66,7 +66,7 @@ export function AttendeeList({
         break;
     }
 
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const statusOrder = { GOING: 0, MAYBE: 1, NOT_GOING: 2 };
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
@@ -119,8 +119,8 @@ export function AttendeeList({
       {showFilters && (
         <View style={styles.filtersContainer}>
           <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+            CellRendererComponent={AccessibleListCell}
+            accessibilityRole="list"
             horizontal
             showsHorizontalScrollIndicator={false}
             data={filterOptions}
@@ -135,8 +135,8 @@ export function AttendeeList({
         <AttendeeEmptyState message={emptyMessage} palette={palette} />
       ) : (
         <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+          CellRendererComponent={AccessibleListCell}
+          accessibilityRole="list"
           data={filteredData}
           keyExtractor={attendeeKeyExtractor}
           showsVerticalScrollIndicator={false}

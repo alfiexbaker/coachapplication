@@ -48,6 +48,7 @@ export interface ClubSummary {
   tagline?: string | null;
   slug?: string | null;
   visibility?: string | null;
+  joinPolicy?: string | null;
   commercialMode?: string | null;
   createdByUserId?: string;
   inviteCode: string | null;
@@ -70,12 +71,9 @@ export interface ClubSquadRecord {
   id: string;
   clubId: string;
   name: string;
-  level: string;
-  description?: string;
+  level?: string;
   memberCount: number;
-  primaryCoach: string;
-  meetLocation: string;
-  tags?: string[];
+  primaryCoach?: string;
 }
 export interface SquadMemberRecord {
   id: string;
@@ -124,6 +122,7 @@ export interface ClubJoinPreview {
   clubName: string;
   clubSlug?: string | null;
   visibility?: string | null;
+  joinPolicy?: string | null;
   inviteCode: string;
   role: string;
   joinFlow: 'direct_join' | 'invite_review';
@@ -164,6 +163,7 @@ export interface CreateClubInput {
   tagline?: string | null;
   badge?: string | null;
   visibility?: string | null;
+  joinPolicy?: string | null;
   commercialMode?: string | null;
   firstStaffRole?: string | null;
   authUserId: string;
@@ -181,6 +181,7 @@ export interface UpdateClubInput {
   country?: string | null;
   tagline?: string | null;
   visibility?: string;
+  joinPolicy?: string;
   commercialMode?: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
@@ -226,6 +227,7 @@ export interface ClubAuthorityRepository {
     athleteId: string;
     authUserId: string;
     isPrivilegedAdmin: boolean;
+    hasFamilyAthleteAccess: boolean;
   }): Promise<AthleteSquadMembershipRecord[]>;
   createClubSquad(params: {
     clubId: string;
@@ -576,26 +578,21 @@ function buildClubSquadRecord(params: {
   squad: SeedRow;
   memberCount?: number;
 }): ClubSquadRecord {
-  const tags = Array.isArray(params.squad.tags)
-    ? params.squad.tags.filter((tag): tag is string => typeof tag === 'string')
-    : undefined;
+  const id = asString(params.squad.id);
+  const clubId = asString(params.squad.clubId);
+  const name = asString(params.squad.name);
+  if (!id || !clubId || !name) {
+    throw new Error('Club squad record is missing required fields');
+  }
+  const level = asString(params.squad.ageBandLabel);
+  const primaryCoach = asString(params.squad.ownerCoachUserId);
   return {
-    id: asString(params.squad.id) ?? '',
-    clubId: asString(params.squad.clubId) ?? '',
-    name: asString(params.squad.name) ?? 'Squad',
-    level: asString(params.squad.ageBandLabel) ?? asString(params.squad.level) ?? 'Squad',
-    description: asString(params.squad.description),
+    id,
+    clubId,
+    name,
+    ...(level ? { level } : {}),
     memberCount: params.memberCount ?? Number(params.squad.memberCount ?? 0),
-    primaryCoach:
-      asString(params.squad.ownerCoachUserId) ??
-      asString(params.squad.primaryCoach) ??
-      asString(params.squad.createdByUserId) ??
-      '',
-    meetLocation:
-      asString(params.squad.meetLocation) ??
-      asString(params.squad.meetingLocation) ??
-      'TBD',
-    tags,
+    ...(primaryCoach ? { primaryCoach } : {}),
   };
 }
 function buildSquadMemberRecord(params: {
@@ -689,6 +686,7 @@ function buildClubSummary(
     tagline?: string | null;
     slug?: string | null;
     visibility?: string | null;
+    joinPolicy?: string | null;
     commercialMode?: string | null;
     createdByUserId?: string | null;
   },
@@ -702,6 +700,7 @@ function buildClubSummary(
     tagline: club.tagline ?? null,
     slug: club.slug ?? null,
     visibility: club.visibility ?? null,
+    joinPolicy: club.joinPolicy ?? 'INVITE_ONLY',
     commercialMode: club.commercialMode ?? null,
     createdByUserId: club.createdByUserId ?? undefined,
     inviteCode,
@@ -891,6 +890,7 @@ function requireStoreAthleteSquadMembershipReadContext(params: {
   athleteId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
+  hasFamilyAthleteAccess: boolean;
 }): SeedRow {
   const athlete = asRows(params.tables.athletes).find(
     (row) =>
@@ -901,19 +901,14 @@ function requireStoreAthleteSquadMembershipReadContext(params: {
   if (!athlete) {
     throw notFound('Athlete not found');
   }
-  if (params.isPrivilegedAdmin || asString(athlete.userId) === params.authUserId) {
+  if (
+    params.isPrivilegedAdmin ||
+    params.hasFamilyAthleteAccess ||
+    asString(athlete.userId) === params.authUserId
+  ) {
     return athlete;
   }
-  const isLinkedGuardian = asRows(params.tables.guardianChildLinks).some(
-    (row) =>
-      asString(row.athleteId) === params.athleteId &&
-      asString(row.guardianUserId) === params.authUserId &&
-      !asString(row.deletedAt),
-  );
-  if (!isLinkedGuardian) {
-    throw forbidden('You do not have permission to view this athlete squad membership');
-  }
-  return athlete;
+  throw forbidden('You do not have permission to view this athlete squad membership');
 }
 function isActiveSquadMembership(row: SeedRow): boolean {
   const status = asString(row.status)?.toLowerCase();
@@ -1283,6 +1278,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       secondaryColor: null,
       slug,
       visibility: params.visibility ?? 'private',
+      joinPolicy: params.joinPolicy ?? 'INVITE_ONLY',
       commercialMode: params.commercialMode ?? 'COACH_OWNED',
       createdByUserId: params.authUserId,
       updatedByUserId: params.authUserId,
@@ -1356,6 +1352,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
           tagline,
           slug,
           visibility: asString(club.visibility) ?? 'private',
+          joinPolicy: asString(club.joinPolicy) ?? 'INVITE_ONLY',
           commercialMode: asString(club.commercialMode) ?? 'COACH_OWNED',
           createdByUserId: params.authUserId,
         },
@@ -1423,6 +1420,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
             tagline: asString(club.tagline) ?? null,
             slug: asString(club.slug) ?? null,
             visibility: asString(club.visibility) ?? null,
+            joinPolicy: asString(club.joinPolicy) ?? null,
             commercialMode: asString(club.commercialMode) ?? null,
             createdByUserId: asString(club.createdByUserId) ?? null,
           },
@@ -1463,6 +1461,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       ...(params.country !== undefined ? { country: params.country?.trim() || null } : {}),
       ...(params.tagline !== undefined ? { tagline: params.tagline?.trim() || null } : {}),
       ...(params.visibility !== undefined ? { visibility: params.visibility } : {}),
+      ...(params.joinPolicy !== undefined ? { joinPolicy: params.joinPolicy } : {}),
       ...(params.commercialMode !== undefined ? { commercialMode: params.commercialMode } : {}),
       updatedByUserId: params.authUserId,
       updatedAt: now,
@@ -1678,6 +1677,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     athleteId: string;
     authUserId: string;
     isPrivilegedAdmin: boolean;
+    hasFamilyAthleteAccess: boolean;
   }): Promise<AthleteSquadMembershipRecord[]> {
     const tables = this.getTables();
     requireStoreAthleteSquadMembershipReadContext({
@@ -1685,6 +1685,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       athleteId: params.athleteId,
       authUserId: params.authUserId,
       isPrivilegedAdmin: params.isPrivilegedAdmin,
+      hasFamilyAthleteAccess: params.hasFamilyAthleteAccess,
     });
     return asRows(tables.squadMemberships).flatMap((membership) => {
       if (
@@ -2223,6 +2224,10 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     authUserId: string;
     role: string;
   }): Promise<ClubInviteCodeRecord> {
+    const requestedRole = parseOrganizationRole(params.role);
+    if (!requestedRole || !DIRECT_CLUB_INVITE_ROLES.has(requestedRole)) {
+      throw badRequest('Club invite codes support member, coach, and admin roles only');
+    }
     const tables = this.getTables();
     const club = findStoreClubById(tables, params.clubId);
     if (!club) {
@@ -2232,11 +2237,11 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     requireManageInvites(asString(viewerMembership?.role));
     const inviteCodes = ensureStoreInviteCodesTable(tables);
     const now = new Date().toISOString();
-    if (params.role !== 'MEMBER') {
+    if (requestedRole !== 'MEMBER') {
       inviteCodes.forEach((row) => {
         if (
           asString(row.clubId) === params.clubId &&
-          asString(row.role) === params.role &&
+          asString(row.role) === requestedRole &&
           !asString(row.deletedAt)
         ) {
           row.deletedAt = now;
@@ -2250,10 +2255,10 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     const inviteCode: SeedRow = {
       id: `cinv_${randomUUID()}`,
       clubId: params.clubId,
-      code: `${buildInviteCode(asString(club.name) ?? 'Club', params.role)}-${randomUUID().slice(0, 4).toUpperCase()}`,
-      role: params.role,
-      remainingUses: params.role === 'MEMBER' ? 999 : 25,
-      expiresAt: addDaysIso(params.role === 'MEMBER' ? 365 : 30),
+      code: `${buildInviteCode(asString(club.name) ?? 'Club', requestedRole)}-${randomUUID().slice(0, 4).toUpperCase()}`,
+      role: requestedRole,
+      remainingUses: requestedRole === 'MEMBER' ? 999 : 25,
+      expiresAt: addDaysIso(requestedRole === 'MEMBER' ? 365 : 30),
       createdByUserId: params.authUserId,
       updatedByUserId: params.authUserId,
       version: 1,
@@ -2534,6 +2539,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       clubName: asString(club.name) ?? 'Club',
       clubSlug: asString(club.slug) ?? null,
       visibility: asString(club.visibility) ?? null,
+      joinPolicy: asString(club.joinPolicy) ?? 'INVITE_ONLY',
       inviteCode: asString(inviteCodeRow.code) ?? '',
       role: asString(inviteCodeRow.role) ?? 'MEMBER',
       joinFlow: asString(inviteCodeRow.role) === 'MEMBER' ? 'direct_join' : 'invite_review',
@@ -2564,6 +2570,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         name: asString(club.name) ?? 'Club',
         slug: asString(club.slug) ?? null,
         visibility: asString(club.visibility) ?? null,
+        joinPolicy: asString(club.joinPolicy) ?? 'INVITE_ONLY',
         createdByUserId: asString(club.createdByUserId) ?? null,
       },
       asString(inviteCodeRow.code) ?? '',
@@ -2766,6 +2773,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
           name: asString(club.name) ?? 'Club',
           slug: asString(club.slug) ?? null,
           visibility: asString(club.visibility) ?? null,
+          joinPolicy: asString(club.joinPolicy) ?? 'INVITE_ONLY',
           createdByUserId: asString(club.createdByUserId) ?? null,
         },
         asString(metadata?.inviteCode) ?? '',
@@ -2835,6 +2843,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           tagline,
           slug,
           visibility: params.visibility ?? 'private',
+          joinPolicy: params.joinPolicy ?? 'INVITE_ONLY',
           commercialMode: params.commercialMode ?? 'COACH_OWNED',
           createdByUserId: params.authUserId,
           updatedByUserId: params.authUserId,
@@ -2894,6 +2903,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           tagline: created.club.tagline,
           slug: created.club.slug,
           visibility: created.club.visibility,
+          joinPolicy: created.club.joinPolicy,
           commercialMode: created.club.commercialMode,
           createdByUserId: created.club.createdByUserId,
         },
@@ -3227,6 +3237,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             tagline: club.tagline,
             slug: club.slug,
             visibility: club.visibility,
+            joinPolicy: club.joinPolicy,
             commercialMode: club.commercialMode,
             createdByUserId: club.createdByUserId,
           },
@@ -3297,6 +3308,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         ...(params.country !== undefined ? { country: params.country?.trim() || null } : {}),
         ...(params.tagline !== undefined ? { tagline: params.tagline?.trim() || null } : {}),
         ...(params.visibility !== undefined ? { visibility: params.visibility } : {}),
+        ...(params.joinPolicy !== undefined ? { joinPolicy: params.joinPolicy } : {}),
         ...(params.commercialMode !== undefined ? { commercialMode: params.commercialMode } : {}),
         updatedByUserId: params.authUserId,
         version: {
@@ -3817,6 +3829,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     athleteId: string;
     authUserId: string;
     isPrivilegedAdmin: boolean;
+    hasFamilyAthleteAccess: boolean;
   }): Promise<AthleteSquadMembershipRecord[]> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.listAthleteSquadMemberships(params);
@@ -3835,14 +3848,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       select: {
         id: true,
         userId: true,
-        guardianLinks: {
-          where: {
-            deletedAt: null,
-          },
-          select: {
-            guardianUserId: true,
-          },
-        },
       },
     });
     if (!athlete) {
@@ -3850,8 +3855,8 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     }
     const canRead =
       params.isPrivilegedAdmin ||
-      athlete.userId === params.authUserId ||
-      athlete.guardianLinks.some((link) => link.guardianUserId === params.authUserId);
+      params.hasFamilyAthleteAccess ||
+      athlete.userId === params.authUserId;
     if (!canRead) {
       throw forbidden('You do not have permission to view this athlete squad membership');
     }
@@ -4651,6 +4656,10 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.createInviteCode(params);
     }
+    const requestedRole = parseOrganizationRole(params.role);
+    if (!requestedRole || !DIRECT_CLUB_INVITE_ROLES.has(requestedRole)) {
+      throw badRequest('Club invite codes support member, coach, and admin roles only');
+    }
     const prisma = getPrismaClientOrThrow();
     const club = await prisma.club.findUnique({
       where: {
@@ -4671,11 +4680,11 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     requireManageInvites(viewerMembership?.role);
     const now = new Date();
     const created = await prisma.$transaction(async (tx) => {
-      if (params.role !== 'MEMBER') {
+      if (requestedRole !== 'MEMBER') {
         await tx.clubInviteCode.updateMany({
           where: {
             clubId: params.clubId,
-            role: params.role,
+            role: requestedRole,
             deletedAt: null,
           },
           data: {
@@ -4689,11 +4698,11 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         data: {
           id: `cinv_${randomUUID()}`,
           clubId: params.clubId,
-          code: `${buildInviteCode(club.name, params.role)}-${randomUUID().slice(0, 4).toUpperCase()}`,
-          role: params.role,
-          remainingUses: params.role === 'MEMBER' ? 999 : 25,
+          code: `${buildInviteCode(club.name, requestedRole)}-${randomUUID().slice(0, 4).toUpperCase()}`,
+          role: requestedRole,
+          remainingUses: requestedRole === 'MEMBER' ? 999 : 25,
           expiresAt: new Date(
-            Date.now() + (params.role === 'MEMBER' ? 365 : 30) * 24 * 60 * 60 * 1000,
+            Date.now() + (requestedRole === 'MEMBER' ? 365 : 30) * 24 * 60 * 60 * 1000,
           ),
           createdByUserId: params.authUserId,
           updatedByUserId: params.authUserId,
@@ -5172,6 +5181,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       clubName: club.name,
       clubSlug: club.slug,
       visibility: club.visibility,
+      joinPolicy: club.joinPolicy,
       inviteCode: inviteCode.code,
       role: inviteCode.role,
       joinFlow: inviteCode.role === 'MEMBER' ? 'direct_join' : 'invite_review',
@@ -5215,6 +5225,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         name: club.name,
         slug: club.slug,
         visibility: club.visibility,
+        joinPolicy: club.joinPolicy,
         createdByUserId: club.createdByUserId,
       },
       inviteCode.code,
@@ -5728,6 +5739,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           name: club.name,
           slug: club.slug,
           visibility: club.visibility,
+          joinPolicy: club.joinPolicy,
           createdByUserId: club.createdByUserId,
         },
         asString(metadata?.inviteCode) ?? '',

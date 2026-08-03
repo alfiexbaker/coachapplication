@@ -372,6 +372,25 @@ class FamilyRelationshipService {
   }
 
   /**
+   * Find the caller's existing family account without creating a new one.
+   * Reads in a sharing screen must not change family ownership.
+   */
+  async findFamilyAccount(userId: string, userName: string): Promise<FamilyAccount | null> {
+    if (!USE_MOCK) {
+      return this.getFamilyAccount(userId, userName);
+    }
+
+    const accounts = await this.loadAccounts();
+    return (
+      accounts.find(
+        (account) =>
+          account.primaryGuardianId === userId ||
+          account.guardians.some((guardian) => guardian.userId === userId),
+      ) ?? null
+    );
+  }
+
+  /**
    * Get or create a family account with Result type.
    */
   async getOrCreateAccount(

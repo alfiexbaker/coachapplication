@@ -20,6 +20,18 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('QuickRateModal');
 
+async function runWithSavingState(
+  setSaving: (saving: boolean) => void,
+  work: () => Promise<void>,
+): Promise<void> {
+  setSaving(true);
+  try {
+    await work();
+  } finally {
+    setSaving(false);
+  }
+}
+
 interface QuickRateModalProps {
   visible: boolean;
   athlete: QuickRateAthlete | null;
@@ -101,48 +113,47 @@ export const QuickRateModal = function QuickRateModal({
   const handleSave = async () => {
     if (!athlete || !currentRating) return;
 
-    if (!currentRating.positionPlayed) {
+    const positionPlayed = currentRating.positionPlayed;
+    if (!positionPlayed) {
       showToast('Please select a position', 'error');
       return;
     }
 
-    setSaving(true);
-    try {
-      const skillResult = await progressSkillsService.updateFromPositionRate(
-        athlete.athleteId,
-        sessionId,
-        coachId,
-        currentRating.positionPlayed,
-        currentRating.positionSkillRatings ?? [],
-      );
+    await runWithSavingState(setSaving, async () => {
+      try {
+        const skillResult = await progressSkillsService.updateFromPositionRate(
+          athlete.athleteId,
+          sessionId,
+          coachId,
+          positionPlayed,
+          currentRating.positionSkillRatings ?? [],
+        );
 
-      if (!skillResult.success) {
-        showToast(skillResult.error.message || 'Failed to save skill ratings', 'error');
-        setSaving(false);
-        return;
+        if (!skillResult.success) {
+          showToast(skillResult.error.message || 'Failed to save skill ratings', 'error');
+          return;
+        }
+
+        const feedbackResult = await progressFeedbackService.createFeedbackFromQuickRate(
+          currentRating,
+          coachName,
+          athlete.athleteName,
+        );
+
+        if (!feedbackResult.success) {
+          showToast(feedbackResult.error.message || 'Failed to save feedback', 'error');
+          return;
+        }
+
+        showToast('Rating saved', 'success');
+        onSaved();
+        Keyboard.dismiss();
+        onClose();
+      } catch (error) {
+        logger.error('Failed to save quick rate from group roster', { error });
+        showToast('Failed to save rating', 'error');
       }
-
-      const feedbackResult = await progressFeedbackService.createFeedbackFromQuickRate(
-        currentRating,
-        coachName,
-        athlete.athleteName,
-      );
-
-      if (!feedbackResult.success) {
-        showToast(feedbackResult.error.message || 'Failed to save feedback', 'error');
-        setSaving(false);
-        return;
-      }
-
-      showToast('Rating saved', 'success');
-      onSaved();
-      Keyboard.dismiss();
-      onClose();
-    } catch (error) {
-      logger.error('Failed to save quick rate from group roster', { error });
-      showToast('Failed to save rating', 'error');
-    }
-    setSaving(false);
+    });
   };
 
   const closeNow = () => {

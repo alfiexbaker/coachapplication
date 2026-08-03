@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import type { ClubActivity } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import { clubScheduleService } from '@/services/club-schedule-service';
 import { err, validationError } from '@/types/result';
@@ -24,30 +25,32 @@ function getActivityHref(activity: ClubActivity) {
 
 export default function ClubActivityRoute() {
   const { colors } = useTheme();
+  const { currentUser } = useAuth();
   const clubIdParam = useRequiredParam('id');
   const activityIdParam = useRequiredParam('activityId');
   const clubId = clubIdParam.valid ? clubIdParam.value : '';
   const activityId = activityIdParam.valid ? activityIdParam.value : '';
 
-  const loadActivity = useCallback(() => {
+  const loadActivity = () => {
     if (!clubIdParam.valid || !activityIdParam.valid) {
       return Promise.resolve(err(validationError('Invalid club activity link.')));
     }
     return clubScheduleService.getClubActivity(clubId, activityId);
-  }, [activityId, activityIdParam.valid, clubId, clubIdParam.valid]);
+  };
 
-  const { data: activity, status, error, retry } = useScreen({
+  const { data: activity, status, error, retry, hasRequestedTruthfulFrame } = useScreen({
     load: loadActivity,
-    deps: [loadActivity],
+    deps: [clubId, clubIdParam.valid, activityId, activityIdParam.valid, currentUser?.id],
+    dataKey: `club-activity:${currentUser?.id ?? 'anonymous'}:${clubId || 'missing'}:${activityId || 'missing'}`,
   });
 
   useEffect(() => {
-    if (status !== 'success' || !activity) {
+    if (!hasRequestedTruthfulFrame || status !== 'success' || !activity) {
       return;
     }
 
     router.replace(getActivityHref(activity));
-  }, [activity, status]);
+  }, [activity, hasRequestedTruthfulFrame, status]);
 
   const handleBack = () => {
     if (clubIdParam.valid) {

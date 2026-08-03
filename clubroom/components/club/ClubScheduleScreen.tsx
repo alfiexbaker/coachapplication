@@ -17,6 +17,7 @@ import { useClubSchedule, CLUB_SCHEDULE_FILTERS } from '@/hooks/use-club-schedul
 import type { ClubScheduleDayGroup, ClubScheduleFilter } from '@/utils/club-schedule-display';
 import { Routes } from '@/navigation/routes';
 import type { ClubActivity } from '@/constants/types';
+import { isClubStaffRole } from '@/contracts/club-governance';
 import { canCreateClubScheduleItems } from '@/utils/club-ui-permissions';
 
 export interface ClubScheduleScreenProps {
@@ -112,7 +113,10 @@ function getEmptyTitle(filter: ClubScheduleFilter): string {
 export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScreenProps) {
   const { colors } = useTheme();
   const schedule = useClubSchedule({ clubId, squadId });
-  const canCreateItems = canCreateClubScheduleItems(schedule.membership);
+  const canCreateTraining = canCreateClubScheduleItems(schedule.membership);
+  const canCreateEventOrMatch =
+    schedule.club?.canManageMatches === true ||
+    (schedule.membership?.status === 'active' && isClubStaffRole(schedule.membership.role));
 
   const title = scope === 'club' ? 'Club Schedule' : 'Team Schedule';
   const subtitle = (() => {
@@ -203,51 +207,57 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
         showBack
         onBackPress={handleBack}
         right={
-          canCreateItems ? (
+          canCreateTraining || canCreateEventOrMatch ? (
             <Row align="center" gap="xs">
-              <Clickable
-                style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() =>
-                  router.push(
-                    getEventCreateHref(
-                      scope,
-                      clubId ?? schedule.squad?.clubId,
-                      schedule.club?.name,
-                      squadId,
-                    ),
-                  )
-                }
-                accessibilityLabel="Create event"
-              >
-                <Ionicons name="calendar-outline" size={18} color={colors.tint} />
-              </Clickable>
-              <Clickable
-                style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() =>
-                  router.push(
-                    getPrimaryCreateHref(scope, clubId ?? schedule.squad?.clubId, squadId),
-                  )
-                }
-                accessibilityLabel="Create training"
-              >
-                <Ionicons name="football-outline" size={18} color={colors.tint} />
-              </Clickable>
-              <Clickable
-                style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() =>
-                  router.push(
-                    getMatchCreateHref(
-                      scope,
-                      clubId ?? schedule.squad?.clubId,
-                      schedule.club?.name,
-                      squadId,
-                    ),
-                  )
-                }
-                accessibilityLabel="Create match"
-              >
-                <Ionicons name="trophy-outline" size={18} color={colors.tint} />
-              </Clickable>
+              {canCreateEventOrMatch && (
+                <Clickable
+                  style={[styles.headerAction, { borderColor: colors.border }]}
+                  onPress={() =>
+                    router.push(
+                      getEventCreateHref(
+                        scope,
+                        clubId ?? schedule.squad?.clubId,
+                        schedule.club?.name,
+                        squadId,
+                      ),
+                    )
+                  }
+                  accessibilityLabel="Create event"
+                >
+                  <Ionicons name="calendar-outline" size={18} color={colors.tint} />
+                </Clickable>
+              )}
+              {canCreateTraining && (
+                <Clickable
+                  style={[styles.headerAction, { borderColor: colors.border }]}
+                  onPress={() =>
+                    router.push(
+                      getPrimaryCreateHref(scope, clubId ?? schedule.squad?.clubId, squadId),
+                    )
+                  }
+                  accessibilityLabel="Create training"
+                >
+                  <Ionicons name="football-outline" size={18} color={colors.tint} />
+                </Clickable>
+              )}
+              {canCreateEventOrMatch && (
+                <Clickable
+                  style={[styles.headerAction, { borderColor: colors.border }]}
+                  onPress={() =>
+                    router.push(
+                      getMatchCreateHref(
+                        scope,
+                        clubId ?? schedule.squad?.clubId,
+                        schedule.club?.name,
+                        squadId,
+                      ),
+                    )
+                  }
+                  accessibilityLabel="Create match"
+                >
+                  <Ionicons name="trophy-outline" size={18} color={colors.tint} />
+                </Clickable>
+              )}
             </Row>
           ) : undefined
         }

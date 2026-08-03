@@ -1,9 +1,60 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
+
 describe('coachTravelService API mode', () => {
+  it('coalesces every changed discovery field into one minimal patch', async () => {
+    const { diffCoachTravelSettings } = await import('@/services/coach-travel-service');
+    const current = {
+      coachId: 'coach_api_travel',
+      radiusMiles: 10,
+      acceptsTravelSessions: true,
+      acceptsRemoteSessions: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+
+    assert.deepEqual(
+      diffCoachTravelSettings(current, {
+        ...current,
+        radiusMiles: 12,
+        acceptsRemoteSessions: true,
+      }),
+      {
+        radiusMiles: 12,
+        acceptsRemoteSessions: true,
+      },
+    );
+    assert.deepEqual(diffCoachTravelSettings(current, current), {});
+  });
+
+  it('does not log raw travel setting values on failures', () => {
+    const source = readProjectFile('services/coach-travel-service.ts');
+
+    assert.doesNotMatch(
+      source,
+      /logger\.warn\('Failed to update coach travel settings via API',\s*\{\s*coachId,\s*updates:/,
+      'travel update API failure logs must not include raw update values',
+    );
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to update coach travel settings',\s*\{\s*coachId,\s*updates,/,
+      'travel update failure logs must not include the full updates payload',
+    );
+    assert.match(
+      source,
+      /changedFields,\s*\n\s*changedFieldCount: changedFields\.length/,
+      'travel update diagnostics should log changed field names and counts instead of raw values',
+    );
+  });
+
   it('uses /v1 travel settings instead of local persistence', async () => {
     const [{ coachTravelService }, { apiClient }] = await Promise.all([
       import('@/services/coach-travel-service'),
@@ -13,7 +64,7 @@ describe('coachTravelService API mode', () => {
     const originalGet = apiClient.get;
     const originalSet = apiClient.set;
     const originalFetch = globalThis.fetch;
-    const calls: Array<{ method: string; path: string; body?: unknown }> = [];
+    const calls: { method: string; path: string; body?: unknown }[] = [];
     apiClient.get = async () => {
       throw new Error('local get should not run in API mode');
     };

@@ -15,7 +15,7 @@ import type {
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
-import { getEventWorkspaceState } from '@/utils/event-workspace';
+import { getEventWorkspaceState, isEventStaffWorkspaceDenied } from '@/utils/event-workspace';
 
 const logger = createLogger('useEventDetail');
 
@@ -26,6 +26,7 @@ interface EventDetailData {
   attendance: EventAttendance[];
   attendanceStats: EventAttendanceStats | null;
   currentAttendance: EventAttendance | null;
+  canManageEvent: boolean;
 }
 
 export interface UseEventDetailResult {
@@ -36,7 +37,6 @@ export interface UseEventDetailResult {
   refreshing: boolean;
   onRefresh: () => void;
   retry: () => void;
-  isCoach: boolean;
   actorRole: 'COACH' | 'PARENT' | 'ATHLETE';
   actorUserId: string;
   actorName: string;
@@ -48,7 +48,6 @@ export interface UseEventDetailResult {
   attendance: EventAttendance[];
   attendanceStats: EventAttendanceStats | null;
   currentAttendance: EventAttendance | null;
-  isCreator: boolean;
   isOrganizer: boolean;
   isEventToday: boolean;
   checkInAvailable: boolean;
@@ -57,6 +56,7 @@ export interface UseEventDetailResult {
   canShareRecap: boolean;
   handleRSVP: (status: RSVPStatus) => Promise<void>;
   handlePublish: () => Promise<void>;
+  handleSendInvites: () => Promise<void>;
   handleCancel: () => Promise<void>;
   handleSendReminder: () => Promise<void>;
   handleCheckIn: (input: CheckInInput) => Promise<void>;
@@ -67,7 +67,6 @@ export interface UseEventDetailResult {
 
 export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH';
   const actorRole =
     currentUser?.role === 'COACH'
       ? 'COACH'
@@ -84,28 +83,67 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         attendance: [],
         attendanceStats: null,
         currentAttendance: null,
+        canManageEvent: false,
       });
     }
 
     try {
-      const [event, currentRSVP, rsvps, attendance, attendanceStats, currentAttendance] =
-        await Promise.all([
-          eventService.getEvent(id),
-          eventService.getUserEventRSVP(id, currentUser.id),
+      const [event, currentRSVP, currentAttendance] = await Promise.all([
+        eventService.getEvent(id),
+        eventService.getUserEventRSVP(id, currentUser.id),
+        eventService.getUserAttendance(id, currentUser.id),
+      ]);
+
+      if (!event) {
+        return ok<EventDetailData>({
+          event,
+          currentRSVP,
+          rsvps: [],
+          attendance: [],
+          attendanceStats: null,
+          currentAttendance,
+          canManageEvent: false,
+        });
+      }
+
+      try {
+        const attendance = await eventService.getAttendeeList(id);
+        const [rsvps, attendanceStats] = await Promise.all([
           eventService.getEventRSVPs(id),
-          eventService.getAttendeeList(id),
           eventService.getAttendanceStats(id),
-          eventService.getUserAttendance(id, currentUser.id),
         ]);
 
-      return ok<EventDetailData>({
-        event,
-        currentRSVP,
-        rsvps,
-        attendance,
-        attendanceStats,
-        currentAttendance,
-      });
+        return ok<EventDetailData>({
+          event,
+          currentRSVP,
+          rsvps,
+          attendance,
+          attendanceStats,
+          currentAttendance,
+          canManageEvent: true,
+        });
+      } catch (staffWorkspaceError) {
+        if (!isEventStaffWorkspaceDenied(staffWorkspaceError)) {
+          logger.error('Failed to load event staff workspace:', staffWorkspaceError);
+          return err(
+            serviceError(
+              'UNKNOWN',
+              'Failed to load event. Pull down to refresh.',
+              staffWorkspaceError,
+            ),
+          );
+        }
+        logger.info('Event staff workspace unavailable to current actor', { eventId: id });
+        return ok<EventDetailData>({
+          event,
+          currentRSVP,
+          rsvps: [],
+          attendance: [],
+          attendanceStats: null,
+          currentAttendance,
+          canManageEvent: false,
+        });
+      }
     } catch (loadError) {
       logger.error('Failed to load event:', loadError);
       return err(
@@ -124,6 +162,9 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   } = useScreen<EventDetailData>({
     load: loadEvent,
     deps: [id, currentUser?.id],
+    dataKey: id
+      ? `event-detail:${currentUser?.id ?? 'anonymous'}:${id}`
+      : 'event-detail:missing',
     isEmpty: (value) => value.event === null,
     refetchOnFocus: true,
   });
@@ -134,6 +175,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const attendance = data?.attendance ?? [];
   const attendanceStats = data?.attendanceStats ?? null;
   const currentAttendance = data?.currentAttendance ?? null;
+  const canManageEvent = data?.canManageEvent ?? false;
 
   const handleRSVP = async (status: RSVPStatus) => {
     if (!event || !currentUser) return;
@@ -154,20 +196,63 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
     }
   };
 
+  const sendEventInvites = async (eventToInvite: ClubEvent) => {
+    if (eventToInvite.targetAudience === 'SQUAD') {
+      if (eventToInvite.squadIds?.length) {
+        await eventService.inviteSquads(eventToInvite.id, eventToInvite.squadIds);
+        return;
+      }
+      throw new Error('Select a squad before sending event invitations.');
+    }
+    if (eventToInvite.targetAudience === 'ATHLETES') {
+      if (eventToInvite.athleteIds?.length) {
+        await eventService.inviteAthletes(eventToInvite.id, eventToInvite.athleteIds);
+        return;
+      }
+      throw new Error('Select athletes before sending event invitations.');
+    }
+    if (eventToInvite.targetAudience === 'COACHES' || eventToInvite.targetAudience === 'PARENTS') {
+      throw new Error('This legacy audience cannot be invited safely.');
+    }
+    await eventService.inviteClub(eventToInvite.id);
+  };
+
   const handlePublish = async () => {
-    if (!event) return;
+    if (!event || !canManageEvent) return;
     try {
       const publishResult = await eventService.publishEvent(event.id);
       if (!publishResult.success) {
         uiFeedback.showToast(publishResult.error.message || 'Failed to publish event.', 'error');
         return;
       }
-      await eventService.inviteClub(event.id);
       onRefresh();
-      uiFeedback.showToast('Event published.', 'success');
+      try {
+        await sendEventInvites(event);
+        uiFeedback.showToast('Event published and invitations sent.', 'success');
+      } catch (inviteError) {
+        logger.error('Event published without invitation delivery:', inviteError);
+        uiFeedback.showToast(
+          'Event published. Invitations were not sent. Use Send invitations to try again.',
+          'error',
+        );
+      }
     } catch (error) {
       logger.error('Failed to publish:', error);
       uiFeedback.showToast('Failed to publish event.', 'error');
+    }
+  };
+
+  const handleSendInvites = async () => {
+    if (!event || !canManageEvent || event.status !== 'PUBLISHED') return;
+    try {
+      await sendEventInvites(event);
+      uiFeedback.showToast('Invitations sent.', 'success');
+    } catch (inviteError) {
+      logger.error('Failed to send event invitations:', inviteError);
+      uiFeedback.showToast(
+        inviteError instanceof Error ? inviteError.message : 'Could not send invitations. Please try again.',
+        'error',
+      );
     }
   };
 
@@ -201,7 +286,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   };
 
   const handleSendReminder = async () => {
-    if (!event || !isCoach) return;
+    if (!event || !canManageEvent) return;
 
     try {
       const result = await eventService.sendReminderToMaybes(event.id);
@@ -246,15 +331,8 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   };
 
   const handleOpenRecap = () => {
-    if (!event) return;
-    const isSquadAudience = event.targetAudience === 'SQUAD' && (event.squadIds?.length ?? 0) > 0;
-    router.push(
-      Routes.modalCreateClubPost({
-        clubId: event.clubId,
-        audience: isSquadAudience ? 'squad' : 'club',
-        squadId: isSquadAudience ? event.squadIds?.[0] : undefined,
-      }),
-    );
+    if (!event || event.targetAudience !== 'ALL') return;
+    router.push(Routes.modalCreateClubPost({ clubId: event.clubId }));
   };
 
   const handleOpenFullAttendance = () => {
@@ -265,11 +343,10 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const typeColor = event ? eventService.getEventTypeColor(event.eventType) : '';
   const typeIcon = event ? eventService.getEventTypeIcon(event.eventType) : '';
   const attendeeCounts = event
-    ? eventService.getAttendeeCounts(event.attendees)
+    ? (event.rsvpSummary ?? eventService.getAttendeeCounts(event.attendees))
     : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
-  const isCreator = currentUser?.id === event?.createdBy;
   const workspaceState = getEventWorkspaceState(event, rsvps);
-  const isOrganizer = isCreator || isCoach;
+  const isOrganizer = canManageEvent;
 
   return {
     event,
@@ -279,7 +356,6 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
     refreshing,
     onRefresh,
     retry,
-    isCoach,
     actorRole,
     actorUserId: currentUser?.id ?? '',
     actorName: currentUser?.name || 'Unknown',
@@ -291,15 +367,16 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
     attendance,
     attendanceStats,
     currentAttendance,
-    isCreator,
     isOrganizer,
     isEventToday: workspaceState.isEventToday,
     checkInAvailable: workspaceState.checkInAvailable,
     responseSummaryLabel: workspaceState.responseSummaryLabel,
     reminderTargetCount: workspaceState.reminderTargetCount,
-    canShareRecap: workspaceState.canShareRecap,
+    canShareRecap:
+      canManageEvent && workspaceState.canShareRecap && event?.targetAudience === 'ALL',
     handleRSVP,
     handlePublish,
+    handleSendInvites,
     handleCancel,
     handleSendReminder,
     handleCheckIn,

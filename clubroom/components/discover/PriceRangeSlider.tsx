@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, startTransition } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { PanGesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 
@@ -68,10 +68,10 @@ function createMinGesture({
         Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
       );
       minPosition.set(newPosition);
-      runOnJS(handleMinChange)(positionToValue(newPosition), false);
+      scheduleOnRN(handleMinChange, positionToValue(newPosition), false);
     })
     .onEnd(() => {
-      runOnJS(handleMinChange)(positionToValue(minPosition.value), true);
+      scheduleOnRN(handleMinChange, positionToValue(minPosition.value), true);
     });
 }
 
@@ -95,10 +95,10 @@ function createMaxGesture({
         Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
       );
       maxPosition.set(newPosition);
-      runOnJS(handleMaxChange)(positionToValue(newPosition), false);
+      scheduleOnRN(handleMaxChange, positionToValue(newPosition), false);
     })
     .onEnd(() => {
-      runOnJS(handleMaxChange)(positionToValue(maxPosition.value), true);
+      scheduleOnRN(handleMaxChange, positionToValue(maxPosition.value), true);
     });
 }
 

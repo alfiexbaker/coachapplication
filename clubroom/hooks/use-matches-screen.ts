@@ -4,6 +4,7 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { api } from '@/constants/config';
+import { isClubStaffRole } from '@/contracts/club-governance';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { matchService } from '@/services/match-service';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
@@ -11,8 +12,6 @@ import { createLogger } from '@/utils/logger';
 import type { Club, Match } from '@/constants/types';
 
 const logger = createLogger('MatchesScreen');
-const MOCK_CLUB_ID = 'club_1';
-const MOCK_CLUB_NAME = 'Club fixtures';
 
 export type MatchFilter = 'upcoming' | 'past' | 'all';
 
@@ -26,6 +25,7 @@ interface MatchesData {
   matches: Match[];
   clubId?: string;
   clubName?: string;
+  canCreateMatch: boolean;
 }
 
 export interface UseMatchesScreenResult {
@@ -38,7 +38,6 @@ export interface UseMatchesScreenResult {
   refreshing: boolean;
   onRefresh: () => void;
   retry: () => void;
-  isCoach: boolean;
   canCreateMatch: boolean;
   stats: { total: number; wins: number; draws: number; losses: number };
   groupedMatches: [string, Match[]][];
@@ -50,8 +49,6 @@ export function useMatchesScreen() {
 
   const [filter, setFilter] = useState<MatchFilter>('upcoming');
 
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-
   const loadMatches = async () => {
     try {
       const clubResult = await resolveMatchesClub();
@@ -61,20 +58,25 @@ export function useMatchesScreen() {
 
       const club = clubResult.data;
       if (!club) {
-        return ok<MatchesData>({ matches: [] });
+        return ok<MatchesData>({ matches: [], canCreateMatch: false });
       }
 
       let data: Match[];
 
       if (filter === 'upcoming') {
-        data = await matchService.getUpcomingMatches(club.id);
+        data = await matchService.getUpcomingMatches(club.club.id);
       } else if (filter === 'past') {
-        data = await matchService.getPastMatches(club.id);
+        data = await matchService.getPastMatches(club.club.id);
       } else {
-        data = await matchService.getClubMatches(club.id);
+        data = await matchService.getClubMatches(club.club.id);
       }
 
-      return ok<MatchesData>({ matches: data, clubId: club.id, clubName: club.name });
+      return ok<MatchesData>({
+        matches: data,
+        clubId: club.club.id,
+        clubName: club.club.name,
+        canCreateMatch: club.canCreateMatch,
+      });
     } catch (loadError) {
       logger.error('Failed to load matches:', loadError);
       return err(
@@ -96,7 +98,7 @@ export function useMatchesScreen() {
   const activeClubId = data?.clubId;
   const activeClubName = data?.clubName;
   const loading = status === 'loading';
-  const canCreateMatch = isCoach && Boolean(activeClubId);
+  const canCreateMatch = data?.canCreateMatch === true;
 
   const handleCreateMatch = () => {
     if (!activeClubId) {
@@ -155,7 +157,6 @@ export function useMatchesScreen() {
     refreshing,
     onRefresh,
     retry,
-    isCoach,
     canCreateMatch,
     stats,
     groupedMatches,
@@ -163,11 +164,28 @@ export function useMatchesScreen() {
   } satisfies UseMatchesScreenResult;
 }
 
-async function resolveMatchesClub(): Promise<
-  Result<Pick<Club, 'id' | 'name'> | null, ServiceError>
-> {
+interface MatchesClub {
+  club: Pick<Club, 'id' | 'name'>;
+  canCreateMatch: boolean;
+}
+
+async function resolveMatchesClub(): Promise<Result<MatchesClub | null, ServiceError>> {
   if (api.useMock) {
-    return ok({ id: MOCK_CLUB_ID, name: MOCK_CLUB_NAME });
+    const clubsResult = await clubAuthorityService.listClubs();
+    if (!clubsResult.success) {
+      return err(clubsResult.error);
+    }
+    const club = clubsResult.data.clubs[0];
+    if (!club) {
+      return ok(null);
+    }
+    const membership = clubsResult.data.memberships.find(
+      (candidate) => candidate.clubId === club.id && candidate.status === 'active',
+    );
+    return ok({
+      club,
+      canCreateMatch: Boolean(membership && isClubStaffRole(membership.role)),
+    });
   }
 
   const clubsResult = await clubAuthorityService.listClubs();
@@ -176,5 +194,6 @@ async function resolveMatchesClub(): Promise<
     return err(clubsResult.error);
   }
 
-  return ok(clubsResult.data.clubs[0] ?? null);
+  const club = clubsResult.data.clubs[0];
+  return ok(club ? { club, canCreateMatch: club.canManageMatches === true } : null);
 }

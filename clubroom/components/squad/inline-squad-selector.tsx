@@ -22,6 +22,10 @@ interface InlineSquadSelectorProps {
   multiSelect?: boolean;
   excludeStaffSquad?: boolean;
   label?: string;
+  squads?: ClubSquad[];
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export function InlineSquadSelector({
@@ -31,22 +35,37 @@ export function InlineSquadSelector({
   multiSelect = false,
   excludeStaffSquad = true,
   label = 'Select Squad',
+  squads: controlledSquads,
+  loading: controlledLoading,
+  error: controlledError,
+  onRetry,
 }: InlineSquadSelectorProps) {
   const { colors: palette } = useTheme();
 
-  const [squads, setSquads] = useState<ClubSquad[]>([]);
+  const [loadedSquads, setLoadedSquads] = useState<ClubSquad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isControlled = controlledSquads !== undefined;
+  const visibleSquads = controlledSquads ?? loadedSquads;
+  const visibleLoading = controlledLoading ?? loading;
+  const visibleError = controlledError ?? error;
 
   const retryLoadSquads = () => {
-    void loadInlineSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+    if (onRetry) {
+      onRetry();
+      return;
+    }
+    void loadInlineSquads(clubId, excludeStaffSquad, setLoadedSquads, setLoading, setError);
   };
 
   useEffect(() => {
+    if (isControlled) {
+      return;
+    }
     startTransition(() => {
-      void loadInlineSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+      void loadInlineSquads(clubId, excludeStaffSquad, setLoadedSquads, setLoading, setError);
     });
-  }, [clubId, excludeStaffSquad]);
+  }, [clubId, excludeStaffSquad, isControlled]);
 
   const toggleSquad = (squadId: string) => {
     if (multiSelect) {
@@ -59,7 +78,7 @@ export function InlineSquadSelector({
     }
   };
 
-  if (loading) {
+  if (visibleLoading) {
     return (
       <View style={styles.loading}>
         <ThemedText style={{ ...Typography.small, color: palette.muted }}>
@@ -69,13 +88,13 @@ export function InlineSquadSelector({
     );
   }
 
-  if (error) {
+  if (visibleError) {
     return (
       <Clickable onPress={retryLoadSquads} style={styles.error}>
         <Row align="center" gap="xs">
           <Ionicons name="alert-circle" size={16} color={palette.error} />
           <ThemedText style={{ ...Typography.small, color: palette.error }}>
-            {error}. Tap to retry.
+            {visibleError}. Tap to retry.
           </ThemedText>
         </Row>
       </Clickable>
@@ -86,7 +105,7 @@ export function InlineSquadSelector({
     <View style={styles.container}>
       {label && <ThemedText style={styles.label}>{label}</ThemedText>}
       <Row wrap gap="xs">
-        {squads.map((squad) => {
+        {visibleSquads.map((squad) => {
           const isSelected = selectedSquadIds.includes(squad.id);
           return (
             <Clickable

@@ -9,6 +9,9 @@ import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
 import { injuryService } from '../../services/injury-service';
+import { authService } from '../../services/auth-service';
+import { apiClient } from '../../services/api-client';
+import { STORAGE_KEYS } from '../../constants/storage-keys';
 import type {
   Injury,
   InjurySeverity,
@@ -40,7 +43,7 @@ describe('Injury Service', () => {
       assert.strictEqual(injury.status, 'ACTIVE');
       assert.strictEqual(injury.recoveryPercent, 0);
       assert.strictEqual(injury.userId, 'test_user');
-      assert.strictEqual(injury.sharedWithCoach, true);
+      assert.strictEqual(injury.sharedWithCoach, false);
       assert.deepStrictEqual(injury.notes, []);
       assert.ok(injury.createdAt);
       assert.ok(injury.updatedAt);
@@ -63,7 +66,7 @@ describe('Injury Service', () => {
       assert.strictEqual(injury.sharedWithCoach, false);
     });
 
-    test('should set sharedWithCoach to true by default', async () => {
+    test('should keep injuries private from coaches by default', async () => {
       const input: LogInjuryInput = {
         bodyPart: 'HEAD',
         description: 'Minor headache',
@@ -73,7 +76,7 @@ describe('Injury Service', () => {
 
       const injury = await injuryService.logInjury('test_user', input);
 
-      assert.strictEqual(injury.sharedWithCoach, true);
+      assert.strictEqual(injury.sharedWithCoach, false);
     });
   });
 
@@ -131,6 +134,17 @@ describe('Injury Service', () => {
       const injury = await injuryService.getInjuryById('non_existent');
 
       assert.strictEqual(injury, null);
+    });
+
+    test('allows a parent when the persisted session carries the linked child', async () => {
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+        id: 'user4',
+        children: [{ childId: 'user1' }],
+      });
+
+      const injury = await injuryService.getInjuryByIdForActor('injury_1', 'user4');
+
+      assert.strictEqual(injury?.id, 'injury_1');
     });
   });
 
@@ -192,6 +206,7 @@ describe('Injury Service', () => {
       assert.strictEqual(newNote.injuryId, 'injury_1');
       assert.strictEqual(newNote.note, 'Feeling better today');
       assert.strictEqual(newNote.createdBy, 'user1');
+      assert.strictEqual(newNote.createdByName, 'Tom Henderson');
       assert.strictEqual(newNote.recoveryPercent, 70);
     });
 
@@ -300,6 +315,37 @@ describe('Injury Service', () => {
       athleteInjuries.forEach((injury) => {
         assert.strictEqual(injury.sharedWithCoach, true);
       });
+    });
+
+    test('allows a verified assigned coach to open shared injuries but not private ones', async (t) => {
+      const originalGetCurrentUser = authService.getCurrentUser;
+      authService.getCurrentUser = async () => ({
+        id: 'coach1',
+        email: 'coach@example.test',
+        accountType: 'COACH',
+        firstName: 'Coach',
+        lastName: 'One',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      });
+      t.after(() => {
+        authService.getCurrentUser = originalGetCurrentUser;
+      });
+
+      const shared = await injuryService.getInjuryByIdForActor('injury_1', 'coach1');
+      assert.strictEqual(shared?.id, 'injury_1');
+
+      const privateInjury = await injuryService.logInjury('user1', {
+        bodyPart: 'NECK',
+        description: 'Private medical note',
+        severity: 'MINOR',
+        occurredAt: new Date().toISOString(),
+        sharedWithCoach: false,
+      });
+      const privateDetail = await injuryService.getInjuryByIdForActor(privateInjury.id, 'coach1');
+      assert.strictEqual(privateDetail, null);
     });
   });
 

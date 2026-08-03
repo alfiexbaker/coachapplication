@@ -1,23 +1,32 @@
-import { useEffect, useState, startTransition } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+
 import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { Booking } from '@/constants/types';
 import { bookingService } from '@/services/booking-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { safeguardingService } from '@/services/trust';
 import type { CreateSafeguardingIncidentInput } from '@/services/trust/safeguarding-service';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/use-auth';
+import { useRequiredParam } from '@/hooks/use-required-param';
+import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import {
@@ -30,6 +39,7 @@ import { bookingCommunicationsService } from '@/services/booking-communications-
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ReportProblem');
+const MIN_DETAILS_LENGTH = 10;
 
 type ProblemCategory = {
   id: string;
@@ -37,9 +47,16 @@ type ProblemCategory = {
   label: string;
 };
 
+type SupportContext = {
+  booking: Booking;
+  supportLabel: string;
+};
+
+type LoadState = 'loading' | 'ready' | 'unavailable' | 'error';
+
 const problemCategories: ProblemCategory[] = [
   { id: 'coach-late', icon: 'time-outline', label: 'Coach was late' },
-  { id: 'coach-noshow', icon: 'close-circle-outline', label: "Coach didn't show up" },
+  { id: 'coach-noshow', icon: 'close-circle-outline', label: "Coach didn't arrive" },
   { id: 'location-issue', icon: 'location-outline', label: 'Location problem' },
   { id: 'quality', icon: 'star-outline', label: 'Session quality' },
   { id: 'safety', icon: 'shield-outline', label: 'Safety concern' },
@@ -52,48 +69,71 @@ const getApiReportCategory = (categoryId: string): CreateSafeguardingIncidentInp
 const getApiReportSeverity = (categoryId: string): CreateSafeguardingIncidentInput['severity'] =>
   categoryId === 'safety' ? 'high' : 'medium';
 
+function getErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object' || !('code' in error)) {
+    return undefined;
+  }
+  return typeof error.code === 'string' ? error.code : undefined;
+}
+
+function isPermanentBookingFailure(error: unknown): boolean {
+  return ['UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND'].includes(getErrorCode(error) ?? '');
+}
+
 export default function ReportProblemScreen() {
   const { colors: palette } = useTheme();
-  const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const currentUserRole = currentUser?.role;
+  const bookingParam = useRequiredParam('bookingId');
+  const bookingId = bookingParam.valid ? bookingParam.value : undefined;
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [supportContext, setSupportContext] = useState<{
-    supportLabel: string;
-    helperText: string;
-    reviewCopy: string;
-  } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [supportContext, setSupportContext] = useState<SupportContext | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>(bookingId ? 'loading' : 'unavailable');
 
-  useEffect(() => {
-    if (!bookingId) {
-      startTransition(() => {
-        setSupportContext(null);
-      });
+  const loadSupportContext = useCallback(async () => {
+    if (authLoading) {
+      setLoadState('loading');
+      return;
+    }
+    if (
+      !bookingId ||
+      !currentUserRole ||
+      currentUserRole === 'COACH' ||
+      currentUserRole === 'ADMIN'
+    ) {
+      setSupportContext(null);
+      setLoadState('unavailable');
       return;
     }
 
-    let cancelled = false;
+    setSupportContext(null);
+    setLoadState('loading');
 
-    void (async () => {
+    try {
       const booking = await bookingService.getBooking(bookingId);
-      if (!booking || cancelled) {
-        if (!cancelled) {
-          setSupportContext(null);
-        }
+      if (!booking) {
+        setLoadState('unavailable');
         return;
       }
 
       let organizationLabel: string | null = null;
       if (booking.actingAs === 'club' && booking.clubId) {
         const clubResult = await clubAuthorityService.getClubById(booking.clubId);
-        if (!cancelled) {
-          const club = clubResult.success ? clubResult.data : null;
-          organizationLabel = club?.name || safeDisplayLabel(booking.clubId, 'Club session');
+        if (!clubResult.success) {
+          logger.warn('Failed to load club support context for booking report', {
+            bookingId,
+            clubId: booking.clubId,
+            error: clubResult.error.message,
+          });
+          setLoadState('error');
+          return;
         }
+        organizationLabel = clubResult.data.name || safeDisplayLabel(booking.clubId, 'Club');
       }
-
-      if (cancelled) return;
 
       const deliveryLabel =
         booking.coachName ||
@@ -107,64 +147,62 @@ export default function ReportProblemScreen() {
       });
 
       setSupportContext({
+        booking,
         supportLabel: relationshipContext.supportLabel,
-        helperText: relationshipContext.supportSummary,
-        reviewCopy:
-          relationshipContext.organizationLabel &&
-          relationshipContext.commercialMode === 'ORG_OWNED'
-            ? `${relationshipContext.supportLabel} will review this report and coordinate the follow-up.`
-            : `${relationshipContext.supportLabel} will review this report and handle the next step with you.`,
       });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bookingId]);
-
-  const headerCopy = (() => {
-    if (!supportContext) {
-      return 'Help us improve by reporting any issues with your session';
+      setLoadState('ready');
+    } catch (error) {
+      logger.warn('Booking support context is unavailable', { bookingId, error });
+      setSupportContext(null);
+      setLoadState(isPermanentBookingFailure(error) ? 'unavailable' : 'error');
     }
-    return `Report a session issue to ${supportContext.supportLabel}`;
-  })();
+  }, [authLoading, bookingId, currentUserRole]);
+
+  useEffect(() => {
+    void loadSupportContext();
+  }, [loadSupportContext]);
+
+  const trimmedDescription = description.trim();
+  const supportDestination =
+    supportContext?.supportLabel === 'Coach'
+      ? 'the booking coach'
+      : supportContext?.supportLabel;
+  const canSubmit =
+    loadState === 'ready' &&
+    Boolean(supportContext) &&
+    Boolean(selectedCategory) &&
+    trimmedDescription.length >= MIN_DETAILS_LENGTH &&
+    !submitting;
 
   const handleSubmit = async () => {
-    if (!selectedCategory || !description.trim()) {
-      uiFeedback.showToast('Please select a category and provide a description', 'error');
+    if (!canSubmit || !supportContext || !selectedCategory || !bookingId) {
       return;
     }
 
-    if (description.trim().length < 10) {
-      uiFeedback.showToast('Please provide more details about the issue');
-      return;
-    }
-
+    setSubmitError(null);
     setSubmitting(true);
 
     return await runAsyncTryCatchFinally(
       async () => {
-        const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
-        let incidentId: string | undefined;
+        const booking = supportContext.booking;
         const selectedCategoryConfig = problemCategories.find(
           (category) => category.id === selectedCategory,
         );
-        const categoryLabel = selectedCategoryConfig?.label ?? selectedCategory;
+        const categoryLabel = selectedCategoryConfig?.label ?? 'Booking issue';
+        let incidentId: string | undefined;
 
         if (!apiClient.isMockMode) {
           const incidentResult = await safeguardingService.createIncident({
-            athleteId: booking?.athleteIds?.[0] ?? booking?.athleteId,
-            bookingId: bookingId || booking?.id,
+            athleteId: booking.athleteIds?.[0] ?? booking.athleteId,
+            bookingId,
             category: getApiReportCategory(selectedCategory),
             severity: getApiReportSeverity(selectedCategory),
-            summary: booking
-              ? `${categoryLabel} reported for ${getBookingServiceLabel(booking)}`
-              : `${categoryLabel} reported from booking support flow`,
-            details: `Category: ${selectedCategory}\n\n${description.trim()}`,
+            summary: `${categoryLabel} reported for ${getBookingServiceLabel(booking)}`,
+            details: `Issue type: ${categoryLabel}\n\n${trimmedDescription}`,
           });
 
           if (!incidentResult.success) {
-            uiFeedback.showToast(incidentResult.error.message, 'error');
+            setSubmitError(incidentResult.error.message);
             return;
           }
 
@@ -173,9 +211,9 @@ export default function ReportProblemScreen() {
 
         const newReport = {
           id: incidentId ?? `report_${Date.now()}`,
-          bookingId: bookingId || 'unknown',
+          bookingId,
           category: selectedCategory,
-          description: description.trim(),
+          description: trimmedDescription,
           status: 'pending',
           createdAt: new Date().toISOString(),
           ...(incidentId ? { incidentId } : {}),
@@ -192,31 +230,31 @@ export default function ReportProblemScreen() {
 
         emitTyped(ServiceEvents.PROBLEM_REPORT_CREATED, {
           reportId: newReport.id,
-          bookingId: newReport.bookingId,
-          clubId: booking?.clubId,
+          bookingId,
+          clubId: booking.clubId,
         });
 
-        if (booking) {
+        const communicationResult =
           await bookingCommunicationsService.notifySupportIssueReported({
             booking,
             category: selectedCategory,
-            description: description.trim(),
+            description: trimmedDescription,
+          });
+        if (!communicationResult.success) {
+          logger.warn('Problem report was saved but mock notification routing failed', {
+            reportId: newReport.id,
+            bookingId,
+            error: communicationResult.error.message,
           });
         }
 
         logger.info('Report submitted', { category: selectedCategory, bookingId });
-
-        uiFeedback.showToast(
-          supportContext
-            ? `Thanks. ${supportContext.supportLabel} will review your report within 24 hours.`
-            : 'Thank you for your feedback. We will review your report within 24 hours.',
-          'success',
-        );
+        uiFeedback.showToast(`Report sent to ${supportDestination}.`, 'success');
         router.back();
       },
       async (error) => {
         logger.error('Failed to submit report', error);
-        uiFeedback.showToast('Failed to submit report. Please try again.', 'error');
+        setSubmitError('Report not sent. Try again.');
       },
       () => {
         setSubmitting(false);
@@ -224,128 +262,190 @@ export default function ReportProblemScreen() {
     );
   };
 
+  const renderStateShell = (content: ReactNode) => (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['bottom']}
+    >
+      <View style={styles.stateContent}>{content}</View>
+    </SafeAreaView>
+  );
+
+  if (!bookingId || loadState === 'unavailable') {
+    return renderStateShell(
+      <EmptyState
+        context="bookings"
+        title="Booking unavailable"
+        message="This session is not available to your account."
+        actionLabel="Back to bookings"
+        onPressAction={() => router.replace(Routes.BOOKINGS)}
+      />,
+    );
+  }
+
+  if (loadState === 'loading') {
+    return renderStateShell(
+      <LoadingState variant="form" accessibilityLabel="Loading booking report" />,
+    );
+  }
+
+  if (loadState === 'error' || !supportContext) {
+    return renderStateShell(
+      <ErrorState
+        title="Could not load this booking"
+        message="Check your connection and try again."
+        onRetry={() => void loadSupportContext()}
+      />,
+    );
+  }
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
+      edges={['bottom']}
     >
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        {/* Header */}
-        <ThemedView style={styles.header}>
-          <ThemedText type="subtitle" style={styles.subtitle}>
-            {headerCopy}
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <ThemedText style={[styles.destination, { color: palette.muted }]}>
+            Sent to {supportDestination}
           </ThemedText>
-        </ThemedView>
 
-        {supportContext ? (
-          <SurfaceCard style={[styles.infoBox, { backgroundColor: palette.border }]}>
-            <Row align="start" gap="sm">
-              <Ionicons name="shield-checkmark-outline" size={20} color={palette.foreground} />
-              <ThemedText style={styles.infoText}>{supportContext.helperText}</ThemedText>
-            </Row>
-          </SurfaceCard>
-        ) : null}
-
-        {/* Category Selection */}
-        <View style={styles.section}>
-          <ThemedText style={styles.label}>What went wrong?</ThemedText>
-          <Row style={styles.categoriesGrid}>
-            {problemCategories.map((category) => {
-              const isSelected = selectedCategory === category.id;
-              return (
-                <Clickable
-                  key={category.id}
-                  onPress={() => setSelectedCategory(category.id)}
-                  style={({ pressed }) => [pressed && { opacity: 0.7 }]}
-                >
-                  <SurfaceCard
-                    style={[
-                      styles.categoryCard,
-                      isSelected && {
-                        borderColor: palette.tint,
-                        borderWidth: 2,
-                        backgroundColor: withAlpha(palette.tint, 0.06),
+          <View style={styles.section}>
+            <ThemedText style={styles.label}>What happened?</ThemedText>
+            <View style={styles.categoryList}>
+              {problemCategories.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                return (
+                  <Clickable
+                    key={category.id}
+                    onPress={() => {
+                      setSelectedCategory(category.id);
+                      setSubmitError(null);
+                    }}
+                    accessibilityLabel={category.label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: isSelected }}
+                    style={({ pressed }) => [
+                      styles.categoryRow,
+                      {
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        backgroundColor: isSelected
+                          ? withAlpha(palette.tint, 0.08)
+                          : palette.surface,
                       },
+                      pressed && { opacity: 0.72 },
                     ]}
                   >
                     <Ionicons
                       name={category.icon}
-                      size={28}
-                      color={isSelected ? palette.tint : palette.foreground}
+                      size={20}
+                      color={isSelected ? palette.tint : palette.icon}
                     />
                     <ThemedText
                       style={[
                         styles.categoryLabel,
-                        isSelected && { color: palette.tint, fontWeight: '600' },
+                        { color: isSelected ? palette.tint : palette.foreground },
                       ]}
                     >
                       {category.label}
                     </ThemedText>
-                  </SurfaceCard>
-                </Clickable>
-              );
-            })}
-          </Row>
-        </View>
+                    {isSelected ? (
+                      <Ionicons name="checkmark" size={20} color={palette.tint} />
+                    ) : null}
+                  </Clickable>
+                );
+              })}
+            </View>
+          </View>
 
-        {/* Description */}
-        <View style={styles.section}>
-          <ThemedText style={styles.label}>Please describe the issue</ThemedText>
-          <SurfaceCard style={styles.inputCard}>
+          <View style={styles.section}>
+            <ThemedText style={styles.label}>Details</ThemedText>
             <TextInput
               value={description}
-              onChangeText={setDescription}
-              placeholder="Tell us what happened..."
+              onChangeText={(value) => {
+                setDescription(value);
+                setSubmitError(null);
+              }}
+              accessibilityLabel="Issue details"
+              placeholder="Describe what happened"
               placeholderTextColor={palette.muted}
               multiline
               numberOfLines={6}
               textAlignVertical="top"
-              style={[styles.textArea, { color: palette.foreground }]}
+              style={[
+                styles.textArea,
+                {
+                  color: palette.foreground,
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                },
+              ]}
               maxLength={500}
             />
-          </SurfaceCard>
-          <ThemedText style={styles.helper}>{description.length} / 500 characters</ThemedText>
-        </View>
-
-        {/* Info Box */}
-        <SurfaceCard style={[styles.infoBox, { backgroundColor: palette.border }]}>
-          <Row align="start" gap="sm">
-            <Ionicons name="information-circle" size={20} color={palette.foreground} />
-            <ThemedText style={styles.infoText}>
-              {supportContext?.reviewCopy ||
-                'Reports are reviewed within 24 hours. Serious issues will be addressed immediately.'}
+            <ThemedText style={[styles.helper, { color: palette.muted }]}>
+              {description.length}/500 · Minimum {MIN_DETAILS_LENGTH}
             </ThemedText>
-          </Row>
-        </SurfaceCard>
-      </ScrollView>
+          </View>
 
-      {/* Submit Button */}
-      <View
-        style={[
-          styles.footer,
-          { backgroundColor: palette.background, borderTopColor: palette.border },
-        ]}
-      >
-        <Clickable
-          onPress={handleSubmit}
-          disabled={!selectedCategory || !description.trim() || submitting}
-          accessibilityLabel="Submit problem report"
-          style={({ pressed }) => [
-            styles.submitButton,
-            { backgroundColor: palette.tint },
-            (!selectedCategory || !description.trim() || submitting) && { opacity: 0.5 },
-            pressed && { opacity: 0.8 },
+          {selectedCategory === 'safety' ? (
+            <View
+              style={[
+                styles.safetyNotice,
+                {
+                  borderColor: withAlpha(palette.warning, 0.36),
+                  backgroundColor: withAlpha(palette.warning, 0.08),
+                },
+              ]}
+            >
+              <Ionicons name="warning-outline" size={20} color={palette.warning} />
+              <ThemedText style={styles.safetyText}>
+                If anyone is in immediate danger, contact emergency services.
+              </ThemedText>
+            </View>
+          ) : null}
+        </ScrollView>
+
+        <View
+          style={[
+            styles.footer,
+            { backgroundColor: palette.background, borderTopColor: palette.border },
           ]}
         >
-          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
-            {submitting ? 'Submitting...' : 'Submit Report'}
-          </ThemedText>
-        </Clickable>
-      </View>
+          {submitError ? (
+            <ThemedText
+              accessibilityRole="alert"
+              style={[styles.submitError, { color: palette.error }]}
+            >
+              {submitError}
+            </ThemedText>
+          ) : null}
+          <Clickable
+            onPress={handleSubmit}
+            disabled={!canSubmit}
+            accessibilityLabel="Send report"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSubmit, busy: submitting }}
+            style={({ pressed }) => [
+              styles.submitButton,
+              { backgroundColor: palette.tint },
+              !canSubmit && { opacity: 0.45 },
+              pressed && canSubmit && { opacity: 0.8 },
+            ]}
+          >
+            <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
+              {submitting ? 'Sending…' : 'Send report'}
+            </ThemedText>
+          </Clickable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -354,69 +454,78 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  stateContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   scrollContent: {
     padding: Spacing.lg,
     gap: Spacing.lg,
   },
-  header: {
-    gap: Spacing.xs,
-  },
-  subtitle: {
+  destination: {
     ...Typography.bodySmall,
-    opacity: 0.6,
   },
   section: {
     gap: Spacing.sm,
   },
   label: {
     ...Typography.bodySemiBold,
-    paddingLeft: Spacing.xs,
   },
-  categoriesGrid: {
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  categoryCard: {
-    width: '100%',
-    padding: Spacing.md,
-    alignItems: 'center',
+  categoryList: {
     gap: Spacing.xs,
-    minWidth: 110,
+  },
+  categoryRow: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
   },
   categoryLabel: {
-    ...Typography.caption,
-    textAlign: 'center',
-  },
-  inputCard: {
-    padding: Spacing.md,
+    ...Typography.body,
+    flex: 1,
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 136,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radii.md,
     ...Typography.body,
   },
   helper: {
     ...Typography.caption,
-    opacity: 0.6,
-    paddingLeft: Spacing.xs,
+    textAlign: 'right',
   },
-  infoBox: {
+  safetyNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
     padding: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Radii.md,
   },
-  infoText: {
+  safetyText: {
+    ...Typography.bodySmall,
     flex: 1,
-    ...Typography.small,
-    opacity: 0.8,
   },
   footer: {
+    gap: Spacing.sm,
     padding: Spacing.lg,
     borderTopWidth: 1,
   },
+  submitError: {
+    ...Typography.bodySmall,
+  },
   submitButton: {
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
+    minHeight: 52,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: Radii.md,
   },
   submitText: {
-    ...Typography.subheading,
+    ...Typography.bodySemiBold,
   },
 });

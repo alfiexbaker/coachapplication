@@ -9,6 +9,7 @@ import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 
@@ -27,6 +28,8 @@ import {
   ROLE_LABELS,
   type PendingClubInvite,
 } from '@/hooks/use-coach-invites';
+
+const USE_MOCK = api.useMock;
 
 export default function CoachInvitesScreen() {
   const { colors: palette } = useTheme();
@@ -139,8 +142,8 @@ export default function CoachInvitesScreen() {
         icon="shield-outline"
         title="No pending invites"
         message="When you enter a club invite code, the invitation will appear here for you to review and accept."
-        actionLabel="Go to Club Hub"
-        onPressAction={() => router.push(Routes.CLUB_HUB)}
+        actionLabel={USE_MOCK ? 'Club Hub' : 'My Clubs'}
+        onPressAction={() => router.push(USE_MOCK ? Routes.CLUB_HUB : Routes.MY_CLUBS)}
       />,
       'No pending invites',
     );

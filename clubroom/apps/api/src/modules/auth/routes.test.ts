@@ -88,6 +88,46 @@ describe('auth routes', () => {
     assert.equal(mePayload.user.firstName, 'Amelia');
   });
 
+  it('returns the canonical linked athlete identity instead of deriving it from the user id', async () => {
+    const login = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: 'alex.barton@clubroom.demo',
+        password: 'user',
+      },
+    });
+
+    assert.equal(login.statusCode, 200);
+    const payload = login.json() as {
+      user: {
+        id: string;
+        athleteId?: string;
+        athleteName?: string;
+        accountType: string;
+      };
+      tokens: { accessToken: string };
+    };
+    assert.equal(payload.user.accountType, 'ATHLETE');
+    assert.equal(payload.user.athleteId, 'ath_7df7ec13-e136-7525-985f-dec069fc983f');
+    assert.equal(payload.user.athleteName, 'Alfie Barton');
+    assert.notEqual(payload.user.athleteId, `ath_${payload.user.id.replace(/^usr_/, '')}`);
+
+    const me = await app.inject({
+      method: 'GET',
+      url: '/v1/auth/me',
+      headers: {
+        authorization: `Bearer ${payload.tokens.accessToken}`,
+      },
+    });
+    assert.equal(me.statusCode, 200);
+    const mePayload = me.json() as {
+      user: { athleteId?: string; athleteName?: string };
+    };
+    assert.equal(mePayload.user.athleteId, payload.user.athleteId);
+    assert.equal(mePayload.user.athleteName, payload.user.athleteName);
+  });
+
   it('refreshes a JWT session and keeps the session usable', async () => {
     const login = await app.inject({
       method: 'POST',
@@ -173,6 +213,7 @@ describe('auth routes', () => {
       },
       payload: {
         email: nextEmail.toUpperCase(),
+        phone: '+44 7700 900123',
         city: 'London',
         postcode: 'SW1A 1AA',
         isVerified: true,
@@ -183,6 +224,7 @@ describe('auth routes', () => {
     const patchPayload = patch.json() as {
       user: {
         email: string;
+        phone?: string;
         city?: string;
         postcode?: string;
         isVerified: boolean;
@@ -190,6 +232,7 @@ describe('auth routes', () => {
       };
     };
     assert.equal(patchPayload.user.email, nextEmail);
+    assert.equal(patchPayload.user.phone, '+44 7700 900123');
     assert.equal(patchPayload.user.city, 'London');
     assert.equal(patchPayload.user.postcode, 'SW1A 1AA');
     assert.equal(patchPayload.user.isVerified, false);
@@ -236,10 +279,116 @@ describe('auth routes', () => {
     assert.ok(denyAudit, 'expected denied profile update audit');
     assert.deepEqual(
       [...((successAudit.metadataJson as { changedFields?: string[] }).changedFields ?? [])].sort(),
-      ['city', 'email', 'onboardingComplete', 'postcode'],
+      ['city', 'email', 'onboardingComplete', 'phone', 'postcode'],
     );
     assert.equal(JSON.stringify(profileUpdateAudits).includes(nextEmail), false);
     assert.equal(JSON.stringify(profileUpdateAudits).includes('amelia.shaw@clubroom.demo'), false);
+    assert.equal(JSON.stringify(profileUpdateAudits).includes('+44 7700 900123'), false);
+  });
+
+  it('verifies email with a hashed one-use verification token', async () => {
+    const originalTokenEcho = process.env.API_EMAIL_VERIFICATION_TOKEN_RESPONSE;
+    process.env.API_EMAIL_VERIFICATION_TOKEN_RESPONSE = '1';
+    const email = `verify_${Date.now()}@clubroom.demo`;
+    try {
+      const register = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/register',
+        payload: {
+          email,
+          password: 'securePass123',
+          accountType: 'COACH',
+          firstName: 'Verify',
+          lastName: 'Coach',
+        },
+      });
+      assert.equal(register.statusCode, 201);
+      const registerPayload = register.json() as {
+        emailVerificationToken?: string;
+        user: { id: string; isVerified: boolean };
+        tokens: { accessToken: string };
+      };
+      assert.equal(registerPayload.user.isVerified, false);
+      const emailVerificationToken = registerPayload.emailVerificationToken;
+      assert.match(emailVerificationToken ?? '', /^\d{6}$/);
+      if (!emailVerificationToken) {
+        assert.fail('registration should echo email verification token in test mode');
+      }
+
+      const tokenRows = asRows(getMarketplaceSeedStore().tables.emailVerificationTokens);
+      assert.equal(tokenRows.length, 1);
+      assert.equal(asString(tokenRows[0]?.userId), registerPayload.user.id);
+      assert.equal(asString(tokenRows[0]?.email), email);
+      assert.equal(asString(tokenRows[0]?.tokenHash)?.length, 64);
+      assert.equal(JSON.stringify(tokenRows).includes(emailVerificationToken), false);
+
+      const denied = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/verify-email',
+        headers: {
+          authorization: `Bearer ${registerPayload.tokens.accessToken}`,
+        },
+        payload: {
+          code: '000000',
+        },
+      });
+      assert.equal(denied.statusCode, 400);
+
+      const verification = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/verify-email',
+        headers: {
+          authorization: `Bearer ${registerPayload.tokens.accessToken}`,
+        },
+        payload: {
+          code: emailVerificationToken,
+        },
+      });
+      assert.equal(verification.statusCode, 200);
+      const verificationPayload = verification.json() as { user: { isVerified: boolean } };
+      assert.equal(verificationPayload.user.isVerified, true);
+      assert.equal(asString(tokenRows[0]?.usedAt) !== undefined, true);
+
+      const me = await app.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          authorization: `Bearer ${registerPayload.tokens.accessToken}`,
+        },
+      });
+      assert.equal(me.statusCode, 200);
+      const mePayload = me.json() as { user: { isVerified: boolean } };
+      assert.equal(mePayload.user.isVerified, true);
+
+      const emailPatch = await app.inject({
+        method: 'PATCH',
+        url: '/v1/auth/me',
+        headers: {
+          authorization: `Bearer ${registerPayload.tokens.accessToken}`,
+        },
+        payload: {
+          email: `changed_${Date.now()}@clubroom.demo`,
+          isVerified: true,
+        },
+      });
+      assert.equal(emailPatch.statusCode, 200);
+      const emailPatchPayload = emailPatch.json() as { user: { isVerified: boolean } };
+      assert.equal(emailPatchPayload.user.isVerified, false);
+
+      const audits = asRows(getMarketplaceSeedStore().tables.auditEvents).filter(
+        (row) => asString(row.action) === 'auth.verify_email',
+      );
+      assert.equal(audits.length, 2);
+      assert.equal(asString(audits[0]?.result), 'DENY');
+      assert.equal(asString(audits[1]?.result), 'SUCCESS');
+      assert.equal(JSON.stringify(audits).includes(emailVerificationToken), false);
+    } finally {
+      if (originalTokenEcho === undefined) {
+        delete process.env.API_EMAIL_VERIFICATION_TOKEN_RESPONSE;
+      } else {
+        process.env.API_EMAIL_VERIFICATION_TOKEN_RESPONSE = originalTokenEcho;
+      }
+    }
   });
 
   it('revokes bearer sessions on logout and explicit revoke', async () => {
@@ -422,11 +571,78 @@ describe('auth routes', () => {
     }
   });
 
+  it('does not echo reset tokens outside test or dev-outbox mode', async () => {
+    const previousEcho = process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousDevOutbox = process.env.API_PASSWORD_RESET_DEV_OUTBOX;
+    process.env.NODE_ENV = 'production';
+    process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = '1';
+    process.env.API_PASSWORD_RESET_DEV_OUTBOX = 'true';
+
+    try {
+      const forgot = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+        },
+      });
+      assert.equal(forgot.statusCode, 204);
+      assert.equal(forgot.body, '');
+    } finally {
+      if (previousEcho == null) {
+        delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+      } else {
+        process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = previousEcho;
+      }
+      if (previousNodeEnv == null) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+      if (previousDevOutbox == null) {
+        delete process.env.API_PASSWORD_RESET_DEV_OUTBOX;
+      } else {
+        process.env.API_PASSWORD_RESET_DEV_OUTBOX = previousDevOutbox;
+      }
+    }
+  });
+
+  it('does not echo reset tokens in test mode unless explicitly requested', async () => {
+    const previousEcho = process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'test';
+    delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+
+    try {
+      const forgot = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+        },
+      });
+      assert.equal(forgot.statusCode, 204);
+      assert.equal(forgot.body, '');
+    } finally {
+      if (previousEcho == null) {
+        delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+      } else {
+        process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = previousEcho;
+      }
+      if (previousNodeEnv == null) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    }
+  });
+
   it('delivers password reset links through the configured email webhook', async () => {
-    const deliveries: Array<{
+    const deliveries: {
       authorization?: string;
       body: Record<string, unknown>;
-    }> = [];
+    }[] = [];
     const deliveryServer = http.createServer((req, res) => {
       let raw = '';
       req.setEncoding('utf8');
@@ -449,11 +665,13 @@ describe('auth routes', () => {
     const previousWebhookSecret = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET;
     const previousFrom = env.API_PASSWORD_RESET_EMAIL_FROM;
     const previousLinkBase = env.API_PASSWORD_RESET_LINK_BASE;
+    const previousEcho = process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
 
     env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = `http://127.0.0.1:${address.port}/password-reset`;
     env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = 'reset-webhook-secret';
     env.API_PASSWORD_RESET_EMAIL_FROM = 'support@clubroom.test';
     env.API_PASSWORD_RESET_LINK_BASE = 'https://app.clubroom.test/reset-password';
+    process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = '1';
 
     try {
       const forgot = await app.inject({
@@ -471,9 +689,7 @@ describe('auth routes', () => {
       assert.equal(deliveries[0]?.body.from, 'support@clubroom.test');
       assert.equal(
         typeof deliveries[0]?.body.resetUrl === 'string' &&
-          deliveries[0].body.resetUrl.startsWith(
-            'https://app.clubroom.test/reset-password?token=',
-          ),
+          deliveries[0].body.resetUrl.startsWith('https://app.clubroom.test/reset-password?token='),
         true,
       );
 
@@ -502,20 +718,31 @@ describe('auth routes', () => {
       assert.equal(deliveries.length, 1);
 
       const auditEvents = asRows(getMarketplaceSeedStore().tables.auditEvents);
+      const passwordResetAudits = auditEvents.filter(
+        (row) => asString(row.action) === 'auth.password_reset_requested',
+      );
       assert.ok(
-        auditEvents.some(
+        passwordResetAudits.some(
           (row) =>
-            asString(row.action) === 'auth.password_reset_requested' &&
             asString(row.result) === 'SUCCESS' &&
             (row.metadataJson as { deliveryStatus?: string } | undefined)?.deliveryStatus ===
               'sent',
         ),
+      );
+      assert.doesNotMatch(
+        JSON.stringify(passwordResetAudits),
+        /amelia\.shaw@clubroom\.demo|missing\.user@clubroom\.demo/,
       );
     } finally {
       env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
       env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = previousWebhookSecret;
       env.API_PASSWORD_RESET_EMAIL_FROM = previousFrom;
       env.API_PASSWORD_RESET_LINK_BASE = previousLinkBase;
+      if (previousEcho == null) {
+        delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+      } else {
+        process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = previousEcho;
+      }
       await new Promise<void>((resolve, reject) => {
         deliveryServer.close((error) => (error ? reject(error) : resolve()));
       });
@@ -523,10 +750,10 @@ describe('auth routes', () => {
   });
 
   it('delivers password reset links through the configured Brevo API endpoint', async () => {
-    const deliveries: Array<{
+    const deliveries: {
       apiKey?: string | string[];
       body: Record<string, unknown>;
-    }> = [];
+    }[] = [];
     const deliveryServer = http.createServer((req, res) => {
       let raw = '';
       req.setEncoding('utf8');
@@ -554,6 +781,7 @@ describe('auth routes', () => {
     const previousSmtpHost = env.API_PASSWORD_RESET_SMTP_HOST;
     const previousSmtpUsername = env.API_PASSWORD_RESET_SMTP_USERNAME;
     const previousSmtpPassword = env.API_PASSWORD_RESET_SMTP_PASSWORD;
+    const previousEcho = process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
 
     env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = undefined;
     env.API_PASSWORD_RESET_BREVO_API_KEY = 'brevo-api-key';
@@ -563,6 +791,7 @@ describe('auth routes', () => {
     env.API_PASSWORD_RESET_SMTP_HOST = undefined;
     env.API_PASSWORD_RESET_SMTP_USERNAME = undefined;
     env.API_PASSWORD_RESET_SMTP_PASSWORD = undefined;
+    delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
 
     try {
       const forgot = await app.inject({
@@ -572,7 +801,8 @@ describe('auth routes', () => {
           email: 'amelia.shaw@clubroom.demo',
         },
       });
-      assert.equal(forgot.statusCode, 200);
+      assert.equal(forgot.statusCode, 204);
+      assert.equal(forgot.body, '');
       assert.equal(deliveries.length, 1);
       assert.equal(deliveries[0]?.apiKey, 'brevo-api-key');
       assert.deepEqual(deliveries[0]?.body.sender, {
@@ -605,6 +835,11 @@ describe('auth routes', () => {
       env.API_PASSWORD_RESET_SMTP_HOST = previousSmtpHost;
       env.API_PASSWORD_RESET_SMTP_USERNAME = previousSmtpUsername;
       env.API_PASSWORD_RESET_SMTP_PASSWORD = previousSmtpPassword;
+      if (previousEcho == null) {
+        delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+      } else {
+        process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = previousEcho;
+      }
       await new Promise<void>((resolve, reject) => {
         deliveryServer.close((error) => (error ? reject(error) : resolve()));
       });
@@ -691,16 +926,18 @@ describe('auth routes', () => {
         return;
       }
       res.setHeader('content-type', 'application/json');
-      res.end(JSON.stringify({
-        keys: [
-          {
-            ...publicJwk,
-            alg: 'RS256',
-            kid: 'test-key',
-            use: 'sig',
-          },
-        ],
-      }));
+      res.end(
+        JSON.stringify({
+          keys: [
+            {
+              ...publicJwk,
+              alg: 'RS256',
+              kid: 'test-key',
+              use: 'sig',
+            },
+          ],
+        }),
+      );
     });
 
     await new Promise<void>((resolve) => {
@@ -717,18 +954,22 @@ describe('auth routes', () => {
 
     try {
       const nowSec = Math.floor(Date.now() / 1000);
-      const header = encodeBase64Url(JSON.stringify({
-        alg: 'RS256',
-        kid: 'test-key',
-        typ: 'JWT',
-      }));
-      const payload = encodeBase64Url(JSON.stringify({
-        aud: 'clubroom-mobile',
-        exp: nowSec + 300,
-        iat: nowSec,
-        iss: issuer,
-        sub: 'auth0|coach-amelia',
-      }));
+      const header = encodeBase64Url(
+        JSON.stringify({
+          alg: 'RS256',
+          kid: 'test-key',
+          typ: 'JWT',
+        }),
+      );
+      const payload = encodeBase64Url(
+        JSON.stringify({
+          aud: 'clubroom-mobile',
+          exp: nowSec + 300,
+          iat: nowSec,
+          iss: issuer,
+          sub: 'auth0|coach-amelia',
+        }),
+      );
       const signedValue = `${header}.${payload}`;
       const signature = crypto.sign('RSA-SHA256', Buffer.from(signedValue), privateKey);
       const token = `${signedValue}.${signature.toString('base64url')}`;

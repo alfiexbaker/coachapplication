@@ -49,10 +49,19 @@ export default function CoachAthleteHealthScreen() {
   }
 
   if (h.status === 'error') {
+    const terminalAccessError = h.error?.code === 'NOT_FOUND' || h.error?.code === 'UNAUTHORIZED';
     return renderShell(
       <>
         {header}
-        <ErrorState message={h.error?.message ?? 'Failed to load athlete health.'} onRetry={h.retry} />
+        <ErrorState
+          title={terminalAccessError ? 'Health review unavailable' : undefined}
+          message={
+            terminalAccessError
+              ? h.error?.message ?? 'This player is not available from your roster.'
+              : h.error?.message ?? 'Failed to load athlete health.'
+          }
+          onRetry={terminalAccessError ? undefined : h.retry}
+        />
       </>,
     );
   }
@@ -86,9 +95,8 @@ export default function CoachAthleteHealthScreen() {
             <View style={styles.summaryCopy}>
               <ThemedText type="defaultSemiBold">Coach view</ThemedText>
               <ThemedText style={{ color: colors.muted }}>
-                Shared injuries, recovery notes, and current return-to-play status only. Family-only
-                notes stay outside this coach view unless they are needed for safety or a delivery
-                handoff.
+                Coach-visible injuries and return-to-play status. Use Emergency Info for time-critical
+                safety information.
               </ThemedText>
             </View>
             <View style={[styles.summaryBadge, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>
@@ -115,7 +123,7 @@ export default function CoachAthleteHealthScreen() {
           </Row>
         </SurfaceCard>
 
-        {h.timelineInjuries.length > 0 ? (
+        {h.timelineInjuries.length > 0 && (
           <View style={styles.section}>
             <ThemedText type="subtitle">Shared Injury Timeline</ThemedText>
             <ThemedText style={[styles.sectionCopy, { color: colors.muted }]}>
@@ -125,16 +133,6 @@ export default function CoachAthleteHealthScreen() {
               <InjuryCard key={injury.id} injury={injury} onPress={() => h.handleOpenInjury(injury)} />
             ))}
           </View>
-        ) : (
-          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
-              <Ionicons name="checkmark-circle-outline" size={28} color={colors.success} />
-            </View>
-            <ThemedText type="defaultSemiBold">No shared injuries</ThemedText>
-            <ThemedText style={[styles.emptyCopy, { color: colors.muted }]}>
-              This athlete currently has no coach-visible injury records.
-            </ThemedText>
-          </SurfaceCard>
         )}
       </ScrollView>
     </>
@@ -183,22 +181,5 @@ const styles = StyleSheet.create({
   },
   sectionCopy: {
     ...Typography.bodySmall,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-    borderRadius: Radii.lg,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCopy: {
-    ...Typography.bodySmall,
-    textAlign: 'center',
   },
 });

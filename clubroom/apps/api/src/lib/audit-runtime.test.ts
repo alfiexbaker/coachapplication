@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { beforeEach, describe, it } from 'node:test';
 
-import { recordAuditEvent, recordSecurityEvent } from './audit-runtime.js';
+import {
+  buildAuditSecretReference,
+  recordAuditEvent,
+  recordSecurityEvent,
+} from './audit-runtime.js';
 import {
   getMarketplaceSeedStore,
   resetMarketplaceSeedStoreForTests,
@@ -87,5 +91,18 @@ describe('audit runtime IP hashing', () => {
 
     assert.equal(metadata?.ipHash, sha256('203.0.113.25'));
     assert.notEqual(metadata?.ipHash, sha256('198.51.100.200'));
+  });
+});
+
+describe('audit secret references', () => {
+  it('creates deterministic, domain-separated references without exposing the secret', () => {
+    const rawInviteCode = 'CLUB-SECRET-123';
+    const reference = buildAuditSecretReference('invite_code', rawInviteCode);
+
+    assert.match(reference, /^invite_code:[a-f0-9]{32}$/);
+    assert.equal(reference, buildAuditSecretReference('invite_code', rawInviteCode.toLowerCase()));
+    assert.notEqual(reference, buildAuditSecretReference('invite_code', 'CLUB-SECRET-124'));
+    assert.notEqual(reference, buildAuditSecretReference('other_secret', rawInviteCode));
+    assert.equal(reference.includes(rawInviteCode), false);
   });
 });

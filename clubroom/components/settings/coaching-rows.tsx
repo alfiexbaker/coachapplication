@@ -16,6 +16,7 @@ interface StepperProps {
   step: number;
   suffix: string;
   helperText?: string;
+  disabled?: boolean;
 }
 
 export const Stepper = function Stepper({
@@ -27,10 +28,11 @@ export const Stepper = function Stepper({
   step,
   suffix,
   helperText,
+  disabled = false,
 }: StepperProps) {
   const { colors } = useTheme();
-  const canDecrement = value - step >= min;
-  const canIncrement = value + step <= max;
+  const canDecrement = !disabled && value - step >= min;
+  const canIncrement = !disabled && value + step <= max;
 
   return (
     <Row align="center" justify="space-between" style={styles.rowContainerPadding}>
@@ -43,6 +45,7 @@ export const Stepper = function Stepper({
       <Row align="center" gap="xs">
         <Clickable
           onPress={() => canDecrement && onValueChange(value - step)}
+          disabled={!canDecrement}
           style={[
             styles.stepperButton,
             { backgroundColor: colors.background },
@@ -60,6 +63,7 @@ export const Stepper = function Stepper({
         </ThemedText>
         <Clickable
           onPress={() => canIncrement && onValueChange(value + step)}
+          disabled={!canIncrement}
           style={[
             styles.stepperButton,
             { backgroundColor: colors.background },
@@ -81,6 +85,7 @@ interface ToggleRowProps {
   value: boolean;
   onValueChange: (v: boolean) => void;
   helperText?: string;
+  disabled?: boolean;
 }
 
 export const ToggleRow = function ToggleRow({
@@ -88,6 +93,7 @@ export const ToggleRow = function ToggleRow({
   value,
   onValueChange,
   helperText,
+  disabled = false,
 }: ToggleRowProps) {
   const { colors } = useTheme();
   return (
@@ -101,6 +107,9 @@ export const ToggleRow = function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
+        disabled={disabled}
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
         trackColor={{ false: colors.border, true: colors.success }}
         thumbColor={colors.surface}
       />
@@ -132,7 +141,7 @@ export const NavigationRow = function NavigationRow({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View style={styles.rowLabelArea}>
+      <View style={styles.navLabelArea}>
         {icon && (
           <View style={styles.navIconContainer}>
             <Ionicons name={icon} size={18} color={colors.muted} />
@@ -183,6 +192,13 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   rowLabelArea: { flex: 1, marginRight: Spacing.sm },
+  navLabelArea: {
+    flex: 1,
+    marginRight: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   rowLabel: { ...Typography.body },
   rowHelper: { ...Typography.small, marginTop: Spacing.micro },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.sm },
@@ -198,7 +214,7 @@ const styles = StyleSheet.create({
   },
   stepperButtonDisabled: { opacity: 0.4 },
   stepperValue: { ...Typography.bodySemiBold, minWidth: 48, textAlign: 'center' },
-  navIconContainer: { marginBottom: Spacing.micro },
+  navIconContainer: { width: 22, alignItems: 'center' },
   navRight: {
     /* layout moved to Row */
   },

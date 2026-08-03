@@ -99,7 +99,9 @@ export function InviteSessionFlow({
                       : 'Send'}
                 </ThemedText>
               </Row>
-              <View style={[styles.progressTrack, { backgroundColor: withAlpha(palette.border, 0.5) }]}>
+              <View
+                style={[styles.progressTrack, { backgroundColor: withAlpha(palette.border, 0.5) }]}
+              >
                 <View
                   style={[
                     styles.progressFill,
@@ -112,8 +114,11 @@ export function InviteSessionFlow({
             {flow.step === 'select-session' && (
               <SessionListStep
                 sessions={flow.upcomingSessions}
+                loading={flow.sessionLoading}
+                loadError={flow.sessionLoadError}
                 onSelect={flow.handleSessionSelect}
                 onCreateNew={() => flow.handleChoiceSelect('new')}
+                onRetry={flow.retryLoadUpcomingSessions}
               />
             )}
             {flow.step === 'confirm' && flow.selectedSession && (

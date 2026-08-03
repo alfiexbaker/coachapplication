@@ -1,182 +1,175 @@
-/**
- * Hook for the Create Squad modal screen.
- * Manages squad creation form state, validation, and submission.
- */
+/** Backend-authoritative state for the club squad composer. */
 
-import { useEffect, useState } from 'react';
-
+import { useEffect, useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+
 import { api } from '@/constants/config';
-import type { Club } from '@/constants/types';
+import type { Club, ClubMembership } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
+import { canManageClubUi } from '@/utils/club-ui-permissions';
+import { runAsyncFinally } from '@/utils/async-control';
 
-import { runAsyncTryCatchFinally } from '@/utils/async-control';
+export const AGE_GROUPS = ['U8', 'U10', 'U12', 'U14', 'U16', 'U18', 'Adult'] as const;
+export const SQUAD_LEVELS = ['Foundation', 'Development', 'Competitive', 'Performance'] as const;
 
-export const AGE_GROUPS = [
-  { label: 'U8', min: 5, max: 8 },
-  { label: 'U10', min: 8, max: 10 },
-  { label: 'U12', min: 10, max: 12 },
-  { label: 'U14', min: 12, max: 14 },
-  { label: 'U16', min: 14, max: 16 },
-  { label: 'U18', min: 16, max: 18 },
-  { label: 'Adults', min: 18, max: 99 },
-] as const;
+type SquadContextStatus = 'loading' | 'ready' | 'error' | 'denied' | 'empty';
 
-export type AgeGroup = (typeof AGE_GROUPS)[number];
+type SquadContext = {
+  status: SquadContextStatus;
+  club?: Club;
+  membership?: ClubMembership;
+  message?: string;
+};
 
-export const SQUAD_LEVELS = [
-  'Development',
-  'Competitive',
-  'Elite',
-  'Performance',
-  'Foundation',
-  'Fun Football',
-] as const;
-
-export const SKILL_TAGS = [
-  'Ball Mastery',
-  'Finishing',
-  'Tactics',
-  'Teamwork',
-  'Confidence',
-  'Technical',
-  'Conditioning',
-  'Goalkeeping',
-  'Match Play',
-] as const;
+function isMembershipForUser(membership: ClubMembership, userId: string): boolean {
+  const normalizedUserId = userId.replace(/^usr_/, '');
+  return membership.userId === userId || membership.userId === normalizedUserId;
+}
 
 export function useCreateSquad() {
-  const { currentUser } = useAuth();
-  const { clubId } = useLocalSearchParams<{ clubId: string }>();
-
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const { clubId } = useLocalSearchParams<{ clubId?: string }>();
   const [squadName, setSquadName] = useState('');
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState<AgeGroup | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState('');
-  const [meetLocation, setMeetLocation] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [club, setClub] = useState<Club | null>(null);
-  const [clubLoadError, setClubLoadError] = useState<string | null>(null);
-  const [isLoadingClub, setIsLoadingClub] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [contextRequest, setContextRequest] = useState(0);
+  const [squadContext, setSquadContext] = useState<SquadContext>({ status: 'loading' });
+  const submissionInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
 
-    const loadClub = async () => {
-      setIsLoadingClub(true);
-      setClubLoadError(null);
-
+    const resolveContext = (clubs: Club[], memberships: ClubMembership[], userId: string) => {
       if (!clubId) {
-        setClub(null);
-        setClubLoadError('Club not found');
-        setIsLoadingClub(false);
+        setSquadContext({
+          status: 'empty',
+          message: 'Choose a club before creating a squad.',
+        });
         return;
+      }
+
+      const club = clubs.find((candidate) => candidate.id === clubId);
+      const membership = memberships.find(
+        (candidate) => candidate.clubId === clubId && isMembershipForUser(candidate, userId),
+      );
+
+      if (!club || !canManageClubUi(membership)) {
+        setSquadContext({
+          status: 'denied',
+          message: 'You do not have permission to create squads for this club.',
+        });
+        return;
+      }
+
+      setSquadContext({ status: 'ready', club, membership });
+    };
+
+    const loadClubContext = async () => {
+      if (authLoading) {
+        if (active) setSquadContext({ status: 'loading' });
+        return;
+      }
+
+      if (!currentUser?.id) {
+        if (active) {
+          setSquadContext({ status: 'denied', message: 'Sign in to create a squad.' });
+        }
+        return;
+      }
+
+      if (active) {
+        setSquadContext({ status: 'loading' });
+        setSubmitError(null);
       }
 
       if (api.useMock) {
-        const mockClub = currentUser?.id
-          ? socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId)
-          : null;
-        if (!active) return;
-        setClub(mockClub ?? null);
-        setIsLoadingClub(false);
+        const clubs = socialFeedService.getUserClubs(currentUser.id);
+        const memberships = socialFeedService.getUserMemberships(currentUser.id);
+        if (active) resolveContext(clubs, memberships, currentUser.id);
         return;
       }
 
-      const result = await clubAuthorityService.listClubs();
-      if (!active) return;
-      if (!result.success) {
-        setClub(null);
-        setClubLoadError(result.error.message || 'Could not load club');
-        setIsLoadingClub(false);
-        return;
+      try {
+        const result = await clubAuthorityService.listClubs();
+        if (!active) return;
+        if (!result.success) {
+          setSquadContext({ status: 'error', message: result.error.message });
+          return;
+        }
+        resolveContext(result.data.clubs, result.data.memberships, currentUser.id);
+      } catch {
+        if (active) {
+          setSquadContext({ status: 'error', message: 'Could not load your club access.' });
+        }
       }
-      setClub(result.data.clubs.find((candidate) => candidate.id === clubId) ?? null);
-      setIsLoadingClub(false);
     };
 
-    void loadClub();
+    void loadClubContext();
 
     return () => {
       active = false;
     };
-  }, [clubId, currentUser?.id]);
+  }, [authLoading, clubId, contextRequest, currentUser?.id]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => {
-      if (prev.includes(tag)) return prev.filter((t) => t !== tag);
-      if (prev.length < 3) return [...prev, tag];
-      return prev;
-    });
-  };
-
-  const isValid = Boolean(squadName.trim() && selectedAgeGroup && selectedLevel);
+  const canCreate =
+    squadContext.status === 'ready' &&
+    squadName.trim().length > 0 &&
+    Boolean(selectedAgeGroup && selectedLevel) &&
+    !isSubmitting;
 
   const handleCreate = async () => {
-    if (!squadName.trim()) {
-      uiFeedback.showToast('Please enter a squad name', 'error');
-      return;
-    }
-    if (!selectedAgeGroup) {
-      uiFeedback.showToast('Please select an age group', 'error');
-      return;
-    }
-    if (!selectedLevel) {
-      uiFeedback.showToast('Please select a level', 'error');
-      return;
-    }
-    if (!clubId) {
-      uiFeedback.showToast('Club not found', 'error');
-      return;
-    }
+    if (submissionInFlight.current || !canCreate || !squadContext.club) return;
 
+    submissionInFlight.current = true;
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    await runAsyncTryCatchFinally(
+    await runAsyncFinally(
       async () => {
-        const newSquad = await squadService.createSquad({
-          clubId,
-          name: squadName.trim(),
-          level: `${selectedAgeGroup.label} · ${selectedLevel}`,
-          description: selectedTags.length > 0 ? `Focus: ${selectedTags.join(', ')}` : undefined,
-          meetingLocation: meetLocation.trim() || undefined,
-          ageGroup: selectedAgeGroup.label,
-          skillLevel: selectedLevel,
-          focusAreas: selectedTags,
-        });
-        uiFeedback.showToast(`${newSquad.name} has been created successfully!`, 'success');
-        router.back();
-      },
-      async () => {
-        uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
+        try {
+          const newSquad = await squadService.createSquad({
+            clubId: squadContext.club!.id,
+            name: squadName.trim(),
+            ageGroup: selectedAgeGroup!,
+            skillLevel: selectedLevel!,
+          });
+          uiFeedback.showToast(`${newSquad.name} created.`, 'success');
+          router.back();
+        } catch (error) {
+          setSubmitError(
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : 'Could not create this squad. Try again.',
+          );
+        }
       },
       () => {
+        submissionInFlight.current = false;
         setIsSubmitting(false);
       },
     );
   };
 
   return {
-    club,
-    clubId,
+    club: squadContext.club,
+    contextStatus: squadContext.status,
+    contextMessage: squadContext.message,
+    retryContext: () => setContextRequest((request) => request + 1),
     squadName,
     selectedAgeGroup,
     selectedLevel,
-    meetLocation,
-    selectedTags,
     isSubmitting,
-    isLoadingClub,
-    clubLoadError,
-    isValid,
+    submitError,
+    canCreate,
     setSquadName,
     setSelectedAgeGroup,
     setSelectedLevel,
-    setMeetLocation,
-    toggleTag,
     handleCreate,
   };
 }

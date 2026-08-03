@@ -127,7 +127,8 @@ export const FullEventCardContent = function FullEventCardContent({
 }: FullEventCardContentProps) {
   const typeColor = eventService.getEventTypeColor(event.eventType);
   const typeIcon = eventService.getEventTypeIcon(event.eventType);
-  const { going, maybe, totalGuests } = eventService.getAttendeeCounts(event.attendees);
+  const { going, maybe, totalGuests } =
+    event.rsvpSummary ?? eventService.getAttendeeCounts(event.attendees);
   const isFull = eventService.isEventFull(event);
   const rsvpClosed = eventService.isRSVPClosed(event);
 

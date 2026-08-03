@@ -237,12 +237,12 @@ function InAppAlertModal({
           ) : null}
 
           <View style={styles.actions}>
-            {buttons.map((button, index) => {
+            {buttons.map((button) => {
               const isCancel = button.style === 'cancel';
               const isButtonDestructive = button.style === 'destructive';
               return (
                 <Clickable
-                  key={`${button.text}-${index}`}
+                  key={`${button.style ?? 'default'}:${button.text ?? 'OK'}`}
                   onPress={() => onActionPress(button)}
                   style={({ pressed }) => [
                     styles.actionButton,

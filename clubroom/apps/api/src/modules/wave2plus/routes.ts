@@ -1,17 +1,38 @@
 import crypto from 'node:crypto';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { env } from '@clubroom/config';
+import {
+  athleteAnalyticsQuerySchema,
+  athleteAnalyticsResponseSchema,
+  athleteSkillHistoryQuerySchema,
+  athleteSkillHistoryResponseSchema,
+  athleteSkillUpdateRequestSchema,
+  athleteSkillUpdateResponseSchema,
+  practiceLogCreateRequestSchema,
+  practiceLogEntrySchema,
+  practiceLogListQuerySchema,
+  practiceLogListResponseSchema,
+  practiceLogMutationResponseSchema,
+  practiceLogTodayResponseSchema,
+  type AthleteAnalyticsPeriod,
+  type AthleteSkillUpdateRequest,
+  type PracticeLogCreateRequest,
+  type PracticeLogListQuery,
+  type PracticeLogMutationResponse,
+} from '@clubroom/shared-contracts';
 import { z } from 'zod';
 import {
   ApiProblemError,
   badRequest,
+  conflict,
   forbidden,
+  isZodValidationError,
   notFound,
   serviceUnavailable,
 } from '../../lib/http-errors.js';
 import {
   type InvoiceTransitionAction,
   type ManualPaymentReceiptInput,
-  canManageClubInvoice,
   canManageInvoiceMoneyAction,
   completeSimulatedInvoicePayment,
   createInvoicePaymentSession,
@@ -31,23 +52,31 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
 import { deliverInvoiceReminderEmail } from '../../lib/password-reset-delivery.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
-import type { PrismaClient } from '@clubroom/db';
+import {
+  API_DB_TRANSACTION_OPTIONS,
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from '../../lib/prisma-runtime.js';
+import { Prisma, type PrismaClient } from '@clubroom/db';
 import {
   assertCanReadAthleteHealth,
   assertCanWriteAthleteHealth,
   hasAnyGrantedRole,
   isPrivilegedAdminAuth,
+  isSystemAdminAuth,
 } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
 import { resolveVideoAuthorityRepository } from '../../repositories/p0/video-authority-repository.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
+import { assertSupportedPostMetadata } from './post-metadata-policy.js';
 import {
   completeUploadSession,
   createSignedReadUrl,
   createUploadInit,
+  getUploadSessionStatus,
+  recordUploadMalwareScanResult,
 } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
@@ -56,6 +85,8 @@ type SeedTables = Record<string, SeedRow[]>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+const UPLOAD_SCAN_WORKER_USER_ID = 'system_upload_scan_worker';
+const UPLOAD_SCAN_RESULT_TOKEN_HEADER = 'x-clubroom-upload-scan-token';
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
@@ -68,6 +99,56 @@ const coerceMetadata = (value: unknown): Record<string, unknown> =>
     : {};
 const emailDomain = (email: string | undefined): string | null =>
   email?.split('@')[1]?.trim().toLowerCase() || null;
+
+function singleHeaderValue(request: FastifyRequest, name: string): string | undefined {
+  const value = request.headers[name];
+  if (Array.isArray(value)) {
+    return value.length === 1 ? value[0] : undefined;
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
+function timingSafeStringEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left, 'utf8');
+  const rightBuffer = Buffer.from(right, 'utf8');
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function isUploadScanWorkerRequest(request: FastifyRequest): boolean {
+  const expectedToken = env.API_UPLOAD_SCAN_RESULT_TOKEN?.trim();
+  const providedToken = singleHeaderValue(request, UPLOAD_SCAN_RESULT_TOKEN_HEADER)?.trim();
+  return Boolean(expectedToken && providedToken && timingSafeStringEqual(providedToken, expectedToken));
+}
+
+async function assertDbModePrismaAvailable(params: {
+  request: FastifyRequest;
+  action: string;
+  resourceType: string;
+  resourceId?: string | null;
+  subjectUserId?: string | null;
+  sensitiveRead?: boolean;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  if (getApiDataBackend() !== 'db' || !shouldUseDbFixtureFallback()) {
+    return;
+  }
+
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: params.resourceType,
+    resourceId: params.resourceId,
+    subjectUserId: params.subjectUserId,
+    result: 'ERROR',
+    sensitiveRead: params.sensitiveRead === true,
+    metadata: {
+      ...(params.metadata ?? {}),
+      reason: 'prisma_unavailable',
+      status: 503,
+    },
+  });
+  getPrismaClientOrThrow();
+}
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const isCoachOrPrivilegedAdminAuth = (auth: FastifyRequest['auth'] | undefined): boolean =>
@@ -83,7 +164,6 @@ const GOAL_CATEGORIES = [
   'CHARACTER',
   'OTHER',
 ] as const;
-const ATHLETE_ANALYTICS_PERIODS = ['WEEK', 'MONTH', 'QUARTER', 'YEAR', 'ALL'] as const;
 const PRACTICE_TASK_VIEWER_ROLES = ['coach', 'parent', 'athlete'] as const;
 const PRACTICE_TASK_FOLLOW_UP_ACTION_TYPES = ['nudge', 'message'] as const;
 const FEEDBACK_HOMEWORK_DUE_DAYS = 3;
@@ -107,12 +187,12 @@ const PROGRESS_CHALLENGE_TYPES = [
 const PROGRESS_CHALLENGE_STATUSES = ['active', 'completed', 'expired'] as const;
 
 type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
-type AthleteAnalyticsPeriod = (typeof ATHLETE_ANALYTICS_PERIODS)[number];
 type PracticeTaskViewerRole = (typeof PRACTICE_TASK_VIEWER_ROLES)[number];
 type PracticeTaskTiming = 'overdue' | 'due_soon' | 'upcoming' | 'completed';
 type PracticeTaskRisk = 'high' | 'watch' | 'stable';
 type PracticeTaskActionAuditType = (typeof PRACTICE_TASK_ACTION_AUDIT_TYPES)[number];
 type FeedbackHomeworkDbClient = Pick<PrismaClient, 'drill' | 'drillAssignment'>;
+type SelfAssessmentNotificationDbClient = Pick<PrismaClient, 'athlete' | 'notification' | 'user'>;
 
 const goalCreateRequestSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -154,14 +234,6 @@ const goalMilestoneUpdateRequestSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one milestone field must be supplied',
   });
-
-const athleteAnalyticsQuerySchema = z.object({
-  period: z.enum(ATHLETE_ANALYTICS_PERIODS).default('MONTH'),
-});
-
-const athleteSkillHistoryQuerySchema = z.object({
-  skillName: z.string().trim().min(1).max(120).optional(),
-});
 
 const termlyReportSnapshotParamsSchema = z.object({
   athleteId: z.string().trim().min(1).max(180),
@@ -291,29 +363,6 @@ const practiceTaskRecoveryCheckpointRequestSchema = practiceTaskBulkActionReques
     .default(48),
 });
 
-const practiceLogListQuerySchema = z.object({
-  since: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(100),
-});
-
-const practiceLogCreateRequestSchema = z.object({
-  minutes: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(24 * 60),
-  note: z.string().trim().max(1000).optional(),
-  dateKey: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-});
-
 const progressChallengeUpsertRequestSchema = z.object({
   type: z.enum(PROGRESS_CHALLENGE_TYPES),
   title: z.string().trim().min(1).max(180),
@@ -336,6 +385,10 @@ const sessionFeedbackVisibilitySchema = z.enum(['coach_only', 'parent', 'athlete
 const sessionFeedbackListQuerySchema = z.object({
   viewerRole: z.enum(['coach', 'parent', 'athlete']).default('coach'),
   limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
+const coachDevelopmentSessionListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(100),
 });
 
 const sessionFeedbackQuerySchema = z.object({
@@ -445,17 +498,6 @@ const squadActivityQuerySchema = z
   })
   .strict();
 
-const athleteSkillUpdateRequestSchema = z.object({
-  skillName: z.string().trim().min(1).max(120),
-  score: z.number().int().min(1).max(10),
-  bookingId: z.string().trim().min(1).max(120).optional(),
-  sessionId: z.string().trim().min(1).max(120).optional(),
-  assessedAt: z.string().trim().max(40).optional(),
-  notes: z.string().trim().max(1000).optional(),
-});
-
-type AthleteSkillUpdateRequest = z.infer<typeof athleteSkillUpdateRequestSchema>;
-
 const coachObservationCategorySchema = z.enum([
   'BEHAVIORAL',
   'PHYSICAL',
@@ -506,13 +548,15 @@ const invoiceTransitionRequestSchema = z.object({
   note: z.string().trim().max(400).optional(),
 });
 
-const uploadInitRequestSchema = z.object({
-  kind: z.enum(['VIDEO', 'IMAGE', 'DOCUMENT']).default('VIDEO'),
-  contentType: z.string().min(3).max(120),
-  fileName: z.string().min(1).max(260),
-  sizeBytes: z.number().int().positive().max(2_000_000_000),
-  metadata: z.record(z.unknown()).optional(),
-});
+const uploadInitRequestSchema = z
+  .object({
+    kind: z.enum(['VIDEO', 'IMAGE', 'DOCUMENT']).default('VIDEO'),
+    contentType: z.string().min(3).max(120),
+    fileName: z.string().min(1).max(260),
+    sizeBytes: z.number().int().positive().max(2_000_000_000),
+    metadata: z.record(z.unknown()).optional(),
+  })
+  .strict();
 
 const drillCategorySchema = z.preprocess(
   (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
@@ -560,11 +604,38 @@ const uploadCompleteRequestSchema = z.object({
     .optional(),
 });
 
+const uploadScanResultRequestSchema = z.object({
+  mediaObjectId: z.string().trim().min(1),
+  sourceResultId: z.string().trim().min(1).max(200).optional(),
+  scanAttemptId: z.string().trim().min(1).max(200).optional(),
+  verdict: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+    z.enum(['CLEAN', 'INFECTED', 'ERROR']),
+  ),
+  scanner: z.string().trim().min(1).max(120),
+  objectSizeBytes: z.number().int().positive().max(2_000_000_000).optional(),
+  objectETag: z.string().trim().min(1).max(240).optional(),
+  sha256Hex: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{64}$/)
+    .optional(),
+  sealedStorageKey: z.string().trim().min(1).max(1024).optional(),
+  scannedAt: z.string().trim().max(80).optional(),
+  details: z
+    .record(z.unknown())
+    .optional()
+    .refine((value) => !value || JSON.stringify(value).length <= 8_000, {
+      message: 'Scan result details are too large',
+    }),
+});
+
 const videoListQuerySchema = z
   .object({
     coachId: z.string().trim().min(1).optional(),
     athleteId: z.string().trim().min(1).optional(),
   })
+  .strict()
   .refine((value) => Boolean(value.coachId) !== Boolean(value.athleteId), {
     message: 'Provide exactly one of coachId or athleteId',
   });
@@ -584,30 +655,40 @@ const videoCreateRequestSchema = z
       .max(60 * 60)
       .optional(),
   })
+  .strict()
   .refine((value) => !(value.sessionId && value.bookingId), {
     message: 'Provide either sessionId or bookingId, not both',
   });
 
-const videoUpdateRequestSchema = z.object({
-  title: z.string().trim().max(120).optional(),
-  description: z.string().trim().max(1000).optional(),
-});
+const videoUpdateRequestSchema = z
+  .object({
+    title: z.string().trim().max(120).optional(),
+    description: z.string().trim().max(1000).optional(),
+  })
+  .strict()
+  .refine((value) => value.title !== undefined || value.description !== undefined, {
+    message: 'Provide title or description',
+  });
 
-const videoVisibilityRequestSchema = z.object({
-  visibility: z.enum(['PRIVATE', 'SHARED']),
-  recipientUserIds: z.array(z.string().trim().min(1)).max(20).optional(),
-});
+const videoVisibilityRequestSchema = z
+  .object({
+    visibility: z.enum(['PRIVATE', 'SHARED']),
+    recipientUserIds: z.array(z.string().trim().min(1)).max(20).optional(),
+  })
+  .strict();
 
-const videoAnnotationRequestSchema = z.object({
-  timestamp: z
-    .number()
-    .int()
-    .min(0)
-    .max(60 * 60),
-  label: z.string().trim().min(1).max(120),
-  note: z.string().trim().max(500).optional(),
-  type: z.enum(['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL']),
-});
+const videoAnnotationRequestSchema = z
+  .object({
+    timestamp: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 60),
+    label: z.string().trim().min(1).max(120),
+    note: z.string().trim().max(500).optional(),
+    type: z.enum(['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL']),
+  })
+  .strict();
 
 const invoicePaymentRequestSchema = z.object({
   amountMinor: z.number().int().positive().optional(),
@@ -751,14 +832,27 @@ const notificationQuietHoursSchema = z
     startTime: z
       .string()
       .trim()
-      .regex(/^\d{2}:\d{2}$/)
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
       .optional(),
     endTime: z
       .string()
       .trim()
-      .regex(/^\d{2}:\d{2}$/)
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
       .optional(),
-    timezone: z.string().trim().min(1).max(80).optional(),
+    timezone: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .refine((timeZone) => {
+        try {
+          new Intl.DateTimeFormat('en-GB', { timeZone }).format();
+          return true;
+        } catch {
+          return false;
+        }
+      }, 'Invalid IANA time zone')
+      .optional(),
   })
   .strict();
 
@@ -840,6 +934,12 @@ const bookingPreferencesUpdateSchema = z
   })
   .strict();
 
+const dataDeletionRequestCreateSchema = z
+  .object({
+    reason: z.string().trim().min(1).max(500).optional(),
+  })
+  .strict();
+
 const mediaAttachmentProofSchema = z
   .object({
     mediaObjectId: z.string().trim().min(1),
@@ -847,11 +947,13 @@ const mediaAttachmentProofSchema = z
   })
   .strict();
 
-const groupMessageCreateRequestSchema = z.object({
-  body: z.string().trim().min(1).max(2000),
-  idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  attachments: z.array(mediaAttachmentProofSchema).max(5).optional(),
-});
+const groupMessageCreateRequestSchema = z
+  .object({
+    body: z.string().trim().min(1).max(2000),
+    idempotencyKey: z.string().trim().min(8).max(120).optional(),
+    attachments: z.array(mediaAttachmentProofSchema).max(5).optional(),
+  })
+  .strict();
 
 const postCreateRequestSchema = z.object({
   clubId: z.string().trim().min(1).optional(),
@@ -868,11 +970,13 @@ const postPinRequestSchema = z
   })
   .strict();
 
-const postCommentCreateRequestSchema = z.object({
-  content: z.string().trim().min(1).max(2000),
-  parentCommentId: z.string().trim().min(1).optional(),
-  idempotencyKey: z.string().trim().min(8).max(120).optional(),
-});
+const postCommentCreateRequestSchema = z
+  .object({
+    content: z.string().trim().min(1).max(2000),
+    parentCommentId: z.string().trim().min(1).optional(),
+    idempotencyKey: z.string().trim().min(8).max(120).optional(),
+  })
+  .strict();
 
 const simulatedCompleteRequestSchema = z.object({
   token: z.string().trim().min(20),
@@ -1215,10 +1319,12 @@ async function getAthleteProgressPayload(athleteId: string) {
   };
 }
 
-type PracticeLogListOptions = z.infer<typeof practiceLogListQuerySchema>;
-type PracticeLogCreateBody = z.infer<typeof practiceLogCreateRequestSchema>;
 type SessionFeedbackListOptions = z.infer<typeof sessionFeedbackListQuerySchema>;
+type CoachDevelopmentSessionListOptions = z.infer<
+  typeof coachDevelopmentSessionListQuerySchema
+>;
 type SessionFeedbackBody = z.infer<typeof sessionFeedbackRequestSchema>;
+type SessionFeedbackVisibility = z.infer<typeof sessionFeedbackVisibilitySchema>;
 type SessionMediaAssetInput = z.infer<typeof sessionMediaAssetInputSchema>;
 type SessionMediaSaveBody = z.infer<typeof sessionMediaSaveRequestSchema>;
 type SelfAssessmentListOptions = z.infer<typeof selfAssessmentListQuerySchema>;
@@ -1245,6 +1351,70 @@ function sessionFeedbackMetadata(body: SessionFeedbackBody): SeedRow {
     positionsPlayed: body.positionsPlayed ?? [],
     subSkillRatings: body.subSkillRatings ?? [],
   };
+}
+
+function sessionFeedbackBodyWithAuthoritativeNames(
+  body: SessionFeedbackBody,
+  coach: SeedRow | undefined,
+  athlete: SeedRow | undefined,
+): SessionFeedbackBody {
+  const coachName = asString(coach?.name)?.trim();
+  const athleteName =
+    asString(athlete?.displayName)?.trim() ||
+    [asString(athlete?.firstName), asString(athlete?.lastName)].filter(Boolean).join(' ').trim();
+
+  if (!coachName) {
+    throw notFound('Session feedback coach not found', { coachId: body.coachId });
+  }
+  if (!athleteName) {
+    throw notFound('Session feedback athlete not found', { athleteId: body.athleteId });
+  }
+
+  return { ...body, coachName, athleteName };
+}
+
+async function withAuthoritativeSessionFeedbackNames(
+  body: SessionFeedbackBody,
+): Promise<SessionFeedbackBody> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const [coach, athlete] = await Promise.all([
+      prisma.user.findFirst({
+        where: { id: body.coachId, deletedAt: null },
+        select: { name: true },
+      }),
+      prisma.athlete.findFirst({
+        where: { id: body.athleteId, deletedAt: null },
+        select: { displayName: true, firstName: true, lastName: true },
+      }),
+    ]);
+    return sessionFeedbackBodyWithAuthoritativeNames(
+      body,
+      coach ? (normalizeForJson(coach) as SeedRow) : undefined,
+      athlete ? (normalizeForJson(athlete) as SeedRow) : undefined,
+    );
+  }
+
+  const tables =
+    getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
+  const coach = asRows(tables.users).find(
+    (row) => asString(row.id) === body.coachId && !asString(row.deletedAt),
+  );
+  const athlete = asRows(tables.athletes).find(
+    (row) => asString(row.id) === body.athleteId && !asString(row.deletedAt),
+  );
+  return sessionFeedbackBodyWithAuthoritativeNames(body, coach, athlete);
+}
+
+function normalizeSessionFeedbackVisibility(value: unknown): SessionFeedbackVisibility {
+  const raw = String(value ?? '').toLowerCase();
+  if (raw === 'coach_only' || raw === 'parent' || raw === 'athlete') {
+    return raw;
+  }
+  if (raw === 'public') {
+    return 'parent';
+  }
+  return raw ? 'coach_only' : 'athlete';
 }
 
 function mapSessionFeedback(row: SeedRow) {
@@ -1278,8 +1448,18 @@ function mapSessionFeedback(row: SeedRow) {
     positionPlayed: asString(metadata.positionPlayed) ?? undefined,
     positionsPlayed: asStringArray(metadata.positionsPlayed),
     subSkillRatings: Array.isArray(metadata.subSkillRatings) ? metadata.subSkillRatings : [],
-    visibility: asString(row.visibility) ?? 'athlete',
+    visibility: normalizeSessionFeedbackVisibility(row.visibility),
   };
+}
+
+function resolveSessionFeedbackViewerRole(
+  request: FastifyRequest,
+): SessionFeedbackListOptions['viewerRole'] {
+  const actingRole = request.auth?.actingRole ?? request.auth?.roles[0];
+  if (actingRole === 'coach' || actingRole === 'parent') {
+    return actingRole;
+  }
+  return 'athlete';
 }
 
 function visibleSessionFeedback(row: SeedRow, viewerRole: string) {
@@ -1576,6 +1756,28 @@ function listSeedSessionFeedback(
   return options.limit ? rows.slice(0, options.limit) : rows;
 }
 
+function listSeedCoachDevelopmentSessionFeedback(
+  tables: SeedTables,
+  coachUserId: string,
+  options: CoachDevelopmentSessionListOptions,
+) {
+  return asRows(tables.sessionFeedback)
+    .filter(
+      (row) =>
+        asString(row.authorUserId) === coachUserId &&
+        !asString(row.deletedAt),
+    )
+    .sort(
+      (left, right) =>
+        Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''),
+    )
+    .flatMap((row) => {
+      const feedback = visibleSessionFeedback(row, 'coach');
+      return feedback ? [feedback] : [];
+    })
+    .slice(0, options.limit);
+}
+
 async function listSessionFeedback(athleteId: string, options: SessionFeedbackListOptions) {
   if (getApiDataBackend() === 'db') {
     if (shouldUseDbFixtureFallback()) {
@@ -1608,6 +1810,45 @@ async function listSessionFeedback(athleteId: string, options: SessionFeedbackLi
   const store = getMarketplaceSeedStore();
   return {
     feedback: listSeedSessionFeedback(store.tables, athleteId, options),
+    seedVersion: store.version,
+  };
+}
+
+async function listCoachDevelopmentSessionFeedback(
+  coachUserId: string,
+  options: CoachDevelopmentSessionListOptions,
+) {
+  if (getApiDataBackend() === 'db') {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return {
+        feedback: listSeedCoachDevelopmentSessionFeedback(store.tables, coachUserId, options),
+        seedVersion: store.version,
+      };
+    }
+    const prisma = getPrismaClientOrThrow();
+    const rows = await prisma.sessionFeedback.findMany({
+      where: {
+        authorUserId: coachUserId,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: options.limit,
+    });
+    return {
+      feedback: (normalizeForJson(rows) as SeedRow[]).flatMap((row) => {
+        const feedback = visibleSessionFeedback(row, 'coach');
+        return feedback ? [feedback] : [];
+      }),
+      seedVersion: null,
+    };
+  }
+
+  const store = getMarketplaceSeedStore();
+  return {
+    feedback: listSeedCoachDevelopmentSessionFeedback(store.tables, coachUserId, options),
     seedVersion: store.version,
   };
 }
@@ -1764,7 +2005,7 @@ async function upsertSessionFeedback(body: SessionFeedbackBody) {
           });
       await syncDbFeedbackHomeworkPracticeTask(tx, feedback.id, feedback.createdAt, body);
       return feedback;
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     return {
       feedback: mapSessionFeedback(normalizeForJson(row) as SeedRow),
       seedVersion: null,
@@ -2409,8 +2650,93 @@ async function removeSessionMediaAsset(assetId: string, authUserId: string) {
   };
 }
 
-function todayDateKey(): string {
-  return new Date().toISOString().slice(0, 10);
+const PRACTICE_LOG_IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function practiceLogEndpointKey(athleteId: string): string {
+  return `POST:/v1/athletes/${athleteId}/practice-logs`;
+}
+
+function practiceLogRequestHash(
+  athleteId: string,
+  body: PracticeLogCreateRequest,
+): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify({
+        athleteId,
+        minutes: body.minutes,
+        note: body.note ?? null,
+        dateKey: body.dateKey ?? null,
+      }),
+    )
+    .digest('hex');
+}
+
+function dateKeyForTimeZone(date: Date, timeZone: string): string {
+  try {
+    const values = Object.fromEntries(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+        .formatToParts(date)
+        .filter((part) => part.type === 'year' || part.type === 'month' || part.type === 'day')
+        .map((part) => [part.type, part.value]),
+    );
+    if (!values.year || !values.month || !values.day) {
+      throw new RangeError('Missing date part');
+    }
+    return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    throw serviceUnavailable('Stored user time zone is invalid');
+  }
+}
+
+async function resolvePracticeLogTimeZone(actorUserId: string): Promise<string> {
+  const store = mutablePracticeLogStore();
+  if (store) {
+    const user = asRows(store.tables.users).find((row) => asString(row.id) === actorUserId);
+    if (!user) {
+      throw serviceUnavailable('Authenticated user profile is unavailable');
+    }
+    const timeZone = asString(user.timeZone) ?? 'UTC';
+    dateKeyForTimeZone(new Date(), timeZone);
+    return timeZone;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const user = await prisma.user.findUnique({
+    where: { id: actorUserId },
+    select: { timeZone: true },
+  });
+  if (!user) {
+    throw serviceUnavailable('Authenticated user profile is unavailable');
+  }
+  const timeZone = user.timeZone ?? 'UTC';
+  dateKeyForTimeZone(new Date(), timeZone);
+  return timeZone;
+}
+
+async function resolvePracticeLogSubjectUserId(
+  athleteId: string,
+): Promise<string | undefined> {
+  const store = mutablePracticeLogStore();
+  if (store) {
+    const athlete = asRows(store.tables.athletes).find(
+      (row) => asString(row.id) === athleteId,
+    );
+    return asString(athlete?.userId);
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const athlete = await prisma.athlete.findUnique({
+    where: { id: athleteId },
+    select: { userId: true },
+  });
+  return athlete?.userId ?? undefined;
 }
 
 function mutablePracticeLogStore() {
@@ -2427,29 +2753,32 @@ function seedPracticeLogRows(tables: Record<string, unknown>): SeedRow[] {
   return asRows(tables.practiceLogs);
 }
 
-function mapPracticeLogRow(row: SeedRow) {
-  return {
-    id: asString(row.id) ?? '',
-    athleteId: asString(row.athleteId) ?? '',
-    authorUserId: asString(row.authorUserId) ?? '',
-    dateKey: asString(row.dateKey) ?? '',
-    minutes: asNumber(row.minutes) ?? 0,
-    note: asString(row.note) ?? undefined,
-    createdAt: asString(row.createdAt) ?? nowIso(),
-    updatedAt: asString(row.updatedAt) ?? asString(row.createdAt) ?? nowIso(),
-  };
+function mapPracticeLogRow(row: unknown) {
+  const normalized = normalizeForJson(row) as SeedRow;
+  return practiceLogEntrySchema.parse({
+    id: normalized.id,
+    athleteId: normalized.athleteId,
+    authorUserId: normalized.authorUserId,
+    dateKey: normalized.dateKey,
+    minutes: normalized.minutes,
+    note: asString(normalized.note) ?? null,
+    createdAt: normalized.createdAt,
+    updatedAt: normalized.updatedAt,
+  });
 }
 
-async function listPracticeLogsPayload(athleteId: string, options: PracticeLogListOptions) {
+async function listPracticeLogsPayload(athleteId: string, options: PracticeLogListQuery) {
   const store = mutablePracticeLogStore();
   if (store) {
-    const rows = seedPracticeLogRows(store.tables as Record<string, unknown>)
-      .filter((row) => {
+    const matchingRows = seedPracticeLogRows(store.tables as Record<string, unknown>).filter(
+      (row) => {
         if (asString(row.athleteId) !== athleteId || asString(row.deletedAt)) {
           return false;
         }
         return options.since ? (asString(row.dateKey) ?? '') >= options.since : true;
-      })
+      },
+    );
+    const rows = matchingRows
       .sort((left, right) => {
         const dateCompare = (asString(right.dateKey) ?? '').localeCompare(
           asString(left.dateKey) ?? '',
@@ -2461,116 +2790,296 @@ async function listPracticeLogsPayload(athleteId: string, options: PracticeLogLi
       })
       .slice(0, options.limit)
       .map(mapPracticeLogRow);
-    return { logs: rows, total: rows.length, seedVersion: store.version };
+    return { logs: rows, total: matchingRows.length, seedVersion: store.version };
   }
 
   const prisma = getPrismaClientOrThrow();
-  const rows = await prisma.practiceLog.findMany({
-    where: {
-      athleteId,
-      deletedAt: null,
-      ...(options.since ? { dateKey: { gte: options.since } } : {}),
-    },
-    orderBy: [{ dateKey: 'desc' }, { createdAt: 'desc' }],
-    take: options.limit,
-  });
-  return normalizeForJson({ logs: rows, total: rows.length, seedVersion: null });
+  const where = {
+    athleteId,
+    deletedAt: null,
+    ...(options.since ? { dateKey: { gte: options.since } } : {}),
+  };
+  const [rows, total] = await Promise.all([
+    prisma.practiceLog.findMany({
+      where,
+      orderBy: [{ dateKey: 'desc' }, { createdAt: 'desc' }],
+      take: options.limit,
+    }),
+    prisma.practiceLog.count({ where }),
+  ]);
+  return { logs: rows.map(mapPracticeLogRow), total, seedVersion: null };
 }
 
-async function getTodayPracticeLogPayload(athleteId: string, actorUserId: string) {
-  const dateKey = todayDateKey();
-  const payload = await listPracticeLogsPayload(athleteId, {
-    since: dateKey,
-    limit: 100,
+async function getTodayPracticeLogPayload(
+  athleteId: string,
+  actorUserId: string,
+  timeZone: string,
+) {
+  const dateKey = dateKeyForTimeZone(new Date(), timeZone);
+  const store = mutablePracticeLogStore();
+  if (store) {
+    const row = seedPracticeLogRows(store.tables as Record<string, unknown>).find(
+      (entry) =>
+        asString(entry.athleteId) === athleteId &&
+        asString(entry.authorUserId) === actorUserId &&
+        asString(entry.dateKey) === dateKey &&
+        !asString(entry.deletedAt),
+    );
+    return {
+      log: row ? mapPracticeLogRow(row) : null,
+      dateKey,
+      timeZone,
+      seedVersion: store.version,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const row = await prisma.practiceLog.findUnique({
+    where: {
+      athleteId_authorUserId_dateKey: { athleteId, authorUserId: actorUserId, dateKey },
+    },
   });
-  const logs = asRows((payload as { logs?: unknown }).logs);
-  const today = logs.find(
-    (row) => asString(row.dateKey) === dateKey && asString(row.authorUserId) === actorUserId,
-  );
   return {
-    log: today ? mapPracticeLogRow(today) : null,
-    seedVersion: (payload as { seedVersion?: string | null }).seedVersion ?? null,
+    log: row && !row.deletedAt ? mapPracticeLogRow(row) : null,
+    dateKey,
+    timeZone,
+    seedVersion: null,
+  };
+}
+
+function replayPracticeLogMutation(params: {
+  entry: { requestHash: string; responseBodyJson: unknown };
+  requestHash: string;
+  requestId: string;
+}): PracticeLogMutationResponse {
+  if (params.entry.requestHash !== params.requestHash) {
+    throw conflict('Idempotency key was already used with a different practice log payload');
+  }
+  const parsed = practiceLogMutationResponseSchema.safeParse(params.entry.responseBodyJson);
+  if (!parsed.success) {
+    throw conflict('Stored practice log idempotency response is no longer valid');
+  }
+  return {
+    ...parsed.data,
+    replayed: true,
+    requestId: params.requestId,
   };
 }
 
 async function upsertPracticeLogPayload(
   athleteId: string,
   actorUserId: string,
-  body: PracticeLogCreateBody,
-) {
-  const dateKey = body.dateKey ?? todayDateKey();
-  const normalizedNote = body.note?.trim();
-  const note = normalizedNote && normalizedNote.length > 0 ? normalizedNote : undefined;
-  const now = nowIso();
+  body: PracticeLogCreateRequest,
+  requestId: string,
+  timeZone: string,
+): Promise<{ response: PracticeLogMutationResponse; statusCode: 200 | 201 }> {
+  const dateKey = body.dateKey ?? dateKeyForTimeZone(new Date(), timeZone);
+  const today = dateKeyForTimeZone(new Date(), timeZone);
+  if (dateKey > today) {
+    throw badRequest('Practice date cannot be in the future');
+  }
+  const note = body.note ?? null;
+  const endpointKey = practiceLogEndpointKey(athleteId);
+  const requestHash = practiceLogRequestHash(athleteId, body);
+  const now = new Date();
   const store = mutablePracticeLogStore();
   if (store) {
-    const rows = seedPracticeLogRows(store.tables as Record<string, unknown>);
+    const tables = store.tables as Record<string, unknown>;
+    const idempotencyRows = Array.isArray(tables.idempotencyKeys)
+      ? asRows(tables.idempotencyKeys)
+      : ((tables.idempotencyKeys = []) as SeedRow[]);
+    const replay = idempotencyRows.find(
+      (row) =>
+        asString(row.userId) === actorUserId &&
+        asString(row.endpointKey) === endpointKey &&
+        asString(row.idempotencyKey) === body.idempotencyKey,
+    );
+    if (replay) {
+      return {
+        response: replayPracticeLogMutation({
+          entry: {
+            requestHash: asString(replay.requestHash) ?? '',
+            responseBodyJson: replay.responseBodyJson,
+          },
+          requestHash,
+          requestId,
+        }),
+        statusCode: 200,
+      };
+    }
+
+    const rows = seedPracticeLogRows(tables);
     const existing = rows.find(
       (row) =>
         asString(row.athleteId) === athleteId &&
         asString(row.authorUserId) === actorUserId &&
-        asString(row.dateKey) === dateKey &&
-        !asString(row.deletedAt),
+        asString(row.dateKey) === dateKey,
     );
+    const active = existing && !asString(existing.deletedAt);
+    const totalMinutes = (active ? asNumber(existing.minutes) ?? 0 : 0) + body.minutes;
+    if (totalMinutes > 24 * 60) {
+      throw conflict('Practice minutes cannot exceed 1,440 for one day');
+    }
+    let log: ReturnType<typeof mapPracticeLogRow>;
     if (existing) {
-      existing.minutes = (asNumber(existing.minutes) ?? 0) + body.minutes;
-      if (body.note !== undefined) {
-        existing.note = note ?? null;
+      existing.minutes = totalMinutes;
+      if (!active || body.note !== undefined) {
+        existing.note = note;
       }
       existing.updatedByUserId = actorUserId;
-      existing.updatedAt = now;
+      existing.updatedAt = now.toISOString();
       existing.version = (asNumber(existing.version) ?? 0) + 1;
-      return { log: mapPracticeLogRow(existing), seedVersion: store.version };
-    }
-
-    const created = {
-      id: newId('plog'),
-      athleteId,
-      authorUserId: actorUserId,
-      dateKey,
-      minutes: body.minutes,
-      note: note ?? null,
-      createdByUserId: actorUserId,
-      updatedByUserId: actorUserId,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-      deletedByUserId: null,
-    };
-    rows.unshift(created);
-    return { log: mapPracticeLogRow(created), seedVersion: store.version };
-  }
-
-  const prisma = getPrismaClientOrThrow();
-  const log = await prisma.practiceLog.upsert({
-    where: {
-      athleteId_authorUserId_dateKey: {
+      existing.deletedAt = null;
+      existing.deletedByUserId = null;
+      log = mapPracticeLogRow(existing);
+    } else {
+      const created = {
+        id: newId('plog'),
         athleteId,
         authorUserId: actorUserId,
         dateKey,
-      },
-    },
-    create: {
-      id: newId('plog'),
+        minutes: body.minutes,
+        note,
+        createdByUserId: actorUserId,
+        updatedByUserId: actorUserId,
+        version: 1,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+        deletedAt: null,
+        deletedByUserId: null,
+      };
+      rows.unshift(created);
+      log = mapPracticeLogRow(created);
+    }
+    const response = practiceLogMutationResponseSchema.parse({
       athleteId,
-      authorUserId: actorUserId,
-      dateKey,
-      minutes: body.minutes,
-      note: note ?? null,
-      createdByUserId: actorUserId,
-      updatedByUserId: actorUserId,
-    },
-    update: {
-      minutes: { increment: body.minutes },
-      ...(body.note !== undefined ? { note: note ?? null } : {}),
-      deletedAt: null,
-      deletedByUserId: null,
-      updatedByUserId: actorUserId,
-      version: { increment: 1 },
-    },
-  });
-  return normalizeForJson({ log, seedVersion: null });
+      log,
+      addedMinutes: body.minutes,
+      created: !active,
+      replayed: false,
+      timeZone,
+      seedVersion: store.version,
+      requestId,
+    });
+    idempotencyRows.push({
+      id: newId('idk'),
+      userId: actorUserId,
+      endpointKey,
+      idempotencyKey: body.idempotencyKey,
+      requestHash,
+      responseStatus: response.created ? 201 : 200,
+      responseBodyJson: response,
+      createdAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + PRACTICE_LOG_IDEMPOTENCY_TTL_MS).toISOString(),
+    });
+    return { response, statusCode: response.created ? 201 : 200 };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${athleteId}:${actorUserId}:${dateKey}`}, 0))::text AS lock_result`,
+      );
+      const storedReplay = await tx.idempotencyKey.findUnique({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId: actorUserId,
+            endpointKey,
+            idempotencyKey: body.idempotencyKey,
+          },
+        },
+      });
+      if (storedReplay) {
+        return {
+          response: replayPracticeLogMutation({
+            entry: storedReplay,
+            requestHash,
+            requestId,
+          }),
+          statusCode: 200 as const,
+        };
+      }
+
+      const existing = await tx.practiceLog.findUnique({
+        where: {
+          athleteId_authorUserId_dateKey: { athleteId, authorUserId: actorUserId, dateKey },
+        },
+      });
+      const active = existing && !existing.deletedAt;
+      const totalMinutes = (active ? existing.minutes : 0) + body.minutes;
+      if (totalMinutes > 24 * 60) {
+        throw conflict('Practice minutes cannot exceed 1,440 for one day');
+      }
+      const persisted = existing
+        ? await tx.practiceLog.update({
+            where: { id: existing.id },
+            data: {
+              minutes: totalMinutes,
+              ...(!active || body.note !== undefined ? { note } : {}),
+              deletedAt: null,
+              deletedByUserId: null,
+              updatedByUserId: actorUserId,
+              version: { increment: 1 },
+            },
+          })
+        : await tx.practiceLog.create({
+            data: {
+              id: newId('plog'),
+              athleteId,
+              authorUserId: actorUserId,
+              dateKey,
+              minutes: body.minutes,
+              note,
+              createdByUserId: actorUserId,
+              updatedByUserId: actorUserId,
+            },
+          });
+      const response = practiceLogMutationResponseSchema.parse({
+        athleteId,
+        log: mapPracticeLogRow(persisted),
+        addedMinutes: body.minutes,
+        created: !active,
+        replayed: false,
+        timeZone,
+        seedVersion: null,
+        requestId,
+      });
+      await tx.idempotencyKey.create({
+        data: {
+          id: newId('idk'),
+          userId: actorUserId,
+          endpointKey,
+          idempotencyKey: body.idempotencyKey,
+          requestHash,
+          responseStatus: response.created ? 201 : 200,
+          responseBodyJson: response as never,
+          expiresAt: new Date(now.getTime() + PRACTICE_LOG_IDEMPOTENCY_TTL_MS),
+        },
+      });
+      return { response, statusCode: response.created ? (201 as const) : (200 as const) };
+    }, API_DB_TRANSACTION_OPTIONS);
+  } catch (error) {
+    if ((error as { code?: unknown }).code !== 'P2002') {
+      throw error;
+    }
+    const storedReplay = await prisma.idempotencyKey.findUnique({
+      where: {
+        userId_endpointKey_idempotencyKey: {
+          userId: actorUserId,
+          endpointKey,
+          idempotencyKey: body.idempotencyKey,
+        },
+      },
+    });
+    if (!storedReplay) {
+      throw error;
+    }
+    return {
+      response: replayPracticeLogMutation({ entry: storedReplay, requestHash, requestId }),
+      statusCode: 200,
+    };
+  }
 }
 
 function mutableProgressChallengeStore() {
@@ -3195,16 +3704,199 @@ async function listSelfAssessmentEntriesPayload(
   return { entries, total: entries.length, seedVersion: null };
 }
 
+function selfAssessmentPromptNotificationPayload(prompt: {
+  id: string;
+  athleteId: string;
+  athleteName: string;
+  bookingId?: string | null;
+  sessionId?: string | null;
+}) {
+  return {
+    type: 'SELF_ASSESSMENT_PROMPT',
+    title: 'Quick Session Check-In',
+    body: `How did training feel today, ${prompt.athleteName}?`,
+    sourceType: SELF_ASSESSMENT_PROMPT_SOURCE_TYPE,
+    sourceId: prompt.id,
+    deepLink: '/development/my-progress',
+    metadataJson: {
+      athleteId: prompt.athleteId,
+      bookingId: prompt.bookingId ?? null,
+      promptId: prompt.id,
+      sessionId: prompt.sessionId ?? null,
+    },
+  };
+}
+
+function seedSelfAssessmentPromptRecipientIds(tables: SeedTables, prompt: SeedRow): string[] {
+  const athleteId = asString(prompt.athleteId);
+  if (!athleteId) {
+    return [];
+  }
+  const candidateUserIds = new Set<string>();
+  const athlete = asRows(tables.athletes).find((row) => asString(row.id) === athleteId);
+  const athleteUserId = asString(athlete?.userId);
+  if (athleteUserId) {
+    candidateUserIds.add(athleteUserId);
+  }
+  for (const link of asRows(tables.guardianChildLinks)) {
+    if (asString(link.athleteId) === athleteId && !asString(link.deletedAt)) {
+      const guardianUserId = asString(link.guardianUserId);
+      if (guardianUserId) {
+        candidateUserIds.add(guardianUserId);
+      }
+    }
+  }
+  const activeUserIds = new Set(
+    asRows(tables.users)
+      .filter(
+        (row) => !asString(row.deletedAt) && (asString(row.accountStatus) ?? 'active') === 'active',
+      )
+      .map((row) => asString(row.id))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  return [...candidateUserIds].filter((userId) => activeUserIds.has(userId));
+}
+
+function createSeedSelfAssessmentPromptNotifications(
+  tables: SeedTables,
+  prompt: SeedRow,
+  now: string,
+): number {
+  const recipientUserIds = seedSelfAssessmentPromptRecipientIds(tables, prompt);
+  if (recipientUserIds.length === 0) {
+    throw serviceUnavailable('Self-assessment prompt has no active notification recipient');
+  }
+  const payload = selfAssessmentPromptNotificationPayload({
+    id: asString(prompt.id) ?? '',
+    athleteId: asString(prompt.athleteId) ?? '',
+    athleteName: asString(prompt.athleteName) ?? 'Athlete',
+    bookingId: asString(prompt.bookingId) ?? null,
+    sessionId: asString(prompt.sessionId) ?? null,
+  });
+  const notifications = mutableRows(tables, 'notifications');
+  const existingRecipientIds = new Set(
+    notifications
+      .filter(
+        (row) =>
+          asString(row.sourceType) === payload.sourceType &&
+          asString(row.sourceId) === payload.sourceId,
+      )
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  for (const userId of recipientUserIds) {
+    if (existingRecipientIds.has(userId)) {
+      continue;
+    }
+    notifications.push({
+      id: newId('ntf'),
+      userId,
+      type: payload.type,
+      title: payload.title,
+      body: payload.body,
+      status: 'UNREAD',
+      sourceType: payload.sourceType,
+      sourceId: payload.sourceId,
+      deepLink: payload.deepLink,
+      metadataJson: payload.metadataJson,
+      createdAt: now,
+      updatedAt: now,
+      readAt: null,
+      dismissedAt: null,
+    });
+  }
+  return recipientUserIds.length;
+}
+
+async function createDbSelfAssessmentPromptNotifications(
+  prisma: SelfAssessmentNotificationDbClient,
+  prompt: {
+    id: string;
+    athleteId: string;
+    athleteName: string;
+    bookingId: string | null;
+    sessionId: string | null;
+  },
+  now: Date,
+): Promise<number> {
+  const athlete = await prisma.athlete.findFirst({
+    where: { id: prompt.athleteId, deletedAt: null },
+    select: {
+      userId: true,
+      guardianLinks: {
+        where: { deletedAt: null },
+        select: { guardianUserId: true },
+      },
+    },
+  });
+  if (!athlete) {
+    throw notFound('Athlete not found', { athleteId: prompt.athleteId });
+  }
+
+  const candidateUserIds = new Set<string>();
+  if (athlete.userId) {
+    candidateUserIds.add(athlete.userId);
+  }
+  for (const link of athlete.guardianLinks) {
+    candidateUserIds.add(link.guardianUserId);
+  }
+  const activeRecipientUserIds = (
+    await prisma.user.findMany({
+      where: {
+        id: { in: [...candidateUserIds] },
+        accountStatus: 'active',
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+  ).map((user) => user.id);
+  if (activeRecipientUserIds.length === 0) {
+    throw serviceUnavailable('Self-assessment prompt has no active notification recipient');
+  }
+
+  const payload = selfAssessmentPromptNotificationPayload(prompt);
+  const existing = await prisma.notification.findMany({
+    where: {
+      userId: { in: activeRecipientUserIds },
+      sourceType: payload.sourceType,
+      sourceId: payload.sourceId,
+    },
+    select: { userId: true },
+  });
+  const existingUserIds = new Set(existing.map((row) => row.userId));
+  const missingUserIds = activeRecipientUserIds.filter((userId) => !existingUserIds.has(userId));
+  if (missingUserIds.length > 0) {
+    await prisma.notification.createMany({
+      data: missingUserIds.map((userId) => ({
+        id: newId('ntf'),
+        userId,
+        type: payload.type,
+        title: payload.title,
+        body: payload.body,
+        sourceType: payload.sourceType,
+        sourceId: payload.sourceId,
+        deepLink: payload.deepLink,
+        metadataJson: payload.metadataJson as never,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    });
+  }
+  return activeRecipientUserIds.length;
+}
+
 async function dispatchSelfAssessmentPromptPayload(promptId: string, actorUserId: string) {
   const store = mutableSelfAssessmentStore();
   const now = nowIso();
   if (store) {
-    const prompt = seedSelfAssessmentPromptRows(store.tables as Record<string, unknown>).find(
+    const tables = store.tables as SeedTables;
+    const prompt = seedSelfAssessmentPromptRows(tables).find(
       (row) => asString(row.id) === promptId && !asString(row.deletedAt),
     );
     if (!prompt) {
       throw notFound('Self-assessment prompt not found', { promptId });
     }
+    createSeedSelfAssessmentPromptNotifications(tables, prompt, now);
     if (!asString(prompt.notificationSentAt)) {
       prompt.notificationSentAt = now;
     }
@@ -3215,19 +3907,33 @@ async function dispatchSelfAssessmentPromptPayload(promptId: string, actorUserId
   }
 
   const prisma = getPrismaClientOrThrow();
-  const prompt = await prisma.selfAssessmentPrompt.findFirst({
-    where: { id: promptId, deletedAt: null },
-  });
-  if (!prompt) {
-    throw notFound('Self-assessment prompt not found', { promptId });
-  }
-  const updated = await prisma.selfAssessmentPrompt.update({
-    where: { id: promptId },
-    data: {
-      notificationSentAt: prompt.notificationSentAt ?? new Date(now),
-      updatedByUserId: actorUserId,
-      version: { increment: 1 },
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const prompt = await tx.selfAssessmentPrompt.findFirst({
+      where: { id: promptId, deletedAt: null },
+    });
+    if (!prompt) {
+      throw notFound('Self-assessment prompt not found', { promptId });
+    }
+    const sentAt = prompt.notificationSentAt ?? new Date(now);
+    await createDbSelfAssessmentPromptNotifications(
+      tx,
+      {
+        id: prompt.id,
+        athleteId: prompt.athleteId,
+        athleteName: prompt.athleteName,
+        bookingId: prompt.bookingId,
+        sessionId: prompt.sessionId,
+      },
+      sentAt,
+    );
+    return tx.selfAssessmentPrompt.update({
+      where: { id: promptId },
+      data: {
+        notificationSentAt: sentAt,
+        updatedByUserId: actorUserId,
+        version: { increment: 1 },
+      },
+    });
   });
   return {
     prompt: mapSelfAssessmentPromptRow(normalizeForJson(updated) as SeedRow),
@@ -3524,6 +4230,7 @@ async function createTermlyReportSnapshotPayload(
   };
 }
 
+const SELF_ASSESSMENT_PROMPT_SOURCE_TYPE = 'self_assessment_prompt';
 const WEEKLY_RECAP_SOURCE_TYPE = 'weekly_progress_recap';
 
 function weeklyRecapSunday(date: Date): Date {
@@ -4342,6 +5049,76 @@ async function getAthleteBadgesPayload(athleteId: string, viewerUserId?: string)
   return {
     badges: decorateBadgeAwardsWithAuditState(badges, auditEvents, viewerUserId),
     badgeDefinitions,
+    seedVersion: store.version,
+  };
+}
+
+function badgeDefinitionsWithAwardCounts(definitions: SeedRow[], awards: SeedRow[]): SeedRow[] {
+  const athletesByDefinitionId = new Map<string, Set<string>>();
+  for (const award of awards) {
+    const definitionId = asString(award.badgeDefinitionId);
+    const athleteId = asString(award.athleteId);
+    if (!definitionId || !athleteId) {
+      continue;
+    }
+    const athletes = athletesByDefinitionId.get(definitionId) ?? new Set<string>();
+    athletes.add(athleteId);
+    athletesByDefinitionId.set(definitionId, athletes);
+  }
+
+  return definitions
+    .map<SeedRow>((definition) => ({
+      ...definition,
+      awardCount: athletesByDefinitionId.get(asString(definition.id) ?? '')?.size ?? 0,
+    }))
+    .sort((left, right) => {
+      const leftLabel = asString(left.name) ?? asString(left.label) ?? asString(left.id) ?? '';
+      const rightLabel = asString(right.name) ?? asString(right.label) ?? asString(right.id) ?? '';
+      return leftLabel.localeCompare(rightLabel);
+    });
+}
+
+async function getBadgeDefinitionsWithStatsPayload() {
+  if (getApiDataBackend() === 'db') {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return {
+        badgeDefinitions: badgeDefinitionsWithAwardCounts(
+          asRows(store.tables.badgeDefinitions).filter((row) => asBoolean(row.active) !== false),
+          asRows(store.tables.athleteBadges),
+        ),
+        seedVersion: store.version,
+      };
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const [definitions, awards] = await Promise.all([
+      prisma.badgeDefinition.findMany({
+        where: { active: true },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.athleteBadge.findMany({
+        select: {
+          badgeDefinitionId: true,
+          athleteId: true,
+        },
+      }),
+    ]);
+    return normalizeForJson({
+      badgeDefinitions: badgeDefinitionsWithAwardCounts(
+        definitions as unknown as SeedRow[],
+        awards as unknown as SeedRow[],
+      ),
+      seedVersion: null,
+    });
+  }
+
+  const store = getMarketplaceSeedStore();
+  return {
+    badgeDefinitions: badgeDefinitionsWithAwardCounts(
+      asRows(store.tables.badgeDefinitions).filter((row) => asBoolean(row.active) !== false),
+      asRows(store.tables.athleteBadges),
+    ),
     seedVersion: store.version,
   };
 }
@@ -6125,18 +6902,40 @@ function normalizePracticeTaskIds(taskIds: string[]): string[] {
 async function getPracticeTaskAssignmentContexts(
   taskIds: string[],
 ): Promise<PracticeTaskAssignmentContext[]> {
-  const contexts: PracticeTaskAssignmentContext[] = [];
-  for (const taskId of normalizePracticeTaskIds(taskIds)) {
-    try {
-      contexts.push(await getPracticeTaskAssignmentContext(taskId));
-    } catch (error) {
-      if (error instanceof ApiProblemError && error.code === 'RESOURCE_NOT_FOUND') {
-        continue;
+  const contexts = await Promise.all(
+    normalizePracticeTaskIds(taskIds).map(async (taskId) => {
+      try {
+        return await getPracticeTaskAssignmentContext(taskId);
+      } catch (error) {
+        if (error instanceof ApiProblemError && error.code === 'RESOURCE_NOT_FOUND') {
+          return null;
+        }
+        throw error;
       }
-      throw error;
-    }
-  }
-  return contexts;
+    }),
+  );
+  return contexts.filter((context): context is PracticeTaskAssignmentContext => context !== null);
+}
+
+async function getReadableAthleteIds(
+  request: FastifyRequest,
+  athleteIds: string[],
+): Promise<Set<string>> {
+  const uniqueAthleteIds = Array.from(new Set(athleteIds));
+  const readableAthleteIds = await Promise.all(
+    uniqueAthleteIds.map(async (athleteId) => {
+      try {
+        await assertCanReadAthleteHealth(request, athleteId);
+        return athleteId;
+      } catch (error) {
+        if (!(error instanceof ApiProblemError) || error.status >= 500) {
+          throw error;
+        }
+        return null;
+      }
+    }),
+  );
+  return new Set(readableAthleteIds.filter((athleteId): athleteId is string => athleteId !== null));
 }
 
 async function assertCanCoachActOnPracticeTask(
@@ -7465,66 +8264,274 @@ async function createAthleteSkillUpdate(
   athleteId: string,
   body: AthleteSkillUpdateRequest,
   assessorUserId: string,
+  privilegedSourceOverride: boolean,
 ) {
   const assessedAt = parseOptionalDate(body.assessedAt) ?? new Date();
   const sourceBookingId = body.bookingId ?? body.sessionId ?? null;
+  if (assessedAt.getTime() > Date.now() + 5 * 60_000) {
+    throw badRequest('assessedAt cannot be more than five minutes in the future');
+  }
+  const assessmentId = `ska_${crypto
+    .createHash('sha256')
+    .update(`${assessorUserId}:${athleteId}:${body.idempotencyKey}`)
+    .digest('hex')
+    .slice(0, 32)}`;
+  const code = skillDefinitionCode(body.skillName);
+
+  const assertReplayMatches = (
+    skillAssessment: {
+      athleteId: string;
+      skillDefinitionId: string;
+      assessorUserId: string;
+      score: number;
+      notes: string | null;
+      bookingId: string | null;
+      assessedAt: Date | string;
+    },
+    skillDefinition: { id: string; code: string },
+  ) => {
+    const assessedAtMatches =
+      !body.assessedAt ||
+      new Date(skillAssessment.assessedAt).getTime() === new Date(body.assessedAt).getTime();
+    if (
+      skillAssessment.athleteId !== athleteId ||
+      skillAssessment.assessorUserId !== assessorUserId ||
+      skillAssessment.skillDefinitionId !== skillDefinition.id ||
+      skillDefinition.code !== code ||
+      skillAssessment.score !== body.score ||
+      skillAssessment.notes !== (body.notes ?? null) ||
+      skillAssessment.bookingId !== sourceBookingId ||
+      !assessedAtMatches
+    ) {
+      throw conflict('Idempotency key was already used with a different skill update');
+    }
+  };
+
+  const responsePayload = (params: {
+    skillAssessment: unknown;
+    skillDefinition: unknown;
+    previousScore: number | null;
+    replayed: boolean;
+    seedVersion: string | null;
+  }) =>
+    normalizeForJson({
+      ...params,
+      score: body.score,
+    });
 
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
-    const code = skillDefinitionCode(body.skillName);
-    const existingDefinition = await prisma.skillDefinition.findFirst({
-      where: {
-        OR: [{ code }, { name: body.skillName }],
-      },
-    });
-    const skillDefinition =
-      existingDefinition ??
-      (await prisma.skillDefinition.create({
-        data: {
-          id: newId('skd'),
-          code,
-          name: body.skillName,
-          category: skillDefinitionCategory(body.skillName),
-          description: `${body.skillName} definition created from coach skill update.`,
-          active: true,
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const athlete = await tx.athlete.findUnique({
+          where: { id: athleteId },
+          select: { id: true },
+        });
+        if (!athlete) {
+          throw notFound('Athlete not found');
+        }
+
+        if (sourceBookingId) {
+          const booking = await tx.booking.findFirst({
+            where: {
+              id: sourceBookingId,
+              deletedAt: null,
+              ...(privilegedSourceOverride ? {} : { coachUserId: assessorUserId }),
+              participants: {
+                some: { athleteId, deletedAt: null },
+              },
+            },
+            select: { id: true },
+          });
+          const session =
+            booking || body.bookingId
+              ? null
+              : await tx.groupSession.findFirst({
+                  where: {
+                    id: sourceBookingId,
+                    deletedAt: null,
+                    ...(privilegedSourceOverride ? {} : { coachUserId: assessorUserId }),
+                    OR: [
+                      { registrations: { some: { athleteId, deletedAt: null } } },
+                      { rsvps: { some: { athleteId, deletedAt: null } } },
+                    ],
+                  },
+                  select: { id: true },
+                });
+          if (!booking && !session) {
+            throw forbidden('Skill update source does not belong to this coach and athlete');
+          }
+        }
+
+        const skillDefinition = await tx.skillDefinition.upsert({
+          where: { code },
+          update: {},
+          create: {
+            id: newId('skd'),
+            code,
+            name: body.skillName,
+            category: skillDefinitionCategory(body.skillName),
+            description: `${body.skillName} definition created from coach skill update.`,
+            active: true,
+          },
+        });
+        if (!skillDefinition.active) {
+          throw conflict('This skill definition is inactive');
+        }
+
+        const previousAssessment = await tx.athleteSkillAssessment.findFirst({
+          where: {
+            athleteId,
+            skillDefinitionId: skillDefinition.id,
+            id: { not: assessmentId },
+          },
+          orderBy: { assessedAt: 'desc' },
+        });
+        const existingAssessment = await tx.athleteSkillAssessment.findUnique({
+          where: { id: assessmentId },
+        });
+        if (existingAssessment) {
+          assertReplayMatches(existingAssessment, skillDefinition);
+          return responsePayload({
+            skillAssessment: existingAssessment,
+            skillDefinition,
+            previousScore: previousAssessment?.score ?? null,
+            replayed: true,
+            seedVersion: null,
+          });
+        }
+
+        const skillAssessment = await tx.athleteSkillAssessment.create({
+          data: {
+            id: assessmentId,
+            athleteId,
+            skillDefinitionId: skillDefinition.id,
+            assessorUserId,
+            score: body.score,
+            notes: body.notes ?? null,
+            bookingId: sourceBookingId,
+            assessedAt,
+          },
+        });
+        return responsePayload({
+          skillAssessment,
+          skillDefinition,
+          previousScore: previousAssessment?.score ?? null,
+          replayed: false,
+          seedVersion: null,
+        });
+      }, API_DB_TRANSACTION_OPTIONS);
+    } catch (error) {
+      const prismaError = error as { code?: unknown };
+      if (prismaError.code !== 'P2002') {
+        throw error;
+      }
+      const existingAssessment = await prisma.athleteSkillAssessment.findUnique({
+        where: { id: assessmentId },
+        include: { skillDefinition: true },
+      });
+      if (!existingAssessment) {
+        throw error;
+      }
+      assertReplayMatches(existingAssessment, existingAssessment.skillDefinition);
+      const previousAssessment = await prisma.athleteSkillAssessment.findFirst({
+        where: {
+          athleteId,
+          skillDefinitionId: existingAssessment.skillDefinitionId,
+          id: { not: assessmentId },
         },
-      }));
-    const previousAssessment = await prisma.athleteSkillAssessment.findFirst({
-      where: {
-        athleteId,
-        skillDefinitionId: skillDefinition.id,
-      },
-      orderBy: { assessedAt: 'desc' },
-    });
-    const skillAssessment = await prisma.athleteSkillAssessment.create({
-      data: {
-        id: newId('ska'),
-        athleteId,
-        skillDefinitionId: skillDefinition.id,
-        assessorUserId,
-        score: body.score,
-        notes: body.notes ?? null,
-        bookingId: sourceBookingId,
-        assessedAt,
-      },
-    });
-    return normalizeForJson({
-      skillAssessment,
-      skillDefinition,
-      previousScore: previousAssessment?.score ?? null,
-      score: skillAssessment.score,
-      seedVersion: null,
-    });
+        orderBy: { assessedAt: 'desc' },
+      });
+      return responsePayload({
+        skillAssessment: existingAssessment,
+        skillDefinition: existingAssessment.skillDefinition,
+        previousScore: previousAssessment?.score ?? null,
+        replayed: true,
+        seedVersion: null,
+      });
+    }
   }
 
   const store = getApiDataBackend() === 'db' ? getDbFixtureStore() : getMarketplaceSeedStore();
   const tables = store.tables;
+  if (!asRows(tables.athletes).some((athlete) => asString(athlete.id) === athleteId)) {
+    throw notFound('Athlete not found');
+  }
+  if (sourceBookingId) {
+    const booking = asRows(tables.bookings).find(
+      (row) =>
+        asString(row.id) === sourceBookingId &&
+        !asString(row.deletedAt) &&
+        (privilegedSourceOverride || asString(row.coachUserId) === assessorUserId) &&
+        asRows(tables.bookingParticipants).some(
+          (participant) =>
+            asString(participant.bookingId) === sourceBookingId &&
+            asString(participant.athleteId) === athleteId &&
+            !asString(participant.deletedAt),
+        ),
+    );
+    const session =
+      booking || body.bookingId
+        ? undefined
+        : asRows(tables.groupSessions).find(
+            (row) =>
+              asString(row.id) === sourceBookingId &&
+              !asString(row.deletedAt) &&
+              (privilegedSourceOverride || asString(row.coachUserId) === assessorUserId) &&
+              (asRows(tables.groupSessionRegistrations).some(
+                (registration) =>
+                  asString(registration.groupSessionId) === sourceBookingId &&
+                  asString(registration.athleteId) === athleteId &&
+                  !asString(registration.deletedAt),
+              ) ||
+                asRows(tables.sessionRsvps).some(
+                  (rsvp) =>
+                    asString(rsvp.groupSessionId) === sourceBookingId &&
+                    asString(rsvp.athleteId) === athleteId &&
+                    !asString(rsvp.deletedAt),
+                )),
+          );
+    if (!booking && !session) {
+      throw forbidden('Skill update source does not belong to this coach and athlete');
+    }
+  }
   const skillDefinition = ensureSeedSkillDefinition(tables, body.skillName);
   const skillDefinitionId = asString(skillDefinition.id) ?? '';
+  if (!asBoolean(skillDefinition.active)) {
+    throw conflict('This skill definition is inactive');
+  }
   const assessments = asRows(tables.athleteSkillAssessments);
-  const previousAssessment = latestAssessmentForSkill(assessments, athleteId, skillDefinitionId);
+  const previousAssessment = latestAssessmentForSkill(
+    assessments.filter((assessment) => asString(assessment.id) !== assessmentId),
+    athleteId,
+    skillDefinitionId,
+  );
+  const existingAssessment = assessments.find(
+    (assessment) => asString(assessment.id) === assessmentId,
+  );
+  if (existingAssessment) {
+    assertReplayMatches(
+      {
+        athleteId: asString(existingAssessment.athleteId) ?? '',
+        skillDefinitionId: asString(existingAssessment.skillDefinitionId) ?? '',
+        assessorUserId: asString(existingAssessment.assessorUserId) ?? '',
+        score: asNumber(existingAssessment.score) ?? Number.NaN,
+        notes: asString(existingAssessment.notes) ?? null,
+        bookingId: asString(existingAssessment.bookingId) ?? null,
+        assessedAt: asString(existingAssessment.assessedAt) ?? '',
+      },
+      { id: skillDefinitionId, code: asString(skillDefinition.code) ?? '' },
+    );
+    return responsePayload({
+      skillAssessment: existingAssessment,
+      skillDefinition,
+      previousScore: asNumber(previousAssessment?.score) ?? null,
+      replayed: true,
+      seedVersion: store.version,
+    });
+  }
   const skillAssessment = {
-    id: newId('ska'),
+    id: assessmentId,
     athleteId,
     skillDefinitionId,
     assessorUserId,
@@ -7535,13 +8542,13 @@ async function createAthleteSkillUpdate(
     createdAt: nowIso(),
   };
   assessments.push(skillAssessment);
-  return {
+  return responsePayload({
     skillAssessment,
     skillDefinition,
     previousScore: asNumber(previousAssessment?.score) ?? null,
-    score: body.score,
+    replayed: false,
     seedVersion: store.version,
-  };
+  });
 }
 
 function mutableGoalStore() {
@@ -8229,6 +9236,17 @@ async function handleInvoiceTransitionRoute(
     throw notFound('Invoice id is required');
   }
 
+  await assertDbModePrismaAvailable({
+    request,
+    action: params.auditAction,
+    resourceType: 'invoice',
+    resourceId: invoiceId,
+    subjectUserId: authUserId,
+    metadata: {
+      transitionAction: params.action,
+      bodyProvided: request.body != null,
+    },
+  });
   const body = invoiceTransitionRequestSchema.parse(request.body ?? {});
   const invoice = await getInvoiceRow(invoiceId);
   if (!invoice) {
@@ -8535,6 +9553,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
     const query = invoiceListQuerySchema.parse(request.query ?? {});
     const isAdmin = isPrivilegedAdminAuth(request.auth);
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.list',
+      resourceType: 'invoice',
+      sensitiveRead: true,
+      metadata: {
+        status: query.status ?? null,
+      },
+    });
     const invoices = await listAccessibleInvoices(authUserId, isAdmin, query);
     await recordAuditEvent({
       request,
@@ -8566,17 +9593,24 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invoice id is required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.read',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      sensitiveRead: true,
+    });
     const detail = await getInvoiceDetail(invoiceId);
     if (!detail) {
       throw notFound('Invoice not found', { invoiceId });
     }
     const isAdmin = isPrivilegedAdminAuth(request.auth);
     const invoice = await getInvoiceRow(invoiceId);
-    const canAccess =
-      isAdmin ||
-      asString(detail.invoice.coachId) === authUserId ||
-      asString(detail.invoice.userId) === authUserId ||
-      (invoice ? await canManageClubInvoice(invoice, authUserId) : false);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+    const canManageMoney = await canManageInvoiceMoneyAction(invoice, authUserId, isAdmin);
+    const canAccess = asString(detail.invoice.userId) === authUserId || canManageMoney;
     if (!canAccess) {
       throw forbidden('Not allowed to access this invoice');
     }
@@ -8592,7 +9626,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.send({
-      invoice: detail.invoice,
+      invoice: { ...detail.invoice, canManageMoney },
       lineItems: detail.lineItems,
       events: detail.events,
       reconcilerEntry: detail.reconcilerEntry,
@@ -8609,6 +9643,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.generate',
+      resourceType: 'invoice',
+      subjectUserId: authUserId,
+      metadata: {
+        bodyProvided: request.body != null,
+      },
+    });
     const body = generateInvoiceRequestSchema.parse(request.body ?? {});
     const booking = await getBookingInvoiceContext(body.bookingId);
     if (!booking) {
@@ -8663,6 +9706,16 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!invoiceId) {
       throw notFound('Invoice id is required');
     }
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.payment_session_create',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: authUserId,
+      metadata: {
+        bodyProvided: request.body != null,
+      },
+    });
     const invoice = await getInvoiceRow(invoiceId);
     if (!invoice) {
       throw notFound('Invoice not found', { invoiceId });
@@ -8677,7 +9730,6 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Not allowed to pay this invoice');
     }
     const body = invoicePaymentRequestSchema.parse(request.body);
-
     const totalMinor = asNumber(invoice.totalMinor);
     if (!totalMinor || totalMinor <= 0) {
       throw badRequest('Invoice total is invalid for payment processing', { invoiceId });
@@ -8742,6 +9794,16 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!invoiceId) {
       throw notFound('Invoice id is required');
     }
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.refund_approve',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: authUserId,
+      metadata: {
+        bodyProvided: request.body != null,
+      },
+    });
     const invoice = await getInvoiceRow(invoiceId);
     if (!invoice) {
       throw notFound('Invoice not found', { invoiceId });
@@ -8804,6 +9866,16 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!invoiceId) {
       throw notFound('Invoice id is required');
     }
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.reminder',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: authUserId,
+      metadata: {
+        bodyProvided: request.body != null,
+      },
+    });
     const body = invoiceReminderRequestSchema.parse(request.body ?? {});
     const invoice = await getInvoiceRow(invoiceId);
     if (!invoice) {
@@ -8846,31 +9918,30 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         'Invoice reminder email delivery failed',
       );
     }
-    const updatedReminder = await updateInvoiceReminderDelivery({
-      reminderId: asString(reminder.reminder.id) ?? '',
-      deliveryStatus: delivery.status,
-      deliveryProvider: delivery.provider,
-      deliveryError: delivery.error,
-    });
-
-    const [detail] = await Promise.all([
-      getInvoiceDetail(invoiceId),
-      recordAuditEvent({
-        request,
-        action: 'invoice.reminder',
-        resourceType: 'invoice',
-        resourceId: invoiceId,
-        subjectUserId:
-          asString(reminder.invoice.payerUserId) ?? asString(reminder.invoice.userId) ?? null,
-        result: 'SUCCESS',
-        metadata: {
-          sentAt: reminder.sentAt,
-          recipientEmailDomain: emailDomain(body.recipientEmail),
-          deliveryProvider: delivery.provider,
-          deliveryStatus: delivery.status,
-        },
+    const [updatedReminder, detail] = await Promise.all([
+      updateInvoiceReminderDelivery({
+        reminderId: asString(reminder.reminder.id) ?? '',
+        deliveryStatus: delivery.status,
+        deliveryProvider: delivery.provider,
+        deliveryError: delivery.error,
       }),
+      getInvoiceDetail(invoiceId),
     ]);
+    await recordAuditEvent({
+      request,
+      action: 'invoice.reminder',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId:
+        asString(reminder.invoice.payerUserId) ?? asString(reminder.invoice.userId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        sentAt: reminder.sentAt,
+        recipientEmailDomain: emailDomain(body.recipientEmail),
+        deliveryProvider: delivery.provider,
+        deliveryStatus: delivery.status,
+      },
+    });
     return reply.send({
       invoice: detail?.invoice ?? reminder.invoice,
       reminder: updatedReminder,
@@ -8889,6 +9960,13 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw badRequest('Payment attempt token is required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.payment_hosted_page',
+      resourceType: 'payment_attempt',
+      resourceId: attemptId,
+      sensitiveRead: true,
+    });
     const page = await getHostedPaymentPageData(attemptId, token);
     const completeUrl = `/v1/payment-attempts/${attemptId}/simulated-complete`;
     reply.type('text/html; charset=utf-8');
@@ -8911,6 +9989,12 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw badRequest('Payment attempt id is required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'invoice.payment_confirm',
+      resourceType: 'payment_attempt',
+      resourceId: attemptId,
+    });
     const body = simulatedCompleteRequestSchema.parse(request.body ?? {});
     const completed = await completeSimulatedInvoicePayment({
       attemptId,
@@ -9056,21 +10140,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
     const query = sessionMediaListQuerySchema.parse(request.query ?? {});
     const result = await listSessionMediaRowsBySession(sessionId, query.athleteId);
-    const allowedRows: SeedRow[] = [];
-    for (const row of result.rows) {
+    const readableAthleteIds = await getReadableAthleteIds(
+      request,
+      result.rows.flatMap((row) => {
+        const athleteId = asString(row.athleteId);
+        return athleteId ? [athleteId] : [];
+      }),
+    );
+    const allowedRows = result.rows.filter((row) => {
       const athleteId = asString(row.athleteId);
-      if (!athleteId) {
-        continue;
-      }
-      try {
-        await assertCanReadAthleteHealth(request, athleteId);
-        allowedRows.push(row);
-      } catch (error) {
-        if (!(error instanceof ApiProblemError) || error.status >= 500) {
-          throw error;
-        }
-      }
-    }
+      return athleteId ? readableAthleteIds.has(athleteId) : false;
+    });
     await recordAuditEvent({
       request,
       action: 'session_media.read',
@@ -9240,6 +10320,57 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  app.get('/coaches/:coachId/development-sessions', async (request, reply) => {
+    const coachUserId = asString((request.params as { coachId?: string }).coachId);
+    if (!coachUserId) {
+      throw notFound('Coach id is required');
+    }
+    const query = coachDevelopmentSessionListQuerySchema.parse(request.query ?? {});
+    try {
+      const authUserId = request.auth?.userId;
+      if (!authUserId) {
+        throw forbidden('Authenticated user is required');
+      }
+      const canReadSelfCoach =
+        authUserId === coachUserId && hasAnyGrantedRole(request.auth, ['coach']);
+      if (!canReadSelfCoach && !isPrivilegedAdminAuth(request.auth)) {
+        throw forbidden('Only the coach or privileged admin can read coach development sessions');
+      }
+      const result = await listCoachDevelopmentSessionFeedback(coachUserId, query);
+      await recordAuditEvent({
+        request,
+        action: 'coach_development_sessions.read',
+        resourceType: 'coach',
+        resourceId: coachUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          count: result.feedback.length,
+          limit: query.limit,
+        },
+      });
+      return reply.send({
+        feedback: result.feedback,
+        seedVersion: result.seedVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'coach_development_sessions.read',
+        resourceType: 'coach',
+        resourceId: coachUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
   app.get('/athletes/:athleteId/session-feedback', async (request, reply) => {
     const athleteId = asString((request.params as { athleteId?: string }).athleteId);
     if (!athleteId) {
@@ -9248,7 +10379,11 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const query = sessionFeedbackListQuerySchema.parse(request.query ?? {});
     try {
       await assertCanReadAthleteHealth(request, athleteId);
-      const result = await listSessionFeedback(athleteId, query);
+      const viewerRole = resolveSessionFeedbackViewerRole(request);
+      const result = await listSessionFeedback(athleteId, {
+        ...query,
+        viewerRole,
+      });
       await recordAuditEvent({
         request,
         action: 'session_feedback.read',
@@ -9258,7 +10393,8 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         sensitiveRead: true,
         metadata: {
           count: result.feedback.length,
-          viewerRole: query.viewerRole,
+          viewerRole,
+          requestedViewerRole: query.viewerRole,
         },
       });
       return reply.send({
@@ -9299,7 +10435,8 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
     try {
       await assertCanReadAthleteHealth(request, athleteId);
-      const feedback = visibleSessionFeedback(result.row, query.viewerRole);
+      const viewerRole = resolveSessionFeedbackViewerRole(request);
+      const feedback = visibleSessionFeedback(result.row, viewerRole);
       await recordAuditEvent({
         request,
         action: 'session_feedback.read',
@@ -9309,7 +10446,8 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         sensitiveRead: true,
         metadata: {
           athleteId,
-          viewerRole: query.viewerRole,
+          viewerRole,
+          requestedViewerRole: query.viewerRole,
         },
       });
       return reply.send({
@@ -9351,7 +10489,8 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       if (!isPrivilegedAdmin) {
         await assertCanWriteAthleteHealth(request, body.athleteId);
       }
-      const result = await upsertSessionFeedback(body);
+      const authoritativeBody = await withAuthoritativeSessionFeedbackNames(body);
+      const result = await upsertSessionFeedback(authoritativeBody);
       await recordAuditEvent({
         request,
         action: 'session_feedback.save',
@@ -9427,45 +10566,65 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    const query = practiceLogListQuerySchema.parse(request.query ?? {});
-
+    let subjectUserId: string | undefined;
+    let responseContractInvalid = false;
     try {
+      const query = practiceLogListQuerySchema.parse(request.query ?? {});
       await assertCanReadAthleteHealth(request, athleteId);
+      subjectUserId = await resolvePracticeLogSubjectUserId(athleteId);
+      const payload = await listPracticeLogsPayload(athleteId, query);
+      const parsed = practiceLogListResponseSchema.safeParse({
+        athleteId,
+        logs: payload.logs,
+        total: payload.total,
+        seedVersion: payload.seedVersion,
+        requestId: request.requestId,
+      });
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Practice log list response invalid');
+      }
+
+      await recordAuditEvent({
+        request,
+        action: 'practice_logs.read',
+        resourceType: 'practice_log',
+        resourceId: athleteId,
+        subjectUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          returned: parsed.data.logs.length,
+          total: parsed.data.total,
+        },
+      });
+
+      return reply.send(parsed.data);
     } catch (error) {
       await recordAuditEvent({
         request,
         action: 'practice_logs.read',
         resourceType: 'practice_log',
         resourceId: athleteId,
-        subjectUserId: athleteOwnerUserId(athleteId),
-        result: 'DENY',
+        subjectUserId,
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         sensitiveRead: true,
+        metadata: {
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+        },
       });
       throw error;
     }
-
-    const payload = await listPracticeLogsPayload(athleteId, query);
-
-    await recordAuditEvent({
-      request,
-      action: 'practice_logs.read',
-      resourceType: 'practice_log',
-      resourceId: athleteId,
-      subjectUserId: athleteOwnerUserId(athleteId),
-      result: 'SUCCESS',
-      sensitiveRead: true,
-      metadata: {
-        total: payload.total,
-      },
-    });
-
-    return reply.send({
-      athleteId,
-      logs: payload.logs,
-      total: payload.total,
-      seedVersion: payload.seedVersion,
-      requestId: request.requestId,
-    });
   });
 
   app.get('/athletes/:athleteId/practice-logs/today', async (request, reply) => {
@@ -9478,42 +10637,59 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
+    let subjectUserId: string | undefined;
+    let responseContractInvalid = false;
     try {
       await assertCanReadAthleteHealth(request, athleteId);
+      subjectUserId = await resolvePracticeLogSubjectUserId(athleteId);
+      const timeZone = await resolvePracticeLogTimeZone(actorUserId);
+      const payload = await getTodayPracticeLogPayload(athleteId, actorUserId, timeZone);
+      const parsed = practiceLogTodayResponseSchema.safeParse({
+        athleteId,
+        ...payload,
+        requestId: request.requestId,
+      });
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Today practice log response invalid');
+      }
+
+      await recordAuditEvent({
+        request,
+        action: 'practice_logs.today_read',
+        resourceType: 'practice_log',
+        resourceId: athleteId,
+        subjectUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          found: Boolean(parsed.data.log),
+          dateKey: parsed.data.dateKey,
+          timeZone: parsed.data.timeZone,
+        },
+      });
+
+      return reply.send(parsed.data);
     } catch (error) {
       await recordAuditEvent({
         request,
         action: 'practice_logs.today_read',
         resourceType: 'practice_log',
         resourceId: athleteId,
-        subjectUserId: athleteOwnerUserId(athleteId),
-        result: 'DENY',
+        subjectUserId,
+        result:
+          error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
         sensitiveRead: true,
+        metadata: {
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : error instanceof ApiProblemError
+              ? error.code
+              : 'INTERNAL_ERROR',
+        },
       });
       throw error;
     }
-
-    const payload = await getTodayPracticeLogPayload(athleteId, actorUserId);
-
-    await recordAuditEvent({
-      request,
-      action: 'practice_logs.today_read',
-      resourceType: 'practice_log',
-      resourceId: athleteId,
-      subjectUserId: athleteOwnerUserId(athleteId),
-      result: 'SUCCESS',
-      sensitiveRead: true,
-      metadata: {
-        found: Boolean(payload.log),
-      },
-    });
-
-    return reply.send({
-      athleteId,
-      log: payload.log,
-      seedVersion: payload.seedVersion,
-      requestId: request.requestId,
-    });
   });
 
   app.post('/athletes/:athleteId/practice-logs', async (request, reply) => {
@@ -9525,50 +10701,71 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!actorUserId) {
       throw forbidden('Authenticated user is required');
     }
-    const body = practiceLogCreateRequestSchema.parse(request.body ?? {});
-
+    let body: PracticeLogCreateRequest | null = null;
+    let subjectUserId: string | undefined;
+    let responseContractInvalid = false;
     try {
+      body = practiceLogCreateRequestSchema.parse(request.body ?? {});
       await assertCanWriteAthleteHealth(request, athleteId);
+      subjectUserId = await resolvePracticeLogSubjectUserId(athleteId);
+      const timeZone = await resolvePracticeLogTimeZone(actorUserId);
+      const result = await upsertPracticeLogPayload(
+        athleteId,
+        actorUserId,
+        body,
+        request.requestId,
+        timeZone,
+      );
+      const parsed = practiceLogMutationResponseSchema.safeParse(result.response);
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Practice log mutation response invalid');
+      }
+
+      await recordAuditEvent({
+        request,
+        action: 'practice_logs.write',
+        resourceType: 'practice_log',
+        resourceId: parsed.data.log.id,
+        subjectUserId,
+        result: 'SUCCESS',
+        metadata: {
+          athleteId,
+          addedMinutes: parsed.data.addedMinutes,
+          totalMinutes: parsed.data.log.minutes,
+          dateKey: parsed.data.log.dateKey,
+          timeZone: parsed.data.timeZone,
+          created: parsed.data.created,
+          replayed: parsed.data.replayed,
+        },
+      });
+
+      return reply.code(result.statusCode).send(parsed.data);
     } catch (error) {
       await recordAuditEvent({
         request,
         action: 'practice_logs.write',
         resourceType: 'practice_log',
         resourceId: athleteId,
-        subjectUserId: athleteOwnerUserId(athleteId),
-        result: 'DENY',
-        sensitiveRead: true,
+        subjectUserId,
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         metadata: {
-          minutes: body.minutes,
-          dateKey: body.dateKey ?? todayDateKey(),
+          requestedDateKey: body?.dateKey ?? null,
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
         },
       });
       throw error;
     }
-
-    const payload = await upsertPracticeLogPayload(athleteId, actorUserId, body);
-
-    await recordAuditEvent({
-      request,
-      action: 'practice_logs.write',
-      resourceType: 'practice_log',
-      resourceId: payload.log.id,
-      subjectUserId: athleteOwnerUserId(athleteId),
-      result: 'SUCCESS',
-      sensitiveRead: true,
-      metadata: {
-        athleteId,
-        minutes: body.minutes,
-        dateKey: payload.log.dateKey,
-      },
-    });
-
-    return reply.code(201).send({
-      athleteId,
-      log: payload.log,
-      seedVersion: payload.seedVersion,
-      requestId: request.requestId,
-    });
   });
 
   app.get('/athletes/:athleteId/progress-challenge', async (request, reply) => {
@@ -10037,7 +11234,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceId: params.athleteId,
         subjectUserId: athleteOwnerUserId(params.athleteId),
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -10047,7 +11244,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
           generatedAt: body?.report.generatedAt ?? null,
           rangeLabel: body?.report.range.label ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -10099,7 +11296,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceId: params.athleteId,
         subjectUserId: athleteOwnerUserId(params.athleteId),
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -10107,7 +11304,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           parentId: body?.parentId ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -10123,25 +11320,71 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    const query = athleteAnalyticsQuerySchema.parse(request.query);
-    await assertCanReadAthleteHealth(request, athleteId);
+    let requestValidated = false;
+    let responseContractInvalid = false;
+    let period: AthleteAnalyticsPeriod | undefined;
+    try {
+      const query = athleteAnalyticsQuerySchema.parse(request.query ?? {});
+      requestValidated = true;
+      period = query.period;
+      await assertCanReadAthleteHealth(request, athleteId);
+      const payload = await buildAthleteAnalyticsPayload(athleteId, query.period);
+      const parsed = athleteAnalyticsResponseSchema.safeParse({
+        ...payload,
+        seedVersion: payload.seedVersion ?? null,
+        requestId: request.requestId,
+      });
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(
+          500,
+          'INTERNAL_ERROR',
+          'Athlete analytics response contract invalid',
+        );
+      }
 
-    const [payload] = await Promise.all([
-      buildAthleteAnalyticsPayload(athleteId, query.period),
-      recordAuditEvent({
+      await recordAuditEvent({
         request,
         action: 'athlete_analytics.read',
         resourceType: 'athlete_analytics',
         resourceId: athleteId,
+        subjectUserId: athleteOwnerUserId(athleteId),
         result: 'SUCCESS',
         sensitiveRead: true,
-      }),
-    ]);
+        metadata: {
+          period: query.period,
+          totalSessions: parsed.data.analytics.totalSessions,
+          skillCount: parsed.data.analytics.skills.length,
+        },
+      });
 
-    return reply.send({
-      ...payload,
-      requestId: request.requestId,
-    });
+      return reply.send(parsed.data);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'athlete_analytics.read',
+        resourceType: 'athlete_analytics',
+        resourceId: athleteId,
+        subjectUserId: athleteOwnerUserId(athleteId),
+        result:
+          (!requestValidated && isZodValidationError(error)) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          period: period ?? null,
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/drill-assignments', async (request, reply) => {
@@ -10824,31 +12067,75 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    const query = athleteSkillHistoryQuerySchema.parse(request.query);
-    await assertCanReadAthleteHealth(request, athleteId);
+    let requestValidated = false;
+    let responseContractInvalid = false;
+    let filtered = false;
+    try {
+      const query = athleteSkillHistoryQuerySchema.parse(request.query ?? {});
+      requestValidated = true;
+      filtered = Boolean(query.skillName);
+      await assertCanReadAthleteHealth(request, athleteId);
+      const progress = await getAthleteProgressPayload(athleteId);
+      const parsed = athleteSkillHistoryResponseSchema.safeParse({
+        athleteId,
+        skills: buildSkillProgress(
+          progress.skillAssessments,
+          progress.skillDefinitions,
+          query.skillName,
+        ),
+        seedVersion: progress.seedVersion ?? null,
+        requestId: request.requestId,
+      });
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(
+          500,
+          'INTERNAL_ERROR',
+          'Athlete skill history response contract invalid',
+        );
+      }
 
-    const [progress] = await Promise.all([
-      getAthleteProgressPayload(athleteId),
-      recordAuditEvent({
+      await recordAuditEvent({
         request,
         action: 'athlete_skill_history.read',
         resourceType: 'athlete_skill_history',
         resourceId: athleteId,
+        subjectUserId: athleteOwnerUserId(athleteId),
         result: 'SUCCESS',
         sensitiveRead: true,
-      }),
-    ]);
+        metadata: {
+          filtered,
+          skillCount: parsed.data.skills.length,
+        },
+      });
 
-    return reply.send({
-      athleteId,
-      skills: buildSkillProgress(
-        progress.skillAssessments,
-        progress.skillDefinitions,
-        query.skillName,
-      ),
-      seedVersion: progress.seedVersion,
-      requestId: request.requestId,
-    });
+      return reply.send(parsed.data);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'athlete_skill_history.read',
+        resourceType: 'athlete_skill_history',
+        resourceId: athleteId,
+        subjectUserId: athleteOwnerUserId(athleteId),
+        result:
+          (!requestValidated && isZodValidationError(error)) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          filtered,
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/athletes/:athleteId/squad-activity', async (request, reply) => {
@@ -10901,53 +12188,79 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!athleteId) {
       throw notFound('Athlete id is required');
     }
-    const body = athleteSkillUpdateRequestSchema.parse(request.body);
-
+    let body: AthleteSkillUpdateRequest | null = null;
+    let responseContractInvalid = false;
     try {
+      body = athleteSkillUpdateRequestSchema.parse(request.body);
       await assertCanCreateAthleteSkillUpdate(request, athleteId);
+      const assessorUserId = request.auth?.userId;
+      if (!assessorUserId) {
+        throw forbidden('Authenticated user is required');
+      }
+      const payload = await createAthleteSkillUpdate(
+        athleteId,
+        body,
+        assessorUserId,
+        isPrivilegedAdminAuth(request.auth),
+      );
+      const parsed = athleteSkillUpdateResponseSchema.safeParse({
+        athleteId,
+        ...payload,
+        requestId: request.requestId,
+      });
+      if (!parsed.success) {
+        responseContractInvalid = true;
+        throw new ApiProblemError(
+          500,
+          'INTERNAL_ERROR',
+          'Athlete skill update response contract invalid',
+        );
+      }
+
+      await recordAuditEvent({
+        request,
+        action: 'athlete_skill_update.create',
+        resourceType: 'athlete_skill_update',
+        resourceId: parsed.data.skillAssessment.id,
+        subjectUserId: athleteOwnerUserId(athleteId),
+        result: 'SUCCESS',
+        metadata: {
+          athleteId,
+          skillCode: parsed.data.skillDefinition.code,
+          previousScore: parsed.data.previousScore,
+          score: parsed.data.score,
+          sourceType: body.bookingId ? 'booking' : body.sessionId ? 'session' : 'ad_hoc',
+          replayed: parsed.data.replayed,
+        },
+      });
+
+      return reply.code(parsed.data.replayed ? 200 : 201).send(parsed.data);
     } catch (error) {
       await recordAuditEvent({
         request,
         action: 'athlete_skill_update.create',
         resourceType: 'athlete_skill_update',
         resourceId: athleteId,
-        result: 'DENY',
+        subjectUserId: athleteOwnerUserId(athleteId),
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         metadata: {
-          skillName: body.skillName,
-          score: body.score,
-          bookingId: body.bookingId ?? body.sessionId ?? null,
+          skillCode: body ? skillDefinitionCode(body.skillName) : null,
+          sourceType: body?.bookingId ? 'booking' : body?.sessionId ? 'session' : 'ad_hoc',
+          errorCode: responseContractInvalid
+            ? 'RESPONSE_CONTRACT_INVALID'
+            : isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
         },
       });
       throw error;
     }
-
-    const payload = await createAthleteSkillUpdate(
-      athleteId,
-      body,
-      request.auth?.userId ?? 'usr_unknown',
-    );
-
-    await recordAuditEvent({
-      request,
-      action: 'athlete_skill_update.create',
-      resourceType: 'athlete_skill_update',
-      resourceId: asString((payload.skillAssessment as SeedRow).id) ?? athleteId,
-      subjectUserId: athleteOwnerUserId(athleteId),
-      result: 'SUCCESS',
-      metadata: {
-        athleteId,
-        skillName: body.skillName,
-        previousScore: payload.previousScore,
-        score: payload.score,
-        bookingId: body.bookingId ?? body.sessionId ?? null,
-      },
-    });
-
-    return reply.code(201).send({
-      athleteId,
-      ...payload,
-      requestId: request.requestId,
-    });
   });
 
   app.get('/athletes/:athleteId/coach-observations', async (request, reply) => {
@@ -11590,6 +12903,47 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/badge-definitions', async (request, reply) => {
+    try {
+      if (!request.auth?.userId) {
+        throw forbidden('Authenticated user is required');
+      }
+      const payload = await getBadgeDefinitionsWithStatsPayload();
+
+      await recordAuditEvent({
+        request,
+        action: 'badge_definitions.read',
+        resourceType: 'badge_definition',
+        resourceId: 'badge_definitions',
+        result: 'SUCCESS',
+        metadata: {
+          definitionCount: payload.badgeDefinitions.length,
+          awardedDefinitionCount: payload.badgeDefinitions.filter(
+            (definition) => (asNumber(definition.awardCount) ?? 0) > 0,
+          ).length,
+        },
+      });
+
+      return reply.send({
+        badgeDefinitions: payload.badgeDefinitions,
+        seedVersion: payload.seedVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'badge_definitions.read',
+        resourceType: 'badge_definition',
+        resourceId: 'badge_definitions',
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  });
+
   app.get('/athletes/:athleteId/badges', async (request, reply) => {
     const athleteId = asString((request.params as { athleteId?: string }).athleteId);
     if (!athleteId) {
@@ -11694,7 +13048,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceId: athleteId,
         subjectUserId: athleteOwnerUserId(athleteId),
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -11704,7 +13058,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
           badgeId: body?.badgeId ?? null,
           sessionId: body?.sessionId ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -11737,7 +13091,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceType: 'badge_award',
         resourceId: params.awardId,
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -11745,7 +13099,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           note: body.note ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -11778,7 +13132,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceType: 'badge_award',
         resourceId: params.awardId,
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -11786,7 +13140,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           note: body.note ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -11814,7 +13168,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceType: 'badge_award',
         resourceId: params.awardId,
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -11822,7 +13176,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           note: body.note ?? null,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -11853,7 +13207,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         resourceId: athleteId,
         subjectUserId: athleteOwnerUserId(athleteId),
         result:
-          error instanceof z.ZodError ||
+          isZodValidationError(error) ||
           (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
@@ -11861,7 +13215,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           bulk: true,
           errorCode:
-            error instanceof z.ZodError
+            isZodValidationError(error)
               ? 'VALIDATION_FAILED'
               : error instanceof ApiProblemError
                 ? error.code
@@ -11880,17 +13234,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
     try {
       const athleteIds = await getSessionBadgeAthleteIds(sessionId);
-      const readableAthleteIds = new Set<string>();
-      for (const athleteId of athleteIds) {
-        try {
-          await assertCanReadAthleteHealth(request, athleteId);
-          readableAthleteIds.add(athleteId);
-        } catch (error) {
-          if (!(error instanceof ApiProblemError) || error.status >= 500) {
-            throw error;
-          }
-        }
-      }
+      const readableAthleteIds = await getReadableAthleteIds(request, athleteIds);
       if (athleteIds.length > 0 && readableAthleteIds.size === 0) {
         throw forbidden('Not allowed to read this session badge resource', { sessionId });
       }
@@ -12352,6 +13696,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const now = nowIso();
     const uploadSessionId = newId('ups');
     const mediaObjectId = newId('med');
+    const storageKey = `uploads/${authUserId}/${uploadSessionId}/${body.fileName}`;
 
     const uploadSessionRow: SeedRow = {
       id: uploadSessionId,
@@ -12374,7 +13719,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       ownerUserId: authUserId,
       kind: body.kind,
       status: 'PENDING_UPLOAD',
-      storageKey: `uploads/${authUserId}/${uploadSessionId}/${body.fileName}`,
+      storageKey,
       bucketName: 'clubroom-private',
       contentType: body.contentType,
       sizeBytes: body.sizeBytes,
@@ -12428,8 +13773,14 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(201).send({
       uploadSessionId,
       mediaObjectId,
+      uploadMethod: 'PUT',
       uploadUrl: `https://uploads.clubroom.local/${uploadSessionId}`,
+      uploadHeaders: {
+        'content-type': body.contentType,
+      },
       expiresAt: asString(uploadSessionRow.expiresAt),
+      storageKey,
+      bucketName: 'clubroom-private',
       requestId: request.requestId,
       seedVersion: store.version,
     });
@@ -12454,7 +13805,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
       await recordAuditEvent({
         request,
-        action: 'upload.complete',
+        action: completed.pending ? 'upload.scan_pending' : 'upload.complete',
         resourceType: 'media_object',
         resourceId: completed.mediaObjectId,
         result: 'SUCCESS',
@@ -12462,16 +13813,19 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
           uploadSessionId: completed.uploadSessionId,
           scanVerdict: completed.scanVerdict,
           scanner: completed.scanner,
+          pending: completed.pending,
         },
       });
 
-      return reply.send({
+      return reply.status(completed.pending ? 202 : 200).send({
         uploadSessionId: completed.uploadSessionId,
         mediaObjectId: completed.mediaObjectId,
         mediaStatus: completed.mediaStatus,
         scanVerdict: completed.scanVerdict,
         scanner: completed.scanner,
         scannedAt: completed.scannedAt,
+        pending: completed.pending,
+        retryAfterMs: completed.retryAfterMs,
         seedVersion: completed.dataVersion,
         requestId: request.requestId,
       });
@@ -12481,6 +13835,140 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'upload.complete',
         resourceType: 'media_object',
         resourceId: body.mediaObjectId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          uploadSessionId: params.uploadSessionId,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.get('/uploads/:uploadSessionId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const params = uploadCompleteParamsSchema.parse(request.params ?? {});
+    const status = await getUploadSessionStatus({
+      requesterUserId: authUserId,
+      uploadSessionId: params.uploadSessionId,
+    });
+
+    return reply.send({
+      uploadSessionId: status.uploadSessionId,
+      mediaObjectId: status.mediaObjectId,
+      uploadStatus: status.uploadStatus,
+      mediaStatus: status.mediaStatus,
+      scanVerdict: status.scanVerdict,
+      scanner: status.scanner,
+      scannedAt: status.scannedAt,
+      pending: status.pending,
+      readyToComplete: status.readyToComplete,
+      retryAfterMs: status.retryAfterMs,
+      errorCode: status.errorCode,
+      seedVersion: status.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/uploads/:uploadSessionId/scan-result', async (request, reply) => {
+    const params = uploadCompleteParamsSchema.parse(request.params ?? {});
+    const rawBody =
+      request.body && typeof request.body === 'object' && !Array.isArray(request.body)
+        ? (request.body as Record<string, unknown>)
+        : {};
+    const authUserId = request.auth?.userId;
+    const isSystemAdmin = isSystemAdminAuth(request.auth);
+    const isScannerWorker = isUploadScanWorkerRequest(request);
+
+    if (!isSystemAdmin && !isScannerWorker) {
+      await recordAuditEvent({
+        request,
+        action: 'upload.scan_result',
+        resourceType: 'media_object',
+        resourceId: asString(rawBody.mediaObjectId),
+        result: 'DENY',
+        metadata: {
+          uploadSessionId: params.uploadSessionId,
+          reason: 'system_admin_or_scanner_worker_required',
+          scannerWorkerTokenConfigured: Boolean(env.API_UPLOAD_SCAN_RESULT_TOKEN?.trim()),
+          scannerWorkerTokenProvided: Boolean(
+            singleHeaderValue(request, UPLOAD_SCAN_RESULT_TOKEN_HEADER)?.trim(),
+          ),
+        },
+      });
+      throw forbidden('Upload scan results require system admin auth or scanner worker auth');
+    }
+
+    let body: z.infer<typeof uploadScanResultRequestSchema> | undefined;
+    try {
+      body = uploadScanResultRequestSchema.parse(request.body ?? {});
+      if (isScannerWorker) {
+        if (!body.sourceResultId || !body.scanAttemptId) {
+          throw badRequest('Scanner callbacks require sourceResultId and scanAttemptId');
+        }
+        if (
+          body.verdict !== 'ERROR' &&
+          (body.objectSizeBytes == null || !body.objectETag || !body.sha256Hex)
+        ) {
+          throw badRequest(
+            'Completed scanner verdicts require object size, ETag, and SHA-256 proof',
+          );
+        }
+        if (body.verdict === 'CLEAN' && !body.sealedStorageKey) {
+          throw badRequest('Clean scanner verdicts require a server-sealed storage key');
+        }
+      } else if (body.verdict === 'CLEAN') {
+        throw forbidden('Manual admin scan results cannot declare media CLEAN');
+      }
+      const scanActorKind = isSystemAdmin ? 'system_admin' : 'scanner_worker';
+      const recordedByUserId =
+        scanActorKind === 'system_admin' ? (authUserId as string) : UPLOAD_SCAN_WORKER_USER_ID;
+      const recorded = await recordUploadMalwareScanResult({
+        uploadSessionId: params.uploadSessionId,
+        mediaObjectId: body.mediaObjectId,
+        sourceResultId: body.sourceResultId,
+        scanAttemptId: body.scanAttemptId,
+        verdict: body.verdict,
+        scanner: body.scanner,
+        objectSizeBytes: body.objectSizeBytes,
+        objectETag: body.objectETag,
+        sha256Hex: body.sha256Hex,
+        sealedStorageKey: body.sealedStorageKey,
+        scannedAt: body.scannedAt,
+        details: body.details,
+        recordedByUserId,
+        requireActiveAttempt: isScannerWorker,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'upload.scan_result',
+        resourceType: 'media_object',
+        resourceId: recorded.mediaObjectId,
+        result: 'SUCCESS',
+        metadata: {
+          uploadSessionId: recorded.uploadSessionId,
+          verdict: recorded.verdict,
+          scanner: recorded.scanner,
+          actorKind: scanActorKind,
+          replayed: recorded.replayed,
+        },
+      });
+
+      return reply.status(recorded.replayed ? 200 : 201).send({
+        scanResult: recorded,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'upload.scan_result',
+        resourceType: 'media_object',
+        resourceId: body?.mediaObjectId ?? asString(rawBody.mediaObjectId),
         result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
         metadata: {
           uploadSessionId: params.uploadSessionId,
@@ -13676,6 +15164,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const body = postCreateRequestSchema.parse(request.body ?? {});
 
     try {
+      assertSupportedPostMetadata(body);
       const result = await resolveCommunityMediaRepository().createPost({
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
@@ -14042,9 +15531,10 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-    const body = groupMessageCreateRequestSchema.parse(request.body ?? {});
 
+    let body: z.infer<typeof groupMessageCreateRequestSchema> | undefined;
     try {
+      body = groupMessageCreateRequestSchema.parse(request.body ?? {});
       const result = await resolveCommunityMediaRepository().createGroupMessage({
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
@@ -14080,11 +15570,25 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'community.message.create',
         resourceType: 'community_group',
         resourceId: params.groupId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         metadata: {
-          idempotencyKey: body.idempotencyKey,
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          status: error instanceof ApiProblemError ? error.status : 500,
+          idempotencyKey: body?.idempotencyKey,
+          errorCode:
+            isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+          status:
+            isZodValidationError(error)
+              ? 400
+              : error instanceof ApiProblemError
+                ? error.status
+                : 500,
         },
       });
       throw error;
@@ -14140,9 +15644,10 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-    const body = groupMessageCreateRequestSchema.parse(request.body ?? {});
 
+    let body: z.infer<typeof groupMessageCreateRequestSchema> | undefined;
     try {
+      body = groupMessageCreateRequestSchema.parse(request.body ?? {});
       const result = await resolveCommunityMediaRepository().createThreadMessage({
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
@@ -14177,11 +15682,25 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'community.thread-message.create',
         resourceType: 'message_thread',
         resourceId: params.threadId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         metadata: {
-          idempotencyKey: body.idempotencyKey,
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          status: error instanceof ApiProblemError ? error.status : 500,
+          idempotencyKey: body?.idempotencyKey,
+          errorCode:
+            isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+          status:
+            isZodValidationError(error)
+              ? 400
+              : error instanceof ApiProblemError
+                ? error.status
+                : 500,
         },
       });
       throw error;
@@ -14323,9 +15842,10 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-    const body = notificationPreferenceUpdateSchema.parse(request.body ?? {});
 
+    let body: z.infer<typeof notificationPreferenceUpdateSchema> | undefined;
     try {
+      body = notificationPreferenceUpdateSchema.parse(request.body ?? {});
       const result = await resolveCommunityMediaRepository().updateNotificationPreferences({
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
@@ -14362,10 +15882,24 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'notification.preferences.update',
         resourceType: 'notification_preference',
         resourceId: authUserId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result:
+          isZodValidationError(error) ||
+          (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
         metadata: {
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
-          status: error instanceof ApiProblemError ? error.status : 500,
+          errorCode:
+            isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+          status:
+            isZodValidationError(error)
+              ? 400
+              : error instanceof ApiProblemError
+                ? error.status
+                : 500,
         },
       });
       throw error;
@@ -14553,27 +16087,43 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const result = await resolveCommunityMediaRepository().markAllNotificationsRead({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-    });
+    try {
+      const result = await resolveCommunityMediaRepository().markAllNotificationsRead({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
 
-    await recordAuditEvent({
-      request,
-      action: 'notification.read_all',
-      resourceType: 'notification',
-      result: 'SUCCESS',
-      metadata: {
-        count: result.notifications.length,
-      },
-    });
+      await recordAuditEvent({
+        request,
+        action: 'notification.read_all',
+        resourceType: 'notification',
+        resourceId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          count: result.notifications.length,
+        },
+      });
 
-    return reply.send({
-      notifications: result.notifications,
-      unreadCount: result.unreadCount,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+      return reply.send({
+        notifications: result.notifications,
+        unreadCount: result.unreadCount,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'notification.read_all',
+        resourceType: 'notification',
+        resourceId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/me/notifications/dismiss-all', async (request, reply) => {
@@ -14582,27 +16132,43 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const result = await resolveCommunityMediaRepository().dismissAllNotifications({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-    });
+    try {
+      const result = await resolveCommunityMediaRepository().dismissAllNotifications({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
 
-    await recordAuditEvent({
-      request,
-      action: 'notification.dismiss_all',
-      resourceType: 'notification',
-      result: 'SUCCESS',
-      metadata: {
-        count: result.notifications.length,
-      },
-    });
+      await recordAuditEvent({
+        request,
+        action: 'notification.dismiss_all',
+        resourceType: 'notification',
+        resourceId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          count: result.notifications.length,
+        },
+      });
 
-    return reply.send({
-      notifications: result.notifications,
-      unreadCount: result.unreadCount,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+      return reply.send({
+        notifications: result.notifications,
+        unreadCount: result.unreadCount,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'notification.dismiss_all',
+        resourceType: 'notification',
+        resourceId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/me/notifications/:notificationId/read', async (request, reply) => {
@@ -14707,6 +16273,12 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Admin role required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'access_grants.read',
+      resourceType: 'access_grant',
+      sensitiveRead: true,
+    });
     const overview = await resolveTrustAccessRepository().getTrustAdminOverview();
     await recordAuditEvent({
       request,
@@ -14746,6 +16318,12 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Admin role required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'retention_runs.read',
+      resourceType: 'retention_run',
+      sensitiveRead: true,
+    });
     const retentionRuns = await resolveTrustAccessRepository().listRetentionRuns();
     await recordAuditEvent({
       request,
@@ -14780,6 +16358,13 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'data_deletion_requests.read',
+      resourceType: 'data_deletion_request',
+      subjectUserId: authUserId,
+      sensitiveRead: true,
+    });
     const deletionRequests =
       await resolveTrustAccessRepository().listDataDeletionRequestsForUser(authUserId);
     await recordAuditEvent({
@@ -14797,6 +16382,59 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       total: deletionRequests.requests.length,
       requestId: request.requestId,
       seedVersion: deletionRequests.dataVersion,
+    });
+  });
+
+  app.post('/me/data-deletion-requests', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      await recordAuditEvent({
+        request,
+        action: 'data_deletion_requests.create',
+        resourceType: 'data_deletion_request',
+        result: 'DENY',
+        sensitiveRead: true,
+        metadata: {
+          reason: 'AUTH_REQUIRED',
+        },
+      });
+      throw forbidden('Authenticated user is required');
+    }
+
+    const body = dataDeletionRequestCreateSchema.parse(request.body ?? {});
+    await assertDbModePrismaAvailable({
+      request,
+      action: 'data_deletion_requests.create',
+      resourceType: 'data_deletion_request',
+      subjectUserId: authUserId,
+      sensitiveRead: true,
+      metadata: {
+        reasonProvided: Boolean(body.reason),
+      },
+    });
+    const result = await resolveTrustAccessRepository().createDataDeletionRequestForUser(
+      authUserId,
+      body,
+    );
+
+    await recordAuditEvent({
+      request,
+      action: 'data_deletion_requests.create',
+      resourceType: 'data_deletion_request',
+      resourceId: asString(result.request.id),
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        status: asString(result.request.status),
+        duplicatePending: !result.created,
+      },
+    });
+
+    return reply.status(result.created ? 201 : 200).send({
+      request: result.request,
+      created: result.created,
+      requestId: request.requestId,
+      seedVersion: result.dataVersion,
     });
   });
 };

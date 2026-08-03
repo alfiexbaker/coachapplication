@@ -95,14 +95,19 @@ async function saveAllComments(comments: ThreadedComment[]): Promise<Result<void
   }
 }
 
-async function resolveCommentApiContext(message: string): Promise<Result<CommentApiContext, ServiceError>> {
+async function resolveCommentApiContext(
+  message: string,
+): Promise<Result<CommentApiContext, ServiceError>> {
   const currentUserResult = await resolveSignedInApiUser(message);
   if (!currentUserResult.success) {
     return currentUserResult;
   }
 
   const currentUser = currentUserResult.data;
-  const currentUserName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ').trim();
+  const currentUserName = [currentUser.firstName, currentUser.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
   return ok({
     currentUserId: currentUser.id,
     currentUserName: currentUserName || currentUser.email || currentUser.id,
@@ -298,7 +303,7 @@ async function createComment(
         body: JSON.stringify({
           content: input.content,
           parentCommentId: input.parentId,
-          idempotencyKey: apiClient.generateId('comment-create'),
+          idempotencyKey: input.idempotencyKey ?? apiClient.generateId('comment-create'),
         }),
       },
     );

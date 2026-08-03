@@ -37,7 +37,11 @@ export default function MultiWeekScreen() {
   return renderShell(
     <>
       <Row style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
+        <Clickable
+          onPress={() => router.back()}
+          style={styles.backButton}
+          accessibilityLabel="Go back"
+        >
           <Ionicons name="chevron-back" size={24} color={palette.text} />
         </Clickable>
         <View style={styles.headerText}>
@@ -57,7 +61,7 @@ export default function MultiWeekScreen() {
         <EmptyState
           icon="calendar-outline"
           title="No multi-week slots found"
-          message="This coach has no suitable weekly slots right now. Pull to refresh or choose a single session booking."
+          message="No weekly slots are available right now. Try again later."
           actionLabel="Retry"
           onPressAction={c.retry}
         />
@@ -101,7 +105,8 @@ export default function MultiWeekScreen() {
             <Row style={[styles.infoBanner, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
               <Ionicons name="information-circle-outline" size={18} color={palette.info} />
               <ThemedText style={[Typography.small, { color: palette.info, flex: 1 }]}>
-                Select the weeks you want to book. Each session is at the same time and location.
+                Select the weeks you want to book. Every option below is the same weekly time and
+                location.
               </ThemedText>
             </Row>
             {showWeekSkeleton ? (
@@ -124,9 +129,9 @@ export default function MultiWeekScreen() {
               <Button
                 variant="primary"
                 onPress={c.handleShowConfirmation}
-                disabled={c.selectedWeeks.size === 0}
+                disabled={c.selectedWeekRows.length === 0}
                 style={styles.footerButton}
-                label={`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
+                label={`Review ${c.selectedWeekRows.length} Week${c.selectedWeekRows.length !== 1 ? 's' : ''}`}
               />
             </View>
           ) : null}

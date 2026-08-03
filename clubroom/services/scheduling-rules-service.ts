@@ -40,6 +40,38 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('SchedulingRulesService');
 
+export type CoachSchedulingRulesPatch = Pick<
+  Partial<CoachSchedulingRules>,
+  | 'minimumAdvanceBookingHours'
+  | 'maxAdvanceBookingDays'
+  | 'bufferMinutesDefault'
+  | 'maxConcurrentDefault'
+  | 'allowSameDayBookings'
+>;
+
+export function diffCoachSchedulingRules(
+  current: CoachSchedulingRules,
+  next: CoachSchedulingRules,
+): CoachSchedulingRulesPatch {
+  return {
+    ...(current.minimumAdvanceBookingHours !== next.minimumAdvanceBookingHours
+      ? { minimumAdvanceBookingHours: next.minimumAdvanceBookingHours }
+      : {}),
+    ...(current.maxAdvanceBookingDays !== next.maxAdvanceBookingDays
+      ? { maxAdvanceBookingDays: next.maxAdvanceBookingDays }
+      : {}),
+    ...(current.bufferMinutesDefault !== next.bufferMinutesDefault
+      ? { bufferMinutesDefault: next.bufferMinutesDefault }
+      : {}),
+    ...(current.maxConcurrentDefault !== next.maxConcurrentDefault
+      ? { maxConcurrentDefault: next.maxConcurrentDefault }
+      : {}),
+    ...(current.allowSameDayBookings !== next.allowSameDayBookings
+      ? { allowSameDayBookings: next.allowSameDayBookings }
+      : {}),
+  };
+}
+
 /**
  * Default scheduling rules for new coaches
  */
@@ -218,6 +250,13 @@ interface BookingValidation {
 interface ApiCoachSchedulingRulesResponse {
   rules: CoachSchedulingRules;
   cancellationPolicy: CancellationPolicy | null;
+}
+
+function changedFieldNames(input: Record<string, unknown>): string[] {
+  return Object.entries(input)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key)
+    .sort();
 }
 
 class SchedulingRulesService {
@@ -462,7 +501,13 @@ class SchedulingRulesService {
 
       return ok(updatedRules);
     } catch (error) {
-      logger.error('Failed to update scheduling rules', { coachId, updates, error });
+      const changedFields = changedFieldNames(updates);
+      logger.error('Failed to update scheduling rules', {
+        coachId,
+        changedFields,
+        changedFieldCount: changedFields.length,
+        error,
+      });
       return err(storageError('Failed to update scheduling rules'));
     }
   }
@@ -614,7 +659,19 @@ class SchedulingRulesService {
   async loadPolicies(): Promise<Result<CancellationPolicy[], ServiceError>> {
     try {
       if (!api.useMock) {
-        return ok([]);
+        const result = await apiFetch<ApiCoachSchedulingRulesResponse>(
+          '/v1/coaches/me/scheduling-rules',
+          {
+            method: 'GET',
+          },
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+
+        this.rulesCache.set(result.data.rules.coachId, result.data.rules);
+        this.policiesCache = result.data.cancellationPolicy ? [result.data.cancellationPolicy] : [];
+        return ok(this.policiesCache);
       }
       return ok(await this.loadPoliciesValue());
     } catch (error) {

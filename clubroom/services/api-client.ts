@@ -2,17 +2,15 @@
  * API Client — Single shared module for all data access.
  *
  * Every service imports this instead of touching AsyncStorage directly.
- * When backend exists, swap the implementation — services don't change.
+ * Product data uses explicit `/v1` contracts; generic storage is limited to
+ * mock mode and the small device-local allowlist below.
  *
  * Features:
  * - Config-driven settings (base URL, timeout, mock mode)
  * - Rate limiting based on config
  * - Automatic token refresh
  *
- * Usage:
- *   import { apiClient } from './api-client';
- *   const items = await apiClient.get<Item[]>(STORAGE_KEYS.ITEMS, []);
- *   await apiClient.set(STORAGE_KEYS.ITEMS, items);
+ * Do not use get/set/update/remove for server-owned product data in API mode.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -289,7 +287,13 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
-    let parsed: { code?: string; message?: string; details?: Record<string, string[]> } = {};
+    let parsed: {
+      code?: string;
+      message?: string;
+      detail?: string;
+      title?: string;
+      details?: Record<string, string[]>;
+    } = {};
     try {
       parsed = JSON.parse(errorBody);
     } catch {
@@ -298,7 +302,7 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
     throw new ApiError(
       response.status,
       parsed.code || 'API_ERROR',
-      parsed.message || errorBody || `HTTP ${response.status}`,
+      parsed.message || parsed.detail || parsed.title || errorBody || `HTTP ${response.status}`,
       parsed.details,
     );
   }

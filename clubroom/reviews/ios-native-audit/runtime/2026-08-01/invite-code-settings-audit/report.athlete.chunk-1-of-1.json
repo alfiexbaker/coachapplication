@@ -1,0 +1,47 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T15:00:47.411Z",
+  "meta": {
+    "roles": [
+      "athlete"
+    ],
+    "profiles": [
+      "invite-code-settings-audit"
+    ],
+    "role": "athlete",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 900
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "athlete_invite_code_settings_denied",
+      "role": "athlete",
+      "title": "athlete does not receive club invite-management controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit/athlete__athlete_invite_code_settings_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4657
+    }
+  ]
+}

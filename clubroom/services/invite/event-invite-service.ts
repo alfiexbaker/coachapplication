@@ -14,16 +14,23 @@ import type {
   BulkInviteResult,
   BulkInviteError,
 } from '@/constants/types';
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
 import { eventCrudService } from '../event/event-crud-service';
+import { eventRsvpService } from '../event/event-rsvp-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from '../user-service';
 
 import { loadSquadInvites, saveSquadInvites } from './squad-invite-service';
 
 const logger = createLogger('EventInviteService');
+const API_MODE_EVENT_INVITE_RESPONSE_UNSUPPORTED =
+  'Aggregate event invite response updates are unsupported in API mode; use per-user /v1 event RSVP routes.';
+
+interface EventSquadInvitesResponse {
+  invites: SquadInvite[];
+}
 
 async function resolveAthleteName(athleteId: string, fallback: string): Promise<string> {
   const athleteResult = await userService.getUserById(athleteId);
@@ -236,6 +243,20 @@ export const eventInviteService = {
    * Get event invites for a specific event
    */
   async getEventInvites(eventId: string): Promise<SquadInvite[]> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<EventSquadInvitesResponse>(
+        `/v1/events/${encodeURIComponent(eventId)}/invites/squads`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load event squad invites through API', {
+          eventId,
+          error: result.error,
+        });
+        throw new Error(result.error.message);
+      }
+      return result.data.invites;
+    }
+
     const squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter((si) => si.targetType === 'EVENT' && si.targetId === eventId);
   },
@@ -244,6 +265,20 @@ export const eventInviteService = {
    * Get all event invites by organizer
    */
   async getOrganizerEventInvites(organizerId: string): Promise<SquadInvite[]> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<EventSquadInvitesResponse>(
+        `/v1/organizers/${encodeURIComponent(organizerId)}/event-invites`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load organizer event squad invites through API', {
+          organizerId,
+          error: result.error,
+        });
+        throw new Error(result.error.message);
+      }
+      return result.data.invites;
+    }
+
     const squadInvitesCache = await loadSquadInvites();
     return squadInvitesCache.filter(
       (si) => si.targetType === 'EVENT' && si.invitedBy === organizerId,
@@ -259,6 +294,16 @@ export const eventInviteService = {
     accepted: number,
     declined: number,
   ): Promise<void> {
+    if (!apiClient.isMockMode) {
+      logger.warn(API_MODE_EVENT_INVITE_RESPONSE_UNSUPPORTED, {
+        eventId,
+        squadId,
+        accepted,
+        declined,
+      });
+      throw new Error(API_MODE_EVENT_INVITE_RESPONSE_UNSUPPORTED);
+    }
+
     let squadInvitesCache = await loadSquadInvites();
     const index = squadInvitesCache.findIndex(
       (si) => si.targetType === 'EVENT' && si.targetId === eventId && si.squadId === squadId,
@@ -287,6 +332,19 @@ export const eventInviteService = {
     pending: number;
     total: number;
   }> {
+    if (!apiClient.isMockMode) {
+      const rsvps = await eventRsvpService.getEventRSVPs(eventId);
+      return rsvps.reduce(
+        (acc, rsvp) => ({
+          accepted: acc.accepted + (rsvp.status === 'GOING' ? 1 : 0),
+          declined: acc.declined + (rsvp.status === 'NOT_GOING' ? 1 : 0),
+          pending: acc.pending,
+          total: acc.total + 1,
+        }),
+        { accepted: 0, declined: 0, pending: 0, total: 0 },
+      );
+    }
+
     const invites = await this.getEventInvites(eventId);
 
     const totals = invites.reduce(

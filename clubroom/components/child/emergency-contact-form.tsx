@@ -112,32 +112,33 @@ export const EmergencyContactForm = function EmergencyContactForm({
       <View style={styles.field}>
         <ThemedText style={styles.label}>Full Name *</ThemedText>
         <TextInput
+          accessibilityLabel="Full name"
           style={inputStyle}
           placeholder="Contact's full name"
           placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}
-
-            maxLength={50}
-          />
+          maxLength={50}
+        />
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Relationship *</ThemedText>
         <TextInput
+          accessibilityLabel="Relationship"
           style={inputStyle}
           placeholder="e.g., Mother, Father, Grandparent"
           placeholderTextColor={colors.muted}
           value={relationship}
           onChangeText={setRelationship}
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </View>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>Phone Number *</ThemedText>
         <TextInput
+          accessibilityLabel="Phone number"
           style={[inputStyle, phoneError ? { borderColor: colors.error } : undefined]}
           placeholder="07xxx xxx xxx"
           placeholderTextColor={colors.muted}
@@ -163,6 +164,7 @@ export const EmergencyContactForm = function EmergencyContactForm({
       <View style={styles.field}>
         <ThemedText style={styles.label}>Email (optional)</ThemedText>
         <TextInput
+          accessibilityLabel="Email address"
           style={[inputStyle, emailError ? { borderColor: colors.error } : undefined]}
           placeholder="name@example.com"
           placeholderTextColor={colors.muted}
@@ -202,7 +204,11 @@ export const EmergencyContactForm = function EmergencyContactForm({
         />
       )}
 
-      <Button onPress={handleSave} disabled={!isValid} label={contact ? 'Save Changes' : 'Add Contact'} />
+      <Button
+        onPress={handleSave}
+        disabled={!isValid}
+        label={contact ? 'Save Changes' : 'Add Contact'}
+      />
     </SurfaceCard>
   );
 };
@@ -226,7 +232,12 @@ function ToggleRow({
         <ThemedText type="defaultSemiBold">{label}</ThemedText>
         <ThemedText style={{ color: colors.muted, ...Typography.small }}>{subtitle}</ThemedText>
       </Column>
-      <Clickable onPress={onToggle}>
+      <Clickable
+        accessibilityLabel={label}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        onPress={onToggle}
+      >
         <View style={[styles.toggle, { backgroundColor: value ? colors.success : colors.border }]}>
           <View
             style={[

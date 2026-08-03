@@ -21,22 +21,31 @@ interface ConsentCardProps {
 
 export function ConsentCard({ athleteConsent, onPress, showDetails = false }: ConsentCardProps) {
   const { colors: palette } = useTheme();
-  const [resolvedName, setResolvedName] = useState<string>('');
+  const [resolvedAthleteName, setResolvedAthleteName] = useState<{
+    athleteId: string;
+    name: string;
+  } | null>(null);
   const [nowMs] = useState(() => Date.now());
   const nowDate = new Date(nowMs);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const result = await userService.getUserById(athleteConsent.athleteId);
-      if (!cancelled && result.success && result.data.name) {
-        setResolvedName(result.data.name);
+    const controller = new AbortController();
+    const athleteId = athleteConsent.athleteId;
+    void userService.getUserById(athleteId).then((result) => {
+      if (!controller.signal.aborted && result.success && result.data.name) {
+        setResolvedAthleteName({
+          athleteId,
+          name: result.data.name,
+        });
       }
-    })();
-    return () => { cancelled = true; };
+    });
+    return () => controller.abort();
   }, [athleteConsent.athleteId]);
 
-  const athleteName = resolvedName || safeDisplayLabel(athleteConsent.athleteId, 'Athlete');
+  const athleteName =
+    resolvedAthleteName?.athleteId === athleteConsent.athleteId
+      ? resolvedAthleteName.name
+      : safeDisplayLabel(athleteConsent.athleteId, 'Athlete');
 
   const { granted, total } = consentService.getConsentCount(athleteConsent);
   const percentage = consentService.getConsentPercentage(athleteConsent);
@@ -68,7 +77,7 @@ export function ConsentCard({ athleteConsent, onPress, showDetails = false }: Co
           <ThemedText type="defaultSemiBold" numberOfLines={1}>
             {athleteName}
           </ThemedText>
-          <ThemedText style={[styles.parentName, { color: palette.muted }]}>Parent</ThemedText>
+          <ThemedText style={[styles.parentName, { color: palette.muted }]}>Consent status</ThemedText>
         </View>
 
         {/* Consent Count */}
@@ -142,11 +151,13 @@ export function ConsentCard({ athleteConsent, onPress, showDetails = false }: Co
                         style={[
                           styles.detailMeta,
                           {
-                            color: new Date(consent.expiryAt) <= nowDate
-                              ? palette.error
-                              : new Date(consent.expiryAt).getTime() - nowMs < 30 * 24 * 60 * 60 * 1000
-                                ? palette.warning
-                                : palette.muted,
+                            color:
+                              new Date(consent.expiryAt) <= nowDate
+                                ? palette.error
+                                : new Date(consent.expiryAt).getTime() - nowMs <
+                                    30 * 24 * 60 * 60 * 1000
+                                  ? palette.warning
+                                  : palette.muted,
                           },
                         ]}
                       >

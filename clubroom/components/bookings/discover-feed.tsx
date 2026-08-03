@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
-import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { PendingInvitesSection } from '@/components/bookings/pending-invites-section';
@@ -76,8 +75,8 @@ export const DiscoverFeed = function DiscoverFeed() {
       <EmptyState
         icon="compass-outline"
         title="Nothing to discover yet"
-        message="Open the map to search trusted nearby coaches and start a booking path."
-        actionLabel="Open Map"
+        message="Search nearby coaches and book a session."
+        actionLabel="Find a coach"
         onPressAction={handleFindCoachPress}
       />
     );
@@ -102,7 +101,7 @@ export const DiscoverFeed = function DiscoverFeed() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
       }
     >
-      <MapDiscoveryHero onPress={handleFindCoachPress} />
+      <FindCoachAction onPress={handleFindCoachPress} />
 
       {/* Child switcher */}
       {isParent && isMultiChild && (
@@ -161,39 +160,29 @@ export const DiscoverFeed = function DiscoverFeed() {
   );
 };
 
-const MapDiscoveryHero = function MapDiscoveryHero({ onPress }: { onPress: () => void }) {
+const FindCoachAction = function FindCoachAction({ onPress }: { onPress: () => void }) {
   const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard
       style={[
-        styles.mapHero,
+        styles.findCoachAction,
         {
           backgroundColor: withAlpha(palette.tint, 0.08),
           borderColor: withAlpha(palette.tint, 0.22),
         },
       ]}
-      tactile={false}
+      onPress={onPress}
+      accessibilityLabel="Find a coach"
     >
       <Row align="center" gap="sm">
-        <View style={[styles.mapHeroIcon, { backgroundColor: palette.tint }]}>
-          <Ionicons name="map" size={22} color={palette.onPrimary} />
+        <View style={[styles.findCoachIcon, { backgroundColor: palette.tint }]}>
+          <Ionicons name="search" size={20} color={palette.onPrimary} />
         </View>
         <Column flex gap="micro">
-          <ThemedText style={styles.mapHeroTitle}>Map-first coach search</ThemedText>
-          <ThemedText style={[styles.mapHeroCopy, { color: palette.muted }]}>
-            Find nearby coaches, inspect fit, then book straight from the map.
-          </ThemedText>
+          <ThemedText style={styles.findCoachTitle}>Find a coach</ThemedText>
         </Column>
-        <Clickable
-          onPress={onPress}
-          style={[styles.mapHeroButton, { backgroundColor: palette.tint }]}
-          accessibilityLabel="Open Discover Map"
-        >
-          <ThemedText style={[styles.mapHeroButtonText, { color: palette.onPrimary }]}>
-            Map
-          </ThemedText>
-        </Clickable>
+        <Ionicons name="chevron-forward" size={20} color={palette.tint} />
       </Row>
     </SurfaceCard>
   );
@@ -207,35 +196,21 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
     paddingTop: Spacing.sm,
   },
-  mapHero: {
+  findCoachAction: {
     marginHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
     padding: Spacing.sm,
     borderWidth: 1,
   },
-  mapHeroIcon: {
+  findCoachIcon: {
     width: 44,
     height: 44,
     borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mapHeroTitle: {
+  findCoachTitle: {
     ...Typography.bodySemiBold,
-  },
-  mapHeroCopy: {
-    ...Typography.caption,
-  },
-  mapHeroButton: {
-    minHeight: 38,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapHeroButtonText: {
-    ...Typography.smallSemiBold,
-    fontWeight: '700',
   },
   childSwitcher: {
     paddingHorizontal: Spacing.md,

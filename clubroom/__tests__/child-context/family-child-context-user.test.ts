@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { shouldLoadFamilyChildren } from '../../hooks/child-context-helpers';
+import {
+  scopeChildrenToCurrentUser,
+  shouldLoadFamilyChildren,
+} from '../../hooks/child-context-helpers';
 
 test('shouldLoadFamilyChildren skips coach and admin actors', () => {
   assert.equal(shouldLoadFamilyChildren({ role: 'COACH', hasChildren: true }), false);
@@ -30,5 +33,37 @@ test('shouldLoadFamilyChildren loads parent-like user actors', () => {
       ],
     }),
     true,
+  );
+});
+
+test('scopeChildrenToCurrentUser hides family data across account transitions', () => {
+  const children = [{ id: 'ath_child' }];
+
+  assert.deepEqual(
+    scopeChildrenToCurrentUser({
+      children,
+      ownerUserId: 'usr_parent',
+      currentUserId: 'usr_athlete',
+      isParentUser: false,
+    }),
+    [],
+  );
+  assert.deepEqual(
+    scopeChildrenToCurrentUser({
+      children,
+      ownerUserId: 'usr_parent_a',
+      currentUserId: 'usr_parent_b',
+      isParentUser: true,
+    }),
+    [],
+  );
+  assert.equal(
+    scopeChildrenToCurrentUser({
+      children,
+      ownerUserId: 'usr_parent',
+      currentUserId: 'usr_parent',
+      isParentUser: true,
+    }),
+    children,
   );
 });

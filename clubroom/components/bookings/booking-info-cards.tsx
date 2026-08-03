@@ -1,7 +1,5 @@
 /**
- * BookingInfoCards — Date/Time, Location, and Payment cards for booking detail.
- *
- * Three small card components that display booking metadata with icon rows.
+ * BookingInfoCards — Booking facts and participant cards.
  */
 
 import React, { useEffect, useState, startTransition } from 'react';
@@ -22,114 +20,21 @@ import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
 import { coachService } from '@/services/coach-service';
-import { clubAuthorityService } from '@/services/club-authority-service';
 import { uiFeedback } from '@/services/ui-feedback';
-import {
-  loadBookingWeather,
-  type BookingWeatherState,
-  type BookingWeatherTone,
-} from '@/services/booking-weather-service';
-import type { BookingSummary } from '@/constants/types';
-import {
-  getBookingRelationshipContext,
-  getBookingSummaryCoachName,
-  safeDisplayLabel,
-} from '@/utils/booking-display';
-import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 
-const getWeatherToneColor = (
-  tone: BookingWeatherTone,
-  palette: ReturnType<typeof useTheme>['colors'],
-) => {
-  if (tone === 'sunny') return palette.warning;
-  if (tone === 'rainy' || tone === 'storm') return palette.tint;
-  if (tone === 'snow') return palette.info;
-  return palette.muted;
-};
-
-function getWeatherIcon(tone: BookingWeatherTone): keyof typeof Ionicons.glyphMap {
-  if (tone === 'sunny') return 'sunny-outline';
-  if (tone === 'rainy') return 'rainy-outline';
-  if (tone === 'storm') return 'thunderstorm-outline';
-  if (tone === 'snow') return 'snow-outline';
-  if (tone === 'cloudy') return 'partly-sunny-outline';
-  return 'cloud-outline';
-}
-
-function useBookingWeather(locationLabel: string, bookingStartIso: string): BookingWeatherState {
-  const [state, setState] = useState<BookingWeatherState>({ loading: true, available: false });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    startTransition(() => {
-      setState({ loading: true, available: false });
-    });
-
-    void loadBookingWeather(locationLabel, bookingStartIso)
-      .then((nextState) => {
-        if (!cancelled) {
-          setState(nextState);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setState({
-            loading: false,
-            available: false,
-            reason: 'Weather forecast is unavailable right now.',
-          });
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [bookingStartIso, locationLabel]);
-
-  return state;
-}
-
-// ============================================================================
-// DATE & TIME CARD
-// ============================================================================
-
-interface DateTimeCardProps {
+interface BookingEssentialsCardProps {
   weekday: string;
   dateStr: string;
   time: string;
-}
-
-export const DateTimeCard = function DateTimeCard({ weekday, dateStr, time }: DateTimeCardProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <SurfaceCard style={styles.card}>
-      <Row gap="md" align="center">
-        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-          <Ionicons name="calendar" size={24} color={palette.tint} />
-        </View>
-        <Column gap="xxs" style={styles.flex1}>
-          <ThemedText style={styles.cardTitle}>Date & Time</ThemedText>
-          <ThemedText type="subtitle" style={styles.cardValue}>
-            {weekday}, {dateStr}
-          </ThemedText>
-          <ThemedText style={styles.cardSubtext}>{time}</ThemedText>
-        </Column>
-      </Row>
-    </SurfaceCard>
-  );
-};
-
-// ============================================================================
-// LOCATION CARD
-// ============================================================================
-
-interface LocationCardProps {
   locationLabel: string;
 }
 
-export const LocationCard = function LocationCard({ locationLabel }: LocationCardProps) {
+export const BookingEssentialsCard = function BookingEssentialsCard({
+  weekday,
+  dateStr,
+  time,
+  locationLabel,
+}: BookingEssentialsCardProps) {
   const { colors: palette } = useTheme();
 
   const handleOpenMap = () => {
@@ -141,44 +46,34 @@ export const LocationCard = function LocationCard({ locationLabel }: LocationCar
   };
 
   return (
-    <SurfaceCard style={styles.card}>
-      <Row gap="md" align="center">
-        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
-          <Ionicons name="location" size={24} color={palette.tint} />
-        </View>
-        <Column gap="xxs" style={styles.flex1}>
-          <ThemedText style={styles.cardTitle}>Location</ThemedText>
-          <ThemedText type="subtitle" style={styles.cardValue}>
-            {locationLabel}
+    <SurfaceCard style={styles.essentialsCard}>
+      <Row gap="sm" align="center">
+        <Ionicons name="calendar-outline" size={20} color={palette.muted} />
+        <Column gap="micro" style={styles.flex1}>
+          <ThemedText type="defaultSemiBold">
+            {weekday}, {dateStr}
           </ThemedText>
+          <ThemedText style={[styles.essentialMeta, { color: palette.muted }]}>{time}</ThemedText>
         </Column>
+      </Row>
+      <View style={[styles.essentialDivider, { backgroundColor: palette.border }]} />
+      <Row gap="sm" align="center">
+        <Ionicons name="location-outline" size={20} color={palette.muted} />
+        <ThemedText style={styles.flex1} numberOfLines={2}>
+          {locationLabel}
+        </ThemedText>
         <Clickable
-          style={[styles.actionIconButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+          style={[styles.directionsButton, { borderColor: palette.border }]}
           onPress={handleOpenMap}
-          accessibilityLabel="Open in maps"
+          accessibilityRole="button"
+          accessibilityLabel={`Directions to ${locationLabel}`}
         >
-          <Ionicons name="navigate" size={20} color={palette.tint} />
+          <Ionicons name="navigate-outline" size={17} color={palette.tint} />
+          <ThemedText style={[styles.directionsLabel, { color: palette.tint }]}>
+            Directions
+          </ThemedText>
         </Clickable>
       </Row>
-      <Clickable
-        style={[
-          styles.mapPreview,
-          {
-            backgroundColor: withAlpha(palette.tint, 0.04),
-            borderColor: withAlpha(palette.tint, 0.12),
-          },
-        ]}
-        onPress={handleOpenMap}
-        accessibilityLabel="Open directions in maps"
-      >
-        <View style={[styles.mapGrid, { borderColor: withAlpha(palette.border, 0.8) }]} />
-        <View style={[styles.mapPin, { backgroundColor: palette.tint }]}>
-          <Ionicons name="location" size={18} color={palette.onPrimary} />
-        </View>
-        <ThemedText style={[styles.mapText, { color: palette.muted }]}>
-          Tap for directions
-        </ThemedText>
-      </Clickable>
     </SurfaceCard>
   );
 };
@@ -193,15 +88,13 @@ export const PaymentCard = function PaymentCard({
   invoiceStatus = 'NONE',
   dueDate,
   isCoachView = false,
-  onPressAction,
   helperTextOverride,
 }: {
   showDemoIndicator?: boolean;
   amount?: number | null;
-  invoiceStatus?: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE';
+  invoiceStatus?: 'DRAFT' | 'SENT' | 'PAID' | 'VOID' | 'WRITTEN_OFF' | 'NONE' | 'UNKNOWN';
   dueDate?: string;
   isCoachView?: boolean;
-  onPressAction?: () => void;
   helperTextOverride?: string;
 }) {
   const { colors: palette } = useTheme();
@@ -242,6 +135,12 @@ export const PaymentCard = function PaymentCard({
         tone: palette.muted,
       };
     }
+    if (invoiceStatus === 'UNKNOWN') {
+      return {
+        label: 'Status unavailable',
+        tone: palette.warning,
+      };
+    }
     return {
       label: 'Direct payment',
       tone: palette.tint,
@@ -262,8 +161,6 @@ export const PaymentCard = function PaymentCard({
     }
     return 'Pay coach directly using the details they shared.';
   })();
-  const actionLabel = onPressAction ? (isCoachView ? 'Open reconciler' : 'Message coach') : null;
-
   return (
     <SurfaceCard style={styles.card}>
       {showDemoIndicator ? (
@@ -300,99 +197,6 @@ export const PaymentCard = function PaymentCard({
           >
             {helperText}
           </ThemedText>
-        </Column>
-      </Row>
-      {actionLabel ? (
-        <Clickable
-          onPress={onPressAction}
-          style={[
-            styles.paymentActionButton,
-            {
-              backgroundColor: withAlpha(palette.tint, 0.08),
-              borderColor: withAlpha(palette.tint, 0.22),
-            },
-          ]}
-          accessibilityLabel={actionLabel}
-        >
-          <Ionicons
-            name={isCoachView ? 'wallet-outline' : 'chatbubble-ellipses-outline'}
-            size={16}
-            color={palette.tint}
-          />
-          <ThemedText style={[styles.paymentActionText, { color: palette.tint }]}>
-            {actionLabel}
-          </ThemedText>
-        </Clickable>
-      ) : null}
-    </SurfaceCard>
-  );
-};
-
-// ============================================================================
-// WEATHER CARD
-// ============================================================================
-
-interface BookingWeatherCardProps {
-  locationLabel: string;
-  bookingStartIso: string;
-}
-
-export const BookingWeatherCard = function BookingWeatherCard({
-  locationLabel,
-  bookingStartIso,
-}: BookingWeatherCardProps) {
-  const { colors: palette } = useTheme();
-  const weather = useBookingWeather(locationLabel, bookingStartIso);
-
-  const weatherVisual = (() => {
-    if (!weather.available || !weather.tone) {
-      return {
-        icon: 'partly-sunny-outline' as const,
-        color: palette.muted,
-      };
-    }
-    const toneColor = getWeatherToneColor(weather.tone, palette);
-    return { icon: getWeatherIcon(weather.tone), color: toneColor };
-  })();
-
-  return (
-    <SurfaceCard style={styles.card}>
-      <Row gap="md" align="center">
-        <View
-          style={[styles.iconCircle, { backgroundColor: withAlpha(weatherVisual.color, 0.12) }]}
-        >
-          <Ionicons name={weatherVisual.icon} size={24} color={weatherVisual.color} />
-        </View>
-        <Column gap="xxs" style={styles.flex1}>
-          <ThemedText style={styles.cardTitle}>Weather</ThemedText>
-          {weather.loading ? (
-            <>
-              <ThemedText type="subtitle" style={styles.cardValue}>
-                Loading forecast…
-              </ThemedText>
-              <ThemedText style={styles.cardSubtext}>Checking session-day weather</ThemedText>
-            </>
-          ) : weather.available ? (
-            <>
-              <ThemedText type="subtitle" style={styles.cardValue}>
-                {weather.summary}
-                {weather.temperatureText ? ` · ${weather.temperatureText}` : ''}
-              </ThemedText>
-              <ThemedText style={styles.cardSubtext}>
-                {weather.precipitationText ?? 'Forecast loaded'}
-                {weather.sourceLabel ? ` · ${weather.sourceLabel}` : ''}
-              </ThemedText>
-            </>
-          ) : (
-            <>
-              <ThemedText type="subtitle" style={styles.cardValue}>
-                Forecast unavailable
-              </ThemedText>
-              <ThemedText style={styles.cardSubtext}>
-                {weather.reason ?? 'Could not load weather for this booking date.'}
-              </ThemedText>
-            </>
-          )}
         </Column>
       </Row>
     </SurfaceCard>
@@ -573,164 +377,24 @@ export const BookingAthleteCard = function BookingAthleteCard({
 };
 
 // ============================================================================
-// OWNERSHIP CARD
-// ============================================================================
-
-interface BookingOwnershipCardProps {
-  booking: BookingSummary;
-  coachLabel?: string;
-  showAuditTrail?: boolean;
-}
-
-function formatAuditTimestamp(iso?: string): string {
-  if (!iso) return 'Unknown time';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Unknown time';
-  return date.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-export const BookingOwnershipCard = function BookingOwnershipCard({
-  booking,
-  coachLabel,
-  showAuditTrail = false,
-}: BookingOwnershipCardProps) {
-  const { colors: palette } = useTheme();
-  const [organizationLabel, setOrganizationLabel] = useState<string | null>(null);
-  const resolvedCoachLabel =
-    coachLabel || booking.ownerCoachName || getBookingSummaryCoachName(booking);
-  const deliveryLabel =
-    booking.assigneeCoachName || safeDisplayLabel(booking.assigneeCoachId, resolvedCoachLabel);
-  const relationshipContext = getBookingRelationshipContext({
-    actingAs: booking.actingAs,
-    organizationLabel,
-    coachLabel: resolvedCoachLabel,
-    deliveredByLabel: deliveryLabel,
-    commercialMode: booking.commercialMode,
-  });
-  const ownershipMode =
-    booking.actingAs === 'club'
-      ? `${formatCommercialModeLabel(booking.commercialMode)} club booking`
-      : 'Independent coach booking';
-  const relationshipRows = [
-    organizationLabel ? { label: 'Organization', value: organizationLabel } : null,
-    { label: 'Booked with', value: relationshipContext.bookedWithLabel },
-    { label: 'Delivered by', value: relationshipContext.deliveredByLabel },
-    { label: 'Billing handled by', value: relationshipContext.billingLabel },
-    { label: 'Support handled by', value: relationshipContext.supportLabel },
-    booking.ownerCoachName &&
-    booking.ownerCoachName !== relationshipContext.deliveredByLabel &&
-    booking.ownerCoachName !== relationshipContext.bookedWithLabel
-      ? { label: 'Session owner', value: booking.ownerCoachName }
-      : null,
-  ].filter((entry): entry is { label: string; value: string } => Boolean(entry));
-  const timelineEntries = [
-    {
-      id: 'created',
-      label: `Created by ${booking.createdByName || 'Unknown'}`,
-      meta: booking.createdByRole ? booking.createdByRole.replace('_', ' ') : undefined,
-      time: formatAuditTimestamp(booking.createdAt),
-    },
-    {
-      id: 'assigned',
-      label: `Delivered by ${relationshipContext.deliveredByLabel}`,
-      meta:
-        booking.actingAs === 'club'
-          ? `Billing: ${relationshipContext.billingLabel}`
-          : 'Independent coach booking',
-      time: formatAuditTimestamp(booking.createdAt),
-    },
-    {
-      id: 'scheduled',
-      label: 'Scheduled session',
-      meta: 'Booking schedule locked',
-      time: formatAuditTimestamp(booking.start),
-    },
-  ];
-
-  useEffect(() => {
-    if (booking.actingAs !== 'club' || !booking.clubId) {
-      startTransition(() => {
-        setOrganizationLabel(null);
-      });
-      return;
-    }
-
-    let cancelled = false;
-    void clubAuthorityService.getClubById(booking.clubId).then((result) => {
-      if (cancelled) return;
-      const club = result.success ? result.data : null;
-      setOrganizationLabel(club?.name || safeDisplayLabel(booking.clubId, 'Club session'));
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [booking.actingAs, booking.clubId]);
-
-  return (
-    <SurfaceCard style={styles.card}>
-      <Row gap="md" align="flex-start">
-        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.info, 0.12) }]}>
-          <Ionicons name="briefcase-outline" size={24} color={palette.info} />
-        </View>
-        <Column gap="xxs" style={styles.flex1}>
-          <ThemedText style={styles.cardTitle}>
-            {showAuditTrail ? 'Ownership & Audit' : 'Who Handles This Booking'}
-          </ThemedText>
-          <ThemedText type="subtitle" style={styles.cardValue}>
-            {ownershipMode}
-          </ThemedText>
-          <ThemedText style={styles.cardSubtext}>{relationshipContext.paymentSummary}</ThemedText>
-        </Column>
-      </Row>
-
-      <View style={[styles.relationshipContainer, { borderColor: palette.border }]}>
-        {relationshipRows.map((entry) => (
-          <View key={entry.label} style={styles.relationshipRow}>
-            <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
-              {entry.label}
-            </ThemedText>
-            <ThemedText style={styles.timelineLabel}>{entry.value}</ThemedText>
-          </View>
-        ))}
-      </View>
-
-      {showAuditTrail ? (
-        <View style={[styles.timelineContainer, { borderColor: palette.border }]}>
-          {timelineEntries.map((entry) => (
-            <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
-              <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />
-              <Column gap="xxs" style={styles.flex1}>
-                <ThemedText style={styles.timelineLabel}>{entry.label}</ThemedText>
-                {entry.meta ? (
-                  <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
-                    {entry.meta}
-                  </ThemedText>
-                ) : null}
-                <ThemedText style={[styles.timelineMeta, { color: palette.muted }]}>
-                  {entry.time}
-                </ThemedText>
-              </Column>
-            </Row>
-          ))}
-        </View>
-      ) : null}
-    </SurfaceCard>
-  );
-};
-
-// ============================================================================
 // STYLES
 // ============================================================================
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
+  essentialsCard: { padding: Spacing.md, gap: Spacing.sm },
+  essentialMeta: { ...Typography.bodySmall },
+  essentialDivider: { height: StyleSheet.hairlineWidth, marginLeft: 28 },
+  directionsButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+  },
+  directionsLabel: { ...Typography.bodySmall, fontWeight: '700' },
   iconCircle: {
     width: 48,
     height: 48,
@@ -765,84 +429,7 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     fontWeight: '700',
   },
-  paymentActionButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  paymentActionText: {
-    ...Typography.bodySmall,
-    fontWeight: '700',
-  },
-  mapPreview: {
-    height: 120,
-    borderRadius: Radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  mapGrid: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.35,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    margin: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
-  mapPin: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapText: { ...Typography.caption },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   ratingText: { ...Typography.caption, opacity: 0.6 },
-  relationshipContainer: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  relationshipRow: {
-    gap: Spacing.micro,
-  },
-  actionIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timelineContainer: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  timelineRow: {
-    minHeight: 36,
-  },
-  timelineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: Radii.pill,
-    marginTop: 6,
-  },
-  timelineLabel: {
-    ...Typography.bodySmall,
-    fontWeight: '600',
-  },
-  timelineMeta: {
-    ...Typography.caption,
-  },
 });

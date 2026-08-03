@@ -1,0 +1,1229 @@
+{
+  "generatedAt": "2026-07-31T15:57:30.269Z",
+  "totals": {
+    "total": 71,
+    "ok": 71,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 71
+  },
+  "meta": {
+    "inputDir": "four fresh role reports generated on 2026-07-31",
+    "outputDir": "reviews/ios-native-audit/runtime/2026-07-31",
+    "failOn": "medium",
+    "shouldFail": false,
+    "sourceFiles": 4,
+    "screenshotsCapturedDuringRun": true,
+    "screenshotsPersisted": false
+  },
+  "results": [
+    {
+      "id": "owner_dashboard",
+      "role": "admin",
+      "title": "Owner opens club dashboard",
+      "path": "/club/clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1/dashboard",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2931
+    },
+    {
+      "id": "owner_head_coach",
+      "role": "admin",
+      "title": "Owner opens head coach oversight",
+      "path": "/manage/head-coach?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2303
+    },
+    {
+      "id": "athlete_bookings",
+      "role": "athlete",
+      "title": "Athlete opens bookings",
+      "path": "/bookings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2481
+    },
+    {
+      "id": "athlete_chat_list",
+      "role": "athlete",
+      "title": "Athlete opens chat list",
+      "path": "/chat",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2922
+    },
+    {
+      "id": "athlete_development_detail",
+      "role": "athlete",
+      "title": "Athlete opens development detail",
+      "path": "/development/athlete/ath_7df7ec13-e136-7525-985f-dec069fc983f",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3374
+    },
+    {
+      "id": "athlete_discover_sessions",
+      "role": "athlete",
+      "title": "Athlete opens discover sessions",
+      "path": "/discover-sessions",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2053
+    },
+    {
+      "id": "athlete_favourites",
+      "role": "athlete",
+      "title": "Athlete opens favourites",
+      "path": "/favourites",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 1949
+    },
+    {
+      "id": "athlete_feed",
+      "role": "athlete",
+      "title": "Athlete opens feed",
+      "path": "/feed",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3747
+    },
+    {
+      "id": "athlete_find_coach",
+      "role": "athlete",
+      "title": "Athlete opens find coach",
+      "path": "/book-coach",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4198
+    },
+    {
+      "id": "athlete_health",
+      "role": "athlete",
+      "title": "Athlete opens health dashboard",
+      "path": "/health",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2042
+    },
+    {
+      "id": "athlete_health_injuries",
+      "role": "athlete",
+      "title": "Athlete opens injury log",
+      "path": "/health/injuries",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2033
+    },
+    {
+      "id": "athlete_home",
+      "role": "athlete",
+      "title": "Athlete opens dashboard",
+      "path": "/",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4822
+    },
+    {
+      "id": "athlete_messages",
+      "role": "athlete",
+      "title": "Athlete opens messages",
+      "path": "/messages",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2655
+    },
+    {
+      "id": "athlete_progress",
+      "role": "athlete",
+      "title": "Athlete opens my progress",
+      "path": "/development/my-progress",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2962
+    },
+    {
+      "id": "athlete_settings",
+      "role": "athlete",
+      "title": "Athlete opens settings",
+      "path": "/settings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2103
+    },
+    {
+      "id": "coach_add_member_to_squad",
+      "role": "coach",
+      "title": "Coach opens add-member panel inside squad",
+      "path": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4234
+    },
+    {
+      "id": "coach_athletes",
+      "role": "coach",
+      "title": "Coach opens athletes",
+      "path": "/athletes",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3073
+    },
+    {
+      "id": "coach_availability_calendar",
+      "role": "coach",
+      "title": "Coach opens availability calendar",
+      "path": "/availability/calendar",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2233
+    },
+    {
+      "id": "coach_availability_rules",
+      "role": "coach",
+      "title": "Coach opens cancellation policy",
+      "path": "/settings/cancellation-policy",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2036
+    },
+    {
+      "id": "coach_bookings",
+      "role": "coach",
+      "title": "Coach opens bookings",
+      "path": "/bookings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3436
+    },
+    {
+      "id": "coach_club_create",
+      "role": "coach",
+      "title": "Coach opens create club",
+      "path": "/club/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2133
+    },
+    {
+      "id": "coach_club_invite_members",
+      "role": "coach",
+      "title": "Coach opens club invite members",
+      "path": "/club/invite-members",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2025
+    },
+    {
+      "id": "coach_club_settings",
+      "role": "coach",
+      "title": "Coach opens club settings",
+      "path": "/club/settings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2298
+    },
+    {
+      "id": "coach_create_as_club_assigned",
+      "role": "coach",
+      "title": "Coach opens create flow with club-assignment context",
+      "path": "/sessions/create?intent=new&source=club_manage&actingAs=club&clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&assigneeCoachId=usr_65972cc3-8f9b-7199-b867-7df5b7faf34b",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2585
+    },
+    {
+      "id": "coach_create_invite_entry",
+      "role": "coach",
+      "title": "Coach opens create/invite hub",
+      "path": "/sessions/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2570
+    },
+    {
+      "id": "coach_discover_sessions",
+      "role": "coach",
+      "title": "Coach opens discover sessions",
+      "path": "/discover-sessions",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2390
+    },
+    {
+      "id": "coach_earnings",
+      "role": "coach",
+      "title": "Coach opens earnings",
+      "path": "/earnings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2200
+    },
+    {
+      "id": "coach_earnings_payment_instructions",
+      "role": "coach",
+      "title": "Coach can open direct payment instructions",
+      "path": "/earnings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2731
+    },
+    {
+      "id": "coach_existing_invite_ownership",
+      "role": "coach",
+      "title": "Coach existing-invite flow exposes ownership summary and session picker",
+      "path": "/sessions/create?intent=existing&source=club_manage&actingAs=club&clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&assigneeCoachId=usr_65972cc3-8f9b-7199-b867-7df5b7faf34b",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4785
+    },
+    {
+      "id": "coach_feed",
+      "role": "coach",
+      "title": "Coach opens feed",
+      "path": "/feed",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4895
+    },
+    {
+      "id": "coach_group_sessions",
+      "role": "coach",
+      "title": "Coach opens group sessions",
+      "path": "/group-sessions",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2100
+    },
+    {
+      "id": "coach_group_sessions_create",
+      "role": "coach",
+      "title": "Coach opens create group session",
+      "path": "/group-sessions/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3013
+    },
+    {
+      "id": "coach_health_review",
+      "role": "coach",
+      "title": "Coach opens athlete health review",
+      "path": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/health",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2518
+    },
+    {
+      "id": "coach_home",
+      "role": "coach",
+      "title": "Coach opens dashboard",
+      "path": "/",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3016
+    },
+    {
+      "id": "coach_invite_existing",
+      "role": "coach",
+      "title": "Coach starts invite-to-existing flow",
+      "path": "/sessions/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3878
+    },
+    {
+      "id": "coach_make_appointment",
+      "role": "coach",
+      "title": "Coach starts booking a new appointment",
+      "path": "/sessions/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3961
+    },
+    {
+      "id": "coach_manage",
+      "role": "coach",
+      "title": "Coach opens management hub",
+      "path": "/manage",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2848
+    },
+    {
+      "id": "coach_manage_bookings",
+      "role": "coach",
+      "title": "Coach opens booking console",
+      "path": "/manage/bookings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2510
+    },
+    {
+      "id": "coach_messages",
+      "role": "coach",
+      "title": "Coach opens messages",
+      "path": "/messages",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3128
+    },
+    {
+      "id": "coach_progress",
+      "role": "coach",
+      "title": "Coach opens development progress",
+      "path": "/development/my-progress",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2092
+    },
+    {
+      "id": "coach_raise_concern",
+      "role": "coach",
+      "title": "Coach opens raise concern form",
+      "path": "/roster/ath_7df7ec13-e136-7525-985f-dec069fc983f/raise-concern",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2151
+    },
+    {
+      "id": "coach_schedule",
+      "role": "coach",
+      "title": "Coach opens schedule",
+      "path": "/schedule",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2896
+    },
+    {
+      "id": "coach_schedule_location_modal_actions",
+      "role": "coach",
+      "title": "Coach can open day editor location modal actions",
+      "path": "/schedule?segment=availability",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4430
+    },
+    {
+      "id": "coach_session_invites",
+      "role": "coach",
+      "title": "Coach opens invite inbox",
+      "path": "/session-invites",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2737
+    },
+    {
+      "id": "coach_session_invites_create_redirect",
+      "role": "coach",
+      "title": "Coach hits invite redirect",
+      "path": "/session-invites/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3748
+    },
+    {
+      "id": "coach_settings",
+      "role": "coach",
+      "title": "Coach opens settings",
+      "path": "/settings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2746
+    },
+    {
+      "id": "coach_squad_create",
+      "role": "coach",
+      "title": "Coach opens create squad",
+      "path": "/club/squad/create",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 1822
+    },
+    {
+      "id": "coach_squad_detail",
+      "role": "coach",
+      "title": "Coach opens squad detail",
+      "path": "/club/squad/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2576
+    },
+    {
+      "id": "coach_squad_invite_screen",
+      "role": "coach",
+      "title": "Coach opens squad invite screen",
+      "path": "/squads/sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2/invite",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3993
+    },
+    {
+      "id": "parent_book_coach",
+      "role": "parent",
+      "title": "Parent opens find coach",
+      "path": "/book-coach",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3031
+    },
+    {
+      "id": "parent_book_flow_confirmation",
+      "role": "parent",
+      "title": "Parent opens confirmation step",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b/confirmation",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3716
+    },
+    {
+      "id": "parent_book_flow_details",
+      "role": "parent",
+      "title": "Parent opens details step",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b/details",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2562
+    },
+    {
+      "id": "parent_book_flow_review",
+      "role": "parent",
+      "title": "Parent opens review step",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b/review",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2468
+    },
+    {
+      "id": "parent_book_flow_schedule",
+      "role": "parent",
+      "title": "Parent opens schedule step",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b/schedule",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2911
+    },
+    {
+      "id": "parent_book_flow_start",
+      "role": "parent",
+      "title": "Parent opens book flow home",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2818
+    },
+    {
+      "id": "parent_book_flow_type",
+      "role": "parent",
+      "title": "Parent opens session-type step",
+      "path": "/book/usr_65972cc3-8f9b-7199-b867-7df5b7faf34b/session-type",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2378
+    },
+    {
+      "id": "parent_bookings",
+      "role": "parent",
+      "title": "Parent opens bookings",
+      "path": "/bookings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 5103
+    },
+    {
+      "id": "parent_child_emergency",
+      "role": "parent",
+      "title": "Parent opens child emergency profile",
+      "path": "/child/ath_7df7ec13-e136-7525-985f-dec069fc983f/emergency",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3901
+    },
+    {
+      "id": "parent_child_medical",
+      "role": "parent",
+      "title": "Parent opens child medical profile",
+      "path": "/child/ath_7df7ec13-e136-7525-985f-dec069fc983f/medical",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4356
+    },
+    {
+      "id": "parent_child_progress",
+      "role": "parent",
+      "title": "Parent opens child progress",
+      "path": "/development/child-progress/ath_7df7ec13-e136-7525-985f-dec069fc983f",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3431
+    },
+    {
+      "id": "parent_children",
+      "role": "parent",
+      "title": "Parent opens children",
+      "path": "/children",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 5146
+    },
+    {
+      "id": "parent_discover_sessions",
+      "role": "parent",
+      "title": "Parent opens discover sessions",
+      "path": "/discover-sessions",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3002
+    },
+    {
+      "id": "parent_family",
+      "role": "parent",
+      "title": "Parent opens family dashboard",
+      "path": "/family",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2426
+    },
+    {
+      "id": "parent_family_calendar",
+      "role": "parent",
+      "title": "Parent opens family calendar",
+      "path": "/family/calendar",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2448
+    },
+    {
+      "id": "parent_family_recurring",
+      "role": "parent",
+      "title": "Parent opens recurring plans",
+      "path": "/family/recurring",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 2928
+    },
+    {
+      "id": "parent_favourites",
+      "role": "parent",
+      "title": "Parent opens favourites",
+      "path": "/favourites",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3140
+    },
+    {
+      "id": "parent_feed",
+      "role": "parent",
+      "title": "Parent opens feed",
+      "path": "/feed",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4747
+    },
+    {
+      "id": "parent_home",
+      "role": "parent",
+      "title": "Parent opens dashboard",
+      "path": "/",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3763
+    },
+    {
+      "id": "parent_messages",
+      "role": "parent",
+      "title": "Parent opens messages",
+      "path": "/messages",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4073
+    },
+    {
+      "id": "parent_progress",
+      "role": "parent",
+      "title": "Parent opens my progress",
+      "path": "/development/my-progress",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4343
+    },
+    {
+      "id": "parent_settings",
+      "role": "parent",
+      "title": "Parent opens settings",
+      "path": "/settings",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3137
+    }
+  ]
+}

@@ -12,7 +12,11 @@ export function getStatusColor(status: BookingSummary['status'], palette: ThemeC
     case 'Completed':
       return palette.muted;
     case 'Cancelled':
+    case 'Declined':
+    case 'Withdrawn':
       return palette.error;
+    case 'Expired':
+      return palette.muted;
     default:
       return palette.muted;
   }

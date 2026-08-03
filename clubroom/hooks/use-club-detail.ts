@@ -18,7 +18,6 @@ import type {
   ClubMembership,
   ClubSquad,
   GroupSession,
-  ClubInvite,
   Match,
 } from '@/constants/types';
 import { clubAuthorityService } from '@/services/club-authority-service';
@@ -33,6 +32,7 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { buildClubActivities } from '@/utils/club-activity-projections';
 import { canCreateClubPost } from '@/utils/club-ui-permissions';
 import { uiFeedback } from '@/services/ui-feedback';
+import { isClubStaffRole } from '@/contracts/club-governance';
 
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
@@ -49,26 +49,14 @@ export const CLUB_FEED_FILTERS: { key: FeedFilter; label: string; icon: string }
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
 
-function buildClubInvites(club: Club | undefined): ClubInvite[] {
-  if (!club) return [];
-  return [
-    {
-      code: club.inviteCode,
-      clubId: club.id,
-      createdBy: club.ownerId,
-      role: 'MEMBER',
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      remainingUses: 999,
-    },
-  ];
-}
-
-function isMembershipForUser(membership: ClubMembership, userId: string | undefined): boolean {
-  if (!userId) {
-    return false;
+function loadErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
   }
-  const normalizedUserId = userId.replace(/^usr_/, '');
-  return membership.userId === userId || membership.userId === normalizedUserId;
+  return fallback;
 }
 
 export function useClubDetail(clubId: string | undefined) {
@@ -103,10 +91,11 @@ export function useClubDetail(clubId: string | undefined) {
   const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
   const [clubMatches, setClubMatches] = useState<Match[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
-  const [invites, setInvites] = useState<ClubInvite[]>([]);
   const [clubEvents, setClubEvents] = useState<ClubEvent[]>([]);
+  const [authorityReadyClubId, setAuthorityReadyClubId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [showMembersSection, setShowMembersSection] = useState(false);
@@ -116,7 +105,15 @@ export function useClubDetail(clubId: string | undefined) {
 
   const canManagePosts = canCreateClubPost(membership);
   const canCreatePosts = canCreateClubPost(membership);
+  const canCreateEvents = membership?.status === 'active' && isClubStaffRole(membership.role);
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
+  const canManageMember = (member: ClubMember) =>
+    Boolean(
+      membership &&
+        canRemoveMembers &&
+        clubService.canBeRemoved(member.role) &&
+        clubService.canManageRole(membership.role, member.role),
+    );
   const clubActivities = USE_MOCK
     ? buildClubActivities({
         events: clubEvents,
@@ -129,15 +126,25 @@ export function useClubDetail(clubId: string | undefined) {
     if (showLoading) {
       setLoading(true);
     }
+    setLoadError(null);
+    setAuthorityReadyClubId(null);
+    if (!USE_MOCK) {
+      setClub(undefined);
+      setMembership(undefined);
+      setFeed([]);
+      setAllFeed([]);
+      setMembers([]);
+      setAuthorityClubActivities([]);
+    }
     if (!clubId) {
       setClub(undefined);
       setMembership(undefined);
+      setLoadError(null);
       setAuthorityClubActivities([]);
       setClubActivitySessions([]);
       setClubEvents([]);
       setClubMatches([]);
       setSquads([]);
-      setInvites([]);
       if (showLoading) {
         setLoading(false);
       }
@@ -150,22 +157,14 @@ export function useClubDetail(clubId: string | undefined) {
           const result = await clubAuthorityService.listClubs();
           if (!result.success) {
             logger.error('Failed to load club authority data', result.error);
-            setClub(undefined);
-            setMembership(undefined);
-            setSquads([]);
-            setInvites([]);
+            setLoadError(result.error.message || 'Failed to load club details.');
             return;
           }
           const clubData = result.data.clubs.find((candidate) => candidate.id === clubId);
           setClub(clubData);
-          setMembership(
-            result.data.memberships.find(
-              (candidate) =>
-                candidate.clubId === clubId && isMembershipForUser(candidate, currentUser?.id),
-            ),
-          );
+          setMembership(result.data.memberships.find((candidate) => candidate.clubId === clubId));
           setSquads([]);
-          setInvites(buildClubInvites(clubData));
+          setAuthorityReadyClubId(clubData ? clubId : null);
           return;
         }
 
@@ -180,10 +179,10 @@ export function useClubDetail(clubId: string | undefined) {
 
         const [clubSquads] = await Promise.all([squadService.getSquads(clubId)]);
         setSquads(clubSquads);
-        setInvites(buildClubInvites(clubData));
       },
       async (error) => {
         logger.error('Failed to load club detail', error);
+        setLoadError(loadErrorMessage(error, 'Failed to load club details.'));
       },
       () => {
         if (showLoading) {
@@ -203,8 +202,7 @@ export function useClubDetail(clubId: string | undefined) {
       const feedResult = await socialFeedService.getFeedAuthority(clubId, 'all');
       if (!feedResult.success) {
         logger.error('Failed to load club feed from authority', feedResult.error);
-        setFeed([]);
-        setAllFeed([]);
+        setLoadError(feedResult.error.message || 'Failed to load club updates.');
         return;
       }
       const nextAllFeed = feedResult.data;
@@ -226,11 +224,19 @@ export function useClubDetail(clubId: string | undefined) {
       setMembers([]);
       return;
     }
+    if (!USE_MOCK && !canRemoveMembers) {
+      setMembers([]);
+      return;
+    }
     try {
       const memberList = await clubService.getMembers(clubId);
       setMembers(memberList);
     } catch (error) {
       logger.error('Failed to load members', error);
+      if (!USE_MOCK) {
+        setLoadError(loadErrorMessage(error, 'Failed to load club members.'));
+        return;
+      }
       setMembers([]);
     }
   };
@@ -249,7 +255,7 @@ export function useClubDetail(clubId: string | undefined) {
         const scheduleResult = await clubScheduleService.getClubSchedule(clubId);
         if (!scheduleResult.success) {
           logger.error('Failed to load club schedule from authority', scheduleResult.error);
-          setAuthorityClubActivities([]);
+          setLoadError(scheduleResult.error.message || 'Failed to load club activity.');
           return;
         }
         setAuthorityClubActivities(scheduleResult.data);
@@ -266,6 +272,10 @@ export function useClubDetail(clubId: string | undefined) {
       setClubMatches(matches);
     } catch (error) {
       logger.error('Failed to load club activities', error);
+      if (!USE_MOCK) {
+        setLoadError(loadErrorMessage(error, 'Failed to load club activity.'));
+        return;
+      }
       setAuthorityClubActivities([]);
       setClubActivitySessions([]);
       setClubEvents([]);
@@ -291,6 +301,9 @@ export function useClubDetail(clubId: string | undefined) {
     });
   }, [availableUsers, clubId, currentUser]);
   useEffect(() => {
+    if (!USE_MOCK && authorityReadyClubId !== clubId) {
+      return;
+    }
     startTransition(() => {
       void loadFeedRef.current();
     });
@@ -300,7 +313,7 @@ export function useClubDetail(clubId: string | undefined) {
     startTransition(() => {
       void loadClubActivitiesRef.current();
     });
-  }, [clubId, feedFilter]);
+  }, [authorityReadyClubId, clubId, feedFilter]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
@@ -377,8 +390,8 @@ export function useClubDetail(clubId: string | undefined) {
   };
 
   const handleRemoveMember = (member: ClubMember) => {
-    if (!clubService.canBeRemoved(member.role)) {
-      uiFeedback.showToast('The club owner cannot be removed.', 'error');
+    if (!canManageMember(member)) {
+      uiFeedback.showToast('You do not have permission to manage this member.', 'error');
       return;
     }
     setSelectedMemberForRemoval(member);
@@ -393,10 +406,6 @@ export function useClubDetail(clubId: string | undefined) {
       currentUser.username ||
       ''
     ).trim();
-    if (!actorName) {
-      showToast('Complete your account name before removing club members.', 'error');
-      return;
-    }
     setIsRemovingMember(true);
 
     return await runAsyncTryCatchFinally(
@@ -405,7 +414,7 @@ export function useClubDetail(clubId: string | undefined) {
           clubId,
           selectedMemberForRemoval.userId,
           reason,
-          { id: currentUser.id, name: actorName },
+          { id: currentUser.id, name: actorName || 'Club manager' },
           { customReason },
         );
         if (!result.success) {
@@ -510,8 +519,8 @@ export function useClubDetail(clubId: string | undefined) {
     clubActivitySessions,
     clubEvents,
     squads,
-    invites,
     loading,
+    error: loadError,
     refreshing,
     members,
     showMembersSection,
@@ -521,9 +530,12 @@ export function useClubDetail(clubId: string | undefined) {
     canManagePosts: !!canManagePosts,
     canPinPosts: !!canManagePosts,
     canCreatePosts,
+    canCreateEvents,
     canRemoveMembers: !!canRemoveMembers,
+    canManageMember,
     filterCounts,
     onRefresh,
+    retry: onRefresh,
     handlePinToggle,
     handleLikePost,
     handleCommentPost,

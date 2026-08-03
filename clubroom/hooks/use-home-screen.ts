@@ -20,6 +20,7 @@ import type { Booking } from '@/constants/app-types';
 import type { ChildInfo } from '@/types/child-context';
 import type { FamilyBookingRow, FamilyBookingChild } from '@/types/family-booking';
 import { formatShortDateWithYear } from '@/utils/format';
+import { resolveSelfAthleteId } from '@/utils/athlete-identity';
 
 const logger = createLogger('UserHomeScreen');
 const USE_MOCK = api.useMock;
@@ -333,10 +334,11 @@ export function useHomeScreen() {
       : (selectedChildId ?? fallbackChildId);
   const requestedSelectedChild =
     contextChildren.find((child) => child.id === requestedProfileChildId) ?? null;
+  const selfAthleteId = resolveSelfAthleteId(currentUser);
   const athleteId =
     profileMode === 'self'
-      ? (currentUser?.id ?? null)
-      : (requestedProfileChildId ?? (isParentAccount ? null : (currentUser?.id ?? null)));
+      ? selfAthleteId
+      : (requestedProfileChildId ?? (isParentAccount ? null : selfAthleteId));
   const profileDataKey = `${athleteId ?? 'none'}:${profileMode}:${profileSubjectId ?? 'none'}:${currentUser?.id ?? 'anon'}`;
   const requestedProfileFrame = {
     dataKey: profileDataKey,
@@ -361,9 +363,10 @@ export function useHomeScreen() {
         if (authorityClubs.success) {
           userClubs = authorityClubs.data.clubs;
         } else {
-          logger.warn('home_authority_clubs_failed', {
+          logger.error('home_authority_clubs_failed', {
             error: authorityClubs.error.message,
           });
+          return err(authorityClubs.error);
         }
       }
       const primaryClub = userClubs[0];
@@ -371,32 +374,34 @@ export function useHomeScreen() {
       let nextClubHighlights: HomeClubHighlight[] = [];
 
       if (primaryClub) {
-        const [results, highlights] = await Promise.allSettled([
+        const [results, feed] = await Promise.all([
           clubService.getRecentResults(primaryClub.id, 3),
           USE_MOCK
-            ? Promise.resolve(socialFeedService.getFeed(primaryClub.id, 'all'))
-            : socialFeedService
-                .getFeedAuthority(primaryClub.id, 'all')
-                .then((result) => (result.success ? result.data : [])),
+            ? Promise.resolve(ok(socialFeedService.getFeed(primaryClub.id, 'all')))
+            : socialFeedService.getFeedAuthority(primaryClub.id, 'all'),
         ]);
 
-        nextRecentResults =
-          results.status === 'fulfilled'
-            ? results.value.map((result) => ({
-                ...result,
-                clubId: primaryClub.id,
-                clubName: primaryClub.name,
-              }))
-            : [];
+        if (!feed.success) {
+          logger.error('home_club_feed_authority_failed', {
+            clubId: primaryClub.id,
+            error: feed.error.message,
+          });
+          return err(feed.error);
+        }
 
-        const feed = highlights.status === 'fulfilled' ? highlights.value : [];
-        const preferredHighlights = feed.filter(
+        nextRecentResults = results.map((result) => ({
+          ...result,
+          clubId: primaryClub.id,
+          clubName: primaryClub.name,
+        }));
+
+        const preferredHighlights = feed.data.filter(
           (post) =>
             post.postType !== 'match' &&
             post.postType !== 'session' &&
             post.postType !== 'session_announcement',
         );
-        nextClubHighlights = (preferredHighlights.length > 0 ? preferredHighlights : feed)
+        nextClubHighlights = (preferredHighlights.length > 0 ? preferredHighlights : feed.data)
           .slice(0, 3)
           .map((post) => ({
             id: post.id,
@@ -423,8 +428,7 @@ export function useHomeScreen() {
         const role = hasChildProfiles ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
         const now = currentTimestamp();
-        const selfAthleteId = currentUser.id;
-
+        const bookingSelfAthleteId = selfAthleteId ?? currentUser.id;
         nextUpcomingBookings = bookings
           .filter((booking) => {
             const isFuture = new Date(booking.scheduledAt).getTime() > now;
@@ -433,7 +437,8 @@ export function useHomeScreen() {
               return (
                 isFuture &&
                 isConfirmed &&
-                (booking.athleteId === selfAthleteId || booking.athleteIds?.includes(selfAthleteId))
+                (booking.athleteId === bookingSelfAthleteId ||
+                  booking.athleteIds?.includes(bookingSelfAthleteId))
               );
             }
             if (!requestedProfileChildId) {

@@ -2,10 +2,24 @@ import crypto from "node:crypto";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  clubInvitesResponseSchema,
+  createClubInvitesRequestSchema,
+  createClubInvitesResponseSchema,
   getClubGovernanceSnapshot,
+  isClubStaffRole,
+  joinClubRequestSchema,
+  joinClubResponseSchema,
   parseOrganizationRole,
+  respondToClubInviteRequestSchema,
+  respondToClubInviteResponseSchema,
+  resolveClubJoinCodeResponseSchema,
+  validateSocialLinkInput,
+  type SocialLinkPlatform,
 } from "@clubroom/shared-contracts";
-import { recordAuditEvent } from "../../lib/audit-runtime.js";
+import {
+  buildAuditSecretReference,
+  recordAuditEvent,
+} from "../../lib/audit-runtime.js";
 import {
   canUseStaffInviteLinks,
   hasAnyGrantedRole,
@@ -18,19 +32,23 @@ import {
   ApiProblemError,
   badRequest,
   forbidden,
+  isZodValidationError,
   notFound,
 } from "../../lib/http-errors.js";
 import { deliverClubInviteEmail } from "../../lib/password-reset-delivery.js";
 import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
 import {
+  API_DB_TRANSACTION_OPTIONS,
   getPrismaClientOrThrow,
   shouldUseDbFixtureFallback,
 } from "../../lib/prisma-runtime.js";
 import {
   resetClubAuthorityRepositoryForTests,
   resolveClubAuthorityRepository,
+  type VisibleClub,
 } from "../../repositories/p0/club-authority-repository.js";
 import { resolveClubBrandingRepository } from "../../repositories/p0/club-branding-repository.js";
+import { resolveClubIntegrationRepository } from "../../repositories/p0/club-integration-repository.js";
 import {
   type CoachAnalyticsPeriod,
   resolveCoachAnalyticsRepository,
@@ -54,7 +72,9 @@ import { resolveCoachTrialUsageRepository } from "../../repositories/p0/coach-tr
 import { resolveCoachVenueRepository } from "../../repositories/p0/coach-venue-repository.js";
 import { normalizeForJson } from "../../repositories/p0/normalize.js";
 import {
+  parseAvailabilityConflictQuery,
   parseAvailabilitySlotQuery,
+  resolveCoachAvailabilityConflicts,
   resolveCoachAvailabilityTables,
   resolveCoachAvailabilitySlots,
 } from "./availability.js";
@@ -68,27 +88,114 @@ import { registerClubOwnerDashboardRoutes } from "./owner-dashboard.js";
 import { registerClubStaffingRoutes } from "./staffing-console.js";
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-interface RefundTier {
-  hoursBeforeSession: number;
-  refundPercentage: number;
-  description: string;
+
+function parseClubJoinPreviewResponse(payload: unknown) {
+  const parsed = resolveClubJoinCodeResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(
+      500,
+      "INTERNAL_ERROR",
+      "Club join preview response invalid",
+    );
+  }
+  return parsed.data;
 }
-interface CancellationPolicyPayload {
-  name: string;
-  description: string;
-  tiers: RefundTier[];
-  minimumNoticeHours: number;
-  allowCancellations: boolean;
-  isDefault: boolean;
+
+function parseClubJoinResponse(payload: unknown) {
+  const parsed = joinClubResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, "INTERNAL_ERROR", "Club join response invalid");
+  }
+  return parsed.data;
 }
-interface SchedulingRulesPatchBody {
-  minimumAdvanceBookingHours?: number;
-  maxAdvanceBookingDays?: number;
-  bufferMinutesDefault?: number;
-  maxConcurrentDefault?: number;
-  allowSameDayBookings?: boolean;
-  cancellationPolicy?: CancellationPolicyPayload | null;
+
+function parseClubInvitesResponse(payload: unknown) {
+  const parsed = clubInvitesResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, "INTERNAL_ERROR", "Club invites response invalid");
+  }
+  return parsed.data;
 }
+
+function parseCreateClubInvitesResponse(payload: unknown) {
+  const parsed = createClubInvitesResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, "INTERNAL_ERROR", "Create club invites response invalid");
+  }
+  return parsed.data;
+}
+
+function parseRespondToClubInviteResponse(payload: unknown) {
+  const parsed = respondToClubInviteResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, "INTERNAL_ERROR", "Club invite response invalid");
+  }
+  return parsed.data;
+}
+
+function serializeVisibleClub(club: VisibleClub, isPrivilegedAdmin = false) {
+  const viewerRole = parseOrganizationRole(club.viewerMembership?.role);
+  const viewerGovernance = getClubGovernanceSnapshot(viewerRole);
+  const coachCount = club.memberships.filter((membership) => {
+    const role = parseOrganizationRole(membership.role);
+    return (
+      role === "OWNER" ||
+      role === "ADMIN" ||
+      role === "HEAD_COACH" ||
+      role === "COACH" ||
+      role === "ASSISTANT"
+    );
+  }).length;
+  const { memberships, inviteCode, squads, ...summary } = club;
+
+  return {
+    ...summary,
+    inviteCode: viewerGovernance.canManageMembers ? inviteCode : null,
+    memberCount: memberships.length,
+    coachCount,
+    squads: squads.flatMap((squad) => {
+      const id = asString(squad.id);
+      return id ? [{ id }] : [];
+    }),
+    viewerGovernance,
+    canManageMatches: isPrivilegedAdmin || Boolean(viewerRole && isClubStaffRole(viewerRole)),
+  };
+}
+const cancellationPolicyPayloadSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(500),
+    tiers: z
+      .array(
+        z
+          .object({
+            hoursBeforeSession: z.number().int().min(0).max(8_760),
+            refundPercentage: z.number().int().min(0).max(100),
+            description: z.string().trim().max(240),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(12),
+    minimumNoticeHours: z.number().int().min(0).max(8_760),
+    allowCancellations: z.boolean(),
+    isDefault: z.boolean(),
+  })
+  .strict();
+const schedulingRulesPatchBodySchema = z
+  .object({
+    minimumAdvanceBookingHours: z.number().int().min(0).max(72).optional(),
+    maxAdvanceBookingDays: z.number().int().min(7).max(90).optional(),
+    bufferMinutesDefault: z.number().int().min(0).max(60).optional(),
+    maxConcurrentDefault: z.number().int().min(1).max(100).optional(),
+    allowSameDayBookings: z.boolean().optional(),
+    cancellationPolicy: cancellationPolicyPayloadSchema.nullable().optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, {
+    message: "At least one scheduling rule is required",
+  });
+type SchedulingRulesPatchBody = z.infer<typeof schedulingRulesPatchBodySchema>;
 const favouriteCoachParamsSchema = z.object({
   coachId: z.string().min(1),
 });
@@ -302,7 +409,7 @@ const withdrawalQuerySchema = z
   .strict();
 const withdrawalBodySchema = z
   .object({
-    amount: z.coerce.number().finite().positive().max(1000000),
+    amount: z.coerce.number().finite().min(0.01).max(1000000).multipleOf(0.01),
     payoutMethodId: z.string().min(1),
   })
   .strict();
@@ -321,6 +428,15 @@ const coachPaymentInstructionsBodySchema = z
       message: "Add bank details or payment notes so families know how to pay you",
     },
   );
+const profileLinkSchema = (platform: SocialLinkPlatform) =>
+  z
+    .string()
+    .trim()
+    .max(300)
+    .superRefine((value, context) => {
+      const error = validateSocialLinkInput(platform, value);
+      if (error) context.addIssue({ code: z.ZodIssueCode.custom, message: error });
+    });
 const coachProfilePatchBodySchema = z
   .object({
     bio: z.string().trim().max(2000).nullable().optional(),
@@ -345,16 +461,15 @@ const coachProfilePatchBodySchema = z
       .regex(/^[a-zA-Z]{3}$/)
       .transform((value) => value.toUpperCase())
       .optional(),
-    website: z.string().trim().max(300).nullable().optional(),
+    website: profileLinkSchema("website").nullable().optional(),
     socialLinks: z
       .object({
-        instagram: z.string().trim().max(300).optional(),
-        twitter: z.string().trim().max(300).optional(),
-        facebook: z.string().trim().max(300).optional(),
-        linkedin: z.string().trim().max(300).optional(),
-        youtube: z.string().trim().max(300).optional(),
-        tiktok: z.string().trim().max(300).optional(),
-        website: z.string().trim().max(300).optional(),
+        instagram: profileLinkSchema("instagram").optional(),
+        twitter: profileLinkSchema("twitter").optional(),
+        facebook: profileLinkSchema("facebook").optional(),
+        linkedin: profileLinkSchema("linkedin").optional(),
+        youtube: profileLinkSchema("youtube").optional(),
+        tiktok: profileLinkSchema("tiktok").optional(),
       })
       .strict()
       .optional(),
@@ -552,6 +667,7 @@ const clubSquadMemberParamsSchema = z.object({
   squadId: z.string().min(1),
   userId: z.string().min(1),
 });
+const noRequestBodySchema = z.undefined();
 const clubSquadParamsSchema = z.object({
   clubId: z.string().min(1),
   squadId: z.string().min(1),
@@ -570,6 +686,9 @@ const clubManagementCreateBodySchema = z
     tagline: z.string().trim().max(160).optional(),
     badge: z.string().trim().max(20).optional(),
     visibility: z.enum(["private", "public"]).default("private"),
+    joinPolicy: z
+      .enum(["INVITE_ONLY", "REQUEST_TO_JOIN", "OPEN"])
+      .default("INVITE_ONLY"),
     commercialMode: z.enum(["COACH_OWNED", "ORG_OWNED"]).default("COACH_OWNED"),
     firstStaffRole: z
       .enum(["ADMIN", "HEAD_COACH", "COACH", "ASSISTANT"])
@@ -584,6 +703,7 @@ const clubManagementPatchBodySchema = z
     country: z.string().trim().min(2).max(80).nullable().optional(),
     tagline: z.string().trim().max(160).nullable().optional(),
     visibility: z.enum(["private", "public"]).optional(),
+    joinPolicy: z.enum(["INVITE_ONLY", "REQUEST_TO_JOIN", "OPEN"]).optional(),
     commercialMode: z.enum(["COACH_OWNED", "ORG_OWNED"]).optional(),
   })
   .strict()
@@ -607,6 +727,58 @@ const clubBrandingBodySchema = z
   .refine((body) => Object.keys(body).length > 0, {
     message: "At least one branding field is required",
   });
+const secretMetadataKeyPattern =
+  /(?:secret|token|password|api[_-]?key|private[_-]?key|credential)/i;
+function containsSecretMetadataKey(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.some(containsSecretMetadataKey);
+  }
+  return Object.entries(value as Record<string, unknown>).some(
+    ([key, child]) =>
+      secretMetadataKeyPattern.test(key) || containsSecretMetadataKey(child),
+  );
+}
+const clubIntegrationProviderSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim().toUpperCase() : value),
+  z.string().regex(/^[A-Z0-9_]{2,60}$/),
+);
+const clubIntegrationMetadataSchema = z
+  .record(z.unknown())
+  .nullable()
+  .optional()
+  .superRefine((value, context) => {
+    if (containsSecretMetadataKey(value)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Integration metadata must not contain secrets or credentials",
+      });
+    }
+  });
+const clubIntegrationBodySchema = z
+  .object({
+    provider: clubIntegrationProviderSchema,
+    status: z
+      .enum(["DISCONNECTED", "CONNECTED", "NEEDS_REAUTH", "DISABLED"])
+      .default("DISCONNECTED"),
+    displayName: z.string().trim().min(1).max(120).nullable().optional(),
+    externalAccountId: z.string().trim().min(1).max(160).nullable().optional(),
+    metadataJson: clubIntegrationMetadataSchema,
+  })
+  .strict();
+const clubIntegrationPatchBodySchema = clubIntegrationBodySchema
+  .partial({
+    status: true,
+    displayName: true,
+    externalAccountId: true,
+    metadataJson: true,
+  })
+  .required({ provider: true })
+  .refine((body) => Object.keys(body).some((key) => key !== "provider"), {
+    message: "At least one integration field is required",
+  });
 const favouriteCoachBodySchema = z
   .object({
     note: z.string().max(500).nullable().optional(),
@@ -628,38 +800,33 @@ const clubMemberSelfLeaveBodySchema = z.object({
     .default("LEFT_CLUB"),
   customReason: z.string().max(500).nullable().optional(),
 });
-const clubDirectInviteBodySchema = z
+const clubInviteCodeCreateBodySchema = z
   .object({
-    targetUserIds: z.array(z.string().trim().min(1)).max(50).default([]),
-    targetEmails: z.array(z.string().trim().email().max(254)).max(50).default([]),
-    role: z.enum(["MEMBER", "COACH", "ADMIN"]).default("MEMBER"),
+    role: z.enum(["MEMBER", "COACH", "ADMIN"]),
   })
-  .strict()
-  .refine((body) => body.targetUserIds.length + body.targetEmails.length > 0, {
-    message: "At least one target user or email is required",
-  })
-  .refine((body) => body.targetUserIds.length + body.targetEmails.length <= 50, {
-    message: "At most 50 invite targets are supported",
-  });
+  .strict();
 const clubMemberBanBodySchema = z.object({
   reason: z.string().trim().min(3).max(500),
 });
 const clubSquadCreateBodySchema = z
   .object({
     name: z.string().trim().min(1).max(100),
-    level: z.string().trim().max(100).optional(),
-    ageGroup: z.string().trim().max(50).optional(),
-    skillLevel: z.string().trim().max(50).optional(),
+    level: z.string().trim().min(1).max(100).optional(),
+    ageGroup: z.string().trim().min(1).max(50).optional(),
+    skillLevel: z.string().trim().min(1).max(50).optional(),
   })
-  .passthrough();
+  .strict();
 const clubSquadPatchBodySchema = z
   .object({
     name: z.string().trim().min(1).max(100).optional(),
-    level: z.string().trim().max(100).optional(),
-    ageGroup: z.string().trim().max(50).optional(),
-    skillLevel: z.string().trim().max(50).optional(),
+    level: z.string().trim().min(1).max(100).optional(),
+    ageGroup: z.string().trim().min(1).max(50).optional(),
+    skillLevel: z.string().trim().min(1).max(50).optional(),
   })
-  .passthrough();
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, {
+    message: "At least one squad field is required",
+  });
 const coachVerificationDocumentBodySchema = z
   .object({
     mediaObjectId: z.string().trim().min(1),
@@ -734,9 +901,6 @@ function resolveSquadLevel(body: {
 export function resetCoachClubRouteStateForTests(): void {
   resetClubAuthorityRepositoryForTests();
 }
-function toContractRole(role: string | undefined): string {
-  return parseOrganizationRole(role) ?? "MEMBER";
-}
 function getActiveMemberships(clubMemberships: SeedRow[]): SeedRow[] {
   return clubMemberships.filter(
     (row) => row.active !== false && !asString(row.deletedAt),
@@ -772,6 +936,24 @@ function requireCoachRosterActor(request: FastifyRequest, coachId: string): stri
   }
   return authUserId;
 }
+function requireCoachVerificationViewer(
+  request: FastifyRequest,
+  coachUserId: string,
+): string {
+  const authUserId = requireAuthUserId(request.auth?.userId);
+  if (
+    authUserId !== coachUserId &&
+    !hasAnyGrantedRole(request.auth, ["admin", "security_admin"])
+  ) {
+    throw forbidden(
+      "Only the coach or a platform verification reviewer can view verification status",
+      {
+        coachUserId,
+      },
+    );
+  }
+  return authUserId;
+}
 type CoachVerificationType = "DBS" | "INSURANCE" | "CREDENTIAL" | "IDENTITY";
 const supportedVerificationTypes = new Set<CoachVerificationType>([
   "DBS",
@@ -780,6 +962,14 @@ const supportedVerificationTypes = new Set<CoachVerificationType>([
   "IDENTITY",
 ]);
 const verificationDocumentMediaKinds = new Set(["DOCUMENT", "IMAGE"]);
+const verificationDocumentContentTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+]);
+const verificationDocumentMaxBytes = 20 * 1024 * 1024;
 const asOptionalIsoString = (value: unknown): string | undefined =>
   typeof value === "string" && value
     ? value
@@ -1061,7 +1251,68 @@ function assertVerificationDocumentMediaObject(
       kind: kind ?? null,
     });
   }
+  const contentType = asString(mediaObject.contentType)?.trim().toLowerCase();
+  if (!contentType || !verificationDocumentContentTypes.has(contentType)) {
+    throw badRequest(
+      "Verification documents must be PDF, JPEG, PNG, WebP, or HEIC",
+      {
+        mediaObjectId,
+        contentType: contentType ?? null,
+      },
+    );
+  }
+  if (
+    (kind === "IMAGE" && !contentType.startsWith("image/")) ||
+    (kind === "DOCUMENT" && contentType !== "application/pdf")
+  ) {
+    throw badRequest("Verification document kind does not match its content type", {
+      mediaObjectId,
+      kind,
+      contentType,
+    });
+  }
+  const sizeBytes = asNumber(mediaObject.sizeBytes);
+  if (!sizeBytes || sizeBytes > verificationDocumentMaxBytes) {
+    throw badRequest("Verification documents must be non-empty and 20 MB or smaller", {
+      mediaObjectId,
+      sizeBytes: sizeBytes ?? null,
+      maxBytes: verificationDocumentMaxBytes,
+    });
+  }
   return mediaObject;
+}
+function scanVerdict(value: SeedRow | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return String(value.verdict ?? value.status ?? "").toUpperCase();
+}
+function latestScanForMedia(tables: SeedTables, mediaObjectId: string): SeedRow | undefined {
+  return asRows(tables.malwareScanResults).reduce<SeedRow | undefined>((latest, row) => {
+    if (asString(row.mediaObjectId) !== mediaObjectId) {
+      return latest;
+    }
+    if (!latest) {
+      return row;
+    }
+    const rowTime = Date.parse(asString(row.scannedAt) ?? asString(row.createdAt) ?? "");
+    const latestTime = Date.parse(asString(latest.scannedAt) ?? asString(latest.createdAt) ?? "");
+    return (Number.isFinite(rowTime) ? rowTime : 0) > (Number.isFinite(latestTime) ? latestTime : 0)
+      ? row
+      : latest;
+  }, undefined);
+}
+function assertVerificationDocumentScanClean(
+  latestScan: SeedRow | undefined,
+  mediaObjectId: string,
+): void {
+  const verdict = scanVerdict(latestScan);
+  if (verdict !== "CLEAN") {
+    throw badRequest("Verification document media must pass malware scanning", {
+      mediaObjectId,
+      scanVerdict: verdict ?? null,
+    });
+  }
 }
 async function listCoachVerificationDocumentBundles(
   authUserId: string,
@@ -1195,12 +1446,21 @@ async function submitCoachVerificationDocument(params: {
           id: params.mediaObjectId,
           deletedAt: null,
         },
+        include: {
+          scans: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+          },
+        },
       });
-      assertVerificationDocumentMediaObject(
+      const mediaObjectRow = assertVerificationDocumentMediaObject(
         normalizeForJson(mediaObject) as SeedRow | null,
         params.authUserId,
         params.mediaObjectId,
       );
+      assertVerificationDocumentScanClean(asRows(mediaObjectRow.scans)[0], params.mediaObjectId);
       const existingPending = await tx.coachVerification.findFirst({
         where: {
           coachUserId: params.authUserId,
@@ -1300,6 +1560,10 @@ async function submitCoachVerificationDocument(params: {
   const mediaObject = assertVerificationDocumentMediaObject(
     mediaObjects.find((row) => asString(row.id) === params.mediaObjectId),
     params.authUserId,
+    params.mediaObjectId,
+  );
+  assertVerificationDocumentScanClean(
+    latestScanForMedia(store.tables, params.mediaObjectId),
     params.mediaObjectId,
   );
   const now = new Date().toISOString();
@@ -1577,13 +1841,13 @@ async function reviewCoachVerification(params: {
   };
 }
 function mutationAuditResult(error: unknown): "DENY" | "ERROR" {
-  return error instanceof z.ZodError ||
+  return isZodValidationError(error) ||
     (error instanceof ApiProblemError && error.status < 500)
     ? "DENY"
     : "ERROR";
 }
 function mutationAuditErrorCode(error: unknown): string {
-  if (error instanceof z.ZodError) {
+  if (isZodValidationError(error)) {
     return "VALIDATION_FAILED";
   }
   return error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR";
@@ -1681,6 +1945,34 @@ async function recordDelegatedAvailabilityAudit(params: {
     metadata: params.metadata,
   });
 }
+async function recordSelfAvailabilityAudit(params: {
+  request: FastifyRequest;
+  action:
+    | "coach_availability_template.read"
+    | "coach_availability_template.create"
+    | "coach_availability_template.update"
+    | "coach_availability_template.remove"
+    | "coach_availability_override.read"
+    | "coach_availability_override.create"
+    | "coach_availability_override.update"
+    | "coach_availability_override.remove";
+  resourceType: "coach_availability_template" | "coach_availability_override";
+  resourceId?: string | null;
+  coachId: string;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: params.resourceType,
+    resourceId: params.resourceId ?? null,
+    subjectUserId: params.coachId,
+    result: params.result,
+    sensitiveRead: params.action.endsWith(".read"),
+    metadata: params.metadata,
+  });
+}
 async function recordCoachTrialOfferingAudit(params: {
   request: FastifyRequest;
   action:
@@ -1727,16 +2019,18 @@ async function recordCoachTrialUsageAudit(params: {
 }
 async function recordCoachProfileAudit(params: {
   request: FastifyRequest;
+  action: "coach_profile.read" | "coach_profile.update";
   result: "SUCCESS" | "DENY" | "ERROR";
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   await recordAuditEvent({
     request: params.request,
-    action: "coach_profile.update",
+    action: params.action,
     resourceType: "coach_profile",
     resourceId: params.request.auth?.userId ?? null,
     subjectUserId: params.request.auth?.userId ?? null,
     result: params.result,
+    sensitiveRead: params.action === "coach_profile.read",
     metadata: params.metadata,
   });
 }
@@ -2032,9 +2326,16 @@ const pendingWithdrawalStatuses = new Set<WithdrawalStatus>([
 ]);
 
 function payoutTables(): SeedTables {
-  return getApiDataBackend() === "db"
-    ? getDbFixtureStore().tables
-    : getMarketplaceSeedStore().tables;
+  if (getApiDataBackend() === "db") {
+    getPrismaClientOrThrow();
+  }
+  return getMarketplaceSeedStore().tables;
+}
+
+function assertCoachMoneyDbAuthorityAvailable(): void {
+  if (getApiDataBackend() === "db") {
+    getPrismaClientOrThrow();
+  }
 }
 
 function payoutMethodRows(tables: SeedTables): SeedRow[] {
@@ -2169,7 +2470,7 @@ function mapWithdrawalRow(row: SeedRow): WithdrawalPayload {
 }
 
 async function listPayoutMethods(coachUserId: string): Promise<PayoutMethodPayload[]> {
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const rows = await prisma.coachPayoutMethod.findMany({
       where: { coachUserId, deletedAt: null },
@@ -2196,7 +2497,7 @@ async function createPayoutMethod(
   const now = new Date();
   const fields = simulatedPayoutMethodFields(body);
 
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const row = await prisma.$transaction(async (tx) => {
       const activeCount = await tx.coachPayoutMethod.count({
@@ -2260,7 +2561,7 @@ async function createPayoutMethod(
 
 async function removePayoutMethod(coachUserId: string, methodId: string): Promise<void> {
   const now = new Date();
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     await prisma.$transaction(async (tx) => {
       const method = await tx.coachPayoutMethod.findFirst({
@@ -2304,7 +2605,7 @@ async function removePayoutMethod(coachUserId: string, methodId: string): Promis
           });
         }
       }
-    });
+    }, API_DB_TRANSACTION_OPTIONS);
     return;
   }
 
@@ -2349,7 +2650,7 @@ async function setDefaultPayoutMethod(
   coachUserId: string,
   methodId: string,
 ): Promise<PayoutMethodPayload> {
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const row = await prisma.$transaction(async (tx) => {
       const method = await tx.coachPayoutMethod.findFirst({
@@ -2399,7 +2700,7 @@ async function listWithdrawals(
   status?: "pending",
 ): Promise<WithdrawalPayload[]> {
   const statusFilter = status === "pending" ? ["PENDING", "PROCESSING"] : undefined;
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const rows = await prisma.coachWithdrawal.findMany({
       where: {
@@ -2435,7 +2736,7 @@ async function requestWithdrawal(
   const amountMinor = moneyToMinor(body.amount);
   const now = new Date();
 
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const method = await prisma.coachPayoutMethod.findFirst({
       where: {
@@ -2524,7 +2825,7 @@ async function updateWithdrawalStatus(
   nextStatus: "CANCELLED" | "COMPLETED",
 ): Promise<WithdrawalPayload> {
   const now = new Date();
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     const prisma = getPrismaClientOrThrow();
     const row = await prisma.$transaction(async (tx) => {
       const withdrawal = await tx.coachWithdrawal.findFirst({
@@ -2627,6 +2928,34 @@ async function recordClubManagementAudit(params: {
     result: params.result,
     metadata: {
       clubId: params.clubId,
+      ...params.metadata,
+    },
+  });
+}
+async function recordClubIntegrationAudit(params: {
+  request: FastifyRequest;
+  action:
+    | "club_integration.read"
+    | "club_integration.create"
+    | "club_integration.update";
+  clubId: string;
+  provider?: string;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: "club_integration",
+    resourceId: params.provider
+      ? `${params.clubId}:${params.provider}`
+      : params.clubId,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    sensitiveRead: params.action === "club_integration.read",
+    metadata: {
+      clubId: params.clubId,
+      provider: params.provider ?? null,
       ...params.metadata,
     },
   });
@@ -2902,7 +3231,7 @@ async function resolveClubScheduleSource(params: {
   if (!params.clubId) {
     throw notFound("Club not found");
   }
-  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+  if (getApiDataBackend() === "db") {
     await requireDbClubScheduleAccess({
       clubId: params.clubId,
       authUserId: params.authUserId,
@@ -2948,10 +3277,7 @@ async function resolveClubScheduleSource(params: {
       seedVersion: null,
     };
   }
-  const store =
-    getApiDataBackend() === "db"
-      ? getDbFixtureStore()
-      : getMarketplaceSeedStore();
+  const store = getMarketplaceSeedStore();
   requireClubScheduleAccess({
     clubId: params.clubId,
     authUserId: params.authUserId,
@@ -2971,19 +3297,31 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   registerClubOwnerDashboardRoutes(app);
 
   app.get("/coaches/me/profile", async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const repository = resolveCoachSelfRepository();
-    const result = await repository.getProfileBundle(authUserId);
-    return reply.send({
-      profile: result.profile,
-      locations: result.locations,
-      availabilityTemplates: result.availabilityTemplates,
-      availabilityOverrides: result.availabilityOverrides,
-      schedulingRules: result.schedulingRules,
-      cancellationPolicyRules: result.cancellationPolicyRules,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const repository = resolveCoachSelfRepository();
+      const result = await repository.getProfileBundle(authUserId);
+      await recordCoachProfileAudit({
+        request,
+        action: "coach_profile.read",
+        result: "SUCCESS",
+      });
+      return reply.send({
+        profile: result.profile,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachProfileAudit({
+        request,
+        action: "coach_profile.read",
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.patch("/coaches/me/profile", async (request, reply) => {
     try {
@@ -2993,6 +3331,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       const result = await repository.patchProfile(authUserId, body);
       await recordCoachProfileAudit({
         request,
+        action: "coach_profile.update",
         result: "SUCCESS",
         metadata: {
           changedFields: Object.keys(body),
@@ -3000,17 +3339,13 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       });
       return reply.send({
         profile: result.profile,
-        locations: result.locations,
-        availabilityTemplates: result.availabilityTemplates,
-        availabilityOverrides: result.availabilityOverrides,
-        schedulingRules: result.schedulingRules,
-        cancellationPolicyRules: result.cancellationPolicyRules,
         seedVersion: result.dataVersion,
         requestId: request.requestId,
       });
     } catch (error) {
       await recordCoachProfileAudit({
         request,
+        action: "coach_profile.update",
         result: mutationAuditResult(error),
         metadata: {
           errorCode: mutationAuditErrorCode(error),
@@ -4098,6 +4433,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const repository = resolveCoachEarningsRepository();
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const query = coachEarningsQuerySchema.parse(request.query ?? {});
       const snapshot = await repository.getSnapshot(
         authUserId,
@@ -4234,6 +4570,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.get("/coaches/me/payout-methods", async (request, reply) => {
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       await requireCoachFinanceActor(authUserId);
       const payoutMethods = await listPayoutMethods(authUserId);
       await recordCoachPayoutAudit({
@@ -4271,6 +4608,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let methodId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const body = payoutMethodBodySchema.parse(request.body ?? {});
       await requireCoachFinanceActor(authUserId);
       const payoutMethod = await createPayoutMethod(authUserId, body);
@@ -4312,6 +4650,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let methodId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const params = payoutMethodParamsSchema.parse(request.params ?? {});
       methodId = params.methodId;
       await requireCoachFinanceActor(authUserId);
@@ -4351,6 +4690,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let methodId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const params = payoutMethodParamsSchema.parse(request.params ?? {});
       methodId = params.methodId;
       await requireCoachFinanceActor(authUserId);
@@ -4390,6 +4730,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.get("/coaches/me/withdrawals", async (request, reply) => {
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const query = withdrawalQuerySchema.parse(request.query ?? {});
       await requireCoachFinanceActor(authUserId);
       const withdrawals = await listWithdrawals(authUserId, query.status);
@@ -4430,6 +4771,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let withdrawalId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const body = withdrawalBodySchema.parse(request.body ?? {});
       await requireCoachFinanceActor(authUserId);
       const withdrawal = await requestWithdrawal(authUserId, body);
@@ -4473,6 +4815,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let withdrawalId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const params = withdrawalParamsSchema.parse(request.params ?? {});
       withdrawalId = params.withdrawalId;
       await requireCoachFinanceActor(authUserId);
@@ -4518,6 +4861,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     let withdrawalId: string | undefined;
     try {
       const authUserId = requireAuthUserId(request.auth?.userId);
+      assertCoachMoneyDbAuthorityAvailable();
       const params = withdrawalParamsSchema.parse(request.params ?? {});
       withdrawalId = params.withdrawalId;
       await requireCoachFinanceActor(authUserId);
@@ -4835,15 +5179,42 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   });
   app.get("/coaches/me/availability/templates", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const repository = resolveCoachSelfRepository();
-    const result = await repository.listAvailabilityTemplateRows(authUserId);
-    const templates = result.templates.map(mapAvailabilityTemplate);
-    return reply.send({
-      templates,
-      total: templates.length,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      await requireActiveCoachProfile(authUserId);
+      const repository = resolveCoachSelfRepository();
+      const result = await repository.listAvailabilityTemplateRows(authUserId);
+      const templates = result.templates.map(mapAvailabilityTemplate);
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_template.read",
+        resourceType: "coach_availability_template",
+        resourceId: authUserId,
+        coachId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          count: templates.length,
+        },
+      });
+      return reply.send({
+        templates,
+        total: templates.length,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_template.read",
+        resourceType: "coach_availability_template",
+        resourceId: authUserId,
+        coachId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.post("/coaches/me/availability/templates", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -4858,15 +5229,45 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       location?: string;
       sessionTemplateId?: string;
     };
-    const repository = resolveCoachSelfRepository();
-    const { row, dataVersion } = await repository.createAvailabilityTemplate(
-      authUserId,
-      body,
-    );
-    return reply.code(201).send({
-      ...mapAvailabilityTemplate(row),
-      seedVersion: dataVersion,
-    });
+    let templateId: string | undefined;
+    try {
+      await requireActiveCoachProfile(authUserId);
+      const repository = resolveCoachSelfRepository();
+      const { row, dataVersion } = await repository.createAvailabilityTemplate(
+        authUserId,
+        body,
+      );
+      templateId = asString(row.id);
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_template.create",
+        resourceType: "coach_availability_template",
+        resourceId: templateId ?? null,
+        coachId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          fields: Object.keys(body),
+        },
+      });
+      return reply.code(201).send({
+        ...mapAvailabilityTemplate(row),
+        seedVersion: dataVersion,
+      });
+    } catch (error) {
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_template.create",
+        resourceType: "coach_availability_template",
+        resourceId: templateId ?? null,
+        coachId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          fields: Object.keys(body),
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.patch(
     "/coaches/me/availability/templates/:templateId",
@@ -4889,13 +5290,41 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         location?: string;
         sessionTemplateId?: string;
       };
-      const repository = resolveCoachSelfRepository();
-      const { row } = await repository.updateAvailabilityTemplate(
-        authUserId,
-        templateId,
-        body,
-      );
-      return reply.send(mapAvailabilityTemplate(row));
+      try {
+        await requireActiveCoachProfile(authUserId);
+        const repository = resolveCoachSelfRepository();
+        const { row } = await repository.updateAvailabilityTemplate(
+          authUserId,
+          templateId,
+          body,
+        );
+        await recordSelfAvailabilityAudit({
+          request,
+          action: "coach_availability_template.update",
+          resourceType: "coach_availability_template",
+          resourceId: templateId || null,
+          coachId: authUserId,
+          result: "SUCCESS",
+          metadata: {
+            fields: Object.keys(body),
+          },
+        });
+        return reply.send(mapAvailabilityTemplate(row));
+      } catch (error) {
+        await recordSelfAvailabilityAudit({
+          request,
+          action: "coach_availability_template.update",
+          resourceType: "coach_availability_template",
+          resourceId: templateId || null,
+          coachId: authUserId,
+          result: mutationAuditResult(error),
+          metadata: {
+            fields: Object.keys(body),
+            errorCode: mutationAuditErrorCode(error),
+          },
+        });
+        throw error;
+      }
     },
   );
   app.delete(
@@ -4910,25 +5339,26 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
             }
           ).templateId,
         ) ?? "";
-      const repository = resolveCoachSelfRepository();
       try {
+        await requireActiveCoachProfile(authUserId);
+        const repository = resolveCoachSelfRepository();
         await repository.deleteAvailabilityTemplate(authUserId, templateId);
-        await recordAuditEvent({
+        await recordSelfAvailabilityAudit({
           request,
           action: "coach_availability_template.remove",
           resourceType: "coach_availability_template",
           resourceId: templateId || null,
-          subjectUserId: authUserId,
+          coachId: authUserId,
           result: "SUCCESS",
         });
         return reply.code(204).send();
       } catch (error) {
-        await recordAuditEvent({
+        await recordSelfAvailabilityAudit({
           request,
           action: "coach_availability_template.remove",
           resourceType: "coach_availability_template",
           resourceId: templateId || null,
-          subjectUserId: authUserId,
+          coachId: authUserId,
           result: mutationAuditResult(error),
           metadata: {
             errorCode: mutationAuditErrorCode(error),
@@ -4944,24 +5374,53 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       start?: string;
       end?: string;
     };
-    const repository = resolveCoachSelfRepository();
-    const result = await repository.listAvailabilityOverrideRows(
-      authUserId,
-      query,
-    );
-    const overrides = result.overrides.flatMap((item) => {
-      const mapped = mapAvailabilityOverride(item);
-      return (!query.start || mapped.date >= query.start) &&
-        (!query.end || mapped.date <= query.end)
-        ? [mapped]
-        : [];
-    });
-    return reply.send({
-      overrides,
-      total: overrides.length,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      await requireActiveCoachProfile(authUserId);
+      const repository = resolveCoachSelfRepository();
+      const result = await repository.listAvailabilityOverrideRows(
+        authUserId,
+        query,
+      );
+      const overrides = result.overrides.flatMap((item) => {
+        const mapped = mapAvailabilityOverride(item);
+        return (!query.start || mapped.date >= query.start) &&
+          (!query.end || mapped.date <= query.end)
+          ? [mapped]
+          : [];
+      });
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_override.read",
+        resourceType: "coach_availability_override",
+        resourceId: authUserId,
+        coachId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          count: overrides.length,
+          filtered: Boolean(query.start || query.end),
+        },
+      });
+      return reply.send({
+        overrides,
+        total: overrides.length,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_override.read",
+        resourceType: "coach_availability_override",
+        resourceId: authUserId,
+        coachId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          filtered: Boolean(query.start || query.end),
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.post("/coaches/me/availability/overrides", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -4979,12 +5438,42 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     };
-    const repository = resolveCoachSelfRepository();
-    const { row } = await repository.createAvailabilityOverride(
-      authUserId,
-      body,
-    );
-    return reply.code(201).send(mapAvailabilityOverride(row));
+    let overrideId: string | undefined;
+    try {
+      await requireActiveCoachProfile(authUserId);
+      const repository = resolveCoachSelfRepository();
+      const { row } = await repository.createAvailabilityOverride(
+        authUserId,
+        body,
+      );
+      overrideId = asString(row.id);
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_override.create",
+        resourceType: "coach_availability_override",
+        resourceId: overrideId ?? null,
+        coachId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          fields: Object.keys(body),
+        },
+      });
+      return reply.code(201).send(mapAvailabilityOverride(row));
+    } catch (error) {
+      await recordSelfAvailabilityAudit({
+        request,
+        action: "coach_availability_override.create",
+        resourceType: "coach_availability_override",
+        resourceId: overrideId ?? null,
+        coachId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          fields: Object.keys(body),
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.patch(
     "/coaches/me/availability/overrides/:overrideId",
@@ -5011,13 +5500,41 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         repeatDayOfWeek?: number;
         repeatGroupId?: string;
       };
-      const repository = resolveCoachSelfRepository();
-      const { row } = await repository.updateAvailabilityOverride(
-        authUserId,
-        overrideId,
-        body,
-      );
-      return reply.send(mapAvailabilityOverride(row));
+      try {
+        await requireActiveCoachProfile(authUserId);
+        const repository = resolveCoachSelfRepository();
+        const { row } = await repository.updateAvailabilityOverride(
+          authUserId,
+          overrideId,
+          body,
+        );
+        await recordSelfAvailabilityAudit({
+          request,
+          action: "coach_availability_override.update",
+          resourceType: "coach_availability_override",
+          resourceId: overrideId || null,
+          coachId: authUserId,
+          result: "SUCCESS",
+          metadata: {
+            fields: Object.keys(body),
+          },
+        });
+        return reply.send(mapAvailabilityOverride(row));
+      } catch (error) {
+        await recordSelfAvailabilityAudit({
+          request,
+          action: "coach_availability_override.update",
+          resourceType: "coach_availability_override",
+          resourceId: overrideId || null,
+          coachId: authUserId,
+          result: mutationAuditResult(error),
+          metadata: {
+            fields: Object.keys(body),
+            errorCode: mutationAuditErrorCode(error),
+          },
+        });
+        throw error;
+      }
     },
   );
   app.delete(
@@ -5032,25 +5549,26 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
             }
           ).overrideId,
         ) ?? "";
-      const repository = resolveCoachSelfRepository();
       try {
+        await requireActiveCoachProfile(authUserId);
+        const repository = resolveCoachSelfRepository();
         await repository.deleteAvailabilityOverride(authUserId, overrideId);
-        await recordAuditEvent({
+        await recordSelfAvailabilityAudit({
           request,
           action: "coach_availability_override.remove",
           resourceType: "coach_availability_override",
           resourceId: overrideId || null,
-          subjectUserId: authUserId,
+          coachId: authUserId,
           result: "SUCCESS",
         });
         return reply.code(204).send();
       } catch (error) {
-        await recordAuditEvent({
+        await recordSelfAvailabilityAudit({
           request,
           action: "coach_availability_override.remove",
           resourceType: "coach_availability_override",
           resourceId: overrideId || null,
-          subjectUserId: authUserId,
+          coachId: authUserId,
           result: mutationAuditResult(error),
           metadata: {
             errorCode: mutationAuditErrorCode(error),
@@ -5502,15 +6020,43 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   });
   app.patch("/coaches/me/scheduling-rules", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const body = (request.body as SchedulingRulesPatchBody) ?? {};
-    const repository = resolveCoachSelfRepository();
-    const result = await repository.patchSchedulingRows(authUserId, body);
-    return reply.send({
-      rules: mapCoachSchedulingRules(result.rulesRow, authUserId),
-      cancellationPolicy: mapCancellationPolicy(result.policyRows, authUserId),
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    const rawBody = request.body ?? {};
+    let changedFields: string[] = [];
+    try {
+      const body: SchedulingRulesPatchBody = schedulingRulesPatchBodySchema.parse(rawBody);
+      changedFields = Object.keys(body);
+      const repository = resolveCoachSelfRepository();
+      const result = await repository.patchSchedulingRows(authUserId, body);
+      await recordAuditEvent({
+        request,
+        action: "coach_scheduling_rules.update",
+        resourceType: "coach_scheduling_rules",
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        metadata: { changedFields },
+      });
+      return reply.send({
+        rules: mapCoachSchedulingRules(result.rulesRow, authUserId),
+        cancellationPolicy: mapCancellationPolicy(result.policyRows, authUserId),
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "coach_scheduling_rules.update",
+        resourceType: "coach_scheduling_rules",
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          changedFields,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.get("/coaches/:coachId/verification-status", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -5525,6 +6071,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       throw notFound("Coach profile not found");
     }
     try {
+      requireCoachVerificationViewer(request, coachUserId);
       const sources = await loadCoachVerificationSources(coachUserId);
       const status = buildCoachVerificationStatus({
         coachUserId,
@@ -5802,6 +6349,34 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
+  app.get("/coaches/:coachId/availability/conflicts", async (request, reply) => {
+    requireAuthUserId(request.auth?.userId);
+    const coachUserId = asString(
+      (
+        request.params as {
+          coachId?: string;
+        }
+      ).coachId,
+    );
+    if (!coachUserId) {
+      throw notFound("Coach not found");
+    }
+    const query = parseAvailabilityConflictQuery(
+      request.query as Record<string, unknown>,
+    );
+    const availability = await resolveCoachAvailabilityTables(coachUserId);
+    const conflicts = resolveCoachAvailabilityConflicts({
+      tables: availability.tables,
+      coachUserId,
+      dates: query.dates,
+    });
+    return reply.send({
+      coachId: coachUserId,
+      ...conflicts,
+      seedVersion: availability.dataVersion,
+      requestId: request.requestId,
+    });
+  });
   app.get("/clubs", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
@@ -5810,15 +6385,28 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       authUserId,
       isPrivilegedAdmin,
     });
-    const payload = clubs.map((club) => ({
-      ...club,
-      viewerGovernance: getClubGovernanceSnapshot(
-        parseOrganizationRole(club.viewerMembership?.role),
-      ),
-    }));
+    const payload = clubs.map((club) => serializeVisibleClub(club, isPrivilegedAdmin));
     return reply.send({
       clubs: payload,
       total: payload.length,
+      requestId: request.requestId,
+    });
+  });
+  app.get("/clubs/:clubId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    const repository = resolveClubAuthorityRepository();
+    const clubs = await repository.listVisibleClubs({
+      authUserId,
+      isPrivilegedAdmin,
+    });
+    const club = clubs.find((candidate) => candidate.id === params.clubId);
+    if (!club) {
+      throw notFound("Club not found");
+    }
+    return reply.send({
+      club: serializeVisibleClub(club, isPrivilegedAdmin),
       requestId: request.requestId,
     });
   });
@@ -5835,6 +6423,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         tagline: body.tagline ?? null,
         badge: body.badge ?? null,
         visibility: body.visibility,
+        joinPolicy: body.joinPolicy,
         commercialMode: body.commercialMode,
         firstStaffRole: body.firstStaffRole ?? null,
         authUserId,
@@ -5847,6 +6436,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         result: "SUCCESS",
         metadata: {
           visibility: body.visibility,
+          joinPolicy: body.joinPolicy,
           commercialMode: body.commercialMode,
           firstStaffRole: body.firstStaffRole ?? null,
         },
@@ -5894,7 +6484,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         },
       });
       return reply.send({
-        club,
+        club: serializeVisibleClub(club),
         requestId: request.requestId,
       });
     } catch (error) {
@@ -6028,6 +6618,138 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       throw error;
     }
   });
+  app.get("/clubs/:clubId/integrations", async (request, reply) => {
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubIntegrationRepository();
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const integrations = await repository.list({
+        clubId: params.clubId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.read",
+        clubId: params.clubId,
+        result: "SUCCESS",
+        metadata: {
+          count: integrations.length,
+        },
+      });
+      return reply.send({
+        clubId: params.clubId,
+        integrations,
+        total: integrations.length,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.read",
+        clubId: params.clubId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.post("/clubs/:clubId/integrations", async (request, reply) => {
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const body = clubIntegrationBodySchema.parse(request.body ?? {});
+    const repository = resolveClubIntegrationRepository();
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const integration = await repository.create({
+        clubId: params.clubId,
+        ...body,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.create",
+        clubId: params.clubId,
+        provider: body.provider,
+        result: "SUCCESS",
+        metadata: {
+          status: integration.status,
+        },
+      });
+      return reply.code(201).send({
+        integration,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.create",
+        clubId: params.clubId,
+        provider: body.provider,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.patch("/clubs/:clubId/integrations", async (request, reply) => {
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const body = clubIntegrationPatchBodySchema.parse(request.body ?? {});
+    const repository = resolveClubIntegrationRepository();
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const integration = await repository.update({
+        clubId: params.clubId,
+        ...body,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.update",
+        clubId: params.clubId,
+        provider: body.provider,
+        result: "SUCCESS",
+        metadata: {
+          fields: Object.keys(body).filter((field) => field !== "provider"),
+          status: integration.status,
+        },
+      });
+      return reply.send({
+        integration,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubIntegrationAudit({
+        request,
+        action: "club_integration.update",
+        clubId: params.clubId,
+        provider: body.provider,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          fields: Object.keys(body).filter((field) => field !== "provider"),
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
   app.get("/clubs/:clubId/squads", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubParamsSchema.parse(request.params ?? {});
@@ -6047,9 +6769,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.post("/clubs/:clubId/squads", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubParamsSchema.parse(request.params ?? {});
-    const body = clubSquadCreateBodySchema.parse(request.body ?? {});
     const repository = resolveClubAuthorityRepository();
     try {
+      const body = clubSquadCreateBodySchema.parse(request.body ?? {});
       const squad = await repository.createClubSquad({
         clubId: params.clubId,
         name: body.name,
@@ -6073,13 +6795,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         request,
         action: "club_squad.create",
         clubId: params.clubId,
-        result:
-          error instanceof ApiProblemError && error.status < 500
-            ? "DENY"
-            : "ERROR",
+        result: mutationAuditResult(error),
         metadata: {
-          errorCode:
-            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+          errorCode: mutationAuditErrorCode(error),
         },
       });
       throw error;
@@ -6142,9 +6860,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.patch("/clubs/:clubId/squads/:squadId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubSquadParamsSchema.parse(request.params ?? {});
-    const body = clubSquadPatchBodySchema.parse(request.body ?? {});
     const repository = resolveClubAuthorityRepository();
     try {
+      const body = clubSquadPatchBodySchema.parse(request.body ?? {});
       const squad = await repository.updateClubSquad({
         clubId: params.clubId,
         squadId: params.squadId,
@@ -6170,13 +6888,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         action: "club_squad.update",
         clubId: params.clubId,
         squadId: params.squadId,
-        result:
-          error instanceof ApiProblemError && error.status < 500
-            ? "DENY"
-            : "ERROR",
+        result: mutationAuditResult(error),
         metadata: {
-          errorCode:
-            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+          errorCode: mutationAuditErrorCode(error),
         },
       });
       throw error;
@@ -6508,6 +7222,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const params = clubSquadMemberParamsSchema.parse(request.params ?? {});
     const repository = resolveClubAuthorityRepository();
     try {
+      noRequestBodySchema.parse(request.body);
       const member = await repository.addClubMemberToSquad({
         clubId: params.clubId,
         squadId: params.squadId,
@@ -6534,13 +7249,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         clubId: params.clubId,
         squadId: params.squadId,
         targetUserId: params.userId,
-        result:
-          error instanceof ApiProblemError && error.status < 500
-            ? "DENY"
-            : "ERROR",
+        result: mutationAuditResult(error),
         metadata: {
-          errorCode:
-            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+          errorCode: mutationAuditErrorCode(error),
         },
       });
       throw error;
@@ -6551,6 +7262,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const params = clubSquadMemberParamsSchema.parse(request.params ?? {});
     const repository = resolveClubAuthorityRepository();
     try {
+      noRequestBodySchema.parse(request.body);
       const member = await repository.removeClubMemberFromSquad({
         clubId: params.clubId,
         squadId: params.squadId,
@@ -6577,13 +7289,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         clubId: params.clubId,
         squadId: params.squadId,
         targetUserId: params.userId,
-        result:
-          error instanceof ApiProblemError && error.status < 500
-            ? "DENY"
-            : "ERROR",
+        result: mutationAuditResult(error),
         metadata: {
-          errorCode:
-            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+          errorCode: mutationAuditErrorCode(error),
         },
       });
       throw error;
@@ -6705,37 +7413,30 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         }
       ).clubId,
     );
-    const role = toContractRole(
-      asString(
-        (
-          request.body as {
-            role?: string;
-          }
-        ).role,
-      ),
-    );
     if (!clubId) {
       throw notFound("Club not found");
     }
     const repository = resolveClubAuthorityRepository();
-    let code: string | null = null;
+    let codeReference: string | null = null;
+    let role: "MEMBER" | "COACH" | "ADMIN" | null = null;
     try {
+      role = clubInviteCodeCreateBodySchema.parse(request.body ?? {}).role;
       const inviteCode = await repository.createInviteCode({
         clubId,
         authUserId,
         role,
       });
-      code = inviteCode.code;
+      codeReference = buildAuditSecretReference("invite_code", inviteCode.code);
       await recordAuditEvent({
         request,
         action: "club_invite_code.create",
         resourceType: "club_invite_code",
-        resourceId: `${clubId}:${inviteCode.code}`,
+        resourceId: `${clubId}:${codeReference}`,
         subjectUserId: authUserId,
         result: "SUCCESS",
         metadata: {
           clubId,
-          code: inviteCode.code,
+          codeReference,
           role,
         },
       });
@@ -6748,12 +7449,12 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         request,
         action: "club_invite_code.create",
         resourceType: "club_invite_code",
-        resourceId: code ? `${clubId}:${code}` : clubId,
+        resourceId: codeReference ? `${clubId}:${codeReference}` : clubId,
         subjectUserId: authUserId,
         result: mutationAuditResult(error),
         metadata: {
           clubId,
-          code,
+          codeReference,
           role,
           errorCode: mutationAuditErrorCode(error),
         },
@@ -6777,7 +7478,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       : [];
     let role = asString(rawBody.role) ?? "MEMBER";
     try {
-      const body = clubDirectInviteBodySchema.parse(request.body ?? {});
+      const body = createClubInvitesRequestSchema.parse(request.body ?? {});
       targetUserIds = body.targetUserIds;
       targetEmails = body.targetEmails.map((email) => email.trim().toLowerCase());
       role = body.role;
@@ -6789,25 +7490,6 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         role,
         authUserId,
         isPrivilegedAdmin: hasAnyGrantedRole(request.auth, ["admin", "security_admin"]),
-      });
-      const subjectUserId =
-        targetEmails.length === 0 && targetUserIds.length === 1 ? targetUserIds[0] : null;
-      await recordAuditEvent({
-        request,
-        action: "club_invite.create",
-        resourceType: "club_invite",
-        resourceId: params.clubId,
-        subjectUserId,
-        result: "SUCCESS",
-        metadata: {
-          clubId: params.clubId,
-          targetUserIds,
-          targetUserCount: targetUserIds.length,
-          targetEmailCount: targetEmails.length,
-          targetEmailDomains: inviteEmailDomainsForAudit(targetEmails),
-          inviteIds: invites.map((invite) => invite.id),
-          role,
-        },
       });
       const emailDelivery =
         targetEmails.length > 0
@@ -6829,6 +7511,31 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
               ),
             )
           : undefined;
+      const payload = parseCreateClubInvitesResponse({
+        invites,
+        total: invites.length,
+        emailDelivery,
+        requestId: request.requestId,
+      });
+      const subjectUserId =
+        targetEmails.length === 0 && targetUserIds.length === 1 ? targetUserIds[0] : null;
+      await recordAuditEvent({
+        request,
+        action: "club_invite.create",
+        resourceType: "club_invite",
+        resourceId: params.clubId,
+        subjectUserId,
+        result: "SUCCESS",
+        metadata: {
+          clubId: params.clubId,
+          targetUserIds,
+          targetUserCount: targetUserIds.length,
+          targetEmailCount: targetEmails.length,
+          targetEmailDomains: inviteEmailDomainsForAudit(targetEmails),
+          inviteIds: invites.map((invite) => invite.id),
+          role,
+        },
+      });
       if (emailDelivery) {
         await recordAuditEvent({
           request,
@@ -6847,12 +7554,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
           },
         });
       }
-      return reply.code(201).send({
-        invites,
-        total: invites.length,
-        emailDelivery,
-        requestId: request.requestId,
-      });
+      return reply.code(201).send(payload);
     } catch (error) {
       await recordAuditEvent({
         request,
@@ -6883,6 +7585,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     };
     const clubId = asString(params.clubId);
     const code = asString(params.code) ?? "";
+    const codeReference = code ? buildAuditSecretReference("invite_code", code) : null;
     try {
       if (!clubId || !code) {
         throw notFound("Invite code not found");
@@ -6897,12 +7600,12 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         request,
         action: "club_invite_code.remove",
         resourceType: "club_invite_code",
-        resourceId: `${clubId}:${code}`,
+        resourceId: `${clubId}:${codeReference}`,
         subjectUserId: authUserId,
         result: "SUCCESS",
         metadata: {
           clubId,
-          code,
+          codeReference,
         },
       });
       return reply.code(204).send();
@@ -6911,12 +7614,12 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         request,
         action: "club_invite_code.remove",
         resourceType: "club_invite_code",
-        resourceId: clubId && code ? `${clubId}:${code}` : null,
+        resourceId: clubId && codeReference ? `${clubId}:${codeReference}` : null,
         subjectUserId: authUserId,
         result: mutationAuditResult(error),
         metadata: {
           clubId: clubId ?? null,
-          code: code || null,
+          codeReference,
           errorCode: mutationAuditErrorCode(error),
         },
       });
@@ -6925,38 +7628,71 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   });
   app.get("/clubs/join/resolve", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code =
+    const rawCode =
       asString(
-        (
-          request.query as {
-            code?: string;
-          }
-        ).code,
+        (request.query as { code?: string } | undefined)?.code,
       ) ?? "";
     const repository = resolveClubAuthorityRepository();
-    const preview = await repository.resolveJoinCode({
-      authUserId,
-      code,
-    });
-    return reply.send({
-      preview,
-      requestId: request.requestId,
-    });
+    const codeReference = rawCode
+      ? buildAuditSecretReference("invite_code", rawCode)
+      : null;
+    try {
+      const { code } = joinClubRequestSchema.parse(request.query ?? {});
+      const preview = await repository.resolveJoinCode({
+        authUserId,
+        code,
+      });
+      const payload = parseClubJoinPreviewResponse({
+        preview,
+        requestId: request.requestId,
+      });
+      await recordAuditEvent({
+        request,
+        action: "club.join.resolve",
+        resourceType: "club_invite_code",
+        resourceId: codeReference,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        sensitiveRead: true,
+        metadata: {
+          clubId: preview.clubId,
+          codeReference,
+          role: preview.role,
+          joinFlow: preview.joinFlow,
+        },
+      });
+      return reply.send(payload);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club.join.resolve",
+        resourceType: "club_invite_code",
+        resourceId: codeReference,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        sensitiveRead: true,
+        metadata: {
+          codeReference,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.post("/clubs/join", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code =
+    const rawCode =
       asString(
-        (
-          request.body as {
-            code?: string;
-          }
-        ).code,
+        (request.body as { code?: string } | undefined)?.code,
       ) ?? "";
     const repository = resolveClubAuthorityRepository();
+    const codeReference = rawCode
+      ? buildAuditSecretReference("invite_code", rawCode)
+      : null;
     let clubId: string | null = null;
     let outcome: string | undefined;
     try {
+      const { code } = joinClubRequestSchema.parse(request.body ?? {});
       const result = await repository.joinWithCode({
         authUserId,
         code,
@@ -6964,6 +7700,10 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       });
       clubId = result.club.id;
       outcome = result.outcome;
+      const payload = parseClubJoinResponse({
+        ...result,
+        requestId: request.requestId,
+      });
       await recordAuditEvent({
         request,
         action: "club.join",
@@ -6973,7 +7713,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         result: "SUCCESS",
         metadata: {
           clubId,
-          code,
+          codeReference,
           outcome,
           membershipId: result.membership?.id ?? null,
           inviteId: result.invite?.id ?? null,
@@ -6987,10 +7727,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
               ? 201
               : 200,
         )
-        .send({
-          ...result,
-          requestId: request.requestId,
-        });
+        .send(payload);
     } catch (error) {
       await recordAuditEvent({
         request,
@@ -7001,7 +7738,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         result: mutationAuditResult(error),
         metadata: {
           clubId,
-          code,
+          codeReference,
           outcome,
           errorCode: mutationAuditErrorCode(error),
         },
@@ -7012,13 +7749,43 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
   app.get("/clubs/invites", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveClubAuthorityRepository();
-    const invites = await repository.listPendingInvites({
-      authUserId,
-    });
-    return reply.send({
-      invites,
-      requestId: request.requestId,
-    });
+    try {
+      const invites = await repository.listPendingInvites({
+        authUserId,
+      });
+      const payload = parseClubInvitesResponse({
+        invites,
+        requestId: request.requestId,
+      });
+      await recordAuditEvent({
+        request,
+        action: "club_invite.list",
+        resourceType: "club_invite",
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        sensitiveRead: true,
+        metadata: {
+          inviteCount: invites.length,
+          clubIds: Array.from(new Set(invites.map((invite) => invite.clubId))),
+        },
+      });
+      return reply.send(payload);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club_invite.list",
+        resourceType: "club_invite",
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        sensitiveRead: true,
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.post("/clubs/invites/:inviteId/respond", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -7029,7 +7796,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         }
       ).inviteId,
     );
-    const response = asString(
+    let response = asString(
       (
         request.body as {
           response?: string;
@@ -7037,14 +7804,21 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       ).response,
     )?.toLowerCase();
     try {
-      if (!inviteId || (response !== "accepted" && response !== "declined")) {
+      if (!inviteId) {
         throw notFound("Club invite not found");
       }
+      const body = respondToClubInviteRequestSchema.parse(request.body ?? {});
+      const parsedResponse = body.response;
+      response = parsedResponse;
       const repository = resolveClubAuthorityRepository();
       const result = await repository.respondToInvite({
         authUserId,
         inviteId,
-        response,
+        response: parsedResponse,
+      });
+      const payload = parseRespondToClubInviteResponse({
+        ...result,
+        requestId: request.requestId,
       });
       await recordAuditEvent({
         request,
@@ -7056,15 +7830,12 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           inviteId,
           clubId: result.invite.clubId,
-          response,
+          response: parsedResponse,
           membershipId: result.membership?.id ?? null,
           role: result.membership?.role ?? result.invite.role,
         },
       });
-      return reply.send({
-        ...result,
-        requestId: request.requestId,
-      });
+      return reply.send(payload);
     } catch (error) {
       await recordAuditEvent({
         request,

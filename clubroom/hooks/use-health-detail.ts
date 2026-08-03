@@ -1,13 +1,13 @@
 /**
  * Hook: useHealthDetail
  *
- * Manages injury detail screen state: load injury, add notes, mark healed.
+ * Manages injury detail screen state: load injury and mark healed.
  * Used by app/health/[id].tsx
  */
 
 import { useCallback, useState } from 'react';
 
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -24,15 +24,11 @@ const logger = createLogger('useHealthDetail');
 
 export function useHealthDetail(id: string | undefined) {
   const { currentUser } = useAuth();
-  const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
 
   const [injury, setInjury] = useState<Injury | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<ServiceError | null>(null);
-  const [showAddNote, setShowAddNote] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [noteProgress, setNoteProgress] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const loadInjury = useCallback(async () => {
@@ -44,11 +40,22 @@ export function useHealthDetail(id: string | undefined) {
       const actorId = currentUser?.id ?? '';
       const data = actorId ? await injuryService.getInjuryByIdForActor(id, actorId) : null;
       setInjury(data);
-      if (data) setNoteProgress(data.recoveryPercent);
     }, async loadError => {
       logger.error('Failed to load injury:', loadError);
       setInjury(null);
-      setError(serviceError('UNKNOWN', 'Failed to load injury details.', loadError));
+      const serviceErrorCode =
+        typeof loadError === 'object' && loadError && 'serviceErrorCode' in loadError
+          ? (loadError as { serviceErrorCode?: ServiceError['code'] }).serviceErrorCode
+          : undefined;
+      setError(
+        serviceError(
+          serviceErrorCode === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : 'UNKNOWN',
+          serviceErrorCode === 'UNAUTHORIZED'
+            ? 'This injury record is not available to your account.'
+            : 'Failed to load injury details.',
+          loadError,
+        ),
+      );
     }, () => {
       setLoading(false);
       setRefreshing(false);
@@ -66,34 +73,6 @@ export function useHealthDetail(id: string | undefined) {
     void loadInjury();
   };
 
-  const handleAddNote = async () => {
-    if (!injury || !noteText.trim()) return;
-    const actorId = currentUser?.id ?? injury.userId;
-    setSaving(true);
-
-    await runAsyncTryCatchFinally(async () => {
-      const updated = await injuryService.addRecoveryNoteForActor(
-        actorId,
-        injury.id,
-        noteText.trim(),
-        actorId,
-        userName,
-        noteProgress,
-      );
-      if (updated) {
-        setInjury(updated);
-        setNoteText('');
-        setShowAddNote(false);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }, async error => {
-      logger.error('Failed to add note:', error);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    }, () => {
-      setSaving(false);
-    });
-  };
-
   const handleMarkHealed = () => {
     if (!injury) return;
     uiFeedback.alert('Mark as Healed', 'Are you sure this injury has fully healed?', [
@@ -109,26 +88,20 @@ export function useHealthDetail(id: string | undefined) {
             if (updated) {
               setInjury(updated);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              return;
             }
+            uiFeedback.showToast('Unable to update this injury. Refresh and try again.', 'error');
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }, async error => {
             logger.error('Failed to mark as healed:', error);
+            uiFeedback.showToast('Unable to update this injury. Refresh and try again.', 'error');
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           }, () => {
             setSaving(false);
           });
         },
       },
     ]);
-  };
-
-  const cancelAddNote = () => {
-    setShowAddNote(false);
-    setNoteText('');
-    if (injury) setNoteProgress(injury.recoveryPercent);
-  };
-
-  const openAddNote = () => {
-    setShowAddNote(true);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const status: ScreenStatus =
@@ -141,16 +114,8 @@ export function useHealthDetail(id: string | undefined) {
     error,
     refreshing,
     retry: loadInjury,
-    showAddNote,
-    noteText,
-    noteProgress,
     saving,
-    setNoteText,
-    setNoteProgress,
     handleRefresh,
-    handleAddNote,
     handleMarkHealed,
-    cancelAddNote,
-    openAddNote,
   };
 }

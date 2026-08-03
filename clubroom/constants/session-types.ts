@@ -255,7 +255,15 @@ export interface BookingSummary {
   sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   start: string;
-  status: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
+  status:
+    | 'Confirmed'
+    | 'Pending'
+    | 'Needs Completion'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Declined'
+    | 'Withdrawn'
+    | 'Expired';
   locationLabel: string;
   createdAt?: string;
   clubId?: string;
@@ -281,6 +289,11 @@ export interface BookingSummary {
   bookedById?: string;
   bookedByName?: string;
   audienceLabel?: string;
+  version?: number;
+  requestExpiresAt?: string;
+  requestResolvedAt?: string;
+  requestResolutionReason?: string;
+  canWithdrawRequest?: boolean;
   // Group booking fields
   isGroupSession?: boolean;
   maxParticipants?: number;
@@ -302,6 +315,8 @@ export interface SessionRegistration {
   id: string;
   userId: string;
   userName?: string;
+  parentId?: string;
+  parentName?: string;
   bookedAt: string;
   status: 'confirmed' | 'cancelled' | 'completed';
 }
@@ -633,7 +648,9 @@ export interface GroupRegistration {
   id: string;
   sessionId: string;
   athleteId: string;
+  athleteName?: string;
   parentId: string;
+  parentName?: string;
   status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
   registeredAt: string;
   paidAt?: string;

@@ -16,12 +16,11 @@ import { MatchAvailabilityRow, MatchPlayerStatusRow } from './match-card-section
 
 interface MatchCardProps {
   match: Match;
-  isCoach?: boolean;
   showClub?: boolean;
   onPress?: () => void;
 }
 
-export function MatchCard({ match, isCoach = false, showClub = false, onPress }: MatchCardProps) {
+export function MatchCard({ match, showClub = false, onPress }: MatchCardProps) {
   const { colors: palette } = useTheme();
   const clubLabel = getMatchClubLabel(match);
 
@@ -34,6 +33,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
 
   const typeColor = matchService.getMatchTypeColor(match.matchType, palette);
   const isUpcoming = match.status === 'SCHEDULED' || match.status === 'LINEUP_SET';
+  const canManageMatch = match.canManageMatch === true;
 
   const handlePress = () => {
     if (onPress) {
@@ -140,10 +140,10 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
       )}
 
       {/* Status and availability (coach view) */}
-      {isCoach && isUpcoming && <MatchAvailabilityRow match={match} />}
+      {canManageMatch && isUpcoming && <MatchAvailabilityRow match={match} />}
 
-      {/* Player status (parent view) */}
-      {!isCoach && <MatchPlayerStatusRow match={match} />}
+      {/* Viewer-specific player status */}
+      {!canManageMatch && <MatchPlayerStatusRow match={match} />}
     </SurfaceCard>
   );
 }

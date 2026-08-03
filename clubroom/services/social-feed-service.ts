@@ -7,8 +7,9 @@ import type {
   FeedFilter,
   FeedType,
   OrganizationCommercialMode,
-} from "@/constants/types";
-import { generateId } from "@/utils/generate-id";
+  OrganizationJoinPolicy,
+} from '@/constants/types';
+import { generateId } from '@/utils/generate-id';
 import {
   type Result,
   type ServiceError,
@@ -17,19 +18,19 @@ import {
   unauthorized,
   validationError,
   serviceError,
-} from "@/types/result";
-import { createLogger } from "@/utils/logger";
-import { emitTyped, ServiceEvents } from "@/services/event-bus";
-import { notificationService } from "./notification-service";
-import { api } from "@/constants/config";
-import { apiClient, apiFetch } from "./api-client";
+} from '@/types/result';
+import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { notificationService } from './notification-service';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from './api-client';
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
   resolveSignedInApiUser,
-} from "@/services/api-auth-context";
-import { canUseClubCapability } from "@/contracts/club-governance";
-import { canCreateClubPost } from "@/utils/club-ui-permissions";
+} from '@/services/api-auth-context';
+import { canUseClubCapability } from '@/contracts/club-governance';
+import { canCreateClubPost } from '@/utils/club-ui-permissions';
 type CreateClubPostInput = {
   clubId: string;
   clubName?: string;
@@ -39,8 +40,8 @@ type CreateClubPostInput = {
   title: string;
   body: string;
   postType?: ClubPostType;
-  postAs?: "club" | "self";
-  audience?: "club" | "squad" | "staff";
+  postAs?: 'club' | 'self';
+  audience?: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
   feedType?: FeedType;
   imageUrl?: string;
@@ -120,7 +121,8 @@ export interface CreateClubInput {
   tagline?: string;
   badge?: string;
   commercialMode?: OrganizationCommercialMode;
-  firstStaffRole?: Exclude<ClubMembership["role"], "OWNER" | "MEMBER"> | null;
+  joinPolicy?: OrganizationJoinPolicy;
+  firstStaffRole?: Exclude<ClubMembership['role'], 'OWNER' | 'MEMBER'> | null;
 }
 export interface CreateClubResult {
   club: Club;
@@ -136,335 +138,335 @@ const NOW = Date.now();
 function buildInviteCode(seed: string): string {
   const prefix =
     seed
-      .replace(/[^a-zA-Z]/g, "")
+      .replace(/[^a-zA-Z]/g, '')
       .slice(0, 5)
-      .toUpperCase() || "CLUB";
-  const suffix = generateId("invite").slice(-4).toUpperCase();
+      .toUpperCase() || 'CLUB';
+  const suffix = generateId('invite').slice(-4).toUpperCase();
   return `${prefix}-${suffix}`;
 }
 const SEED_CLUBS: Club[] = [
   {
-    id: "club_lions",
-    name: "Lions FC Academy",
-    city: "London",
-    country: "UK",
-    badge: "LFC",
+    id: 'club_lions',
+    name: 'Lions FC Academy',
+    city: 'London',
+    country: 'UK',
+    badge: 'LFC',
     photoUrl:
-      "https://images.unsplash.com/photo-1470082784645-bc2f0b9f9614?auto=format&fit=crop&w=800&q=80",
-    tagline: "North London performance pathway with parent-friendly comms.",
+      'https://images.unsplash.com/photo-1470082784645-bc2f0b9f9614?auto=format&fit=crop&w=800&q=80',
+    tagline: 'North London performance pathway with parent-friendly comms.',
     memberCount: 52,
     coachCount: 8,
     squadCount: 3,
-    ownerId: "coach1",
-    inviteCode: "LIONS-CLUB",
-    commercialMode: "COACH_OWNED",
+    ownerId: 'coach1',
+    inviteCode: 'LIONS-CLUB',
+    commercialMode: 'COACH_OWNED',
   },
   {
-    id: "club_eagles",
-    name: "East London Eagles",
-    city: "London",
-    country: "UK",
-    badge: "ELE",
+    id: 'club_eagles',
+    name: 'East London Eagles',
+    city: 'London',
+    country: 'UK',
+    badge: 'ELE',
     photoUrl:
-      "https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=800&q=80",
-    tagline: "Developing champions through dedication and teamwork.",
+      'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Developing champions through dedication and teamwork.',
     memberCount: 38,
     coachCount: 5,
     squadCount: 2,
-    ownerId: "coach2",
-    inviteCode: "EAGLES-JOIN",
-    commercialMode: "COACH_OWNED",
+    ownerId: 'coach2',
+    inviteCode: 'EAGLES-JOIN',
+    commercialMode: 'COACH_OWNED',
   },
   {
-    id: "club_warriors",
-    name: "Southbank Warriors",
-    city: "London",
-    country: "UK",
-    badge: "SW",
+    id: 'club_warriors',
+    name: 'Southbank Warriors',
+    city: 'London',
+    country: 'UK',
+    badge: 'SW',
     photoUrl:
-      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80",
-    tagline: "Building character through football - all abilities welcome.",
+      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Building character through football - all abilities welcome.',
     memberCount: 65,
     coachCount: 10,
     squadCount: 5,
-    ownerId: "coach3",
-    inviteCode: "WARRIORS-2026",
-    commercialMode: "COACH_OWNED",
+    ownerId: 'coach3',
+    inviteCode: 'WARRIORS-2026',
+    commercialMode: 'COACH_OWNED',
   },
   {
-    id: "club_phoenix",
-    name: "Phoenix Youth FC",
-    city: "London",
-    country: "UK",
-    badge: "PYF",
+    id: 'club_phoenix',
+    name: 'Phoenix Youth FC',
+    city: 'London',
+    country: 'UK',
+    badge: 'PYF',
     photoUrl:
-      "https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=800&q=80",
-    tagline: "Rise together - elite grassroots development.",
+      'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Rise together - elite grassroots development.',
     memberCount: 45,
     coachCount: 6,
     squadCount: 3,
-    ownerId: "coach2",
-    inviteCode: "PHOENIX-JOIN",
-    commercialMode: "COACH_OWNED",
+    ownerId: 'coach2',
+    inviteCode: 'PHOENIX-JOIN',
+    commercialMode: 'COACH_OWNED',
   },
   {
-    id: "club_united",
-    name: "North London United",
-    city: "London",
-    country: "UK",
-    badge: "NLU",
+    id: 'club_united',
+    name: 'North London United',
+    city: 'London',
+    country: 'UK',
+    badge: 'NLU',
     photoUrl:
-      "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80",
-    tagline: "Community club with competitive spirit.",
+      'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Community club with competitive spirit.',
     memberCount: 72,
     coachCount: 12,
     squadCount: 6,
-    ownerId: "admin",
-    inviteCode: "NLU-FAMILY",
-    commercialMode: "COACH_OWNED",
+    ownerId: 'admin',
+    inviteCode: 'NLU-FAMILY',
+    commercialMode: 'COACH_OWNED',
   },
 ];
 const SEED_MEMBERSHIPS: ClubMembership[] = [
   {
-    clubId: "club_lions",
-    userId: "coach1",
-    role: "OWNER",
-    status: "active",
-    joinSource: "created",
-    inviteCode: "LIONS-CLUB",
+    clubId: 'club_lions',
+    userId: 'coach1',
+    role: 'OWNER',
+    status: 'active',
+    joinSource: 'created',
+    inviteCode: 'LIONS-CLUB',
     canPostAsClub: true,
   },
   {
-    clubId: "club_lions",
-    userId: "coach2",
-    role: "COACH",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "LIONS-COACH",
+    clubId: 'club_lions',
+    userId: 'coach2',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-COACH',
     canPostAsClub: true,
   },
   {
-    clubId: "club_lions",
-    userId: "user1",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "LIONS-PARENT",
+    clubId: 'club_lions',
+    userId: 'user1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
   },
   {
-    clubId: "club_lions",
-    userId: "user2",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "LIONS-PARENT",
+    clubId: 'club_lions',
+    userId: 'user2',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
   },
   {
-    clubId: "club_lions",
-    userId: "user4",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "LIONS-PARENT",
+    clubId: 'club_lions',
+    userId: 'user4',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
   },
   {
-    clubId: "club_lions",
-    userId: "user5",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "LIONS-PARENT",
+    clubId: 'club_lions',
+    userId: 'user5',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
   },
   {
-    clubId: "club_eagles",
-    userId: "coach2",
-    role: "OWNER",
-    status: "active",
-    joinSource: "created",
+    clubId: 'club_eagles',
+    userId: 'coach2',
+    role: 'OWNER',
+    status: 'active',
+    joinSource: 'created',
     canPostAsClub: true,
   },
   {
-    clubId: "club_eagles",
-    userId: "coach1",
-    role: "COACH",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "EAGLES-COACH",
+    clubId: 'club_eagles',
+    userId: 'coach1',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-COACH',
     canPostAsClub: true,
   },
   {
-    clubId: "club_eagles",
-    userId: "user4",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "EAGLES-JOIN",
+    clubId: 'club_eagles',
+    userId: 'user4',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-JOIN',
   },
   {
-    clubId: "club_warriors",
-    userId: "coach3",
-    role: "HEAD_COACH",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "WARRIORS-2026",
+    clubId: 'club_warriors',
+    userId: 'coach3',
+    role: 'HEAD_COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'WARRIORS-2026',
     canPostAsClub: true,
   },
   {
-    clubId: "club_warriors",
-    userId: "user4",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "WARRIORS-2026",
+    clubId: 'club_warriors',
+    userId: 'user4',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'WARRIORS-2026',
   },
   {
-    clubId: "club_warriors",
-    userId: "user5",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "WARRIORS-2026",
+    clubId: 'club_warriors',
+    userId: 'user5',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'WARRIORS-2026',
   },
   {
-    clubId: "club_phoenix",
-    userId: "coach2",
-    role: "COACH",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "PHOENIX-JOIN",
+    clubId: 'club_phoenix',
+    userId: 'coach2',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'PHOENIX-JOIN',
     canPostAsClub: true,
   },
   {
-    clubId: "club_phoenix",
-    userId: "user5",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "PHOENIX-JOIN",
+    clubId: 'club_phoenix',
+    userId: 'user5',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'PHOENIX-JOIN',
   },
   {
-    clubId: "club_united",
-    userId: "admin",
-    role: "OWNER",
-    status: "active",
-    joinSource: "created",
+    clubId: 'club_united',
+    userId: 'admin',
+    role: 'OWNER',
+    status: 'active',
+    joinSource: 'created',
     canPostAsClub: true,
   },
   {
-    clubId: "club_united",
-    userId: "coach1",
-    role: "ADMIN",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "NLU-FAMILY",
+    clubId: 'club_united',
+    userId: 'coach1',
+    role: 'ADMIN',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'NLU-FAMILY',
     canPostAsClub: true,
   },
   {
-    clubId: "club_united",
-    userId: "user4",
-    role: "MEMBER",
-    status: "active",
-    joinSource: "invite",
-    inviteCode: "NLU-FAMILY",
+    clubId: 'club_united',
+    userId: 'user4',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'NLU-FAMILY',
   },
 ];
 const SEED_FEED_POSTS: ClubFeedPost[] = [
   {
-    id: "club_post_seed_1",
-    clubId: "club_lions",
-    title: "Club registration now open",
-    body: "Spring registration is live. Returning members get priority placement.",
+    id: 'club_post_seed_1',
+    clubId: 'club_lions',
+    title: 'Club registration now open',
+    body: 'Spring registration is live. Returning members get priority placement.',
     createdAt: new Date(NOW - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Club-wide",
-    authorId: "coach1",
-    postAs: "club",
-    postType: "announcement",
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorId: 'coach1',
+    postAs: 'club',
+    postType: 'announcement',
     isPinned: true,
-    pinnedBy: "coach1",
+    pinnedBy: 'coach1',
     pinnedAt: new Date(NOW - 2 * 24 * 60 * 60 * 1000).toISOString(),
     reactionCount: 18,
     commentCount: 6,
   },
   {
-    id: "club_post_seed_2",
-    clubId: "club_lions",
-    title: "U15 tournament highlights",
-    body: "Great collective performance and quality finishing in transition drills.",
+    id: 'club_post_seed_2',
+    clubId: 'club_lions',
+    title: 'U15 tournament highlights',
+    body: 'Great collective performance and quality finishing in transition drills.',
     createdAt: new Date(NOW - 8 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Club-wide",
-    authorId: "coach2",
-    postAs: "self",
-    postType: "photo",
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorId: 'coach2',
+    postAs: 'self',
+    postType: 'photo',
     imageUrl:
-      "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80",
+      'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80',
     reactionCount: 13,
     commentCount: 2,
   },
   {
-    id: "club_post_seed_3",
-    clubId: "club_eagles",
-    title: "Winter camp announcement",
-    body: "Half-term camp opens next week. Limited places.",
+    id: 'club_post_seed_3',
+    clubId: 'club_eagles',
+    title: 'Winter camp announcement',
+    body: 'Half-term camp opens next week. Limited places.',
     createdAt: new Date(NOW - 14 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Club-wide",
-    authorId: "coach2",
-    postAs: "club",
-    postType: "event",
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'event',
     eventDate: new Date(NOW + 14 * 24 * 60 * 60 * 1000).toISOString(),
-    eventLocation: "Victoria Park Sports Centre",
+    eventLocation: 'Victoria Park Sports Centre',
     reactionCount: 9,
     commentCount: 1,
   },
   {
-    id: "club_post_seed_4",
-    clubId: "club_warriors",
-    title: "New weekly development block",
-    body: "We are adding a Tuesday fundamentals block for U12 and U14 squads.",
+    id: 'club_post_seed_4',
+    clubId: 'club_warriors',
+    title: 'New weekly development block',
+    body: 'We are adding a Tuesday fundamentals block for U12 and U14 squads.',
     createdAt: new Date(NOW - 20 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Club-wide",
-    authorId: "coach3",
-    postAs: "club",
-    postType: "announcement",
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorId: 'coach3',
+    postAs: 'club',
+    postType: 'announcement',
     reactionCount: 6,
     commentCount: 0,
   },
   {
-    id: "club_post_seed_5",
-    clubId: "club_lions",
-    title: "Coach note: scanning before receiving",
-    body: "Personal session clip upload: notice head checks before first touch.",
+    id: 'club_post_seed_5',
+    clubId: 'club_lions',
+    title: 'Coach note: scanning before receiving',
+    body: 'Personal session clip upload: notice head checks before first touch.',
     createdAt: new Date(NOW - 5 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Personal Feed",
-    authorId: "coach1",
-    postAs: "self",
-    postType: "general",
-    feedType: "PERSONAL",
+    audience: 'club',
+    audienceLabel: 'Personal Feed',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'general',
+    feedType: 'PERSONAL',
     reactionCount: 3,
     commentCount: 0,
   },
   {
-    id: "club_post_seed_6",
-    clubId: "club_united",
-    title: "Open session this weekend",
-    body: "Open group session published for all members. Tap to reserve a spot.",
+    id: 'club_post_seed_6',
+    clubId: 'club_united',
+    title: 'Open session this weekend',
+    body: 'Open group session published for all members. Tap to reserve a spot.',
     createdAt: new Date(NOW - 2 * 60 * 60 * 1000).toISOString(),
-    audience: "club",
-    audienceLabel: "Personal + Club",
-    authorId: "coach1",
-    postAs: "self",
-    postType: "session_announcement",
-    feedType: "BOTH",
+    audience: 'club',
+    audienceLabel: 'Personal + Club',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'session_announcement',
+    feedType: 'BOTH',
     reactionCount: 5,
     commentCount: 1,
   },
 ];
-function hasDefaultMembershipGrant(role: ClubMembership["role"]): boolean {
-  return role === "COACH";
+function hasDefaultMembershipGrant(role: ClubMembership['role']): boolean {
+  return role === 'COACH';
 }
 function withMembershipCapabilities(membership: ClubMembership): ClubMembership {
   const hasGrant = hasDefaultMembershipGrant(membership.role);
@@ -472,24 +474,22 @@ function withMembershipCapabilities(membership: ClubMembership): ClubMembership 
     ...membership,
     canPostAsClub:
       membership.canPostAsClub ??
-      canUseClubCapability(membership.role, "post_as_org", { hasGrant }),
+      canUseClubCapability(membership.role, 'post_as_org', { hasGrant }),
     canCreateSessions:
       membership.canCreateSessions ??
-      canUseClubCapability(membership.role, "create_org_sessions", {
+      canUseClubCapability(membership.role, 'create_org_sessions', {
         hasGrant,
       }),
   };
 }
 let clubsStore: Club[] = [...SEED_CLUBS];
-let membershipsStore: ClubMembership[] = SEED_MEMBERSHIPS.map(
-  withMembershipCapabilities,
-);
+let membershipsStore: ClubMembership[] = SEED_MEMBERSHIPS.map(withMembershipCapabilities);
 let clubFeedStore: ClubFeedPost[] = [...SEED_FEED_POSTS];
 let clubInvitesStore: ClubInvite[] = SEED_CLUBS.map((club) => ({
   code: club.inviteCode,
   clubId: club.id,
   createdBy: club.ownerId,
-  role: "MEMBER",
+  role: 'MEMBER',
   expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   remainingUses: 999,
 }));
@@ -505,125 +505,101 @@ async function resolveFeedApiContext(
   const currentUser = currentUserResult.data;
   const currentUserName = [currentUser.firstName, currentUser.lastName]
     .filter(Boolean)
-    .join(" ")
+    .join(' ')
     .trim();
   return ok({
     currentUserId: currentUser.id,
     currentUserName: currentUserName || currentUser.email || currentUser.id,
     currentUserAvatar: currentUser.photoUrl,
     headers: buildApiAuthHeaders({
-      actingRole: deriveApiActingRole(currentUser, "coach"),
+      actingRole: deriveApiActingRole(currentUser, 'coach'),
     }),
   });
 }
 function coerceApiPostMetadata(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
+  return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
-function metadataString(
-  metadata: Record<string, unknown>,
-  key: string,
-): string | undefined {
+function metadataString(metadata: Record<string, unknown>, key: string): string | undefined {
   const value = metadata[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value
-    : undefined;
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
 }
 function metadataPostType(metadata: Record<string, unknown>): ClubPostType {
-  const value = metadataString(metadata, "postType");
-  return value === "announcement" ||
-    value === "photo" ||
-    value === "video" ||
-    value === "event" ||
-    value === "general" ||
-    value === "achievement" ||
-    value === "session" ||
-    value === "match" ||
-    value === "session_announcement"
+  const value = metadataString(metadata, 'postType');
+  return value === 'announcement' ||
+    value === 'photo' ||
+    value === 'video' ||
+    value === 'event' ||
+    value === 'general' ||
+    value === 'achievement' ||
+    value === 'session' ||
+    value === 'match' ||
+    value === 'session_announcement'
     ? value
-    : "general";
+    : 'general';
 }
 function metadataFeedType(metadata: Record<string, unknown>): FeedType {
-  const value = metadataString(metadata, "feedType");
-  return value === "PERSONAL" || value === "BOTH" || value === "CLUB"
-    ? value
-    : "CLUB";
+  const value = metadataString(metadata, 'feedType');
+  return value === 'PERSONAL' || value === 'BOTH' || value === 'CLUB' ? value : 'CLUB';
 }
-function metadataAudience(
-  metadata: Record<string, unknown>,
-): ClubFeedPost["audience"] {
-  const value = metadataString(metadata, "audience");
-  return value === "squad" || value === "staff" || value === "club"
-    ? value
-    : "club";
+function metadataAudience(metadata: Record<string, unknown>): ClubFeedPost['audience'] {
+  const value = metadataString(metadata, 'audience');
+  return value === 'squad' || value === 'staff' || value === 'club' ? value : 'club';
 }
-function metadataPostAs(
-  metadata: Record<string, unknown>,
-): ClubFeedPost["postAs"] {
-  return metadataString(metadata, "postAs") === "club" ? "club" : "self";
+function metadataPostAs(metadata: Record<string, unknown>): ClubFeedPost['postAs'] {
+  return metadataString(metadata, 'postAs') === 'club' ? 'club' : 'self';
 }
 function isInternalDisplayId(value: string): boolean {
-  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(
-    value,
-  );
+  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(value);
 }
-function safePostAuthorName(
-  value: string | null | undefined,
-  fallback: string,
-): string {
+function safePostAuthorName(value: string | null | undefined, fallback: string): string {
   const trimmed = value?.trim();
   return trimmed && !isInternalDisplayId(trimmed) ? trimmed : fallback;
 }
-function mapApiPostToClubFeedPost(
-  post: ApiPost,
-  context?: FeedApiContext,
-): ClubFeedPost {
+function mapApiPostToClubFeedPost(post: ApiPost, context?: FeedApiContext): ClubFeedPost {
   const metadata = coerceApiPostMetadata(post.attachmentsJson);
-  const authorId =
-    post.authorUserId || post.author?.id || context?.currentUserId;
+  const authorId = post.authorUserId || post.author?.id || context?.currentUserId;
   const authorName = safePostAuthorName(
     post.author?.name ||
       (context?.currentUserId === authorId ? context?.currentUserName : undefined),
-    "Club update",
+    'Club update',
   );
   return {
     id: post.id,
-    clubId: post.clubId ?? "",
-    title: metadataString(metadata, "title") || "Update",
-    body: post.content?.trim() || "",
+    clubId: post.clubId ?? '',
+    title: metadataString(metadata, 'title') || 'Update',
+    body: post.content?.trim() || '',
     createdAt: post.createdAt ?? new Date().toISOString(),
     audience: metadataAudience(metadata),
-    audienceLabel: metadataString(metadata, "audienceLabel"),
+    audienceLabel: metadataString(metadata, 'audienceLabel'),
     authorId,
     authorName,
     postAs: metadataPostAs(metadata),
     postType: metadataPostType(metadata),
     feedType: metadataFeedType(metadata),
-    badgeAwarded: metadataString(metadata, "badgeAwarded"),
-    imageUrl: metadataString(metadata, "imageUrl"),
-    videoUrl: metadataString(metadata, "videoUrl"),
+    badgeAwarded: metadataString(metadata, 'badgeAwarded'),
+    imageUrl: metadataString(metadata, 'imageUrl'),
+    videoUrl: metadataString(metadata, 'videoUrl'),
     reactionCount: post.reactionsCount ?? 0,
     likedByCurrentUser: post.likedByCurrentUser === true,
     likes: post.likes,
     isPinned: metadata.isPinned === true,
-    pinnedBy: metadataString(metadata, "pinnedBy"),
-    pinnedAt: metadataString(metadata, "pinnedAt"),
+    pinnedBy: metadataString(metadata, 'pinnedBy'),
+    pinnedAt: metadataString(metadata, 'pinnedAt'),
     commentCount: post.commentsCount ?? 0,
-    eventId: metadataString(metadata, "eventId"),
-    eventDate: metadataString(metadata, "eventDate"),
-    eventLocation: metadataString(metadata, "eventLocation"),
-    sessionId: metadataString(metadata, "sessionId"),
-    matchId: metadataString(metadata, "matchId"),
-    athleteId: metadataString(metadata, "athleteId"),
-    badgeId: metadataString(metadata, "badgeId"),
-    badgeAwardId: metadataString(metadata, "badgeAwardId"),
+    eventId: metadataString(metadata, 'eventId'),
+    eventDate: metadataString(metadata, 'eventDate'),
+    eventLocation: metadataString(metadata, 'eventLocation'),
+    sessionId: metadataString(metadata, 'sessionId'),
+    matchId: metadataString(metadata, 'matchId'),
+    athleteId: metadataString(metadata, 'athleteId'),
+    badgeId: metadataString(metadata, 'badgeId'),
+    badgeAwardId: metadataString(metadata, 'badgeAwardId'),
   };
 }
 function mirrorClubFeedPost(post: ClubFeedPost): void {
-  const index = clubFeedStore.findIndex(
-    (candidate) => candidate.id === post.id,
-  );
+  const index = clubFeedStore.findIndex((candidate) => candidate.id === post.id);
   if (index >= 0) {
     clubFeedStore[index] = post;
     return;
@@ -631,9 +607,14 @@ function mirrorClubFeedPost(post: ClubFeedPost): void {
   clubFeedStore.unshift(post);
 }
 function unsupportedApiPostMedia(
-  input: Pick<CreateClubPostInput, "imageUrl" | "videoUrl">,
+  input: Pick<CreateClubPostInput, 'imageUrl' | 'videoUrl'>,
 ): boolean {
   return Boolean(input.imageUrl || input.videoUrl);
+}
+function unsupportedApiPostScope(
+  input: Pick<CreateClubPostInput, 'audience' | 'squadId'>,
+): boolean {
+  return (input.audience !== undefined && input.audience !== 'club') || Boolean(input.squadId);
 }
 function postAttachmentProofs(
   attachmentIds: string[] | undefined,
@@ -644,21 +625,15 @@ function postAttachmentProofs(
   });
   return proofs.length > 0 ? proofs : undefined;
 }
-function metadataForClubPost(
-  input: CreateClubPostInput,
-): Record<string, unknown> {
+function metadataForClubPost(input: CreateClubPostInput): Record<string, unknown> {
   return {
     title:
       input.title ||
-      (input.postType === "photo"
-        ? "Photo"
-        : input.postType === "video"
-          ? "Video"
-          : "Update"),
-    postType: input.postType || "general",
-    postAs: input.postAs || "self",
-    feedType: input.feedType || "CLUB",
-    audience: input.audience || "club",
+      (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
+    postType: input.postType || 'general',
+    postAs: input.postAs || 'self',
+    feedType: input.feedType || 'CLUB',
+    audience: input.audience || 'club',
     audienceLabel: input.audienceLabel,
     squadId: input.squadId,
     eventId: input.eventId,
@@ -667,39 +642,12 @@ function metadataForClubPost(
     badgeAwarded: input.badgeAwarded,
   };
 }
-function metadataForCoachPost(
-  input: CreateCoachPostInput,
-): Record<string, unknown> {
-  return {
-    title:
-      input.title ||
-      (input.postType === "photo"
-        ? "Photo"
-        : input.postType === "video"
-          ? "Video"
-          : "Update"),
-    postType: input.postType || "general",
-    postAs: "self",
-    feedType: input.feedType || "PERSONAL",
-    audience: "club",
-    audienceLabel:
-      input.feedType === "PERSONAL"
-        ? "Personal Feed"
-        : input.feedType === "BOTH"
-          ? "Personal + Club"
-          : "Club-wide",
-    eventId: input.eventId,
-    eventDate: input.eventDate,
-    eventLocation: input.eventLocation,
-  };
-}
 function getClubById(clubId: string): Club | undefined {
   return clubsStore.find((club) => club.id === clubId);
 }
 function getAllClubMembershipsForUser(userId: string): ClubMembership[] {
   return membershipsStore.filter(
-    (membership) =>
-      membership.userId === userId && membership.status === "active",
+    (membership) => membership.userId === userId && membership.status === 'active',
   );
 }
 function getUserClubsInternal(userId: string): Club[] {
@@ -709,9 +657,7 @@ function getUserClubsInternal(userId: string): Club[] {
     return mapped ? [mapped] : [];
   });
 }
-function canPostAsClubMembership(
-  membership: ClubMembership | undefined,
-): boolean {
+function canPostAsClubMembership(membership: ClubMembership | undefined): boolean {
   return canCreateClubPost(membership);
 }
 function sortClubPosts(posts: ClubFeedPost[]): ClubFeedPost[] {
@@ -730,29 +676,20 @@ function sortByDateDesc<
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
-function filterPostsByType(
-  posts: ClubFeedPost[],
-  filter?: FeedFilter,
-): ClubFeedPost[] {
-  if (!filter || filter === "all") return posts;
+function filterPostsByType(posts: ClubFeedPost[], filter?: FeedFilter): ClubFeedPost[] {
+  if (!filter || filter === 'all') return posts;
   return posts.filter((post) => post.postType === filter);
 }
-function getClubFeedInternal(
-  clubId: string,
-  filter?: FeedFilter,
-): ClubFeedPost[] {
+function getClubFeedInternal(clubId: string, filter?: FeedFilter): ClubFeedPost[] {
   const posts = clubFeedStore.filter((post) => post.clubId === clubId);
   return sortClubPosts(filterPostsByType(posts, filter));
 }
 function addClubFeedPostInternal(
-  post: Omit<
-    ClubFeedPost,
-    "id" | "createdAt" | "reactionCount" | "commentCount"
-  >,
+  post: Omit<ClubFeedPost, 'id' | 'createdAt' | 'reactionCount' | 'commentCount'>,
 ): ClubFeedPost {
   const createdPost: ClubFeedPost = {
     ...post,
-    id: generateId("club_post"),
+    id: generateId('club_post'),
     createdAt: new Date().toISOString(),
     reactionCount: 0,
     commentCount: 0,
@@ -804,21 +741,14 @@ function hasUserReactedInternal(postId: string, userId: string): boolean {
   return userReactions.get(postId)?.has(userId) ?? false;
 }
 function getPinnedPostsInternal(clubId: string): ClubFeedPost[] {
-  return sortByDateDesc(
-    clubFeedStore.filter((post) => post.clubId === clubId && post.isPinned),
-  );
+  return sortByDateDesc(clubFeedStore.filter((post) => post.clubId === clubId && post.isPinned));
 }
 function getAnnouncementsInternal(clubId: string): ClubFeedPost[] {
   return sortByDateDesc(
-    clubFeedStore.filter(
-      (post) => post.clubId === clubId && post.postType === "announcement",
-    ),
+    clubFeedStore.filter((post) => post.clubId === clubId && post.postType === 'announcement'),
   );
 }
-function getAggregatedFeedInternal(
-  userId: string,
-  filter?: FeedFilter,
-): AggregatedFeedPost[] {
+function getAggregatedFeedInternal(userId: string, filter?: FeedFilter): AggregatedFeedPost[] {
   const clubIds = new Set(
     getAllClubMembershipsForUser(userId).map((membership) => membership.clubId),
   );
@@ -831,7 +761,7 @@ function getAggregatedFeedInternal(
       const club = getClubById(post.clubId);
       return {
         ...post,
-        clubName: club?.name || "Unknown Club",
+        clubName: club?.name || 'Unknown Club',
         clubBadge: club?.badge,
       };
     }),
@@ -841,8 +771,7 @@ function getPersonalFeedForCoachInternal(coachId: string): ClubFeedPost[] {
   return sortByDateDesc(
     clubFeedStore.filter(
       (post) =>
-        post.authorId === coachId &&
-        (post.feedType === "PERSONAL" || post.feedType === "BOTH"),
+        post.authorId === coachId && (post.feedType === 'PERSONAL' || post.feedType === 'BOTH'),
     ),
   );
 }
@@ -856,10 +785,7 @@ function getFollowingFeedInternal(
     clubFeedStore.filter((post) => {
       if (!post.authorId) return false;
       if (!followingSet.has(post.authorId)) return false;
-      return (
-        (post.feedType === "PERSONAL" || post.feedType === "BOTH") &&
-        post.postAs === "self"
-      );
+      return (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') && post.postAs === 'self';
     }),
     filter,
   );
@@ -868,7 +794,7 @@ function getFollowingFeedInternal(
       const club = getClubById(post.clubId);
       return {
         ...post,
-        clubName: club?.name || "Unknown Club",
+        clubName: club?.name || 'Unknown Club',
         clubBadge: club?.badge,
       };
     }),
@@ -885,7 +811,7 @@ function getCombinedFeedForParentInternal(
     clubFeedStore.filter(
       (post) =>
         parentClubIds.has(post.clubId) &&
-        (post.feedType === "PERSONAL" || post.feedType === "BOTH") &&
+        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') &&
         !clubPostIds.has(post.id),
     ),
     filter,
@@ -893,7 +819,7 @@ function getCombinedFeedForParentInternal(
     const club = getClubById(post.clubId);
     return {
       ...post,
-      clubName: club?.name || "Unknown Club",
+      clubName: club?.name || 'Unknown Club',
       clubBadge: club?.badge,
     };
   });
@@ -901,7 +827,7 @@ function getCombinedFeedForParentInternal(
 }
 
 class ClubFeedService {
-  private logger = createLogger("ClubFeedService");
+  private logger = createLogger('ClubFeedService');
   private async ensureHydrated(): Promise<void> {
     return undefined;
   }
@@ -917,65 +843,52 @@ class ClubFeedService {
   createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
     if (!USE_MOCK) {
       return err(
-        serviceError(
-          "UNKNOWN",
-          "Use backend post authority for API-mode feed publishing.",
-        ),
+        serviceError('UNKNOWN', 'Use backend post authority for API-mode feed publishing.'),
       );
     }
     if (!input.clubId) {
-      return err(validationError("Club ID is required"));
+      return err(validationError('Club ID is required'));
     }
     const body = input.body.trim();
     if (!body && !input.imageUrl && !input.videoUrl) {
-      return err(
-        validationError("Post must have content, a photo, or a video"),
-      );
+      return err(validationError('Post must have content, a photo, or a video'));
     }
     const membership = this.getMembership(input.authorId, input.clubId);
     if (!membership) {
-      this.logger.warn("club_post_rejected_not_member", {
+      this.logger.warn('club_post_rejected_not_member', {
         clubId: input.clubId,
         authorId: input.authorId,
       });
-      return err(unauthorized("You must be an active club member to post"));
+      return err(unauthorized('You must be an active club member to post'));
     }
-    const postAs = input.postAs || "self";
-    if (postAs === "club" && !canPostAsClubMembership(membership)) {
-      this.logger.warn("club_post_rejected_no_permission", {
+    const postAs = input.postAs || 'self';
+    if (postAs === 'club' && !canPostAsClubMembership(membership)) {
+      this.logger.warn('club_post_rejected_no_permission', {
         clubId: input.clubId,
         authorId: input.authorId,
         role: membership.role,
       });
-      return err(
-        unauthorized(
-          "You do not have permission to post on behalf of the club",
-        ),
-      );
+      return err(unauthorized('You do not have permission to post on behalf of the club'));
     }
-    const feedType: FeedType = input.feedType || "CLUB";
-    let audienceLabel = input.audienceLabel || "Club-wide";
-    if (feedType === "PERSONAL") {
-      audienceLabel = "Personal Feed";
-    } else if (feedType === "BOTH") {
-      audienceLabel = input.audienceLabel || "Personal + Club";
+    const feedType: FeedType = input.feedType || 'CLUB';
+    let audienceLabel = input.audienceLabel || 'Club-wide';
+    if (feedType === 'PERSONAL') {
+      audienceLabel = 'Personal Feed';
+    } else if (feedType === 'BOTH') {
+      audienceLabel = input.audienceLabel || 'Personal + Club';
     }
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title:
         input.title ||
-        (input.postType === "photo"
-          ? "Photo"
-          : input.postType === "video"
-            ? "Video"
-            : "Update"),
+        (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
-      audience: input.audience || "club",
+      audience: input.audience || 'club',
       audienceLabel,
       authorId: input.authorId,
       authorName: input.authorName,
       postAs,
-      postType: input.postType || "general",
+      postType: input.postType || 'general',
       feedType,
       imageUrl: input.imageUrl,
       videoUrl: input.videoUrl,
@@ -985,19 +898,18 @@ class ClubFeedService {
       eventLocation: input.eventLocation,
       badgeAwarded: input.badgeAwarded,
     });
-    this.logger.info("club_post_created", {
+    this.logger.info('club_post_created', {
       postId: post.id,
       clubId: input.clubId,
       postType: post.postType,
       audience: post.audience,
       feedType,
     });
-    const shouldNotify =
-      input.notifyMembers ?? input.postType === "announcement";
+    const shouldNotify = input.notifyMembers ?? input.postType === 'announcement';
     if (shouldNotify) {
       void this.notifyClubMembers(
         input.clubId,
-        input.clubName || "your club",
+        input.clubName || 'your club',
         post.id,
         input.authorId,
       );
@@ -1011,36 +923,35 @@ class ClubFeedService {
       return this.createPost(input);
     }
     if (!input.clubId) {
-      return err(validationError("Club ID is required"));
+      return err(validationError('Club ID is required'));
+    }
+    if (unsupportedApiPostScope(input)) {
+      return err(validationError('Live feed publishing currently supports club-wide posts only.'));
     }
     if (unsupportedApiPostMedia(input)) {
       return err(
-        validationError(
-          "Feed media posts require backend upload proof before publishing.",
-        ),
+        validationError('Feed media posts require backend upload proof before publishing.'),
       );
     }
     const body = input.body.trim();
     if (!body) {
-      return err(validationError("Post content is required"));
+      return err(validationError('Post content is required'));
     }
-    const contextResult = await resolveFeedApiContext(
-      "Sign in to publish club posts",
-    );
+    const contextResult = await resolveFeedApiContext('Sign in to publish club posts');
     if (!contextResult.success) {
       return contextResult;
     }
     const context = contextResult.data;
-    const result = await apiFetch<ApiPostCreateResponse>("/v1/posts", {
-      method: "POST",
+    const result = await apiFetch<ApiPostCreateResponse>('/v1/posts', {
+      method: 'POST',
       headers: context.headers,
       body: JSON.stringify({
         clubId: input.clubId,
         content: body,
-        visibility: "CLUB",
+        visibility: 'CLUB',
         metadata: metadataForClubPost(input),
         attachments: postAttachmentProofs(input.attachments),
-        idempotencyKey: generateId("post-create"),
+        idempotencyKey: generateId('post-create'),
       }),
     });
     if (!result.success) {
@@ -1048,7 +959,7 @@ class ClubFeedService {
     }
     const post = mapApiPostToClubFeedPost(result.data.post, context);
     mirrorClubFeedPost(post);
-    this.logger.info("club_post_created_backend", {
+    this.logger.info('club_post_created_backend', {
       postId: post.id,
       clubId: post.clubId,
       postType: post.postType,
@@ -1064,9 +975,7 @@ class ClubFeedService {
     authorId: string,
   ): Promise<void> {
     const activeMembershipRecipients = membershipsStore.flatMap((membership) =>
-      membership.clubId === clubId && membership.status === "active"
-        ? [membership.userId]
-        : [],
+      membership.clubId === clubId && membership.status === 'active' ? [membership.userId] : [],
     );
     const recipientCandidates = Array.from(new Set(activeMembershipRecipients));
     const recipients = recipientCandidates.filter((memberId) => {
@@ -1074,24 +983,22 @@ class ClubFeedService {
       const membership = membershipsStore.find(
         (entry) => entry.clubId === clubId && entry.userId === memberId,
       );
-      return membership?.status === "active";
+      return membership?.status === 'active';
     });
     const excludedInactive = recipientCandidates.filter((memberId) => {
       const membership = membershipsStore.find(
         (entry) => entry.clubId === clubId && entry.userId === memberId,
       );
-      return memberId !== authorId && membership
-        ? membership.status !== "active"
-        : false;
+      return memberId !== authorId && membership ? membership.status !== 'active' : false;
     });
-    this.logger.info("club_post_notification_recipients", {
+    this.logger.info('club_post_notification_recipients', {
       clubId,
       postId,
       totalCandidates: recipientCandidates.length,
       activeRecipients: recipients.length,
       excludedAuthor: recipientCandidates.includes(authorId),
       excludedInactive: excludedInactive.length,
-      note: "Notification preferences/mutes are enforced by notification sender service",
+      note: 'Notification preferences/mutes are enforced by notification sender service',
     });
     await Promise.all(
       recipients.map((memberId) =>
@@ -1104,14 +1011,14 @@ class ClubFeedService {
       ),
     );
   }
-  getFeed(clubId: string, filter: FeedFilter = "all"): ClubFeedPost[] {
+  getFeed(clubId: string, filter: FeedFilter = 'all'): ClubFeedPost[] {
     return getClubFeedInternal(clubId, filter);
   }
   async getPostAuthority(postId: string): Promise<Result<ClubFeedPost, ServiceError>> {
     if (!postId) {
-      return err(validationError("Post ID is required"));
+      return err(validationError('Post ID is required'));
     }
-    const contextResult = await resolveFeedApiContext("Sign in to view posts");
+    const contextResult = await resolveFeedApiContext('Sign in to view posts');
     if (!contextResult.success) {
       return contextResult;
     }
@@ -1119,23 +1026,32 @@ class ClubFeedService {
 
     if (USE_MOCK) {
       const post =
-        getAggregatedFeedInternal(context.currentUserId).find((candidate) => candidate.id === postId) ??
+        getAggregatedFeedInternal(context.currentUserId).find(
+          (candidate) => candidate.id === postId,
+        ) ??
         getPersonalFeedForCoachInternal(context.currentUserId).find(
           (candidate) => candidate.id === postId,
         ) ??
         clubFeedStore.find((candidate) => candidate.id === postId);
-      return post ? ok(post) : err(validationError("Post not found"));
+      return post ? ok(post) : err(validationError('Post not found'));
     }
 
     const result = await apiFetch<ApiPostResponse>(`/v1/posts/${encodeURIComponent(postId)}`, {
-      method: "GET",
+      method: 'GET',
       headers: context.headers,
     });
     if (!result.success) {
-      this.logger.error("Failed to load post via API", {
-        postId,
-        error: result.error,
-      });
+      if (result.error.code === 'NOT_FOUND' || result.error.code === 'UNAUTHORIZED') {
+        this.logger.info('Post unavailable via API', {
+          postId,
+          code: result.error.code,
+        });
+      } else {
+        this.logger.error('Failed to load post via API', {
+          postId,
+          error: result.error,
+        });
+      }
       return err(result.error);
     }
     const post = mapApiPostToClubFeedPost(result.data.post, context);
@@ -1147,17 +1063,15 @@ class ClubFeedService {
   }
   async getFeedAuthority(
     clubId: string,
-    filter: FeedFilter = "all",
+    filter: FeedFilter = 'all',
   ): Promise<Result<ClubFeedPost[], ServiceError>> {
     if (USE_MOCK) {
       return ok(this.getFeed(clubId, filter));
     }
     if (!clubId) {
-      return err(validationError("Club ID is required"));
+      return err(validationError('Club ID is required'));
     }
-    const contextResult = await resolveFeedApiContext(
-      "Sign in to view club posts",
-    );
+    const contextResult = await resolveFeedApiContext('Sign in to view club posts');
     if (!contextResult.success) {
       return contextResult;
     }
@@ -1165,20 +1079,18 @@ class ClubFeedService {
     const result = await apiFetch<ApiPostListResponse>(
       `/v1/posts?clubId=${encodeURIComponent(clubId)}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: context.headers,
       },
     );
     if (!result.success) {
-      this.logger.error("Failed to load club feed via API", {
+      this.logger.error('Failed to load club feed via API', {
         clubId,
         error: result.error,
       });
       return err(result.error);
     }
-    const posts = result.data.posts.map((post) =>
-      mapApiPostToClubFeedPost(post, context),
-    );
+    const posts = result.data.posts.map((post) => mapApiPostToClubFeedPost(post, context));
     posts.forEach(mirrorClubFeedPost);
     posts.forEach((post) => {
       if (context.currentUserId) {
@@ -1195,7 +1107,7 @@ class ClubFeedService {
   }
   togglePin(postId: string, userId: string): boolean {
     const isPinned = togglePinInternal(postId, userId);
-    this.logger.info("post_pin_toggled", {
+    this.logger.info('post_pin_toggled', {
       postId,
       isPinned,
       pinnedBy: isPinned ? userId : undefined,
@@ -1207,13 +1119,13 @@ class ClubFeedService {
     pinned: boolean,
   ): Promise<Result<ClubFeedPost, ServiceError>> {
     if (USE_MOCK) {
-      const contextResult = await resolveFeedApiContext("Sign in to pin posts");
+      const contextResult = await resolveFeedApiContext('Sign in to pin posts');
       if (!contextResult.success) {
         return contextResult;
       }
       const post = clubFeedStore.find((candidate) => candidate.id === postId);
       if (!post) {
-        return err(validationError("Post not found"));
+        return err(validationError('Post not found'));
       }
       if (post.isPinned !== pinned) {
         this.togglePin(postId, contextResult.data.currentUserId);
@@ -1221,20 +1133,20 @@ class ClubFeedService {
       return ok(post);
     }
     if (!postId) {
-      return err(validationError("Post ID is required"));
+      return err(validationError('Post ID is required'));
     }
-    const contextResult = await resolveFeedApiContext("Sign in to pin posts");
+    const contextResult = await resolveFeedApiContext('Sign in to pin posts');
     if (!contextResult.success) {
       return contextResult;
     }
     const context = contextResult.data;
     const result = await apiFetch<ApiPostResponse>(`/v1/posts/${encodeURIComponent(postId)}/pin`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: context.headers,
       body: JSON.stringify({ pinned }),
     });
     if (!result.success) {
-      this.logger.error("Failed to update post pin via API", {
+      this.logger.error('Failed to update post pin via API', {
         postId,
         pinned,
         error: result.error,
@@ -1247,7 +1159,7 @@ class ClubFeedService {
   }
   toggleReaction(postId: string, userId: string): boolean {
     const isNowReacted = toggleReactionInternal(postId, userId);
-    this.logger.info("post_reaction_toggled", {
+    this.logger.info('post_reaction_toggled', {
       postId,
       userId,
       isReacted: isNowReacted,
@@ -1256,18 +1168,18 @@ class ClubFeedService {
   }
   async toggleReactionAuthority(postId: string): Promise<Result<ClubFeedPost, ServiceError>> {
     if (USE_MOCK) {
-      const currentUserResult = await resolveFeedApiContext("Sign in to react to posts");
+      const currentUserResult = await resolveFeedApiContext('Sign in to react to posts');
       if (!currentUserResult.success) {
         return currentUserResult;
       }
       this.toggleReaction(postId, currentUserResult.data.currentUserId);
       const post = clubFeedStore.find((candidate) => candidate.id === postId);
-      return post ? ok(post) : err(validationError("Post not found"));
+      return post ? ok(post) : err(validationError('Post not found'));
     }
     if (!postId) {
-      return err(validationError("Post ID is required"));
+      return err(validationError('Post ID is required'));
     }
-    const contextResult = await resolveFeedApiContext("Sign in to react to posts");
+    const contextResult = await resolveFeedApiContext('Sign in to react to posts');
     if (!contextResult.success) {
       return contextResult;
     }
@@ -1275,12 +1187,12 @@ class ClubFeedService {
     const result = await apiFetch<ApiPostReactionResponse>(
       `/v1/posts/${encodeURIComponent(postId)}/reactions/toggle`,
       {
-        method: "POST",
+        method: 'POST',
         headers: context.headers,
       },
     );
     if (!result.success) {
-      this.logger.error("Failed to toggle post reaction via API", {
+      this.logger.error('Failed to toggle post reaction via API', {
         postId,
         error: result.error,
       });
@@ -1294,15 +1206,9 @@ class ClubFeedService {
   hasUserReacted(postId: string, userId: string): boolean {
     return hasUserReactedInternal(postId, userId);
   }
-  getAggregatedFeed(
-    userId: string,
-    filter: FeedFilter = "all",
-  ): AggregatedFeedPost[] {
-    const posts = getAggregatedFeedInternal(
-      userId,
-      filter === "all" ? undefined : filter,
-    );
-    this.logger.info("aggregated_feed_fetched", {
+  getAggregatedFeed(userId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getAggregatedFeedInternal(userId, filter === 'all' ? undefined : filter);
+    this.logger.info('aggregated_feed_fetched', {
       userId,
       filter,
       postCount: posts.length,
@@ -1310,45 +1216,35 @@ class ClubFeedService {
     return posts;
   }
   async getUpdatesFeedAuthority(
-    filter: FeedFilter = "all",
+    filter: FeedFilter = 'all',
   ): Promise<Result<AggregatedFeedPost[], ServiceError>> {
     if (USE_MOCK) {
-      const contextResult = await resolveFeedApiContext(
-        "Sign in to view updates",
-      );
+      const contextResult = await resolveFeedApiContext('Sign in to view updates');
       if (!contextResult.success) {
         return contextResult;
       }
-      return ok(
-        this.getAggregatedFeed(contextResult.data.currentUserId, filter),
-      );
+      return ok(this.getAggregatedFeed(contextResult.data.currentUserId, filter));
     }
-    const contextResult = await resolveFeedApiContext("Sign in to view updates");
+    const contextResult = await resolveFeedApiContext('Sign in to view updates');
     if (!contextResult.success) {
       return contextResult;
     }
     const context = contextResult.data;
-    const result = await apiFetch<ApiPostListResponse>("/v1/posts", {
-      method: "GET",
+    const result = await apiFetch<ApiPostListResponse>('/v1/posts', {
+      method: 'GET',
       headers: context.headers,
     });
     if (!result.success) {
-      this.logger.error("Failed to load updates feed via API", {
+      this.logger.error('Failed to load updates feed via API', {
         error: result.error,
       });
       return err(result.error);
     }
-    const posts = result.data.posts.map((post) =>
-      mapApiPostToClubFeedPost(post, context),
-    );
+    const posts = result.data.posts.map((post) => mapApiPostToClubFeedPost(post, context));
     posts.forEach(mirrorClubFeedPost);
     posts.forEach((post) => {
       if (context.currentUserId) {
-        syncUserReaction(
-          post.id,
-          context.currentUserId,
-          post.likedByCurrentUser === true,
-        );
+        syncUserReaction(post.id, context.currentUserId, post.likedByCurrentUser === true);
       }
     });
     return ok(
@@ -1356,52 +1252,42 @@ class ClubFeedService {
         const club = post.clubId ? getClubById(post.clubId) : undefined;
         return {
           ...post,
-          clubName: club?.name || "Club update",
+          clubName: club?.name || 'Club update',
           clubBadge: club?.badge,
         };
       }),
     );
   }
   async getFollowingFeedAuthority(
-    filter: FeedFilter = "all",
+    filter: FeedFilter = 'all',
   ): Promise<Result<AggregatedFeedPost[], ServiceError>> {
     if (USE_MOCK) {
-      const contextResult = await resolveFeedApiContext(
-        "Sign in to view followed updates",
-      );
+      const contextResult = await resolveFeedApiContext('Sign in to view followed updates');
       if (!contextResult.success) {
         return contextResult;
       }
       return ok(this.getFollowingFeed([], filter));
     }
-    const contextResult = await resolveFeedApiContext(
-      "Sign in to view followed updates",
-    );
+    const contextResult = await resolveFeedApiContext('Sign in to view followed updates');
     if (!contextResult.success) {
       return contextResult;
     }
     const context = contextResult.data;
-    const result = await apiFetch<ApiPostListResponse>("/v1/posts?followingOnly=true", {
-      method: "GET",
+    const result = await apiFetch<ApiPostListResponse>('/v1/posts?followingOnly=true', {
+      method: 'GET',
       headers: context.headers,
     });
     if (!result.success) {
-      this.logger.error("Failed to load following feed via API", {
+      this.logger.error('Failed to load following feed via API', {
         error: result.error,
       });
       return err(result.error);
     }
-    const posts = result.data.posts.map((post) =>
-      mapApiPostToClubFeedPost(post, context),
-    );
+    const posts = result.data.posts.map((post) => mapApiPostToClubFeedPost(post, context));
     posts.forEach(mirrorClubFeedPost);
     posts.forEach((post) => {
       if (context.currentUserId) {
-        syncUserReaction(
-          post.id,
-          context.currentUserId,
-          post.likedByCurrentUser === true,
-        );
+        syncUserReaction(post.id, context.currentUserId, post.likedByCurrentUser === true);
       }
     });
     return ok(
@@ -1409,7 +1295,7 @@ class ClubFeedService {
         const club = post.clubId ? getClubById(post.clubId) : undefined;
         return {
           ...post,
-          clubName: club?.name || "Followed update",
+          clubName: club?.name || 'Followed update',
           clubBadge: club?.badge,
         };
       }),
@@ -1435,14 +1321,10 @@ class ClubFeedService {
   }
   async getClubMemberships(clubId: string): Promise<ClubMembership[]> {
     await this.ensureHydrated();
-    return membershipsStore.filter(
-      (membership) => membership.clubId === clubId,
-    );
+    return membershipsStore.filter((membership) => membership.clubId === clubId);
   }
   getMembership(userId: string, clubId: string): ClubMembership | undefined {
-    return getAllClubMembershipsForUser(userId).find(
-      (membership) => membership.clubId === clubId,
-    );
+    return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
   }
   async syncAuthorityClubs(
     clubs: Array<
@@ -1453,9 +1335,7 @@ class ClubFeedService {
   ): Promise<void> {
     await this.ensureHydrated();
     clubs.forEach((club) => {
-      const clubIndex = clubsStore.findIndex(
-        (candidate) => candidate.id === club.id,
-      );
+      const clubIndex = clubsStore.findIndex((candidate) => candidate.id === club.id);
       if (clubIndex >= 0) {
         clubsStore[clubIndex] = {
           ...clubsStore[clubIndex],
@@ -1465,9 +1345,7 @@ class ClubFeedService {
         clubsStore.push(club);
       }
       if (club.memberships) {
-        membershipsStore = membershipsStore.filter(
-          (membership) => membership.clubId !== club.id,
-        );
+        membershipsStore = membershipsStore.filter((membership) => membership.clubId !== club.id);
         membershipsStore.push(...club.memberships.map(withMembershipCapabilities));
       }
       if (club.inviteCode) {
@@ -1475,26 +1353,19 @@ class ClubFeedService {
           code: club.inviteCode,
           clubId: club.id,
           createdBy: club.ownerId,
-          role: "MEMBER",
-          expiresAt: new Date(
-            Date.now() + 365 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
+          role: 'MEMBER',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           remainingUses: 999,
         };
         clubInvitesStore = [
           ...clubInvitesStore.filter(
-            (invite) =>
-              !(invite.clubId === club.id && invite.role === "MEMBER"),
+            (invite) => !(invite.clubId === club.id && invite.role === 'MEMBER'),
           ),
           fallbackInvite,
         ];
       }
     });
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
   }
   async syncJoinedClub(
     club: Club,
@@ -1502,9 +1373,7 @@ class ClubFeedService {
     inviteCodes: ClubInvite[] = [],
   ): Promise<void> {
     await this.ensureHydrated();
-    const clubIndex = clubsStore.findIndex(
-      (candidate) => candidate.id === club.id,
-    );
+    const clubIndex = clubsStore.findIndex((candidate) => candidate.id === club.id);
     if (clubIndex >= 0) {
       clubsStore[clubIndex] = {
         ...clubsStore[clubIndex],
@@ -1515,8 +1384,7 @@ class ClubFeedService {
     }
     const membershipIndex = membershipsStore.findIndex(
       (candidate) =>
-        candidate.clubId === membership.clubId &&
-        candidate.userId === membership.userId,
+        candidate.clubId === membership.clubId && candidate.userId === membership.userId,
     );
     if (membershipIndex >= 0) {
       membershipsStore[membershipIndex] = withMembershipCapabilities(membership);
@@ -1529,22 +1397,15 @@ class ClubFeedService {
         ...inviteCodes,
       ];
     }
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
   }
-  async syncInviteCodes(
-    clubId: string,
-    inviteCodes: ClubInvite[],
-  ): Promise<void> {
+  async syncInviteCodes(clubId: string, inviteCodes: ClubInvite[]): Promise<void> {
     await this.ensureHydrated();
     clubInvitesStore = [
       ...clubInvitesStore.filter((invite) => invite.clubId !== clubId),
       ...inviteCodes,
     ];
-    const memberInvite = inviteCodes.find((invite) => invite.role === "MEMBER");
+    const memberInvite = inviteCodes.find((invite) => invite.role === 'MEMBER');
     if (memberInvite) {
       clubsStore = clubsStore.map((club) =>
         club.id === clubId
@@ -1563,32 +1424,28 @@ class ClubFeedService {
     membershipsStore = membershipsStore.filter((membership) => membership.clubId !== clubId);
     clubInvitesStore = clubInvitesStore.filter((invite) => invite.clubId !== clubId);
     clubFeedStore = clubFeedStore.filter((post) => post.clubId !== clubId);
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
   }
   joinClub(
     userId: string,
     inviteCode: string,
-    role: ClubMembership["role"] = "MEMBER",
+    role: ClubMembership['role'] = 'MEMBER',
   ): Result<ClubMembership, ServiceError> {
     const normalizedCode = inviteCode.trim().toUpperCase();
     if (!normalizedCode) {
-      return err(validationError("Invite code is required"));
+      return err(validationError('Invite code is required'));
     }
     const targetClub = clubsStore.find(
       (club) => club.inviteCode.trim().toUpperCase() === normalizedCode,
     );
     if (!targetClub) {
-      return err(validationError("Invite code was not found"));
+      return err(validationError('Invite code was not found'));
     }
     const existingMembership = membershipsStore.find(
       (membership) =>
         membership.userId === userId &&
         membership.clubId === targetClub.id &&
-        membership.status === "active",
+        membership.status === 'active',
     );
     if (existingMembership) {
       return ok(existingMembership);
@@ -1597,8 +1454,8 @@ class ClubFeedService {
       clubId: targetClub.id,
       userId,
       role,
-      status: "active",
-      joinSource: "invite",
+      status: 'active',
+      joinSource: 'invite',
       inviteCode: targetClub.inviteCode,
     });
     membershipsStore.push(newMembership);
@@ -1607,7 +1464,7 @@ class ClubFeedService {
       clubId: targetClub.id,
       userId,
     });
-    this.logger.info("club_membership_joined", {
+    this.logger.info('club_membership_joined', {
       userId,
       clubId: targetClub.id,
       role,
@@ -1617,13 +1474,10 @@ class ClubFeedService {
   }
   leaveClub(userId: string, clubId: string): boolean {
     const membershipIndex = membershipsStore.findIndex(
-      (entry) =>
-        entry.userId === userId &&
-        entry.clubId === clubId &&
-        entry.status === "active",
+      (entry) => entry.userId === userId && entry.clubId === clubId && entry.status === 'active',
     );
     if (membershipIndex === -1) {
-      this.logger.warn("leave_club_membership_not_found", {
+      this.logger.warn('leave_club_membership_not_found', {
         userId,
         clubId,
       });
@@ -1635,7 +1489,7 @@ class ClubFeedService {
       clubId,
       userId,
     });
-    this.logger.info("club_membership_left", {
+    this.logger.info('club_membership_left', {
       userId,
       clubId,
     });
@@ -1643,58 +1497,52 @@ class ClubFeedService {
   }
   async updateClubDetails(
     clubId: string,
-    changes: Pick<Club, "name" | "tagline" | "city">,
+    changes: Pick<Club, 'name' | 'tagline' | 'city'>,
   ): Promise<Result<Club, ServiceError>> {
     await this.ensureHydrated();
     const clubIndex = clubsStore.findIndex((club) => club.id === clubId);
     if (clubIndex === -1) {
-      return err(validationError("Club not found"));
+      return err(validationError('Club not found'));
     }
     const updatedClub: Club = {
       ...clubsStore[clubIndex],
       name: changes.name.trim(),
-      tagline: (changes.tagline || "").trim(),
+      tagline: (changes.tagline || '').trim(),
       city: changes.city.trim(),
     };
     clubsStore[clubIndex] = updatedClub;
     await this.persistClubs();
     return ok(updatedClub);
   }
-  async createClub(
-    input: CreateClubInput,
-  ): Promise<Result<CreateClubResult, ServiceError>> {
+  async createClub(input: CreateClubInput): Promise<Result<CreateClubResult, ServiceError>> {
     await this.ensureHydrated();
     const name = input.name.trim();
     const city = input.city.trim();
-    const country = (input.country || "UK").trim();
+    const country = (input.country || 'UK').trim();
     const tagline = input.tagline?.trim();
-    const badge = (input.badge || name.slice(0, 3))
-      .trim()
-      .toUpperCase()
-      .slice(0, 4);
+    const badge = (input.badge || name.slice(0, 3)).trim().toUpperCase().slice(0, 4);
     if (!input.ownerId.trim()) {
-      return err(validationError("Owner is required"));
+      return err(validationError('Owner is required'));
     }
     if (name.length < 3) {
-      return err(validationError("Club name must be at least 3 characters"));
+      return err(validationError('Club name must be at least 3 characters'));
     }
     if (city.length < 2) {
-      return err(validationError("City is required"));
+      return err(validationError('City is required'));
     }
     const duplicate = clubsStore.find(
       (club) =>
-        club.ownerId === input.ownerId &&
-        club.name.trim().toLowerCase() === name.toLowerCase(),
+        club.ownerId === input.ownerId && club.name.trim().toLowerCase() === name.toLowerCase(),
     );
     if (duplicate) {
-      return err(validationError("You already have a club with this name"));
+      return err(validationError('You already have a club with this name'));
     }
-    const clubId = generateId("club");
+    const clubId = generateId('club');
     const primaryInvite: ClubInvite = {
       code: buildInviteCode(name),
       clubId,
       createdBy: input.ownerId,
-      role: "MEMBER",
+      role: 'MEMBER',
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       remainingUses: 999,
     };
@@ -1710,14 +1558,15 @@ class ClubFeedService {
       squadCount: 0,
       ownerId: input.ownerId,
       inviteCode: primaryInvite.code,
-      commercialMode: input.commercialMode ?? "COACH_OWNED",
+      commercialMode: input.commercialMode ?? 'COACH_OWNED',
+      joinPolicy: input.joinPolicy ?? 'INVITE_ONLY',
     };
     const membership = withMembershipCapabilities({
       clubId,
       userId: input.ownerId,
-      role: "OWNER",
-      status: "active",
-      joinSource: "created",
+      role: 'OWNER',
+      status: 'active',
+      joinSource: 'created',
       inviteCode: primaryInvite.code,
     });
     const invites: ClubInvite[] = [primaryInvite];
@@ -1727,9 +1576,7 @@ class ClubFeedService {
         clubId,
         createdBy: input.ownerId,
         role: input.firstStaffRole,
-        expiresAt: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         remainingUses: 10,
       });
     }
@@ -1739,16 +1586,12 @@ class ClubFeedService {
       ...invites,
       ...clubInvitesStore.filter((invite) => invite.clubId !== clubId),
     ];
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
     emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, {
       clubId,
       userId: input.ownerId,
     });
-    this.logger.info("club_created", {
+    this.logger.info('club_created', {
       clubId,
       ownerId: input.ownerId,
       commercialMode: club.commercialMode,
@@ -1758,9 +1601,7 @@ class ClubFeedService {
       club,
       membership,
       primaryInvite,
-      firstStaffInvite: invites.find(
-        (invite) => invite.role === input.firstStaffRole,
-      ),
+      firstStaffInvite: invites.find((invite) => invite.role === input.firstStaffRole),
     });
   }
   async updateClubCommercialMode(
@@ -1770,7 +1611,7 @@ class ClubFeedService {
     await this.ensureHydrated();
     const clubIndex = clubsStore.findIndex((club) => club.id === clubId);
     if (clubIndex === -1) {
-      return err(validationError("Club not found"));
+      return err(validationError('Club not found'));
     }
     const updatedClub: Club = {
       ...clubsStore[clubIndex],
@@ -1778,7 +1619,7 @@ class ClubFeedService {
     };
     clubsStore[clubIndex] = updatedClub;
     await this.persistClubs();
-    this.logger.info("club_commercial_mode_updated", {
+    this.logger.info('club_commercial_mode_updated', {
       clubId,
       commercialMode,
     });
@@ -1787,29 +1628,28 @@ class ClubFeedService {
   async generateInviteCode(
     clubId: string,
     createdBy: string,
-    role: ClubMembership["role"],
+    role: ClubMembership['role'],
   ): Promise<Result<ClubInvite, ServiceError>> {
     await this.ensureHydrated();
     const club = getClubById(clubId);
     if (!club) {
-      return err(validationError("Club not found"));
+      return err(validationError('Club not found'));
     }
     const nextInvite: ClubInvite = {
-      code: `${club.name.slice(0, 4).toUpperCase() || "CLUB"}-${generateId("invite").slice(-4).toUpperCase()}`,
+      code: `${club.name.slice(0, 4).toUpperCase() || 'CLUB'}-${generateId('invite').slice(-4).toUpperCase()}`,
       clubId,
       createdBy,
       role,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      remainingUses: role === "MEMBER" ? 999 : 10,
+      remainingUses: role === 'MEMBER' ? 999 : 10,
     };
     clubInvitesStore = [
       ...clubInvitesStore.filter(
-        (invite) =>
-          !(invite.clubId === clubId && invite.role === nextInvite.role),
+        (invite) => !(invite.clubId === clubId && invite.role === nextInvite.role),
       ),
       nextInvite,
     ];
-    if (role === "MEMBER") {
+    if (role === 'MEMBER') {
       clubsStore = clubsStore.map((candidate) =>
         candidate.id === clubId
           ? {
@@ -1832,18 +1672,16 @@ class ClubFeedService {
       (invite) => invite.clubId === clubId && invite.code === code,
     );
     if (!targetInvite) {
-      return err(validationError("Invite code not found"));
+      return err(validationError('Invite code not found'));
     }
     clubInvitesStore = clubInvitesStore.filter(
       (invite) => !(invite.clubId === clubId && invite.code === code),
     );
-    if (targetInvite.role === "MEMBER") {
+    if (targetInvite.role === 'MEMBER') {
       const fallbackInvite: ClubInvite = {
         ...targetInvite,
-        code: `${getClubById(clubId)?.name.slice(0, 4).toUpperCase() || "CLUB"}-${generateId("invite").slice(-4).toUpperCase()}`,
-        expiresAt: new Date(
-          Date.now() + 365 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        code: `${getClubById(clubId)?.name.slice(0, 4).toUpperCase() || 'CLUB'}-${generateId('invite').slice(-4).toUpperCase()}`,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         remainingUses: 999,
       };
       clubInvitesStore.push(fallbackInvite);
@@ -1864,21 +1702,13 @@ class ClubFeedService {
     await this.ensureHydrated();
     const exists = clubsStore.some((club) => club.id === clubId);
     if (!exists) {
-      return err(validationError("Club not found"));
+      return err(validationError('Club not found'));
     }
     clubsStore = clubsStore.filter((club) => club.id !== clubId);
-    membershipsStore = membershipsStore.filter(
-      (membership) => membership.clubId !== clubId,
-    );
+    membershipsStore = membershipsStore.filter((membership) => membership.clubId !== clubId);
     clubFeedStore = clubFeedStore.filter((post) => post.clubId !== clubId);
-    clubInvitesStore = clubInvitesStore.filter(
-      (invite) => invite.clubId !== clubId,
-    );
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    clubInvitesStore = clubInvitesStore.filter((invite) => invite.clubId !== clubId);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
     return ok(true);
   }
   addPost(input: {
@@ -1896,30 +1726,28 @@ class ClubFeedService {
     const clubs = getUserClubsInternal(input.authorId);
     const clubId = input.clubId || clubs[0]?.id;
     if (!clubId) {
-      this.logger.warn("add_post_no_club", {
+      this.logger.warn('add_post_no_club', {
         authorId: input.authorId,
       });
       return undefined;
     }
     const post = addClubFeedPostInternal({
       clubId,
-      title: input.badgeLabel
-        ? `${input.authorName} earned a badge!`
-        : "Update",
+      title: input.badgeLabel ? `${input.authorName} earned a badge!` : 'Update',
       body: input.content,
-      audience: "club",
-      audienceLabel: "Club-wide",
+      audience: 'club',
+      audienceLabel: 'Club-wide',
       authorId: input.authorId,
       authorName: input.authorName,
-      postAs: "self",
-      postType: input.badgeAwardId ? "achievement" : "general",
+      postAs: 'self',
+      postType: input.badgeAwardId ? 'achievement' : 'general',
       badgeAwarded: input.badgeLabel,
       badgeId: input.badgeId,
       badgeAwardId: input.badgeAwardId,
       athleteId: input.authorId,
       sessionId: input.sessionId,
     });
-    this.logger.info("post_added", {
+    this.logger.info('post_added', {
       postId: post.id,
       clubId,
       context: input.context,
@@ -1941,19 +1769,19 @@ class ClubFeedService {
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `${input.athleteName} earned a badge!`,
-      body: `Congratulations to ${input.athleteName} for earning the "${input.badgeLabel}" badge!${input.reason ? ` ${input.reason}` : ""}`,
-      audience: "club",
-      audienceLabel: "Club-wide",
+      body: `Congratulations to ${input.athleteName} for earning the "${input.badgeLabel}" badge!${input.reason ? ` ${input.reason}` : ''}`,
+      audience: 'club',
+      audienceLabel: 'Club-wide',
       authorId: input.coachId,
       authorName: input.coachName,
-      postAs: "club",
-      postType: "achievement",
+      postAs: 'club',
+      postType: 'achievement',
       badgeAwarded: input.badgeLabel,
       badgeId: input.badgeId,
       badgeAwardId: input.badgeAwardId,
       athleteId: input.athleteId,
     });
-    this.logger.info("achievement_post_created", {
+    this.logger.info('achievement_post_created', {
       postId: post.id,
       clubId: input.clubId,
       athleteId: input.athleteId,
@@ -1973,26 +1801,26 @@ class ClubFeedService {
     coachName: string;
     squadName?: string;
   }): ClubFeedPost {
-    const dateStr = new Date(input.sessionDate).toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+    const dateStr = new Date(input.sessionDate).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
     });
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `New Training Session: ${input.sessionTitle}`,
-      body: `${input.squadName ? `${input.squadName} - ` : ""}Training scheduled for ${dateStr} at ${input.sessionTime}. Location: ${input.location}`,
-      audience: input.squadName ? "squad" : "club",
-      audienceLabel: input.squadName || "Club-wide",
+      body: `${input.squadName ? `${input.squadName} - ` : ''}Training scheduled for ${dateStr} at ${input.sessionTime}. Location: ${input.location}`,
+      audience: input.squadName ? 'squad' : 'club',
+      audienceLabel: input.squadName || 'Club-wide',
       authorId: input.coachId,
       authorName: input.coachName,
-      postAs: "club",
-      postType: "session",
+      postAs: 'club',
+      postType: 'session',
       sessionId: input.sessionId,
       eventDate: input.sessionDate,
       eventLocation: input.location,
     });
-    this.logger.info("session_post_created", {
+    this.logger.info('session_post_created', {
       postId: post.id,
       clubId: input.clubId,
       sessionId: input.sessionId,
@@ -2013,27 +1841,27 @@ class ClubFeedService {
     coachName: string;
     squadName?: string;
   }): ClubFeedPost {
-    const dateStr = new Date(input.matchDate).toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+    const dateStr = new Date(input.matchDate).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
     });
-    const homeAway = input.isHome ? "Home" : "Away";
+    const homeAway = input.isHome ? 'Home' : 'Away';
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
       title: `Match Scheduled: ${input.matchTitle}`,
       body: `${homeAway} match vs ${input.opponent} on ${dateStr}, kickoff ${input.kickoffTime}. Venue: ${input.venue}`,
-      audience: input.squadName ? "squad" : "club",
-      audienceLabel: input.squadName || "Club-wide",
+      audience: input.squadName ? 'squad' : 'club',
+      audienceLabel: input.squadName || 'Club-wide',
       authorId: input.coachId,
       authorName: input.coachName,
-      postAs: "club",
-      postType: "match",
+      postAs: 'club',
+      postType: 'match',
       matchId: input.matchId,
       eventDate: input.matchDate,
       eventLocation: input.venue,
     });
-    this.logger.info("match_post_created", {
+    this.logger.info('match_post_created', {
       postId: post.id,
       clubId: input.clubId,
       matchId: input.matchId,
@@ -2056,7 +1884,7 @@ class ClubFeedService {
   }): ClubFeedPost | undefined {
     // S-22: Block media shares without consent verification
     if (input.imageUrl && !input.mediaConsentVerified) {
-      this.logger.warn("media_share_blocked_no_consent", {
+      this.logger.warn('media_share_blocked_no_consent', {
         parentId: input.parentId,
         athleteId: input.athleteId,
         clubId: input.clubId,
@@ -2065,7 +1893,7 @@ class ClubFeedService {
     }
     if (input.imageUrl) {
       emitTyped(ServiceEvents.MEDIA_SHARED, {
-        mediaType: "image",
+        mediaType: 'image',
         sharedById: input.parentId,
         athleteId: input.athleteId,
         consentVerified: input.mediaConsentVerified ?? false,
@@ -2076,19 +1904,19 @@ class ClubFeedService {
       clubId: input.clubId,
       title: input.title,
       body: input.body,
-      audience: "club",
-      audienceLabel: "Club-wide",
+      audience: 'club',
+      audienceLabel: 'Club-wide',
       authorId: input.parentId,
-      authorName: "Family update",
-      postAs: "self",
-      postType: input.badgeAwardId ? "achievement" : "general",
+      authorName: 'Family update',
+      postAs: 'self',
+      postType: input.badgeAwardId ? 'achievement' : 'general',
       badgeAwarded: input.badgeAwarded,
       badgeAwardId: input.badgeAwardId,
       athleteId: input.athleteId,
       imageUrl: input.imageUrl,
       sharedByParentId: input.parentId,
     });
-    this.logger.info("parent_post_created", {
+    this.logger.info('parent_post_created', {
       postId: post.id,
       clubId: input.clubId,
       parentId: input.parentId,
@@ -2098,42 +1926,27 @@ class ClubFeedService {
   }
   getPersonalFeed(coachId: string): ClubFeedPost[] {
     const posts = getPersonalFeedForCoachInternal(coachId);
-    this.logger.info("personal_feed_fetched", {
+    this.logger.info('personal_feed_fetched', {
       coachId,
       postCount: posts.length,
     });
     return posts;
   }
-  getFollowingFeed(
-    followingIds: string[],
-    filter: FeedFilter = "all",
-  ): AggregatedFeedPost[] {
-    const posts = getFollowingFeedInternal(
-      followingIds,
-      filter === "all" ? undefined : filter,
-    );
-    this.logger.info("following_feed_fetched", {
+  getFollowingFeed(followingIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getFollowingFeedInternal(followingIds, filter === 'all' ? undefined : filter);
+    this.logger.info('following_feed_fetched', {
       followingCount: followingIds.length,
       postCount: posts.length,
       filter,
     });
     return posts;
   }
-  getFriendFeed(
-    friendIds: string[],
-    filter: FeedFilter = "all",
-  ): AggregatedFeedPost[] {
+  getFriendFeed(friendIds: string[], filter: FeedFilter = 'all'): AggregatedFeedPost[] {
     return this.getFollowingFeed(friendIds, filter);
   }
-  getCombinedFeedForParent(
-    parentId: string,
-    filter: FeedFilter = "all",
-  ): AggregatedFeedPost[] {
-    const posts = getCombinedFeedForParentInternal(
-      parentId,
-      filter === "all" ? undefined : filter,
-    );
-    this.logger.info("combined_parent_feed_fetched", {
+  getCombinedFeedForParent(parentId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getCombinedFeedForParentInternal(parentId, filter === 'all' ? undefined : filter);
+    this.logger.info('combined_parent_feed_fetched', {
       parentId,
       filter,
       postCount: posts.length,
@@ -2161,31 +1974,31 @@ class ClubFeedService {
     const clubs = getUserClubsInternal(input.coachId);
     const clubId = input.clubId || clubs[0]?.id;
     if (!clubId) {
-      this.logger.warn("session_announcement_no_club", {
+      this.logger.warn('session_announcement_no_club', {
         coachId: input.coachId,
       });
       return undefined;
     }
-    const dateStr = new Date(input.date).toLocaleDateString("en-GB", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+    const dateStr = new Date(input.date).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
     });
     const priceLabel =
       input.price === 0
-        ? "Free"
-        : `${input.currency === "GBP" ? "\u00A3" : input.currency}${input.price}`;
+        ? 'Free'
+        : `${input.currency === 'GBP' ? '\u00A3' : input.currency}${input.price}`;
     const post = addClubFeedPostInternal({
       clubId,
       title: input.title,
       body: `${input.description}\n\n${dateStr} · ${input.startTime}–${input.endTime}\n${input.location} · ${priceLabel} per person`,
-      audience: "club",
-      audienceLabel: "Personal + Club",
-      feedType: "BOTH",
+      audience: 'club',
+      audienceLabel: 'Personal + Club',
+      feedType: 'BOTH',
       authorId: input.coachId,
       authorName: input.coachName,
-      postAs: "self",
-      postType: "session_announcement",
+      postAs: 'self',
+      postType: 'session_announcement',
       sessionId: input.sessionId,
       eventDate: input.date,
       eventLocation: input.location,
@@ -2195,7 +2008,7 @@ class ClubFeedService {
       sessionTime: `${input.startTime}–${input.endTime}`,
       sessionType: input.sessionType,
     });
-    this.logger.info("session_announcement_post_created", {
+    this.logger.info('session_announcement_post_created', {
       postId: post.id,
       clubId,
       sessionId: input.sessionId,
@@ -2203,68 +2016,51 @@ class ClubFeedService {
     });
     return post;
   }
-  createCoachPost(
-    input: CreateCoachPostInput,
-  ): Result<ClubFeedPost, ServiceError> {
+  createCoachPost(input: CreateCoachPostInput): Result<ClubFeedPost, ServiceError> {
     if (!USE_MOCK) {
       return err(
-        serviceError(
-          "UNKNOWN",
-          "Use backend post authority for API-mode feed publishing.",
-        ),
+        serviceError('UNKNOWN', 'Use backend post authority for API-mode feed publishing.'),
       );
     }
     const body = input.body.trim();
     if (!body && !input.imageUrl && !input.videoUrl) {
-      return err(
-        validationError("Post must have content, a photo, or a video"),
-      );
+      return err(validationError('Post must have content, a photo, or a video'));
     }
-    const feedType: FeedType = input.feedType || "PERSONAL";
+    const feedType: FeedType = input.feedType || 'PERSONAL';
     const clubs = getUserClubsInternal(input.coachId);
-    const clubId = input.clubId || clubs[0]?.id || "";
-    if ((feedType === "CLUB" || feedType === "BOTH") && !clubId) {
-      return err(
-        validationError("Club ID is required for CLUB or BOTH feed type"),
-      );
+    const clubId = input.clubId || clubs[0]?.id || '';
+    if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
+      return err(validationError('Club ID is required for CLUB or BOTH feed type'));
     }
-    if (feedType === "CLUB" || feedType === "BOTH") {
+    if (feedType === 'CLUB' || feedType === 'BOTH') {
       const membership = this.getMembership(input.coachId, clubId);
       if (!membership) {
-        this.logger.warn("coach_post_rejected_not_member", {
+        this.logger.warn('coach_post_rejected_not_member', {
           coachId: input.coachId,
           clubId,
           feedType,
         });
-        return err(
-          unauthorized(
-            "You must be an active club member to post to club feed",
-          ),
-        );
+        return err(unauthorized('You must be an active club member to post to club feed'));
       }
     }
     const audienceLabel =
-      feedType === "PERSONAL"
-        ? "Personal Feed"
-        : feedType === "BOTH"
-          ? "Personal + Club"
-          : "Club-wide";
+      feedType === 'PERSONAL'
+        ? 'Personal Feed'
+        : feedType === 'BOTH'
+          ? 'Personal + Club'
+          : 'Club-wide';
     const post = addClubFeedPostInternal({
       clubId,
       title:
         input.title ||
-        (input.postType === "photo"
-          ? "Photo"
-          : input.postType === "video"
-            ? "Video"
-            : "Update"),
+        (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
-      audience: "club",
+      audience: 'club',
       audienceLabel,
       authorId: input.coachId,
       authorName: input.coachName,
-      postAs: "self",
-      postType: input.postType || "general",
+      postAs: 'self',
+      postType: input.postType || 'general',
       feedType,
       imageUrl: input.imageUrl,
       videoUrl: input.videoUrl,
@@ -2272,7 +2068,7 @@ class ClubFeedService {
       eventDate: input.eventDate,
       eventLocation: input.eventLocation,
     });
-    this.logger.info("coach_post_created", {
+    this.logger.info('coach_post_created', {
       postId: post.id,
       coachId: input.coachId,
       postType: post.postType,
@@ -2283,7 +2079,7 @@ class ClubFeedService {
       coachId: input.coachId,
       coachName: input.coachName,
       feedType,
-      postType: post.postType || "general",
+      postType: post.postType || 'general',
       clubId: clubId || undefined,
     });
     return ok(post);
@@ -2294,61 +2090,9 @@ class ClubFeedService {
     if (USE_MOCK) {
       return this.createCoachPost(input);
     }
-    if (unsupportedApiPostMedia(input)) {
-      return err(
-        validationError(
-          "Feed media posts require backend upload proof before publishing.",
-        ),
-      );
-    }
-    const body = input.body.trim();
-    if (!body) {
-      return err(validationError("Post content is required"));
-    }
-    if (!input.clubId) {
-      return err(
-        validationError("Club ID is required for backend feed publishing"),
-      );
-    }
-    const contextResult = await resolveFeedApiContext(
-      "Sign in to publish coach posts",
+    return err(
+      serviceError('UNKNOWN', 'Personal coaching feed publishing needs a dedicated backend route.'),
     );
-    if (!contextResult.success) {
-      return contextResult;
-    }
-    const context = contextResult.data;
-    const result = await apiFetch<ApiPostCreateResponse>("/v1/posts", {
-      method: "POST",
-      headers: context.headers,
-      body: JSON.stringify({
-        clubId: input.clubId,
-        content: body,
-        visibility: "CLUB",
-        metadata: metadataForCoachPost(input),
-        idempotencyKey: generateId("coach-post-create"),
-      }),
-    });
-    if (!result.success) {
-      return err(result.error);
-    }
-    const post = mapApiPostToClubFeedPost(result.data.post, context);
-    mirrorClubFeedPost(post);
-    this.logger.info("coach_post_created_backend", {
-      postId: post.id,
-      coachId: context.currentUserId,
-      clubId: post.clubId,
-      postType: post.postType,
-      feedType: post.feedType,
-    });
-    emitTyped(ServiceEvents.COACH_POST_CREATED, {
-      postId: post.id,
-      coachId: context.currentUserId,
-      coachName: context.currentUserName,
-      feedType: post.feedType || "CLUB",
-      postType: post.postType || "general",
-      clubId: post.clubId || undefined,
-    });
-    return ok(post);
   }
 }
 export const clubFeedService = new ClubFeedService();

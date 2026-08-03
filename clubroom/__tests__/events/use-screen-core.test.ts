@@ -3,6 +3,7 @@ import test, { describe } from 'node:test';
 
 import {
   createIdlePendingState,
+  createLatestScreenRequestCoordinator,
   deriveScreenPendingState,
   deriveScreenStatus,
   isTruthfulScreenStatus,
@@ -13,6 +14,14 @@ import {
   shouldSurfaceBackgroundFailure,
   type ScreenLoadMode,
 } from '@/hooks/use-screen-core';
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 describe('use-screen-core focus refetch', () => {
   test('shouldRunFocusRefetch only enables when configured and initial load has completed', () => {
@@ -50,6 +59,66 @@ describe('use-screen-core focus refetch', () => {
 });
 
 describe('use-screen-core status/error helpers', () => {
+  test('latest request wins when responses resolve out of order', async () => {
+    const coordinator = createLatestScreenRequestCoordinator();
+    const first = createDeferred<string>();
+    const second = createDeferred<string>();
+    let visibleValue: string | null = null;
+
+    const applyWhenCurrent = async (deferred: ReturnType<typeof createDeferred<string>>) => {
+      const request = coordinator.begin();
+      const value = await deferred.promise;
+      if (request.isCurrent()) visibleValue = value;
+      request.finish();
+    };
+
+    const firstRun = applyWhenCurrent(first);
+    const secondRun = applyWhenCurrent(second);
+    second.resolve('new query');
+    await secondRun;
+    first.resolve('old query');
+    await firstRun;
+
+    assert.equal(visibleValue, 'new query');
+  });
+
+  test('background requests cannot supersede an active foreground load', () => {
+    const coordinator = createLatestScreenRequestCoordinator();
+    const foreground = coordinator.begin('foreground');
+    const background = coordinator.begin('background');
+
+    assert.equal(foreground.isCurrent(), true);
+    assert.equal(background.isCurrent(), false);
+
+    const newerForeground = coordinator.begin('foreground');
+    background.finish();
+    foreground.finish();
+    assert.equal(foreground.isCurrent(), false);
+    assert.equal(newerForeground.isCurrent(), true);
+    newerForeground.finish();
+
+    const nextBackground = coordinator.begin('background');
+    assert.equal(nextBackground.isCurrent(), true);
+    nextBackground.finish();
+  });
+
+  test('foreground request remains current after a blocked background failure', async () => {
+    const coordinator = createLatestScreenRequestCoordinator();
+    const foreground = coordinator.begin('foreground');
+    const background = coordinator.begin('background');
+    let status: 'loading' | 'error' | 'success' = 'loading';
+
+    await Promise.reject(new Error('background failed')).catch(() => {
+      if (background.isCurrent()) status = 'error';
+    });
+    background.finish();
+
+    if (foreground.isCurrent()) status = 'success';
+    foreground.finish();
+
+    assert.equal(status, 'success');
+  });
+
   test('deriveScreenStatus uses default empty detection', () => {
     assert.equal(deriveScreenStatus([]), 'empty');
     assert.equal(deriveScreenStatus(['value']), 'success');
@@ -103,6 +172,7 @@ describe('use-screen-core status/error helpers', () => {
   test('deriveScreenPendingState marks section-skeleton and submit-only follow-up affordances', () => {
     const sectionState = deriveScreenPendingState({
       hasTruthfulFrame: true,
+      hasRequestedTruthfulFrame: false,
       mode: 'dependency-change',
       strategy: 'section-skeleton',
     });

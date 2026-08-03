@@ -100,7 +100,9 @@ export interface FamilyRepository {
     authUserId: string,
     response: 'ACCEPTED' | 'DECLINED',
   ): Promise<GuardianInviteRespondResult>;
-  updateGuardianAccess(input: UpdateFamilyGuardianAccessInput): Promise<FamilyGuardianRecord | null>;
+  updateGuardianAccess(
+    input: UpdateFamilyGuardianAccessInput,
+  ): Promise<FamilyGuardianRecord | null>;
   cancelGuardianInvite(familyId: string, inviteId: string, authUserId: string): Promise<boolean>;
   removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean>;
 }
@@ -157,7 +159,9 @@ function guardianPermissionsFromMembership(
       'ADMIN',
     ];
   }
-  const normalized = new Set(asStringArray(permissions).map((permission) => permission.toLowerCase()));
+  const normalized = new Set(
+    asStringArray(permissions).map((permission) => permission.toLowerCase()),
+  );
   const mapped: GuardianPermission[] = [];
   if (normalized.has('schedule') || normalized.has('messages') || normalized.has('book')) {
     mapped.push('VIEW_SCHEDULE');
@@ -187,7 +191,9 @@ function familyGuardianRecordFromRows(family: SeedRow, membership: SeedRow): Fam
     userId: asString(membership.userId) ?? '',
     role,
     permissions: guardianPermissionsFromMembership(role, membership.permissions),
-    relationship: asString(membership.relationshipLabel) ?? (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
+    relationship:
+      asString(membership.relationshipLabel) ??
+      (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
     childAccess: asStringArray(membership.childAccessAthleteIds),
     isPrimary: role === 'PRIMARY',
     addedAt: asString(membership.createdAt) ?? isoNow(),
@@ -692,7 +698,8 @@ function updateGuardianAccessFromTables(
     const links = ensureStoreTable(tables, 'guardianChildLinks');
     const guardianLinks = links.filter(
       (row) =>
-        asString(row.familyId) === input.familyId && asString(row.guardianUserId) === guardianUserId,
+        asString(row.familyId) === input.familyId &&
+        asString(row.guardianUserId) === guardianUserId,
     );
     if (guardianLinks.some((row) => asBoolean(row.isPrimary) && !asString(row.deletedAt))) {
       throw conflict('Cannot modify child access for a primary guardian link', {
@@ -770,8 +777,8 @@ function fromTables(
     });
   }
   const familyMemberships = memberships.filter((row) => asString(row.familyId) === familyId);
-  const canAccess =
-    isClubAdmin || familyMemberships.some((row) => asString(row.userId) === authUserId);
+  const viewerMembership = familyMemberships.find((row) => asString(row.userId) === authUserId);
+  const canAccess = isClubAdmin || Boolean(viewerMembership);
   if (!canAccess) {
     throw forbidden('Not allowed to access this family');
   }
@@ -782,11 +789,27 @@ function fromTables(
       return Boolean(mapped) ? [mapped] : [];
     }),
   );
+  const canSeeAllAthletes =
+    isClubAdmin || isFamilyAdminFromRows(family, familyMemberships, authUserId);
+  const assignedAthleteIds = new Set(asStringArray(viewerMembership?.childAccessAthleteIds));
+  const visibleAthleteIds = canSeeAllAthletes
+    ? familyAthleteIds
+    : new Set(
+        guardianChildLinks.flatMap((row) => {
+          const athleteId = asString(row.athleteId);
+          return asString(row.familyId) === familyId &&
+            asString(row.guardianUserId) === authUserId &&
+            athleteId &&
+            assignedAthleteIds.has(athleteId)
+            ? [athleteId]
+            : [];
+        }),
+      );
   const familyAthletes = athletes.flatMap((row) => {
     if (
       !(() => {
         const athleteId = asString(row.id);
-        return Boolean(athleteId && familyAthleteIds.has(athleteId));
+        return Boolean(athleteId && visibleAthleteIds.has(athleteId));
       })()
     )
       return [];
@@ -805,6 +828,11 @@ function fromTables(
     const user = users.find((row) => asString(row.id) === userId) ?? null;
     return {
       ...membership,
+      childAccessAthleteIds: canSeeAllAthletes
+        ? asStringArray(membership.childAccessAthleteIds)
+        : asStringArray(membership.childAccessAthleteIds).filter((athleteId) =>
+            visibleAthleteIds.has(athleteId),
+          ),
       user,
     };
   });
@@ -812,9 +840,11 @@ function fromTables(
     family,
     memberships: membershipRows,
     athletes: familyAthletes,
-    guardianInvites: guardianInvites.flatMap((row) =>
-      asString(row.familyId) === familyId && isPending(row) ? [inviteFromRow(row)] : [],
-    ),
+    guardianInvites: canSeeAllAthletes
+      ? guardianInvites.flatMap((row) =>
+          asString(row.familyId) === familyId && isPending(row) ? [inviteFromRow(row)] : [],
+        )
+      : [],
     dataVersion,
   };
 }
@@ -875,9 +905,10 @@ class DbFamilyRepository implements FamilyRepository {
       return fromTables(store.tables, familyId, authUserId, isClubAdmin, null);
     }
     const prisma = getPrismaClientOrThrow();
-    const family = await prisma.family.findUnique({
+    const family = await prisma.family.findFirst({
       where: {
         id: familyId,
+        deletedAt: null,
       },
     });
     if (!family) {
@@ -891,10 +922,21 @@ class DbFamilyRepository implements FamilyRepository {
         deletedAt: null,
       },
     });
-    const canAccess = isClubAdmin || familyMemberships.some((row) => row.userId === authUserId);
+    const viewerMembership = familyMemberships.find((row) => row.userId === authUserId);
+    const canAccess = isClubAdmin || Boolean(viewerMembership);
     if (!canAccess) {
       throw forbidden('Not allowed to access this family');
     }
+    const viewerRole = viewerMembership?.role.toLowerCase();
+    const viewerPermissions = new Set(
+      viewerMembership?.permissions.map((permission) => permission.toLowerCase()) ?? [],
+    );
+    const canSeeAllAthletes =
+      isClubAdmin ||
+      family.primaryGuardianUserId === authUserId ||
+      viewerRole === 'owner' ||
+      viewerRole === 'admin' ||
+      viewerPermissions.has('admin');
     const [users, guardianLinks, guardianInvites] = await Promise.all([
       prisma.user.findMany({
         where: {
@@ -909,26 +951,40 @@ class DbFamilyRepository implements FamilyRepository {
           deletedAt: null,
         },
       }),
-      prisma.familyGuardianInvite.findMany({
-        where: {
-          familyId,
-          status: 'PENDING',
-          deletedAt: null,
-          expiresAt: {
-            gt: new Date(),
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
+      canSeeAllAthletes
+        ? prisma.familyGuardianInvite.findMany({
+            where: {
+              familyId,
+              status: 'PENDING',
+              deletedAt: null,
+              expiresAt: {
+                gt: new Date(),
+              },
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          })
+        : Promise.resolve([]),
     ]);
     const athleteIds = [...new Set(guardianLinks.map((row) => row.athleteId))];
+    const assignedAthleteIds = new Set(viewerMembership?.childAccessAthleteIds ?? []);
+    const visibleAthleteIds = canSeeAllAthletes
+      ? athleteIds
+      : [
+          ...new Set(
+            guardianLinks.flatMap((row) =>
+              row.guardianUserId === authUserId && assignedAthleteIds.has(row.athleteId)
+                ? [row.athleteId]
+                : [],
+            ),
+          ),
+        ];
     const [athletes, senTags, consents] = await Promise.all([
       prisma.athlete.findMany({
         where: {
           id: {
-            in: athleteIds,
+            in: visibleAthleteIds,
           },
           deletedAt: null,
         },
@@ -936,7 +992,7 @@ class DbFamilyRepository implements FamilyRepository {
       prisma.childSenTag.findMany({
         where: {
           athleteId: {
-            in: athleteIds,
+            in: visibleAthleteIds,
           },
           deletedAt: null,
         },
@@ -944,7 +1000,7 @@ class DbFamilyRepository implements FamilyRepository {
       prisma.childConsent.findMany({
         where: {
           athleteId: {
-            in: athleteIds,
+            in: visibleAthleteIds,
           },
         },
       }),
@@ -953,6 +1009,11 @@ class DbFamilyRepository implements FamilyRepository {
       const user = users.find((row) => row.id === membership.userId) ?? null;
       return {
         ...membership,
+        childAccessAthleteIds: canSeeAllAthletes
+          ? membership.childAccessAthleteIds
+          : membership.childAccessAthleteIds.filter((athleteId) =>
+              visibleAthleteIds.includes(athleteId),
+            ),
         user,
       };
     });
@@ -1383,9 +1444,7 @@ class DbFamilyRepository implements FamilyRepository {
         },
       });
       const activeFamilyAthleteIds = [
-        ...new Set(
-          familyLinks.flatMap((row) => (row.deletedAt === null ? [row.athleteId] : [])),
-        ),
+        ...new Set(familyLinks.flatMap((row) => (row.deletedAt === null ? [row.athleteId] : []))),
       ];
       targetAthleteIds =
         input.childAccess.length > 0 ? [...new Set(input.childAccess)] : activeFamilyAthleteIds;

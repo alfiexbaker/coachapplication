@@ -6,10 +6,20 @@ import { UserHomeScreen } from '@/components/user/home-screen';
 import { AdminUsersScreen } from '@/components/admin/users-screen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { router } from 'expo-router';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
 import { isParentLikeUser } from '@/utils/user-helpers';
+
+function ClubAdminHomeRedirect() {
+  useEffect(() => {
+    router.replace(Routes.MY_CLUBS);
+  }, []);
+
+  return <LoadingState variant="detail" />;
+}
 
 export default function IndexScreen() {
   const { currentUser, isLoading, error, logout } = useAuth();
@@ -55,7 +65,11 @@ export default function IndexScreen() {
     case 'USER':
       return <UserHomeScreen />;
     case 'ADMIN':
-      return <AdminUsersScreen />;
+      return currentUser.isSystemAdmin ? (
+        <AdminUsersScreen />
+      ) : (
+        renderShell(<ClubAdminHomeRedirect />)
+      );
     default:
       return null;
   }

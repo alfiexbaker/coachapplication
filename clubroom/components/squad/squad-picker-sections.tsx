@@ -62,11 +62,15 @@ export const SquadPickerItem = function SquadPickerItem({
         <View style={styles.squadInfo}>
           <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
           <Row align="center" gap="sm">
-            <View style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-              <ThemedText style={{ ...Typography.caption, color: palette.tint }}>
-                {ageGroup}
-              </ThemedText>
-            </View>
+            {ageGroup && (
+              <View
+                style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+              >
+                <ThemedText style={{ ...Typography.caption, color: palette.tint }}>
+                  {ageGroup}
+                </ThemedText>
+              </View>
+            )}
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {squad.memberCount} athlete{squad.memberCount !== 1 ? 's' : ''}
             </ThemedText>

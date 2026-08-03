@@ -445,19 +445,28 @@ function buildFailure(report, code, message, action, extra = {}) {
   };
 }
 
+function redactReport(report) {
+  if (!report || typeof report !== 'object') return report;
+  return {
+    ...report,
+    ...(report.recipient ? { recipient: redactValue(report.recipient) } : {}),
+  };
+}
+
 function printReport(report, json) {
+  const outputReport = redactReport(report);
   if (json) {
-    console.log(JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(outputReport, null, 2));
     return;
   }
 
   console.log('Password reset email delivery smoke');
-  console.log(`- env file: ${report.envFile.loaded ? `loaded ${report.envFile.path}` : `missing ${report.envFile.path}`}`);
-  console.log(`- status: ${report.status}`);
-  if (report.provider) console.log(`- provider: ${report.provider}`);
-  if (report.recipient) console.log(`- recipient: ${report.recipient}`);
-  if (report.diagnostics?.brevoApi) {
-    const brevoApi = report.diagnostics.brevoApi;
+  console.log(`- env file: ${outputReport.envFile.loaded ? `loaded ${outputReport.envFile.path}` : `missing ${outputReport.envFile.path}`}`);
+  console.log(`- status: ${outputReport.status}`);
+  if (outputReport.provider) console.log(`- provider: ${outputReport.provider}`);
+  if (outputReport.recipient) console.log(`- recipient: ${outputReport.recipient}`);
+  if (outputReport.diagnostics?.brevoApi) {
+    const brevoApi = outputReport.diagnostics.brevoApi;
     console.log(
       `- brevo api: endpoint=${brevoApi.endpoint} key=${brevoApi.apiKey.configured ? `set len=${brevoApi.apiKey.length}` : 'missing'} from=${brevoApi.from ?? 'missing'}`,
     );
@@ -465,8 +474,8 @@ function printReport(report, json) {
       console.log(`- brevo api missing: ${brevoApi.missingRequired.join(', ')}`);
     }
   }
-  if (report.diagnostics?.smtp) {
-    const smtp = report.diagnostics.smtp;
+  if (outputReport.diagnostics?.smtp) {
+    const smtp = outputReport.diagnostics.smtp;
     console.log(
       `- smtp: host=${smtp.host ?? 'missing'} port=${smtp.port} secure=${smtp.secure ? 'true' : 'false'} username=${smtp.username.preview ?? 'missing'} password=${smtp.password.configured ? `set len=${smtp.password.length}` : 'missing'} from=${smtp.from ?? 'missing'}`,
     );
@@ -474,16 +483,16 @@ function printReport(report, json) {
       console.log(`- smtp missing: ${smtp.missingRequired.join(', ')}`);
     }
   }
-  if (report.httpStatus) console.log(`- http status: ${report.httpStatus}`);
-  if (report.durationMs !== undefined) console.log(`- duration: ${report.durationMs}ms`);
-  if (report.issue) {
-    console.log(`- issue: ${report.issue.code}: ${report.issue.message}`);
-    console.log(`- action: ${report.issue.action}`);
-    if (report.smtpFailure?.reason) {
-      console.log(`- smtp failure reason: ${report.smtpFailure.reason}`);
+  if (outputReport.httpStatus) console.log(`- http status: ${outputReport.httpStatus}`);
+  if (outputReport.durationMs !== undefined) console.log(`- duration: ${outputReport.durationMs}ms`);
+  if (outputReport.issue) {
+    console.log(`- issue: ${outputReport.issue.code}: ${outputReport.issue.message}`);
+    console.log(`- action: ${outputReport.issue.action}`);
+    if (outputReport.smtpFailure?.reason) {
+      console.log(`- smtp failure reason: ${outputReport.smtpFailure.reason}`);
     }
-    if (report.brevoFailure?.reason) {
-      console.log(`- brevo api failure reason: ${report.brevoFailure.reason}`);
+    if (outputReport.brevoFailure?.reason) {
+      console.log(`- brevo api failure reason: ${outputReport.brevoFailure.reason}`);
     }
   }
 }
@@ -851,6 +860,7 @@ module.exports = {
   buildDeliveryDiagnostics,
   classifyBrevoApiFailure,
   classifySmtpFailure,
+  redactReport,
   redactValue,
   secretState,
 };

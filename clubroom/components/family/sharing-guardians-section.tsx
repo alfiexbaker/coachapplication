@@ -13,7 +13,7 @@ import type { FamilyGuardian } from '@/constants/types';
 
 interface SharingGuardiansSectionProps {
   guardians: FamilyGuardian[];
-  onRemove: (guardian: FamilyGuardian) => void;
+  onRemove?: (guardian: FamilyGuardian) => void;
 }
 
 export const SharingGuardiansSection = function SharingGuardiansSection({
@@ -54,7 +54,7 @@ export const SharingGuardiansSection = function SharingGuardiansSection({
                   Primary
                 </ThemedText>
               </View>
-            ) : (
+            ) : onRemove ? (
               <Clickable
                 style={{ padding: Spacing.xxs }}
                 onPress={() => onRemove(guardian)}
@@ -63,7 +63,7 @@ export const SharingGuardiansSection = function SharingGuardiansSection({
               >
                 <Ionicons name="close-circle" size={22} color={colors.error} />
               </Clickable>
-            )}
+            ) : null}
           </Row>
           <Row gap="sm" align="center" style={{ marginLeft: 56 }}>
             {getPermissionIcons(guardian.permissions).map((icon) => (

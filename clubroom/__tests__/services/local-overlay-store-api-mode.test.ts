@@ -9,7 +9,7 @@ afterEach(async () => {
 });
 
 describe('local overlay store API mode', () => {
-  it('does not read or write local overlay values outside mock mode', async () => {
+  it('fails closed instead of reading or writing local overlay values outside mock mode', async () => {
     const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
     const { getLocalOverlayValue, setLocalOverlayValue } = await import(
       '@/services/local-overlay-store'
@@ -17,12 +17,15 @@ describe('local overlay store API mode', () => {
 
     await AsyncStorage.setItem('clubroom.overlay.test', JSON.stringify({ source: 'local' }));
 
-    assert.deepEqual(
-      await getLocalOverlayValue('clubroom.overlay.test', { source: 'fallback' }),
-      { source: 'fallback' },
+    await assert.rejects(
+      () => getLocalOverlayValue('clubroom.overlay.test', { source: 'fallback' }),
+      /mock-only.*\/v1 authority/,
     );
 
-    await setLocalOverlayValue('clubroom.overlay.test', { source: 'write-attempt' });
+    await assert.rejects(
+      () => setLocalOverlayValue('clubroom.overlay.test', { source: 'write-attempt' }),
+      /mock-only.*\/v1 authority/,
+    );
 
     assert.equal(
       await AsyncStorage.getItem('clubroom.overlay.test'),

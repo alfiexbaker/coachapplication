@@ -70,6 +70,31 @@ describe('booking-target helpers', () => {
     );
   });
 
+  it('normalizes legacy self user ids to the linked athlete profile', () => {
+    const athleteUser = {
+      id: 'usr_athlete',
+      athleteId: 'ath_real_profile',
+      athleteName: 'Alfie Barton',
+      fullName: 'Alex Barton',
+    };
+
+    assert.deepEqual(
+      resolveBookingDraftTargets({
+        draft: { childId: 'usr_athlete' },
+        currentUser: athleteUser,
+        children: [],
+      }),
+      { athleteIds: ['ath_real_profile'], athleteNames: ['Alfie Barton'] },
+    );
+    assert.deepEqual(
+      resolveDefaultBookingTarget({
+        currentUser: athleteUser,
+        children: [],
+      }),
+      { id: 'ath_real_profile', name: 'Alfie Barton' },
+    );
+  });
+
   it('marks unresolved or placeholder target names as incomplete', () => {
     assert.equal(
       hasResolvedBookingTargets({ athleteIds: ['ath_child_1'], athleteNames: ['Maya Player'] }),

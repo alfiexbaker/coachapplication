@@ -19,8 +19,6 @@ interface EditLanguagesSectionProps {
   languages: CoachLanguage[];
   onOpenModal: (language?: CoachLanguage) => void;
   onRemove: (id: string) => void;
-  onQuickAdd: (name: string) => void;
-  languageOptions: string[];
   proficiencyOptions: CoachLanguage['proficiency'][];
   // Modal
   modalVisible: boolean;
@@ -36,8 +34,6 @@ export const EditLanguagesSection = function EditLanguagesSection({
   languages,
   onOpenModal,
   onRemove,
-  onQuickAdd,
-  languageOptions,
   proficiencyOptions,
   modalVisible,
   draft,
@@ -68,9 +64,6 @@ export const EditLanguagesSection = function EditLanguagesSection({
             </Row>
           </Clickable>
         </Row>
-        <ThemedText style={styles.subtitle}>
-          Set expectations for onboarding calls and session briefings with your language strengths.
-        </ThemedText>
 
         {languages.length > 0 ? (
           <View style={styles.list}>
@@ -109,46 +102,9 @@ export const EditLanguagesSection = function EditLanguagesSection({
           </View>
         ) : (
           <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]}>
-            <Ionicons name="chatbubbles-outline" size={20} color={colors.muted} />
-            <ThemedText style={styles.emptyText}>
-              Add the languages you coach in so parents feel confident you can welcome their family.
-            </ThemedText>
+            <ThemedText style={styles.emptyText}>No languages added.</ThemedText>
           </SurfaceCard>
         )}
-
-        <View style={[styles.quickAddRow, { borderColor: colors.border }]}>
-          <ThemedText style={styles.helper}>Quick add</ThemedText>
-          <Row wrap gap="xs">
-            {languageOptions.map((option) => {
-              const isAdded = languages.some((l) => l.name.toLowerCase() === option.toLowerCase());
-              return (
-                <Clickable
-                  key={option}
-                  disabled={isAdded}
-                  onPress={() => onQuickAdd(option)}
-                  style={[
-                    styles.chip,
-                    {
-                      opacity: isAdded ? 0.35 : 1,
-                      borderColor: isAdded ? colors.border : colors.tint,
-                      backgroundColor: isAdded ? colors.card : withAlpha(colors.tint, 0.09),
-                    },
-                  ]}
-                  accessibilityLabel={`Quick add ${option}`}
-                  accessibilityRole="button"
-                >
-                  <ThemedText
-                    style={styles.chipText}
-                    lightColor={isAdded ? undefined : colors.tint}
-                    darkColor={isAdded ? undefined : colors.tint}
-                  >
-                    {option}
-                  </ThemedText>
-                </Clickable>
-              );
-            })}
-          </Row>
-        </View>
       </SurfaceCard>
 
       <Modal
@@ -169,6 +125,7 @@ export const EditLanguagesSection = function EditLanguagesSection({
                   Keyboard.dismiss();
                   onCloseModal();
                 }}
+                style={styles.modalClose}
                 accessibilityLabel="Close"
                 accessibilityRole="button"
               >
@@ -177,7 +134,10 @@ export const EditLanguagesSection = function EditLanguagesSection({
             </Row>
             <View style={styles.modalContent}>
               {modalError ? (
-                <ThemedText style={[styles.errorText, { color: colors.error }]} accessibilityRole="alert">
+                <ThemedText
+                  style={[styles.errorText, { color: colors.error }]}
+                  accessibilityRole="alert"
+                >
                   {modalError}
                 </ThemedText>
               ) : null}
@@ -186,10 +146,11 @@ export const EditLanguagesSection = function EditLanguagesSection({
                 <TextInput
                   value={draft.name}
                   onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))}
-                  placeholder="e.g., English"
+                  placeholder="English"
                   placeholderTextColor={colors.muted}
                   style={inputStyle}
                   accessibilityLabel="Language name"
+                  maxLength={80}
                 />
               </View>
               <View style={styles.fieldGroup}>
@@ -210,6 +171,7 @@ export const EditLanguagesSection = function EditLanguagesSection({
                         ]}
                         accessibilityLabel={level}
                         accessibilityRole="radio"
+                        accessibilityState={{ checked: isActive }}
                       >
                         <ThemedText
                           style={styles.chipText}
@@ -243,8 +205,12 @@ export const EditLanguagesSection = function EditLanguagesSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  subtitle: { opacity: 0.6, ...Typography.bodySmall },
-  inlineAction: {},
+  inlineAction: {
+    minHeight: 44,
+    paddingHorizontal: Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   inlineActionText: { fontWeight: '700' },
   list: { gap: Spacing.sm },
   row: { padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md },
@@ -253,8 +219,8 @@ const styles = StyleSheet.create({
   name: { fontWeight: '700' },
   proficiency: { ...Typography.caption, opacity: 0.7 },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
@@ -269,30 +235,31 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   emptyText: { textAlign: 'center', opacity: 0.7 },
-  quickAddRow: {
-    marginTop: Spacing.sm,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
-  helper: { ...Typography.caption, opacity: 0.6 },
   chip: {
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   chipText: { fontWeight: '600' },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'center', padding: Spacing.lg },
-  modalCard: { padding: Spacing.lg, gap: Spacing.md },
+  modalCard: { width: '100%', maxHeight: '90%', padding: Spacing.lg, gap: Spacing.md },
   modalContent: { gap: Spacing.md },
+  modalClose: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   fieldGroup: { gap: Spacing.xs },
   label: { fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.subheading,
@@ -300,9 +267,10 @@ const styles = StyleSheet.create({
   errorText: { ...Typography.caption },
   primaryButton: {
     marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
+    minHeight: 48,
     borderRadius: Radii.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: { ...Typography.subheading },
 });

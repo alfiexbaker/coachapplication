@@ -5,14 +5,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 
-import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useEventAttendees } from '@/hooks/use-event-attendees';
 
@@ -29,15 +28,13 @@ export default function EventAttendeesScreen() {
     error,
     refreshing,
     retry,
-    isCoach,
+    actorRole,
+    canManageEvent,
     isEventToday,
     checkInAvailable,
     currentUser,
     handleCheckIn,
     handleUndoCheckIn,
-    handleAttendeePress,
-    handleExport,
-    handleSendReminder,
   } = useEventAttendees(id);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -68,6 +65,29 @@ export default function EventAttendeesScreen() {
     );
   }
 
+  if (!canManageEvent) {
+    return renderShell(
+      <>
+        <PageHeader
+          title="Attendees"
+          subtitle={event.title}
+          showBack
+          backIcon="arrow-back"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: colors.border }]}
+        />
+        <EmptyState
+          icon="people-outline"
+          title="Staff access required"
+          message="Full RSVP and attendance records are available to event staff only."
+          actionLabel="Go Back"
+          onPressAction={() => router.back()}
+        />
+      </>,
+    );
+  }
+
   return renderShell(
     <>
       <PageHeader
@@ -95,7 +115,7 @@ export default function EventAttendeesScreen() {
               event={event}
               userId={currentUser.id}
               userName={currentUser.name || 'Unknown'}
-              userRole={isCoach ? 'COACH' : 'PARENT'}
+              userRole={actorRole}
               userPhotoUrl={currentUser.avatar}
               currentAttendance={currentAttendance}
               onCheckIn={handleCheckIn}
@@ -110,48 +130,13 @@ export default function EventAttendeesScreen() {
           rsvps={rsvps}
           attendance={attendance}
           stats={stats || undefined}
-          onAttendeePress={handleAttendeePress}
+          onAttendeePress={undefined}
           showFilters
           showStats
           loading={refreshing}
           emptyMessage="No RSVPs yet. Be the first to respond!"
         />
       </View>
-
-      {isCoach && (
-        <Row
-          gap="sm"
-          style={[
-            styles.coachActions,
-            { backgroundColor: colors.background, borderTopColor: colors.border },
-          ]}
-        >
-          <Clickable
-            style={[
-              styles.actionButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-            onPress={handleExport}
-          >
-            <Row align="center" justify="center" gap="xxs">
-              <Ionicons name="download-outline" size={20} color={colors.text} />
-              <ThemedText style={styles.actionText}>Export List</ThemedText>
-            </Row>
-          </Clickable>
-          <Clickable
-            style={[
-              styles.actionButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-            onPress={handleSendReminder}
-          >
-            <Row align="center" justify="center" gap="xxs">
-              <Ionicons name="notifications-outline" size={20} color={colors.text} />
-              <ThemedText style={styles.actionText}>Send Reminder</ThemedText>
-            </Row>
-          </Clickable>
-        </Row>
-      )}
     </>,
   );
 }
@@ -164,7 +149,4 @@ const styles = StyleSheet.create({
   todayBadge: { marginBottom: Spacing.xs },
   todayText: { ...Typography.smallSemiBold },
   listContainer: { flex: 1, paddingHorizontal: Spacing.md },
-  coachActions: { padding: Spacing.md, borderTopWidth: 1 },
-  actionButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1 },
-  actionText: { ...Typography.smallSemiBold },
 });

@@ -1,3 +1,5 @@
+import { ZodError, type ZodIssue } from 'zod';
+
 export type ApiErrorCode =
   | 'VALIDATION_FAILED'
   | 'AUTH_INVALID_TOKEN'
@@ -9,6 +11,29 @@ export type ApiErrorCode =
   | 'RATE_LIMITED'
   | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR';
+
+export function isZodValidationError(error: unknown): error is { issues: ZodIssue[] } {
+  if (error instanceof ZodError) {
+    return true;
+  }
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as { name?: unknown; issues?: unknown };
+  return (
+    candidate.name === 'ZodError' &&
+    Array.isArray(candidate.issues) &&
+    candidate.issues.every(
+      (issue) =>
+        Boolean(issue) &&
+        typeof issue === 'object' &&
+        typeof (issue as { code?: unknown }).code === 'string' &&
+        Array.isArray((issue as { path?: unknown }).path) &&
+        typeof (issue as { message?: unknown }).message === 'string',
+    )
+  );
+}
 
 export class ApiProblemError extends Error {
   readonly status: number;

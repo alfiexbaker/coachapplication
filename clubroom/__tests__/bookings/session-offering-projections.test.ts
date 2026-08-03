@@ -5,6 +5,10 @@ import test, { describe } from 'node:test';
 
 import type { GroupRegistration, GroupSession, SessionOffering } from '@/constants/types';
 import {
+  getGroupRegistrationAthleteName,
+  getGroupRegistrationParentName,
+} from '@/utils/group-display';
+import {
   GROUP_SESSION_OFFERING_PREFIX,
   buildGroupSessionOfferingId,
   extractGroupSessionIdFromOfferingId,
@@ -256,7 +260,15 @@ describe('session offering projections', () => {
     const session = makeGroupSession({ id: 'gs_proj', assigneeCoachId: 'coach_assignee' });
     const projected = mapGroupSessionToOffering(
       session,
-      [makeRegistration({ sessionId: 'gs_proj', athleteId: 'child_x' })],
+      [
+        makeRegistration({
+          sessionId: 'gs_proj',
+          athleteId: 'child_x',
+          athleteName: 'Jamie Carter',
+          parentId: 'parent_x',
+          parentName: 'Alex Carter',
+        }),
+      ],
       new Date('2026-03-01T00:00:00Z'),
     );
 
@@ -264,6 +276,27 @@ describe('session offering projections', () => {
     assert.equal(projected?.source, 'group');
     assert.equal(projected?.sourceEntityId, 'gs_proj');
     assert.equal(projected?.id, `${GROUP_SESSION_OFFERING_PREFIX}gs_proj`);
+    assert.deepEqual(projected?.registrations[0], {
+      id: 'reg_1',
+      userId: 'child_x',
+      userName: 'Jamie Carter',
+      parentId: 'parent_x',
+      parentName: 'Alex Carter',
+      bookedAt: '2026-03-01T11:00:00Z',
+      status: 'confirmed',
+    });
+    assert.equal(
+      getGroupRegistrationAthleteName(
+        makeRegistration({ athleteId: 'child_internal_id', athleteName: 'Jamie Carter' }),
+      ),
+      'Jamie Carter',
+    );
+    assert.equal(
+      getGroupRegistrationParentName(
+        makeRegistration({ parentId: 'parent_internal_id', parentName: 'Alex Carter' }),
+      ),
+      'Alex Carter',
+    );
   });
 
   test('booking surfaces do not project club events into bookable offerings', () => {

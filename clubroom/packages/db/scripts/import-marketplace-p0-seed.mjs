@@ -11,8 +11,18 @@ const datasetPath = path.resolve(
   repoRoot,
   'docs/backend-api/test-data/marketplace/linked-dataset.json',
 );
+const REQUIRED_CONFIRMATION = '1';
+const SAFE_IMPORT_TARGETS = new Set(['development', 'local', 'staging', 'test']);
+const PRODUCTION_ENV_KEYS = [
+  'APP_ENV',
+  'API_ENV',
+  'CLUBROOM_ENV',
+  'EXPO_PUBLIC_ENV',
+  'SENTRY_ENVIRONMENT',
+  'VERCEL_ENV',
+];
 
-const prisma = new PrismaClient();
+let prisma;
 
 const asRows = (value) => (Array.isArray(value) ? value : []);
 const asString = (value) => (typeof value === 'string' ? value : undefined);
@@ -86,7 +96,65 @@ function passwordForRoles(roles) {
   return 'user';
 }
 
+function normalizeEnvValue(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+function isLocalDatabaseHost(hostname) {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname === '[::1]'
+  );
+}
+
+function assertSeedImportAllowed() {
+  if (process.env.CLUBROOM_P0_SEED_IMPORT !== REQUIRED_CONFIRMATION) {
+    throw new Error('Refusing to import P0 seed data without CLUBROOM_P0_SEED_IMPORT=1');
+  }
+
+  const target = normalizeEnvValue(
+    process.env.CLUBROOM_P0_SEED_TARGET ??
+      process.env.EXPO_PUBLIC_ENV ??
+      process.env.SENTRY_ENVIRONMENT ??
+      process.env.NODE_ENV,
+  );
+  if (!SAFE_IMPORT_TARGETS.has(target)) {
+    throw new Error(
+      'Refusing to import P0 seed data unless CLUBROOM_P0_SEED_TARGET is local/development/test or staging',
+    );
+  }
+
+  const productionHint = PRODUCTION_ENV_KEYS.find(
+    (key) => normalizeEnvValue(process.env[key]) === 'production',
+  );
+  if (productionHint) {
+    throw new Error(`Refusing to import P0 seed data with ${productionHint}=production`);
+  }
+
+  const rawDatabaseUrl = process.env.DATABASE_URL;
+  if (!rawDatabaseUrl) {
+    throw new Error('Refusing to import P0 seed data without DATABASE_URL');
+  }
+  if (/\bprod(uction)?\b/i.test(rawDatabaseUrl)) {
+    throw new Error('Refusing to import P0 seed data into a production-looking DATABASE_URL');
+  }
+  const databaseUrl = new URL(rawDatabaseUrl);
+  if (
+    (target === 'development' || target === 'local' || target === 'test') &&
+    !isLocalDatabaseHost(databaseUrl.hostname)
+  ) {
+    throw new Error('Refusing to import P0 seed data: local targets require a localhost DATABASE_URL');
+  }
+}
+
 async function main() {
+  assertSeedImportAllowed();
+  prisma = new PrismaClient();
+
   const raw = await fs.readFile(datasetPath, 'utf8');
   const dataset = JSON.parse(raw);
   const tables = dataset.tables ?? {};
@@ -1394,5 +1462,5 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await prisma?.$disconnect();
   });

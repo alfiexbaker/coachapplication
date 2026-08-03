@@ -10,6 +10,8 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useVideoUpload');
 
+const GENERIC_VIDEO_UPLOAD_ERROR = 'There was an error uploading your video. Please try again.';
+
 export type VideoData = {
   uri: string;
   name: string;
@@ -36,6 +38,16 @@ const IN_PROGRESS_STAGES = new Set<VideoUploadStage>([
   'finalizing-upload',
   'creating-record',
 ]);
+
+export function resolveVideoUploadErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    const message = error.message.trim();
+    if (message) {
+      return message;
+    }
+  }
+  return GENERIC_VIDEO_UPLOAD_ERROR;
+}
 
 export function useVideoUpload() {
   const { currentUser } = useAuth();
@@ -105,7 +117,7 @@ export function useVideoUpload() {
     } catch (error) {
       logger.error('Failed to upload video', error);
       setUploadStage('failed');
-      uiFeedback.showToast('There was an error uploading your video. Please try again.', 'error');
+      uiFeedback.showToast(resolveVideoUploadErrorMessage(error), 'error');
     }
   };
 

@@ -87,9 +87,9 @@ export default function SessionInviteDetailScreen() {
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
   });
-  const invite = loadedInvite ?? (id ? (inviteDetailSnapshots.get(id) ?? null) : null);
+  const invite = loadedInvite ?? (USE_MOCK && id ? (inviteDetailSnapshots.get(id) ?? null) : null);
   useEffect(() => {
-    if (loadedInvite && id) {
+    if (USE_MOCK && loadedInvite && id) {
       inviteDetailSnapshots.set(id, loadedInvite);
     }
   }, [id, loadedInvite]);
@@ -145,14 +145,20 @@ export default function SessionInviteDetailScreen() {
       if (!isMounted) return;
       const responses = responsesResult.success
         ? responsesResult.data
-        : (invite.rsvpResponses ?? []);
+        : (USE_MOCK ? (invite.rsvpResponses ?? []) : []);
       const counts = countsResult.success
         ? countsResult.data
-        : (invite.rsvpCounts ?? {
-            going: 0,
-            maybe: 0,
-            cantGo: 0,
-          });
+        : (USE_MOCK
+            ? (invite.rsvpCounts ?? {
+                going: 0,
+                maybe: 0,
+                cantGo: 0,
+              })
+            : {
+                going: 0,
+                maybe: 0,
+                cantGo: 0,
+              });
       setRsvpResponses(responses);
       setRsvpCounts(counts);
       const own = responses.find((r) => r.userId === currentUser.id);
@@ -186,7 +192,7 @@ export default function SessionInviteDetailScreen() {
           uiFeedback.showToast(result.error?.message ?? 'Could not create the booking.', 'error');
           return;
         }
-        showToast('Invite accepted!', 'success');
+        showToast('Invite accepted.', 'success');
         const acceptedInvite = result.data;
         if (acceptedInvite.bookingId) {
           router.replace(
@@ -234,15 +240,20 @@ export default function SessionInviteDetailScreen() {
           setResponding(true);
           await runAsyncTryCatchFinally(
             async () => {
-              await sessionInviteService.respondToInvite({
+              const result = await sessionInviteService.respondToInvite({
                 inviteId: invite.id,
                 response: 'DECLINED',
               });
-              uiFeedback.showToast('The invite has been declined.');
+              if (!result.success) {
+                uiFeedback.showToast(result.error?.message ?? 'Could not decline invite.', 'error');
+                return;
+              }
+              uiFeedback.showToast('Invite declined.', 'success');
               router.back();
             },
             async (e) => {
               logger.error('Failed to decline invite', e);
+              uiFeedback.showToast('Could not decline invite.', 'error');
             },
             () => {
               setResponding(false);
@@ -269,6 +280,7 @@ export default function SessionInviteDetailScreen() {
             router.back();
           } catch (e) {
             logger.error('Failed to cancel invite', e);
+            uiFeedback.showToast('Could not cancel invite.', 'error');
           }
         },
       },
@@ -313,10 +325,10 @@ export default function SessionInviteDetailScreen() {
     if (!invite) return;
     const result = await sessionInviteService.sendInviteReminder(invite.id);
     if (!result.success) {
-      uiFeedback.showToast(result.error.message, 'success');
+      uiFeedback.showToast(result.error.message, 'error');
       return;
     }
-    uiFeedback.showToast("We've nudged the parent to respond to this invite.", 'success');
+    uiFeedback.showToast('Reminder sent.', 'success');
   };
   const handleSelectSlot = (i: number) => setSelectedSlot(i);
   const renderShell = (content: ReactNode) => (

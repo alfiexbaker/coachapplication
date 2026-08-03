@@ -190,11 +190,8 @@ class BookingCrudService {
     return ok(undefined);
   }
 
-  private mergeAuthoritativeBooking(
-    apiBooking: ApiBookingResponse,
-    localBooking?: Booking,
-  ): Booking {
-    return mapApiBookingToBooking(apiBooking, localBooking);
+  private mergeAuthoritativeBooking(apiBooking: ApiBookingResponse): Booking {
+    return mapApiBookingToBooking(apiBooking);
   }
 
   private mapBookingToRebookDraft(booking: Booking): BookingDraft {
@@ -247,14 +244,8 @@ class BookingCrudService {
     };
   }
 
-  private async syncAuthoritativeBookings(
-    apiBookings: ApiBookingResponse[],
-  ): Promise<Booking[]> {
-    const localBookings = await this.loadFromStorage();
-    const localById = new Map(localBookings.map((booking) => [booking.id, booking]));
-    const merged = apiBookings.map((booking) =>
-      this.mergeAuthoritativeBooking(booking, localById.get(booking.id)),
-    );
+  private async syncAuthoritativeBookings(apiBookings: ApiBookingResponse[]): Promise<Booking[]> {
+    const merged = apiBookings.map((booking) => this.mergeAuthoritativeBooking(booking));
 
     const nextBookings = [...merged];
     const saveResult = await this.saveToStorage(nextBookings);
@@ -333,9 +324,8 @@ class BookingCrudService {
       if (!apiClient.isMockMode) {
         const apiResult = await bookingAuthorityService.getBooking(id);
         if (apiResult.success) {
-          const [localBookings] = await Promise.all([this.loadFromStorage()]);
-          const localBooking = localBookings.find((entry) => entry.id === id);
-          const merged = this.mergeAuthoritativeBooking(apiResult.data, localBooking);
+          const localBookings = await this.loadFromStorage();
+          const merged = this.mergeAuthoritativeBooking(apiResult.data);
           const otherBookings = localBookings.filter((entry) => entry.id !== id);
           const saveResult = await this.saveToStorage([...otherBookings, merged]);
           if (!saveResult.success) {
@@ -351,7 +341,7 @@ class BookingCrudService {
             bookingId: id,
             error: apiResult.error.message,
           });
-          throw new Error(apiResult.error.message);
+          throw Object.assign(new Error(apiResult.error.message), apiResult.error);
         }
         return null;
       }
@@ -359,10 +349,10 @@ class BookingCrudService {
       const cache = await this.getCache();
       return cache.get(id) ?? null;
     } catch (error) {
-      logger.error('Failed to get booking', error);
       if (!apiClient.isMockMode) {
         throw error;
       }
+      logger.error('Failed to get booking', error);
       return null;
     }
   }
@@ -430,7 +420,7 @@ class BookingCrudService {
       return err(authorityResult.error);
     }
 
-    const completedBooking = this.mergeAuthoritativeBooking(authorityResult.data, existingBooking);
+    const completedBooking = this.mergeAuthoritativeBooking(authorityResult.data);
     const bookings = await this.loadFromStorage();
     const nextBookings = bookings.some((booking) => booking.id === id)
       ? bookings.map((booking) => (booking.id === id ? completedBooking : booking))
@@ -488,10 +478,7 @@ class BookingCrudService {
         if (!authorityResult.success) {
           return err(authorityResult.error);
         }
-        const completedBooking = this.mergeAuthoritativeBooking(
-          authorityResult.data,
-          existingBooking,
-        );
+        const completedBooking = this.mergeAuthoritativeBooking(authorityResult.data);
         const bookings = await this.loadFromStorage();
         const nextBookings = bookings.some((booking) => booking.id === id)
           ? bookings.map((booking) => (booking.id === id ? completedBooking : booking))
@@ -570,7 +557,7 @@ class BookingCrudService {
         return err(authorityResult.error);
       }
 
-      const updatedBooking = this.mergeAuthoritativeBooking(authorityResult.data, existingBooking);
+      const updatedBooking = this.mergeAuthoritativeBooking(authorityResult.data);
       const bookings = await this.loadFromStorage();
       const nextBookings = bookings.some((booking) => booking.id === id)
         ? bookings.map((booking) => (booking.id === id ? updatedBooking : booking))
@@ -682,7 +669,7 @@ class BookingCrudService {
       return undefined;
     }
 
-    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+    if (booking.status !== 'CONFIRMED') {
       logger.warn('Cancellation blocked for non-active booking', {
         bookingId: id,
         status: booking.status,
@@ -707,13 +694,7 @@ class BookingCrudService {
         });
         throw new Error(cancelResult.error.message);
       }
-      authoritativeBooking = {
-        ...this.mergeAuthoritativeBooking(cancelResult.data, booking),
-        cancellationReason: reason,
-        cancelledBy,
-        cancelReason: reason,
-        statusBeforeCancellation: booking.status,
-      };
+      authoritativeBooking = this.mergeAuthoritativeBooking(cancelResult.data);
     }
 
     const localCancelledBooking =
@@ -750,53 +731,48 @@ class BookingCrudService {
       return undefined;
     }
 
-    // Notify the other party about the cancellation
     if (booking) {
-      const date = booking.scheduledAt
-        ? new Date(booking.scheduledAt).toLocaleDateString('en-GB', {
-            month: 'short',
-            day: 'numeric',
-          })
-        : 'upcoming date';
+      if (apiClient.isMockMode) {
+        const date = booking.scheduledAt
+          ? new Date(booking.scheduledAt).toLocaleDateString('en-GB', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : 'upcoming date';
 
-      if (cancelledBy === 'parent') {
-        // Notify coach when parent cancels
-        try {
-          await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
-        } catch (notificationError) {
-          if (!authoritativeBooking) {
-            throw notificationError;
-          }
-          logger.warn('Authoritative booking cancelled, but local notification trigger failed', {
-            bookingId: id,
-            error: String(notificationError),
-          });
-        }
-      } else {
-        // Notify parent when coach cancels
-        const parentRecipientId = booking.bookedById || booking.athleteId;
-        if (parentRecipientId) {
+        if (cancelledBy === 'parent') {
+          // Notify coach when parent cancels
           try {
-            await notificationTriggers.bookingCancelled(
-              booking.coachName || 'Coach',
-              date,
-              'parent',
-              parentRecipientId,
-            );
+            await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
           } catch (notificationError) {
-            if (!authoritativeBooking) {
-              throw notificationError;
-            }
-            logger.warn('Authoritative booking cancelled, but local notification trigger failed', {
+            logger.warn('Mock booking cancellation notification failed', {
               bookingId: id,
               error: String(notificationError),
             });
           }
         } else {
-          logger.warn('Cancellation notification skipped: missing parent recipient', {
-            bookingId: booking.id,
-            coachId: booking.coachId,
-          });
+          // Notify parent when coach cancels
+          const parentRecipientId = booking.bookedById || booking.athleteId;
+          if (parentRecipientId) {
+            try {
+              await notificationTriggers.bookingCancelled(
+                booking.coachName || 'Coach',
+                date,
+                'parent',
+                parentRecipientId,
+              );
+            } catch (notificationError) {
+              logger.warn('Mock booking cancellation notification failed', {
+                bookingId: id,
+                error: String(notificationError),
+              });
+            }
+          } else {
+            logger.warn('Cancellation notification skipped: missing parent recipient', {
+              bookingId: booking.id,
+              coachId: booking.coachId,
+            });
+          }
         }
       }
 
@@ -860,14 +836,7 @@ class BookingCrudService {
         throw new Error(reopenResult.error.message);
       }
       restoredStatus = reopenResult.data.status;
-      authoritativeBooking = {
-        ...this.mergeAuthoritativeBooking(reopenResult.data, booking),
-        cancellationReason: undefined,
-        cancelledBy: undefined,
-        cancelledAt: undefined,
-        cancelReason: undefined,
-        statusBeforeCancellation: undefined,
-      };
+      authoritativeBooking = this.mergeAuthoritativeBooking(reopenResult.data);
     }
 
     const localReopenedBooking =
@@ -1112,20 +1081,24 @@ class BookingCrudService {
       );
     }
 
-    // Check if coach/booker have blocked each other
-    const blockedResult = await blockService.getBlockStatus(bookedById, coachId);
-    if (blockedResult.success && blockedResult.data.blocked) {
-      logger.warn('Booking blocked due to block relationship', { coachId, bookedById });
-      emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
-        blockerId: blockedResult.data.blockerId ?? bookedById,
-        blockedId: blockedResult.data.blockedId ?? coachId,
-        action: 'create_booking',
-        timestamp: new Date().toISOString(),
-      });
-      return err({
-        code: 'CONFLICT',
-        message: getBlockActionMessage('booking'),
-      });
+    if (apiClient.isMockMode) {
+      const blockedResult = await blockService.getBlockStatus(bookedById, coachId);
+      if (!blockedResult.success) {
+        return err(blockedResult.error);
+      }
+      if (blockedResult.data.blocked) {
+        logger.warn('Booking blocked due to block relationship', { coachId, bookedById });
+        emitTyped(ServiceEvents.USER_ACTION_BLOCKED, {
+          blockerId: blockedResult.data.blockerId ?? bookedById,
+          blockedId: blockedResult.data.blockedId ?? coachId,
+          action: 'create_booking',
+          timestamp: new Date().toISOString(),
+        });
+        return err({
+          code: 'CONFLICT',
+          message: getBlockActionMessage('booking'),
+        });
+      }
     }
 
     // Extract date and time from scheduledAt
@@ -1215,17 +1188,7 @@ class BookingCrudService {
     const totalPrice = basePrice * athleteIds.length;
     const isSharedSession = athleteIds.length > 1;
     const createdAt = new Date().toISOString();
-    let authoritativeCreate: {
-      id: string;
-      status: Booking['status'];
-      scheduledAt: string;
-      createdAt: string;
-      serviceType?: string;
-      sessionTemplateId?: string | null;
-      objectives: string[];
-      notes?: string | null;
-      priceMinor?: number | null;
-    } | null = null;
+    let authoritativeCreate: Booking | null = null;
 
     if (!apiClient.isMockMode) {
       const currentUser = await authService.getCurrentUser();
@@ -1235,6 +1198,7 @@ class BookingCrudService {
 
       const createViaApiResult = await bookingAuthorityService.createBooking({
         coachId,
+        ...(clubId ? { clubId } : {}),
         athleteIds,
         bookedById,
         scheduledAt,
@@ -1261,35 +1225,24 @@ class BookingCrudService {
         return err(createViaApiResult.error);
       }
 
-      authoritativeCreate = {
-        id: createViaApiResult.data.id,
-        status: createViaApiResult.data.status,
-        scheduledAt: createViaApiResult.data.scheduledAt,
-        createdAt: createViaApiResult.data.createdAt,
-        serviceType: createViaApiResult.data.serviceType,
-        sessionTemplateId: createViaApiResult.data.sessionTemplateId,
-        objectives: createViaApiResult.data.objectives,
-        notes: createViaApiResult.data.notes,
-        priceMinor: createViaApiResult.data.priceMinor,
-      };
+      authoritativeCreate = this.mergeAuthoritativeBooking(createViaApiResult.data);
     }
 
-    // Create the booking
-    const newBooking = {
-      id: authoritativeCreate?.id ?? apiClient.generateId('booking'),
+    const newBooking: Booking = authoritativeCreate ?? {
+      id: apiClient.generateId('booking'),
       coachId,
       coachName,
       athleteIds,
       athleteNames,
-      athleteId: athleteIds[0], // Backwards compatibility: first athlete
+      athleteId: athleteIds[0],
       bookedById,
       bookedByName,
-      scheduledAt: authoritativeCreate?.scheduledAt ?? scheduledAt,
-      status: authoritativeCreate?.status ?? 'CONFIRMED',
+      scheduledAt,
+      status: 'CONFIRMED',
       duration,
       location,
       service,
-      serviceType: authoritativeCreate?.serviceType ?? serviceType,
+      serviceType,
       ...(sessionTemplateId ? { sessionTemplateId } : {}),
       ...(sessionTemplateName ? { sessionTemplateName } : {}),
       ...(sessionSource ? { sessionSource } : {}),
@@ -1301,21 +1254,18 @@ class BookingCrudService {
       ...(assigneeCoachId ? { assigneeCoachId } : {}),
       ...(createdByUserId ? { createdByUserId } : {}),
       ...(createdByRole ? { createdByRole } : {}),
-      objectives: authoritativeCreate?.objectives ?? (objectives || []),
-      price:
-        typeof authoritativeCreate?.priceMinor === 'number'
-          ? authoritativeCreate.priceMinor / 100
-          : totalPrice,
+      objectives: objectives || [],
+      price: totalPrice,
       isSharedSession,
-      notes: authoritativeCreate?.notes ?? (notes || ''),
-      createdAt: authoritativeCreate?.createdAt ?? createdAt,
-      sessionInviteId, // Link to session invite if created from one
+      notes: notes || '',
+      createdAt,
+      sessionInviteId,
     };
 
     // Mirror the booking in runtime memory for current-session UI continuity.
     try {
       const bookings = [...existingBookings];
-      bookings.push(newBooking as Booking);
+      bookings.push(newBooking);
       const saveResult = await this.saveToStorage(bookings);
       if (!saveResult.success) {
         if (!authoritativeCreate) {
@@ -1329,11 +1279,7 @@ class BookingCrudService {
 
       if (apiClient.isMockMode) {
         // Create notifications for coach and parent
-        await this.createBookingNotifications(
-          newBooking as Booking,
-          bookedByName,
-          athleteNames.join(', '),
-        );
+        await this.createBookingNotifications(newBooking, bookedByName, athleteNames.join(', '));
 
         // Trigger notification for coach
         const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
@@ -1356,7 +1302,7 @@ class BookingCrudService {
         price: totalPrice,
       });
 
-      return ok(newBooking as Booking);
+      return ok(newBooking);
     } catch (error) {
       logger.error('Failed to create booking', error);
       return err(storageError('Failed to save booking. Please try again.'));

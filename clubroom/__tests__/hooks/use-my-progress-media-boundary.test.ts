@@ -20,3 +20,22 @@ test('my progress media failures surface instead of empty gallery fallback', () 
   assert.equal(source.includes('const media = mediaResult.success ? mediaResult.data : []'), false);
   assert.ok(source.includes('const media = mediaResult.data;'));
 });
+
+test('my progress position-history failures surface instead of null position fallback', () => {
+  const source = readProjectFile('hooks/use-my-progress.ts');
+  const positionFailureStart = source.indexOf('if (!mostPlayedPositionResult.success)');
+  const loadedLogStart = source.indexOf("logger.info('My progress loaded'", positionFailureStart);
+
+  assert.ok(positionFailureStart >= 0, 'position-history failure branch should exist');
+  assert.ok(loadedLogStart > positionFailureStart, 'success path should follow position branch');
+
+  const failureBlock = source.slice(positionFailureStart, loadedLogStart);
+  assert.ok(failureBlock.includes('return err(mostPlayedPositionResult.error);'));
+  assert.equal(
+    source.includes(
+      'mostPlayedPosition: mostPlayedPositionResult.success ? mostPlayedPositionResult.data : null',
+    ),
+    false,
+  );
+  assert.ok(source.includes('mostPlayedPosition: mostPlayedPositionResult.data'));
+});

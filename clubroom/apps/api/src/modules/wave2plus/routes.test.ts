@@ -5,11 +5,19 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
+import {
+  athleteAnalyticsResponseSchema,
+  athleteSkillHistoryResponseSchema,
+  athleteSkillUpdateResponseSchema,
+  practiceLogListResponseSchema,
+  practiceLogMutationResponseSchema,
+  practiceLogTodayResponseSchema,
+} from '@clubroom/shared-contracts';
 import { buildApp } from '../../app.js';
 import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
-import { recordUploadMalwareScanResult } from '../../lib/storage-runtime.js';
+import { buildSealedStorageKey } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -139,6 +147,28 @@ function findNonPrivilegedUserId(tables: SeedTables, excludedUserIds: Set<string
   return userId;
 }
 
+function findUserWithoutPendingDeletionRequest(
+  tables: SeedTables,
+  excludedUserIds = new Set<string>(),
+): string {
+  const pendingRequesters = new Set(
+    asRows(tables.dataDeletionRequests)
+      .filter((row) => asString(row.status) === 'PENDING' && !asString(row.cancelledAt))
+      .map((row) => asString(row.requesterUserId))
+      .filter((userId): userId is string => Boolean(userId)),
+  );
+  const userId = asRows(tables.users)
+    .map((row) => asString(row.id))
+    .find((candidateUserId): candidateUserId is string => {
+      if (!candidateUserId) {
+        return false;
+      }
+      return !excludedUserIds.has(candidateUserId) && !pendingRequesters.has(candidateUserId);
+    });
+  assert.ok(userId, 'expected user without a pending data deletion request');
+  return userId;
+}
+
 function mutableRows(tables: SeedTables, tableName: string): SeedRow[] {
   if (!Array.isArray(tables[tableName])) {
     tables[tableName] = [];
@@ -257,6 +287,23 @@ function findPrivilegedAdminUserId(
       );
     });
   assert.ok(userId, 'expected privileged admin user');
+  return userId;
+}
+
+function findUserWithRole(
+  tables: SeedTables,
+  role: 'club_admin' | 'admin' | 'security_admin',
+  excludedUserIds = new Set<string>(),
+): string {
+  const userId = asRows(tables.users)
+    .map((row) => asString(row.id))
+    .find(
+      (candidateUserId): candidateUserId is string =>
+        Boolean(candidateUserId) &&
+        !excludedUserIds.has(candidateUserId as string) &&
+        rolesForUser(tables, candidateUserId as string).includes(role),
+    );
+  assert.ok(userId, `expected user with ${role} role`);
   return userId;
 }
 
@@ -624,6 +671,161 @@ describe('wave2+ routes', () => {
     } finally {
       env.API_DATA_BACKEND = previous;
       resetMarketplaceSeedStoreForTests();
+    }
+  });
+
+  it('fails closed for invoice money routes in db mode when Prisma is unavailable', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
+    const fixtureTables = getDbFixtureStore().tables;
+    const sentInvoice = asRows(fixtureTables.invoices).find(
+      (row) => asString(row.status) === 'SENT',
+    );
+    assert.ok(sentInvoice, 'expected db-fixture SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+    const invoiceNumber = asString(sentInvoice.invoiceNumber) as string;
+    const payerUserId = asString(sentInvoice.payerUserId) as string;
+    const coachUserId = asString(sentInvoice.coachUserId) as string;
+    const totalMinor = asNumber(sentInvoice.totalMinor) as number;
+    const bookingId = asString(sentInvoice.bookingId) ?? 'booking_db_prisma_unavailable';
+    const attemptId =
+      asString(asRows(fixtureTables.paymentAttempts)[0]?.id) ?? 'payatt_db_prisma_unavailable';
+    const token = 'invalid-simulated-payment-token';
+    const refundReason = 'Refund DB unavailable should not leak';
+    const reminderEmail = 'payer-db-unavailable@example.com';
+    const reminderMessage = 'Please pay through the secure hosted payment page.';
+    const transitionReason = 'DB invoice fallback should not mutate fixtures';
+
+    const beforeCounts = {
+      invoices: asRows(fixtureTables.invoices).length,
+      invoiceEvents: asRows(fixtureTables.invoiceEvents).length,
+      paymentAttempts: asRows(fixtureTables.paymentAttempts).length,
+      paymentReminders: asRows(fixtureTables.paymentReminders).length,
+      reconcilerEntries: asRows(fixtureTables.reconcilerEntries).length,
+    };
+
+    env.API_DATA_BACKEND = 'db';
+    env.DATABASE_URL = undefined;
+    try {
+      const requests = [
+        app.inject({
+          method: 'GET',
+          url: '/v1/invoices?status=SENT',
+          headers: authHeaders(fixtureTables, coachUserId, 'coach'),
+        }),
+        app.inject({
+          method: 'GET',
+          url: `/v1/invoices/${invoiceId}`,
+          headers: authHeaders(fixtureTables, payerUserId, 'parent'),
+        }),
+        app.inject({
+          method: 'POST',
+          url: '/v1/invoices/generate',
+          headers: authHeaders(fixtureTables, coachUserId, 'coach'),
+          payload: { bookingId },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/invoices/${invoiceId}/payments`,
+          headers: authHeaders(fixtureTables, payerUserId, 'parent'),
+          payload: {
+            method: 'card',
+            amountMinor: totalMinor,
+            idempotencyKey: 'db-invoice-unavailable-payment',
+          },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/invoices/${invoiceId}/mark-paid`,
+          headers: authHeaders(fixtureTables, coachUserId, 'coach'),
+          payload: {
+            method: 'bank_transfer',
+            amountMinor: totalMinor,
+            reason: transitionReason,
+          },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/invoices/${invoiceId}/refunds`,
+          headers: authHeaders(fixtureTables, coachUserId, 'coach'),
+          payload: {
+            reason: refundReason,
+            verificationCode: '000000',
+            idempotencyKey: 'db-invoice-unavailable-refund',
+            amountMinor: totalMinor,
+          },
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/invoices/${invoiceId}/reminders`,
+          headers: authHeaders(fixtureTables, coachUserId, 'coach'),
+          payload: {
+            recipientEmail: reminderEmail,
+            message: reminderMessage,
+          },
+        }),
+        app.inject({
+          method: 'GET',
+          url: `/v1/payment-attempts/${attemptId}/hosted?token=${token}`,
+        }),
+        app.inject({
+          method: 'POST',
+          url: `/v1/payment-attempts/${attemptId}/simulated-complete`,
+          payload: { token },
+        }),
+      ];
+
+      const responses = await Promise.all(requests);
+      for (const response of responses) {
+        assert.equal(response.statusCode, 503);
+        assert.match(response.body, /DATABASE_URL is not configured for db backend/);
+        assert.equal(response.body.includes(invoiceId), false);
+        assert.equal(response.body.includes(invoiceNumber), false);
+        assert.equal(response.body.includes(bookingId), false);
+        assert.equal(response.body.includes(attemptId), false);
+        assert.equal(response.body.includes(reminderEmail), false);
+        assert.equal(response.body.includes(reminderMessage), false);
+        assert.equal(response.body.includes(refundReason), false);
+        assert.equal(response.body.includes(transitionReason), false);
+      }
+
+      assert.deepEqual(
+        {
+          invoices: asRows(fixtureTables.invoices).length,
+          invoiceEvents: asRows(fixtureTables.invoiceEvents).length,
+          paymentAttempts: asRows(fixtureTables.paymentAttempts).length,
+          paymentReminders: asRows(fixtureTables.paymentReminders).length,
+          reconcilerEntries: asRows(fixtureTables.reconcilerEntries).length,
+        },
+        beforeCounts,
+      );
+
+      for (const action of [
+        'invoice.list',
+        'invoice.read',
+        'invoice.generate',
+        'invoice.payment_session_create',
+        'invoice.mark_paid',
+        'invoice.refund_approve',
+        'invoice.reminder',
+        'invoice.payment_hosted_page',
+        'invoice.payment_confirm',
+      ]) {
+        const events = auditEventsFor(fixtureTables, { action, result: 'ERROR' });
+        assert.equal(events.length, 1, `expected one ERROR audit for ${action}`);
+        assert.equal(asString(asRecord(events[0]?.metadataJson)?.reason), 'prisma_unavailable');
+      }
+
+      const errorAudits = auditEventsFor(fixtureTables, { result: 'ERROR' });
+      const serializedAudits = JSON.stringify(errorAudits);
+      assert.doesNotMatch(serializedAudits, /payer-db-unavailable@example\.com/);
+      assert.doesNotMatch(serializedAudits, /Please pay through the secure hosted payment page/);
+      assert.doesNotMatch(serializedAudits, /Refund DB unavailable should not leak/);
+      assert.doesNotMatch(serializedAudits, /DB invoice fallback should not mutate fixtures/);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
+      resetDbFixtureStoreForTests();
     }
   });
 
@@ -1257,6 +1459,17 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, ownerUserId),
     });
     assert.equal(ownerDetail.statusCode, 200);
+    const ownerDetailPayload = ownerDetail.json() as { invoice: { canManageMoney?: boolean } };
+    assert.equal(ownerDetailPayload.invoice.canManageMoney, true);
+
+    const payerDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/invoices/${invoiceId}`,
+      headers: authHeaders(tables, payerUserId),
+    });
+    assert.equal(payerDetail.statusCode, 200);
+    const payerDetailPayload = payerDetail.json() as { invoice: { canManageMoney?: boolean } };
+    assert.equal(payerDetailPayload.invoice.canManageMoney, false);
 
     const ownerMarkPaid = await app.inject({
       method: 'POST',
@@ -1429,25 +1642,67 @@ describe('wave2+ routes', () => {
     assert.equal(idempotentPayload.invoice.bookingId, bookingId);
   });
 
-  it('reconciles db-mode invoice money state against authoritative booking state', async () => {
+  it('rejects invoice generation until the booking is confirmed', async () => {
+    const seedStore = getMarketplaceSeedStore();
+    const booking = findBillableBookingWithoutInvoice(seedStore.tables);
+    assert.ok(booking, 'expected billable booking without existing invoice');
+    const sourceBookingId = asString(booking.id) as string;
+    const bookingId = 'bok_invoice_awaiting_confirmation';
+    const coachUserId = asString(booking.coachUserId) as string;
+    const sourceParticipant = asRows(seedStore.tables.bookingParticipants).find(
+      (row) => asString(row.bookingId) === sourceBookingId && !asString(row.deletedAt),
+    );
+    assert.ok(sourceParticipant, 'expected participant for billable booking');
+
+    ensureRows(seedStore.tables, 'bookings').push({
+      ...booking,
+      id: bookingId,
+      status: 'AWAITING_CONFIRMATION',
+      confirmedAt: null,
+      deletedAt: null,
+      version: 1,
+    });
+    ensureRows(seedStore.tables, 'bookingParticipants').push({
+      ...sourceParticipant,
+      id: 'bkp_invoice_awaiting_confirmation',
+      bookingId,
+      deletedAt: null,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/invoices/generate',
+      headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
+      payload: { bookingId },
+    });
+
+    assert.equal(response.statusCode, 400, response.body);
+    assert.equal(
+      asRows(seedStore.tables.invoices).some(
+        (row) => asString(row.bookingId) === bookingId && !asString(row.deletedAt),
+      ),
+      false,
+    );
+  });
+
+  it('reconciles seed-mode invoice money state against booking state', async () => {
     const previousBackend = env.API_DATA_BACKEND;
-    env.API_DATA_BACKEND = 'db';
+    env.API_DATA_BACKEND = 'seed';
 
     try {
-      const authTables = loadTables();
-      const fixtureStore = getDbFixtureStore();
-      const booking = findBillableBookingWithoutInvoice(fixtureStore.tables);
-      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const seedStore = getMarketplaceSeedStore();
+      const booking = findBillableBookingWithoutInvoice(seedStore.tables);
+      assert.ok(booking, 'expected seed billable booking without existing invoice');
       const bookingId = asString(booking.id) as string;
       const coachUserId = asString(booking.coachUserId) as string;
 
       const generated = await app.inject({
         method: 'POST',
         url: '/v1/invoices/generate',
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           bookingId,
-          notes: 'DB-mode booking-linked invoice proof',
+          notes: 'Seed-mode booking-linked invoice proof',
         },
       });
       assert.equal(generated.statusCode, 201);
@@ -1458,7 +1713,7 @@ describe('wave2+ routes', () => {
       assert.equal(generatedPayload.invoice.coachId, coachUserId);
       assert.equal(generatedPayload.invoice.status, 'SENT');
 
-      const storedGenerated = asRows(getDbFixtureStore().tables.invoices).find(
+      const storedGenerated = asRows(seedStore.tables.invoices).find(
         (row) => asString(row.id) === generatedPayload.invoice.id,
       );
       assert.equal(asString(storedGenerated?.bookingId), bookingId);
@@ -1466,7 +1721,7 @@ describe('wave2+ routes', () => {
       const markedPaid = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/mark-paid`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Bank transfer received' },
       });
       assert.equal(markedPaid.statusCode, 200);
@@ -1490,7 +1745,7 @@ describe('wave2+ routes', () => {
       const markedUnpaid = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/mark-unpaid`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Payment disputed before provider cutover' },
       });
       assert.equal(markedUnpaid.statusCode, 200);
@@ -1504,7 +1759,7 @@ describe('wave2+ routes', () => {
       const writtenOff = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/write-off`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Goodwill adjustment before Stripe refunds exist' },
       });
       assert.equal(writtenOff.statusCode, 200);
@@ -1516,7 +1771,7 @@ describe('wave2+ routes', () => {
       const restored = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/restore`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
       });
       assert.equal(restored.statusCode, 200);
       assert.equal((restored.json() as { invoice: { status: string } }).invoice.status, 'SENT');
@@ -1524,7 +1779,7 @@ describe('wave2+ routes', () => {
       const voided = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/void`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Session cancelled before payment' },
       });
       assert.equal(voided.statusCode, 200);
@@ -1537,7 +1792,7 @@ describe('wave2+ routes', () => {
       assert.equal(voidedPayload.invoice.voidReason, 'Session cancelled before payment');
       assert.equal(voidedPayload.reconcilerEntry?.state, 'VOID');
 
-      const storedFinal = asRows(getDbFixtureStore().tables.invoices).find(
+      const storedFinal = asRows(seedStore.tables.invoices).find(
         (row) => asString(row.id) === generatedPayload.invoice.id,
       );
       assert.equal(asString(storedFinal?.bookingId), bookingId);
@@ -1549,22 +1804,21 @@ describe('wave2+ routes', () => {
     }
   });
 
-  it('rejects db-mode payment and reconciler changes when the linked booking is stale', async () => {
+  it('rejects seed-mode payment and reconciler changes when the linked booking is stale', async () => {
     const previousBackend = env.API_DATA_BACKEND;
-    env.API_DATA_BACKEND = 'db';
+    env.API_DATA_BACKEND = 'seed';
 
     try {
-      const authTables = loadTables();
-      const fixtureStore = getDbFixtureStore();
-      const booking = findBillableBookingWithoutInvoice(fixtureStore.tables);
-      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const seedStore = getMarketplaceSeedStore();
+      const booking = findBillableBookingWithoutInvoice(seedStore.tables);
+      assert.ok(booking, 'expected seed billable booking without existing invoice');
       const bookingId = asString(booking.id) as string;
       const coachUserId = asString(booking.coachUserId) as string;
 
       const generated = await app.inject({
         method: 'POST',
         url: '/v1/invoices/generate',
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           bookingId,
         },
@@ -1578,14 +1832,14 @@ describe('wave2+ routes', () => {
 
       const payerUserId = generatedPayload.invoice.userId;
       assert.ok(payerUserId, 'expected generated invoice to resolve a payer');
-      fixtureStore.tables.bookings = asRows(fixtureStore.tables.bookings).filter(
+      seedStore.tables.bookings = asRows(seedStore.tables.bookings).filter(
         (row) => asString(row.id) !== bookingId,
       );
 
       const markedPaid = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/mark-paid`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Should not bypass booking authority' },
       });
       assert.equal(markedPaid.statusCode, 400);
@@ -1594,7 +1848,7 @@ describe('wave2+ routes', () => {
       const paymentSession = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${generatedPayload.invoice.id}/payments`,
-        headers: authHeaders(authTables, payerUserId, 'parent'),
+        headers: authHeaders(seedStore.tables, payerUserId, 'parent'),
         payload: {
           method: 'card',
           idempotencyKey: 'stale-booking-link-test',
@@ -1603,7 +1857,7 @@ describe('wave2+ routes', () => {
       assert.equal(paymentSession.statusCode, 400);
       assert.match(paymentSession.body, /booking link is no longer authoritative/i);
 
-      const storedInvoice = asRows(getDbFixtureStore().tables.invoices).find(
+      const storedInvoice = asRows(seedStore.tables.invoices).find(
         (row) => asString(row.id) === generatedPayload.invoice.id,
       );
       assert.equal(asString(storedInvoice?.status), 'SENT');
@@ -1616,20 +1870,19 @@ describe('wave2+ routes', () => {
 
   it('voids open booking invoices on cancellation and restores them on booking reopen', async () => {
     const previousBackend = env.API_DATA_BACKEND;
-    env.API_DATA_BACKEND = 'db';
+    env.API_DATA_BACKEND = 'seed';
 
     try {
-      const authTables = loadTables();
-      const fixtureStore = getDbFixtureStore();
-      const booking = prepareCancellableBillableBookingWithoutInvoice(fixtureStore.tables);
-      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const seedStore = getMarketplaceSeedStore();
+      const booking = prepareCancellableBillableBookingWithoutInvoice(seedStore.tables);
+      assert.ok(booking, 'expected seed billable booking without existing invoice');
       const bookingId = asString(booking.id) as string;
       const coachUserId = asString(booking.coachUserId) as string;
 
       const generated = await app.inject({
         method: 'POST',
         url: '/v1/invoices/generate',
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { bookingId },
       });
       assert.equal(generated.statusCode, 201);
@@ -1644,7 +1897,7 @@ describe('wave2+ routes', () => {
       const payment = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/payments`,
-        headers: authHeaders(authTables, payerUserId, 'parent'),
+        headers: authHeaders(seedStore.tables, payerUserId, 'parent'),
         payload: {
           method: 'card',
           idempotencyKey: 'booking-cancel-voids-open-invoice',
@@ -1660,7 +1913,7 @@ describe('wave2+ routes', () => {
       const cancelled = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${bookingId}/cancel`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Weather cancellation',
           expectedVersion: asNumber(booking.version) ?? 1,
@@ -1674,7 +1927,7 @@ describe('wave2+ routes', () => {
       const invoiceAfterCancel = await app.inject({
         method: 'GET',
         url: `/v1/invoices/${invoiceId}`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
       });
       assert.equal(invoiceAfterCancel.statusCode, 200);
       const cancelDetail = invoiceAfterCancel.json() as {
@@ -1717,7 +1970,7 @@ describe('wave2+ routes', () => {
       const reopened = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${bookingId}/reopen`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           expectedVersion: cancelledPayload.version,
           idempotencyKey: 'booking-reopen-restores-open-invoice-key',
@@ -1728,7 +1981,7 @@ describe('wave2+ routes', () => {
       const invoiceAfterReopen = await app.inject({
         method: 'GET',
         url: `/v1/invoices/${invoiceId}`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
       });
       assert.equal(invoiceAfterReopen.statusCode, 200);
       const reopenDetail = invoiceAfterReopen.json() as {
@@ -1760,20 +2013,19 @@ describe('wave2+ routes', () => {
 
   it('requires backend refund authority before cancelling a booking with a paid invoice', async () => {
     const previousBackend = env.API_DATA_BACKEND;
-    env.API_DATA_BACKEND = 'db';
+    env.API_DATA_BACKEND = 'seed';
 
     try {
-      const authTables = loadTables();
-      const fixtureStore = getDbFixtureStore();
-      const booking = prepareCancellableBillableBookingWithoutInvoice(fixtureStore.tables);
-      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const seedStore = getMarketplaceSeedStore();
+      const booking = prepareCancellableBillableBookingWithoutInvoice(seedStore.tables);
+      assert.ok(booking, 'expected seed billable booking without existing invoice');
       const bookingId = asString(booking.id) as string;
       const coachUserId = asString(booking.coachUserId) as string;
 
       const generated = await app.inject({
         method: 'POST',
         url: '/v1/invoices/generate',
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { bookingId },
       });
       assert.equal(generated.statusCode, 201);
@@ -1787,7 +2039,7 @@ describe('wave2+ routes', () => {
       const paid = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/mark-paid`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: { reason: 'Bank transfer received before cancellation' },
       });
       assert.equal(paid.statusCode, 200);
@@ -1795,7 +2047,7 @@ describe('wave2+ routes', () => {
       const cancelled = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${bookingId}/cancel`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Cannot fulfil session',
           expectedVersion: asNumber(booking.version) ?? 1,
@@ -1808,7 +2060,7 @@ describe('wave2+ routes', () => {
       const refundDeniedForPayer = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/refunds`,
-        headers: authHeaders(authTables, payerUserId, 'parent'),
+        headers: authHeaders(seedStore.tables, payerUserId, 'parent'),
         payload: {
           reason: 'Parent cannot approve their own refund',
           verificationCode: '000000',
@@ -1820,7 +2072,7 @@ describe('wave2+ routes', () => {
       const refundDeniedBadCode = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/refunds`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Coach approved cancellation refund',
           verificationCode: '111111',
@@ -1833,7 +2085,7 @@ describe('wave2+ routes', () => {
       const refundDeniedPartialAmount = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/refunds`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Partial refund cannot unlock booking cancellation',
           verificationCode: '000000',
@@ -1847,7 +2099,7 @@ describe('wave2+ routes', () => {
       const refunded = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/refunds`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Coach approved cancellation refund',
           verificationCode: '000000',
@@ -1877,7 +2129,7 @@ describe('wave2+ routes', () => {
       const idempotentRefund = await app.inject({
         method: 'POST',
         url: `/v1/invoices/${invoiceId}/refunds`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Coach approved cancellation refund',
           verificationCode: '000000',
@@ -1890,7 +2142,7 @@ describe('wave2+ routes', () => {
       const cancelledAfterRefund = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${bookingId}/cancel`,
-        headers: authHeaders(authTables, coachUserId, 'coach'),
+        headers: authHeaders(seedStore.tables, coachUserId, 'coach'),
         payload: {
           reason: 'Cannot fulfil session',
           expectedVersion: asNumber(booking.version) ?? 1,
@@ -1900,10 +2152,10 @@ describe('wave2+ routes', () => {
       assert.equal(cancelledAfterRefund.statusCode, 200);
       assert.equal((cancelledAfterRefund.json() as { status: string }).status, 'CANCELLED');
 
-      const storedBooking = asRows(getDbFixtureStore().tables.bookings).find(
+      const storedBooking = asRows(seedStore.tables.bookings).find(
         (row) => asString(row.id) === bookingId,
       );
-      const storedInvoice = asRows(getDbFixtureStore().tables.invoices).find(
+      const storedInvoice = asRows(seedStore.tables.invoices).find(
         (row) => asString(row.id) === invoiceId,
       );
       assert.equal(asString(storedBooking?.status), 'CANCELLED');
@@ -2247,19 +2499,7 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(analytics.statusCode, 200);
-    const analyticsPayload = analytics.json() as {
-      analytics: {
-        athleteId: string;
-        period: string;
-        totalSessions: number;
-        sessionsThisPeriod: number;
-        averageSessionRating: number;
-        skills: Array<{ skillName?: string; averageLevel?: number; history?: unknown[] }>;
-        activeGoals: unknown[];
-        completedGoals: unknown[];
-        percentileRank: number;
-      };
-    };
+    const analyticsPayload = athleteAnalyticsResponseSchema.parse(analytics.json());
     assert.equal(analyticsPayload.analytics.athleteId, athleteId);
     assert.equal(analyticsPayload.analytics.period, 'ALL');
     assert.equal(analyticsPayload.analytics.totalSessions >= 1, true);
@@ -2284,9 +2524,7 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(skillHistory.statusCode, 200);
-    const skillHistoryPayload = skillHistory.json() as {
-      skills: Array<{ skillName?: string; history?: unknown[] }>;
-    };
+    const skillHistoryPayload = athleteSkillHistoryResponseSchema.parse(skillHistory.json());
     assert.equal(skillHistoryPayload.skills.length >= 1, true);
     assert.equal((skillHistoryPayload.skills[0]?.history?.length ?? 0) >= 1, true);
     const firstSkillName = skillHistoryPayload.skills[0]?.skillName;
@@ -2298,11 +2536,18 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(filteredSkillHistory.statusCode, 200);
-    const filteredSkillHistoryPayload = filteredSkillHistory.json() as {
-      skills: Array<{ skillName?: string }>;
-    };
+    const filteredSkillHistoryPayload = athleteSkillHistoryResponseSchema.parse(
+      filteredSkillHistory.json(),
+    );
     assert.equal(filteredSkillHistoryPayload.skills.length, 1);
     assert.equal(filteredSkillHistoryPayload.skills[0]?.skillName, firstSkillName);
+
+    const invalidSkillHistoryQuery = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/skills/history?unexpected=1`,
+      headers: parentHeaders,
+    });
+    assert.equal(invalidSkillHistoryQuery.statusCode, 400);
 
     const squadActivity = await app.inject({
       method: 'GET',
@@ -2368,20 +2613,76 @@ describe('wave2+ routes', () => {
         score: 8,
         bookingId: relatedBookingId,
         notes: 'Cleaner tempo in possession.',
+        idempotencyKey: 'athlete-skill-update-route-test',
       },
     });
     assert.equal(skillUpdate.statusCode, 201);
-    const skillUpdatePayload = skillUpdate.json() as {
-      skillAssessment: SeedRow;
-      skillDefinition: SeedRow;
-      previousScore: number | null;
-      score: number;
-    };
+    const skillUpdatePayload = athleteSkillUpdateResponseSchema.parse(skillUpdate.json());
     assert.match(asString(skillUpdatePayload.skillAssessment.id) ?? '', /^ska_/);
     assert.equal(asString(skillUpdatePayload.skillAssessment.athleteId), athleteId);
     assert.equal(asString(skillUpdatePayload.skillDefinition.name), 'Passing');
     assert.equal(skillUpdatePayload.score, 8);
     assert.equal(typeof skillUpdatePayload.previousScore === 'number', true);
+    assert.equal(skillUpdatePayload.replayed, false);
+
+    const replayedSkillUpdate = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/skill-updates`,
+      headers: coachHeaders,
+      payload: {
+        skillName: 'Passing',
+        score: 8,
+        bookingId: relatedBookingId,
+        notes: 'Cleaner tempo in possession.',
+        idempotencyKey: 'athlete-skill-update-route-test',
+      },
+    });
+    assert.equal(replayedSkillUpdate.statusCode, 200);
+    const replayedSkillUpdatePayload = athleteSkillUpdateResponseSchema.parse(
+      replayedSkillUpdate.json(),
+    );
+    assert.equal(replayedSkillUpdatePayload.skillAssessment.id, skillUpdatePayload.skillAssessment.id);
+    assert.equal(replayedSkillUpdatePayload.replayed, true);
+
+    const conflictingSkillUpdate = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/skill-updates`,
+      headers: coachHeaders,
+      payload: {
+        skillName: 'Passing',
+        score: 7,
+        bookingId: relatedBookingId,
+        notes: 'Cleaner tempo in possession.',
+        idempotencyKey: 'athlete-skill-update-route-test',
+      },
+    });
+    assert.equal(conflictingSkillUpdate.statusCode, 409);
+
+    const invalidSkillUpdate = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/skill-updates`,
+      headers: coachHeaders,
+      payload: {
+        skillName: 'Passing',
+        score: 8,
+        idempotencyKey: 'athlete-skill-update-invalid-test',
+        assessorUserId: relatedCoachUserId,
+      },
+    });
+    assert.equal(invalidSkillUpdate.statusCode, 400);
+
+    const forgedSourceSkillUpdate = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/skill-updates`,
+      headers: coachHeaders,
+      payload: {
+        skillName: 'Passing',
+        score: 8,
+        bookingId: 'bok_unrelated_skill_source',
+        idempotencyKey: 'athlete-skill-update-forged-source',
+      },
+    });
+    assert.equal(forgedSourceSkillUpdate.statusCode, 403);
 
     const badgeAward = await app.inject({
       method: 'POST',
@@ -2529,9 +2830,9 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(updatedSkillHistory.statusCode, 200);
-    const updatedSkillHistoryPayload = updatedSkillHistory.json() as {
-      skills: Array<{ skillName?: string; history?: Array<{ level?: number }> }>;
-    };
+    const updatedSkillHistoryPayload = athleteSkillHistoryResponseSchema.parse(
+      updatedSkillHistory.json(),
+    );
     assert.equal(updatedSkillHistoryPayload.skills.length, 1);
     assert.equal(
       updatedSkillHistoryPayload.skills[0]?.history?.some((entry) => entry.level === 80),
@@ -2626,11 +2927,15 @@ describe('wave2+ routes', () => {
       payload: {
         skillName: 'Passing',
         score: 7,
+        idempotencyKey: 'athlete-skill-update-denied-test',
       },
     });
     assert.equal(deniedSkillUpdate.statusCode, 403);
 
-    const liveTables = getMarketplaceSeedStore().tables;
+    const liveTables =
+      process.env.API_DATA_BACKEND === 'db'
+        ? getDbFixtureStore().tables
+        : getMarketplaceSeedStore().tables;
     assert.equal(
       auditEventsFor(liveTables, {
         action: 'athlete_analytics.read',
@@ -2697,10 +3002,18 @@ describe('wave2+ routes', () => {
     );
     assert.equal(
       auditEventsFor(liveTables, {
+        action: 'athlete_skill_history.read',
+        resourceId: athleteId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
         action: 'athlete_skill_update.create',
         result: 'SUCCESS',
       }).length,
-      1,
+      2,
     );
     assert.equal(
       auditEventsFor(liveTables, {
@@ -2708,7 +3021,7 @@ describe('wave2+ routes', () => {
         resourceId: athleteId,
         result: 'DENY',
       }).length,
-      1,
+      4,
     );
     assert.equal(
       auditEventsFor(liveTables, {
@@ -2746,6 +3059,61 @@ describe('wave2+ routes', () => {
         action: 'athlete_badge_award.feed_post',
         resourceId: badgeAwardId,
         result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('serves badge definition aggregate stats without exposing athlete identities', async () => {
+    const tables = loadTables();
+    const userId = asString(asRows(tables.users)[0]?.id);
+    assert.ok(userId, 'expected test user');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/badge-definitions',
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(response.statusCode, 200);
+    const payload = response.json() as {
+      badgeDefinitions: SeedRow[];
+      seedVersion: string | null;
+    };
+    assert.equal(payload.badgeDefinitions.length >= 1, true);
+    assert.equal(
+      payload.badgeDefinitions.some((definition) => (asNumber(definition.awardCount) ?? 0) > 0),
+      true,
+    );
+    assert.equal(
+      payload.badgeDefinitions.some(
+        (definition) => asString(definition.athleteId) || asString(definition.awardedByUserId),
+      ),
+      false,
+    );
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/v1/badge-definitions',
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const liveTables =
+      process.env.API_DATA_BACKEND === 'db'
+        ? getDbFixtureStore().tables
+        : getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'badge_definitions.read',
+        resourceId: 'badge_definitions',
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'badge_definitions.read',
+        resourceId: 'badge_definitions',
+        result: 'DENY',
       }).length,
       1,
     );
@@ -3139,6 +3507,10 @@ describe('wave2+ routes', () => {
     assert.ok(guardianLink, 'expected guardian link for session feedback');
     const athleteId = asString(guardianLink.athleteId) as string;
     const guardianUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteUserId = asString(
+      asRows(tables.athletes).find((athlete) => asString(athlete.id) === athleteId)?.userId,
+    ) as string;
+    assert.ok(athleteUserId, 'expected linked athlete user');
     const bookingParticipant = asRows(tables.bookingParticipants).find(
       (participant) =>
         asString(participant.athleteId) === athleteId && !asString(participant.deletedAt),
@@ -3155,6 +3527,7 @@ describe('wave2+ routes', () => {
     const parentHeaders = authHeaders(tables, guardianUserId, 'parent', {
       'x-guardian-athlete-ids': athleteId,
     });
+    const athleteHeaders = authHeaders(tables, athleteUserId, 'athlete');
     const outsiderUserId = findUserWithoutAthleteHealthAccess(
       tables,
       athleteId,
@@ -3207,6 +3580,18 @@ describe('wave2+ routes', () => {
     assert.equal(asString(savedPayload.feedback.sessionId), bookingId);
     assert.equal(asString(savedPayload.feedback.publicSummary), 'Strong receiving angles.');
 
+    const coachListed = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/session-feedback?viewerRole=coach`,
+      headers: coachHeaders,
+    });
+    assert.equal(coachListed.statusCode, 200);
+    const coachListedFeedback = (coachListed.json() as { feedback: SeedRow[] }).feedback.find(
+      (entry) => asString(entry.sessionId) === bookingId,
+    );
+    assert.ok(coachListedFeedback, 'expected assigned-coach feedback');
+    assert.equal(asString(coachListedFeedback.privateNotes), 'Coach-only detail');
+
     const listed = await app.inject({
       method: 'GET',
       url: `/v1/athletes/${athleteId}/session-feedback?viewerRole=parent`,
@@ -3220,6 +3605,38 @@ describe('wave2+ routes', () => {
     assert.ok(listedFeedback, 'expected feedback in athlete list');
     assert.equal(asString(listedFeedback.privateNotes), undefined);
     assert.equal(asString(listedFeedback.homework), 'Wall passes before next session.');
+
+    const parentRequestedCoachList = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/session-feedback?viewerRole=coach`,
+      headers: parentHeaders,
+    });
+    assert.equal(parentRequestedCoachList.statusCode, 200);
+    const parentRequestedCoachFeedback = (
+      parentRequestedCoachList.json() as { feedback: SeedRow[] }
+    ).feedback.find((entry) => asString(entry.sessionId) === bookingId);
+    assert.ok(parentRequestedCoachFeedback, 'expected parent-visible feedback');
+    assert.equal(
+      asString(parentRequestedCoachFeedback.privateNotes),
+      undefined,
+      'a parent-controlled query must not expose coach-private notes',
+    );
+
+    const athleteRequestedCoachList = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/session-feedback?viewerRole=coach`,
+      headers: athleteHeaders,
+    });
+    assert.equal(athleteRequestedCoachList.statusCode, 200);
+    const athleteRequestedCoachFeedback = (
+      athleteRequestedCoachList.json() as { feedback: SeedRow[] }
+    ).feedback.find((entry) => asString(entry.sessionId) === bookingId);
+    assert.ok(athleteRequestedCoachFeedback, 'expected athlete-visible feedback');
+    assert.equal(
+      asString(athleteRequestedCoachFeedback.privateNotes),
+      undefined,
+      'an athlete-controlled query must not expose coach-private notes',
+    );
 
     const feedbackTaskId = `practice_task_drill_dra_feedback_${asString(savedPayload.feedback.id)}`;
     const practiceTasks = await app.inject({
@@ -3276,6 +3693,34 @@ describe('wave2+ routes', () => {
       'Strong receiving angles.',
     );
 
+    const parentRequestedCoachDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/session-feedback?sessionId=${bookingId}&viewerRole=coach`,
+      headers: parentHeaders,
+    });
+    assert.equal(parentRequestedCoachDetail.statusCode, 200);
+    assert.equal(
+      asString(
+        (parentRequestedCoachDetail.json() as { feedback: SeedRow | null }).feedback?.privateNotes,
+      ),
+      undefined,
+      'a parent-controlled detail query must not expose coach-private notes',
+    );
+
+    const athleteRequestedCoachDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/session-feedback?sessionId=${bookingId}&viewerRole=coach`,
+      headers: athleteHeaders,
+    });
+    assert.equal(athleteRequestedCoachDetail.statusCode, 200);
+    assert.equal(
+      asString(
+        (athleteRequestedCoachDetail.json() as { feedback: SeedRow | null }).feedback?.privateNotes,
+      ),
+      undefined,
+      'an athlete-controlled detail query must not expose coach-private notes',
+    );
+
     const liveTables = getMarketplaceSeedStore().tables;
     assert.equal(
       auditEventsFor(liveTables, {
@@ -3298,6 +3743,202 @@ describe('wave2+ routes', () => {
       }).length >= 2,
       true,
     );
+  });
+
+  it('lists coach development sessions through coach-scoped feedback authority', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (link) => Boolean(asString(link.athleteId)) && Boolean(asString(link.guardianUserId)),
+    );
+    assert.ok(guardianLink, 'expected guardian link for coach development sessions');
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const guardianUserId = asString(guardianLink.guardianUserId) as string;
+    const bookingParticipant = asRows(tables.bookingParticipants).find(
+      (participant) =>
+        asString(participant.athleteId) === athleteId && !asString(participant.deletedAt),
+    );
+    assert.ok(bookingParticipant, 'expected athlete booking participant');
+    const bookingId = asString(bookingParticipant.bookingId) as string;
+    const booking = asRows(tables.bookings).find((row) => asString(row.id) === bookingId);
+    assert.ok(booking, 'expected athlete booking');
+    const coachUserId = asString(booking.coachUserId) as string;
+    const coachHeaders = authHeaders(tables, coachUserId, 'coach', {
+      'x-coach-athlete-ids': athleteId,
+      'x-coach-verified': '1',
+    });
+
+    const saved = await app.inject({
+      method: 'POST',
+      url: '/v1/session-feedback',
+      headers: coachHeaders,
+      payload: {
+        sessionId: bookingId,
+        bookingId,
+        coachId: coachUserId,
+        coachName: 'Coach Development',
+        athleteId,
+        athleteName: 'Linked Athlete',
+        privateNotes: 'Coach-only development note',
+        publicSummary: 'Checked body shape under pressure.',
+        skillsWorkedOn: ['Scanning'],
+        skillRatings: [{ skill: 'Scanning', rating: 4 }],
+        improvements: 'Scan earlier before receiving.',
+        homework: 'Two-touch passing pattern.',
+        effortRating: 4,
+        overallPerformance: 4,
+        visibility: 'coach_only',
+      },
+    });
+    assert.equal(saved.statusCode, 200);
+    const savedFeedbackId = asString((saved.json() as { feedback: SeedRow }).feedback.id);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/development-sessions?limit=10`,
+      headers: coachHeaders,
+    });
+    assert.equal(listed.statusCode, 200);
+    const listPayload = listed.json() as { feedback: SeedRow[] };
+    const feedback = listPayload.feedback.find((entry) => asString(entry.id) === savedFeedbackId);
+    assert.ok(feedback, 'expected saved feedback in coach development list');
+    assert.equal(asString(feedback.privateNotes), 'Coach-only development note');
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/development-sessions`,
+      headers: authHeaders(tables, guardianUserId, 'parent', {
+        'x-guardian-athlete-ids': athleteId,
+      }),
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const parentSelfDenied = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${guardianUserId}/development-sessions`,
+      headers: authHeaders(tables, guardianUserId, 'parent', {
+        'x-guardian-athlete-ids': athleteId,
+      }),
+    });
+    assert.equal(parentSelfDenied.statusCode, 403);
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'coach_development_sessions.read',
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'coach_development_sessions.read',
+        result: 'DENY',
+      }).length,
+      2,
+    );
+  });
+
+  it('normalizes legacy public session feedback visibility from db-backed rows', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const legacyFeedback = asRows(tables.sessionFeedback).find((row) => {
+        const athleteId = asString(row.athleteId);
+        return (
+          asString(row.visibility) === 'public' &&
+          Boolean(athleteId) &&
+          asRows(tables.guardianChildLinks).some(
+            (link) =>
+              asString(link.athleteId) === athleteId && Boolean(asString(link.guardianUserId)),
+          )
+        );
+      });
+      assert.ok(legacyFeedback, 'expected legacy public feedback row with a linked guardian');
+      const athleteId = asString(legacyFeedback.athleteId) as string;
+      const feedbackId = asString(legacyFeedback.id) as string;
+      const sessionId =
+        asString(legacyFeedback.sessionId) ?? (asString(legacyFeedback.bookingId) as string);
+      const guardianLink = asRows(tables.guardianChildLinks).find(
+        (link) => asString(link.athleteId) === athleteId && Boolean(asString(link.guardianUserId)),
+      );
+      assert.ok(guardianLink, 'expected linked guardian for legacy feedback');
+      const guardianUserId = asString(guardianLink.guardianUserId) as string;
+      const parentHeaders = authHeaders(tables, guardianUserId, 'parent', {
+        'x-guardian-athlete-ids': athleteId,
+      });
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: `/v1/athletes/${athleteId}/session-feedback?viewerRole=parent`,
+        headers: parentHeaders,
+      });
+      assert.equal(listed.statusCode, 200);
+      const listPayload = listed.json() as { feedback: SeedRow[] };
+      const normalizedListItem = listPayload.feedback.find(
+        (entry) => asString(entry.id) === feedbackId,
+      );
+      assert.ok(normalizedListItem, 'expected legacy feedback in parent list');
+      assert.equal(asString(normalizedListItem.visibility), 'parent');
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/v1/session-feedback?sessionId=${sessionId}&viewerRole=parent`,
+        headers: parentHeaders,
+      });
+      assert.equal(detail.statusCode, 200);
+      const detailPayload = detail.json() as { feedback: SeedRow | null };
+      assert.equal(asString(detailPayload.feedback?.visibility), 'parent');
+      assert.equal(
+        auditEventsFor(getDbFixtureStore().tables, {
+          action: 'session_feedback.read',
+          result: 'SUCCESS',
+        }).length,
+        2,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('reads coach development sessions from db-backed feedback rows', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const feedbackRow = asRows(tables.sessionFeedback).find((row) =>
+        Boolean(asString(row.authorUserId)),
+      );
+      assert.ok(feedbackRow, 'expected db fixture session feedback');
+      const feedbackId = asString(feedbackRow.id) as string;
+      const coachUserId = asString(feedbackRow.authorUserId) as string;
+      const adminUserId = findPrivilegedAdminUserId(tables);
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/development-sessions?limit=5`,
+        headers: authHeaders(tables, adminUserId, 'admin'),
+      });
+      assert.equal(listed.statusCode, 200);
+      const payload = listed.json() as { feedback: SeedRow[] };
+      assert.ok(
+        payload.feedback.some((entry) => asString(entry.id) === feedbackId),
+        'expected db-backed feedback in coach development list',
+      );
+      assert.equal(
+        auditEventsFor(getDbFixtureStore().tables, {
+          action: 'coach_development_sessions.read',
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
   });
 
   it('mutates athlete goals through backend authority and audits writes', async () => {
@@ -3616,19 +4257,14 @@ describe('wave2+ routes', () => {
         minutes: 25,
         note: 'Wall passing and ball mastery.',
         dateKey: '2026-07-01',
+        idempotencyKey: 'practice-log-create-20260701',
       },
     });
     assert.equal(created.statusCode, 201);
-    const createdPayload = created.json() as {
-      log: {
-        id: string;
-        athleteId: string;
-        authorUserId: string;
-        dateKey: string;
-        minutes: number;
-        note?: string;
-      };
-    };
+    const createdPayload = practiceLogMutationResponseSchema.parse(created.json());
+    assert.equal(createdPayload.created, true);
+    assert.equal(createdPayload.replayed, false);
+    assert.equal(createdPayload.addedMinutes, 25);
     assert.equal(createdPayload.log.athleteId, athleteId);
     assert.equal(createdPayload.log.authorUserId, guardianUserId);
     assert.equal(createdPayload.log.dateKey, '2026-07-01');
@@ -3642,10 +4278,42 @@ describe('wave2+ routes', () => {
       payload: {
         minutes: 15,
         dateKey: '2026-07-01',
+        idempotencyKey: 'practice-log-update-20260701',
       },
     });
-    assert.equal(updated.statusCode, 201);
-    assert.equal((updated.json() as { log: { minutes: number } }).log.minutes, 40);
+    assert.equal(updated.statusCode, 200);
+    const updatedPayload = practiceLogMutationResponseSchema.parse(updated.json());
+    assert.equal(updatedPayload.created, false);
+    assert.equal(updatedPayload.replayed, false);
+    assert.equal(updatedPayload.log.minutes, 40);
+
+    const replayed = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 15,
+        dateKey: '2026-07-01',
+        idempotencyKey: 'practice-log-update-20260701',
+      },
+    });
+    assert.equal(replayed.statusCode, 200);
+    const replayedPayload = practiceLogMutationResponseSchema.parse(replayed.json());
+    assert.equal(replayedPayload.replayed, true);
+    assert.equal(replayedPayload.log.id, createdPayload.log.id);
+    assert.equal(replayedPayload.log.minutes, 40);
+
+    const idempotencyConflict = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 16,
+        dateKey: '2026-07-01',
+        idempotencyKey: 'practice-log-update-20260701',
+      },
+    });
+    assert.equal(idempotencyConflict.statusCode, 409);
 
     const listed = await app.inject({
       method: 'GET',
@@ -3653,11 +4321,7 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(listed.statusCode, 200);
-    const listedPayload = listed.json() as {
-      athleteId: string;
-      total: number;
-      logs: Array<{ id: string; minutes: number }>;
-    };
+    const listedPayload = practiceLogListResponseSchema.parse(listed.json());
     assert.equal(listedPayload.athleteId, athleteId);
     assert.equal(listedPayload.total, 1);
     assert.equal(listedPayload.logs[0]?.id, createdPayload.log.id);
@@ -3669,16 +4333,75 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
       payload: {
         minutes: 10,
+        idempotencyKey: 'practice-log-create-today',
       },
     });
     assert.equal(todayCreated.statusCode, 201);
+    practiceLogMutationResponseSchema.parse(todayCreated.json());
     const today = await app.inject({
       method: 'GET',
       url: `/v1/athletes/${athleteId}/practice-logs/today`,
       headers: parentHeaders,
     });
     assert.equal(today.statusCode, 200);
-    assert.equal((today.json() as { log: { minutes: number } | null }).log?.minutes, 10);
+    const todayPayload = practiceLogTodayResponseSchema.parse(today.json());
+    assert.equal(todayPayload.log?.minutes, 10);
+    assert.equal(todayPayload.log?.dateKey, todayPayload.dateKey);
+
+    const fullDay = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 1440,
+        dateKey: '2026-07-02',
+        idempotencyKey: 'practice-log-full-day-20260702',
+      },
+    });
+    assert.equal(fullDay.statusCode, 201);
+    practiceLogMutationResponseSchema.parse(fullDay.json());
+    const dailyOverflow = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 1,
+        dateKey: '2026-07-02',
+        idempotencyKey: 'practice-log-overflow-20260702',
+      },
+    });
+    assert.equal(dailyOverflow.statusCode, 409);
+
+    const futureDate = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 10,
+        dateKey: '2099-01-01',
+        idempotencyKey: 'practice-log-future-date',
+      },
+    });
+    assert.equal(futureDate.statusCode, 400);
+
+    const unknownBodyField = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/practice-logs`,
+      headers: parentHeaders,
+      payload: {
+        minutes: 10,
+        idempotencyKey: 'practice-log-unknown-body',
+        unexpected: true,
+      },
+    });
+    assert.equal(unknownBodyField.statusCode, 400);
+
+    const unknownQueryField = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/practice-logs?unexpected=true`,
+      headers: parentHeaders,
+    });
+    assert.equal(unknownQueryField.statusCode, 400);
 
     const outsiderUserId = findUserWithoutAthleteHealthAccess(
       tables,
@@ -3693,16 +4416,23 @@ describe('wave2+ routes', () => {
     assert.equal(denied.statusCode, 403);
 
     const liveTables = getMarketplaceSeedStore().tables as SeedTables;
-    assert.equal(
-      asRows(liveTables.practiceLogs).filter((row) => asString(row.athleteId) === athleteId).length,
-      2,
+    const linkedAthleteUserId = asString(
+      asRows(liveTables.athletes).find((row) => asString(row.id) === athleteId)?.userId,
     );
     assert.equal(
-      auditEventsFor(liveTables, {
-        action: 'practice_logs.write',
-        result: 'SUCCESS',
-      }).length,
+      asRows(liveTables.practiceLogs).filter((row) => asString(row.athleteId) === athleteId).length,
       3,
+    );
+    const successfulWriteAudits = auditEventsFor(liveTables, {
+      action: 'practice_logs.write',
+      result: 'SUCCESS',
+    });
+    assert.equal(successfulWriteAudits.length, 5);
+    assert.ok(
+      successfulWriteAudits.every(
+        (event) => asString(event.subjectUserId) === linkedAthleteUserId,
+      ),
+      'expected practice-log audits to use the athlete linked user instead of a derived id',
     );
     assert.equal(
       auditEventsFor(liveTables, {
@@ -3710,7 +4440,7 @@ describe('wave2+ routes', () => {
         resourceId: athleteId,
         result: 'DENY',
       }).length,
-      1,
+      2,
     );
   });
 
@@ -3920,7 +4650,55 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, adminUserId),
     });
     assert.equal(dispatched.statusCode, 200);
-    assert.equal((dispatched.json() as { dispatched: boolean }).dispatched, true);
+    const dispatchedPayload = dispatched.json() as {
+      dispatched: boolean;
+      prompt: { notificationSentAt?: string };
+    };
+    assert.equal(dispatchedPayload.dispatched, true);
+    assert.equal(Boolean(dispatchedPayload.prompt.notificationSentAt), true);
+
+    const notificationTables = getMarketplaceSeedStore().tables as SeedTables;
+    const expectedNotificationRecipients = new Set<string>();
+    const athlete = asRows(notificationTables.athletes).find(
+      (row) => asString(row.id) === athleteId,
+    );
+    const athleteUserId = asString(athlete?.userId);
+    if (athleteUserId) {
+      expectedNotificationRecipients.add(athleteUserId);
+    }
+    for (const link of asRows(notificationTables.guardianChildLinks)) {
+      if (asString(link.athleteId) === athleteId && !asString(link.deletedAt)) {
+        const linkedGuardianUserId = asString(link.guardianUserId);
+        if (linkedGuardianUserId) {
+          expectedNotificationRecipients.add(linkedGuardianUserId);
+        }
+      }
+    }
+    assert.equal(expectedNotificationRecipients.size > 0, true);
+    const promptNotifications = () =>
+      asRows(notificationTables.notifications).filter(
+        (row) =>
+          asString(row.sourceType) === 'self_assessment_prompt' &&
+          asString(row.sourceId) === promptId,
+      );
+    assert.deepEqual(
+      promptNotifications()
+        .map((row) => asString(row.userId))
+        .sort(),
+      [...expectedNotificationRecipients].sort(),
+    );
+    assert.equal(
+      promptNotifications().every((row) => asString(row.type) === 'SELF_ASSESSMENT_PROMPT'),
+      true,
+    );
+
+    const secondDispatch = await app.inject({
+      method: 'POST',
+      url: `/v1/self-assessment-prompts/${encodeURIComponent(promptId)}/dispatch`,
+      headers: authHeaders(tables, adminUserId),
+    });
+    assert.equal(secondDispatch.statusCode, 200);
+    assert.equal(promptNotifications().length, expectedNotificationRecipients.size);
 
     const submitted = await app.inject({
       method: 'POST',
@@ -5008,10 +5786,7 @@ describe('wave2+ routes', () => {
         }),
       });
       assert.equal(analytics.statusCode, 200);
-      const analyticsPayload = analytics.json() as {
-        analytics: { skills: unknown[]; totalSessions: number };
-        seedVersion: string | null;
-      };
+      const analyticsPayload = athleteAnalyticsResponseSchema.parse(analytics.json());
       assert.equal(analyticsPayload.analytics.skills.length >= 1, true);
       assert.equal(analyticsPayload.analytics.totalSessions >= 1, true);
       assert.equal(analyticsPayload.seedVersion, store.version);
@@ -5024,12 +5799,25 @@ describe('wave2+ routes', () => {
         }),
       });
       assert.equal(skillHistory.statusCode, 200);
-      const skillHistoryPayload = skillHistory.json() as {
-        skills: unknown[];
-        seedVersion: string | null;
-      };
+      const skillHistoryPayload = athleteSkillHistoryResponseSchema.parse(skillHistory.json());
       assert.equal(skillHistoryPayload.skills.length >= 1, true);
       assert.equal(skillHistoryPayload.seedVersion, store.version);
+
+      tables.athleteSkillAssessments = asRows(tables.athleteSkillAssessments).filter(
+        (assessment) => asString(assessment.athleteId) !== athleteId,
+      );
+      const emptySkillHistory = await app.inject({
+        method: 'GET',
+        url: `/v1/athletes/${athleteId}/skills/history`,
+        headers: authHeaders(tables, guardianUserId, 'parent', {
+          'x-guardian-athlete-ids': athleteId,
+        }),
+      });
+      assert.equal(emptySkillHistory.statusCode, 200);
+      assert.deepEqual(
+        athleteSkillHistoryResponseSchema.parse(emptySkillHistory.json()).skills,
+        [],
+      );
 
       const badges = await app.inject({
         method: 'GET',
@@ -5111,19 +5899,16 @@ describe('wave2+ routes', () => {
           skillName: 'Fixture Passing',
           score: 9,
           bookingId: relatedBookingId,
+          idempotencyKey: 'fixture-athlete-skill-update',
         },
       });
       assert.equal(skillUpdate.statusCode, 201);
-      const skillUpdatePayload = skillUpdate.json() as {
-        skillAssessment: SeedRow;
-        skillDefinition: SeedRow;
-        score: number;
-        seedVersion: string | null;
-      };
+      const skillUpdatePayload = athleteSkillUpdateResponseSchema.parse(skillUpdate.json());
       assert.equal(asString(skillUpdatePayload.skillAssessment.athleteId), athleteId);
       assert.equal(asString(skillUpdatePayload.skillDefinition.name), 'Fixture Passing');
       assert.equal(skillUpdatePayload.score, 9);
       assert.equal(skillUpdatePayload.seedVersion, store.version);
+      assert.equal(skillUpdatePayload.replayed, false);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();
@@ -5206,11 +5991,25 @@ describe('wave2+ routes', () => {
       const uploadPayload = uploadInit.json() as {
         uploadSessionId: string;
         mediaObjectId: string;
+        uploadMethod: string;
         uploadUrl: string;
+        uploadHeaders: Record<string, string>;
+        expiresAt: string;
+        storageKey: string;
+        bucketName: string;
+        requestId: string;
+        seedVersion: string | null;
       };
       assert.match(uploadPayload.uploadSessionId, /^ups_/);
       assert.match(uploadPayload.mediaObjectId, /^med_/);
+      assert.equal(uploadPayload.uploadMethod, 'PUT');
       assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
+      assert.equal(uploadPayload.uploadHeaders['content-type'], 'video/mp4');
+      assert.equal(Number.isNaN(Date.parse(uploadPayload.expiresAt)), false);
+      assert.match(uploadPayload.storageKey, /^uploads\//);
+      assert.equal(uploadPayload.bucketName, 'clubroom-private');
+      assert.equal(typeof uploadPayload.requestId, 'string');
+      assert.equal(uploadPayload.seedVersion, getMarketplaceSeedStore().version);
 
       const videoRow = asRows(tables.videos)[0];
       const videoId = asString(videoRow?.id) as string;
@@ -5883,6 +6682,34 @@ describe('wave2+ routes', () => {
     assert.ok(coachUserId, 'expected coach to mute');
     const outsiderUserId = findUnprivilegedUserId(tables, new Set([ownerUserId]));
 
+    const forgedOwner = await app.inject({
+      method: 'PATCH',
+      url: '/v1/me/notifications/preferences',
+      headers: authHeaders(tables, ownerUserId),
+      payload: {
+        userId: outsiderUserId,
+        channels: {
+          push: false,
+        },
+      },
+    });
+    assert.equal(forgedOwner.statusCode, 400);
+
+    const invalidQuietHours = await app.inject({
+      method: 'PATCH',
+      url: '/v1/me/notifications/preferences',
+      headers: authHeaders(tables, ownerUserId),
+      payload: {
+        quietHours: {
+          enabled: true,
+          startTime: '24:00',
+          endTime: '07:00',
+          timezone: 'Not/A_Time_Zone',
+        },
+      },
+    });
+    assert.equal(invalidQuietHours.statusCode, 400);
+
     const updated = await app.inject({
       method: 'PATCH',
       url: '/v1/me/notifications/preferences',
@@ -6028,6 +6855,20 @@ describe('wave2+ routes', () => {
         resourceId: ownerUserId,
         result: 'SUCCESS',
       }).length >= 2,
+      true,
+    );
+    const validationDenies = auditEventsFor(liveTables, {
+      action: 'notification.preferences.update',
+      resourceId: ownerUserId,
+      result: 'DENY',
+    });
+    assert.equal(validationDenies.length >= 2, true);
+    assert.equal(
+      validationDenies.every(
+        (event) =>
+          (event.metadataJson as { errorCode?: string } | undefined)?.errorCode ===
+          'VALIDATION_FAILED',
+      ),
       true,
     );
   });
@@ -7571,6 +8412,18 @@ describe('wave2+ routes', () => {
     });
     assert.equal(denied.statusCode, 403);
 
+    const forgedSender = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Client must not choose the group-message sender',
+        senderUserId: readerUserId,
+        idempotencyKey: 'community-message-forged-sender-test',
+      },
+    });
+    assert.equal(forgedSender.statusCode, 400);
+
     const created = await app.inject({
       method: 'POST',
       url: `/v1/community-groups/${groupId}/messages`,
@@ -7681,12 +8534,16 @@ describe('wave2+ routes', () => {
     );
 
     const liveTables = getMarketplaceSeedStore().tables;
+    const groupMessageCreateDenials = auditEventsFor(liveTables, {
+      action: 'community.message.create',
+      resourceId: groupId,
+      result: 'DENY',
+    });
+    assert.equal(groupMessageCreateDenials.length >= 2, true);
     assert.equal(
-      auditEventsFor(liveTables, {
-        action: 'community.message.create',
-        resourceId: groupId,
-        result: 'DENY',
-      }).length >= 1,
+      groupMessageCreateDenials.some(
+        (row) => asString(asRecord(row.metadataJson)?.errorCode) === 'VALIDATION_FAILED',
+      ),
       true,
     );
     assert.equal(
@@ -7808,6 +8665,18 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(deniedOutsider.statusCode, 403);
+
+    const forgedSender = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Client must not choose the direct-message sender',
+        senderUserId: otherUserId,
+        idempotencyKey: 'direct-message-forged-sender-test',
+      },
+    });
+    assert.equal(forgedSender.statusCode, 400);
 
     const deniedMedia = await app.inject({
       method: 'POST',
@@ -8017,13 +8886,66 @@ describe('wave2+ routes', () => {
     });
     assert.equal(repeatDelete.statusCode, 409);
 
+    const messageCountBeforeBlockedAttempt = asRows(store.tables.messages).length;
+    ensureRows(store.tables, 'userBlocks').push({
+      id: 'ubl_direct_message_block_test',
+      blockerUserId: otherUserId,
+      blockedUserId: senderUserId,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    });
+    const blockedMessage = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'This message must not cross an active block.',
+        idempotencyKey: 'direct-message-block-deny',
+      },
+    });
+    assert.equal(blockedMessage.statusCode, 409);
+    assert.match(blockedMessage.body, /Messaging is unavailable/);
+    assert.equal(blockedMessage.body.includes('This message must not cross'), false);
+    assert.equal(asRows(store.tables.messages).length, messageCountBeforeBlockedAttempt);
+
+    const thread = asRows(store.tables.messageThreads).find(
+      (row) => asString(row.id) === threadId,
+    );
+    assert.ok(thread, 'expected direct message thread fixture');
+    thread.threadType = 'GROUP';
+    const sharedGroupMessage = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Shared group threads remain available to their participants.',
+        idempotencyKey: 'group-message-block-scope-test',
+      },
+    });
+    assert.equal(sharedGroupMessage.statusCode, 201);
+    thread.threadType = 'DIRECT';
+
     const liveTables = getMarketplaceSeedStore().tables;
     assert.equal(
       auditEventsFor(liveTables, {
         action: 'community.thread-message.create',
         resourceId: threadId,
         result: 'DENY',
-      }).length >= 1,
+      }).some(
+        (row) =>
+          asString(asRecord(row.metadataJson)?.idempotencyKey) === 'direct-message-block-deny',
+      ),
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.thread-message.create',
+        resourceId: threadId,
+        result: 'DENY',
+      }).some(
+        (row) => asString(asRecord(row.metadataJson)?.errorCode) === 'VALIDATION_FAILED',
+      ),
       true,
     );
     assert.equal(
@@ -8158,6 +9080,27 @@ describe('wave2+ routes', () => {
         deletedPayload.thread.messages.some((message) => message.id === createdPayload.message.id),
         false,
       );
+
+      ensureRows(tables, 'userBlocks').push({
+        id: 'ubl_direct_message_db_fixture_block_test',
+        blockerUserId: senderUserId,
+        blockedUserId: otherUserId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+      });
+      const blockedMessage = await app.inject({
+        method: 'POST',
+        url: `/v1/message-threads/${threadId}/messages`,
+        headers: authHeaders(tables, senderUserId),
+        payload: {
+          body: 'DB fixture blocked direct message',
+          idempotencyKey: 'direct-message-db-fixture-block-deny',
+        },
+      });
+      assert.equal(blockedMessage.statusCode, 409);
+      assert.match(blockedMessage.body, /Messaging is unavailable/);
+      assert.equal(blockedMessage.body.includes('DB fixture blocked direct message'), false);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();
@@ -8268,6 +9211,55 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(deniedWrongOwnerMedia.statusCode, 403);
+
+    const postCountBeforeUnsupportedMetadata = asRows(store.tables.posts).length;
+    const deniedFakeSquadScope = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'This must not pretend to be squad private',
+        metadata: {
+          feedType: 'CLUB',
+          audience: 'squad',
+          squadId: 'sqd_forged_scope',
+        },
+        idempotencyKey: 'staff-feed-post-squad-scope-deny',
+      },
+    });
+    assert.equal(deniedFakeSquadScope.statusCode, 400);
+
+    const deniedArbitraryMediaUrl = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'This must not embed an arbitrary remote image',
+        metadata: { imageUrl: 'https://tracker.invalid/pixel.png' },
+        idempotencyKey: 'staff-feed-post-media-url-deny',
+      },
+    });
+    assert.equal(deniedArbitraryMediaUrl.statusCode, 400);
+
+    const deniedBackendOwnedMetadata = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'This must not bypass the audited pin transition',
+        metadata: {
+          isPinned: true,
+          pinnedBy: outsiderUserId,
+          attachments: [{ mediaObjectId: 'med_forged' }],
+        },
+        idempotencyKey: 'staff-feed-post-reserved-metadata-deny',
+      },
+    });
+    assert.equal(deniedBackendOwnedMetadata.statusCode, 400);
+    assert.equal(asRows(store.tables.posts).length, postCountBeforeUnsupportedMetadata);
 
     const created = await app.inject({
       method: 'POST',
@@ -8641,6 +9633,22 @@ describe('wave2+ routes', () => {
     );
 
     const liveTables = getMarketplaceSeedStore().tables;
+    for (const idempotencyKey of [
+      'staff-feed-post-squad-scope-deny',
+      'staff-feed-post-media-url-deny',
+      'staff-feed-post-reserved-metadata-deny',
+    ]) {
+      assert.equal(
+        auditEventsFor(liveTables, {
+          action: 'community.post.create',
+          resourceId: clubId,
+          result: 'DENY',
+        }).some(
+          (row) => asString(asRecord(row.metadataJson)?.idempotencyKey) === idempotencyKey,
+        ),
+        true,
+      );
+    }
     assert.equal(
       auditEventsFor(liveTables, {
         action: 'community.post.create',
@@ -8784,6 +9792,18 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(deniedCreate.statusCode, 403);
+
+    const forgedAuthor = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Client must not choose the comment author',
+        authorUserId: otherMemberUserId,
+        idempotencyKey: 'post-comment-forged-author-test',
+      },
+    });
+    assert.equal(forgedAuthor.statusCode, 400);
 
     const created = await app.inject({
       method: 'POST',
@@ -9344,6 +10364,25 @@ describe('wave2+ routes', () => {
     env.S3_SECRET_ACCESS_KEY = 'clubroom-secret';
 
     try {
+      const fixtureTables = getDbFixtureStore().tables;
+      const uploadSessionCountBefore = asRows(fixtureTables.uploadSessions).length;
+      const mediaObjectCountBefore = asRows(fixtureTables.mediaObjects).length;
+      const invalidUploadInit = await app.inject({
+        method: 'POST',
+        url: '/v1/uploads/init',
+        headers: authHeaders(tables, drillAuthorId, 'coach'),
+        payload: {
+          kind: 'VIDEO',
+          contentType: 'video/mp4',
+          fileName: 'session-demo.mp4',
+          sizeBytes: 1_200_000,
+          storageKey: 'client-controlled/private-key.mp4',
+        },
+      });
+      assert.equal(invalidUploadInit.statusCode, 400);
+      assert.equal(asRows(fixtureTables.uploadSessions).length, uploadSessionCountBefore);
+      assert.equal(asRows(fixtureTables.mediaObjects).length, mediaObjectCountBefore);
+
       const uploadInit = await app.inject({
         method: 'POST',
         url: '/v1/uploads/init',
@@ -9364,21 +10403,41 @@ describe('wave2+ routes', () => {
         uploadMethod: string;
         uploadUrl: string;
         uploadHeaders: Record<string, string>;
+        expiresAt: string;
         storageKey: string;
+        bucketName: string;
+        requestId: string;
       };
+      assert.deepEqual(Object.keys(payload).sort(), [
+        'bucketName',
+        'expiresAt',
+        'mediaObjectId',
+        'requestId',
+        'storageKey',
+        'uploadHeaders',
+        'uploadMethod',
+        'uploadSessionId',
+        'uploadUrl',
+      ]);
       assert.equal(payload.uploadMethod, 'PUT');
       assert.match(payload.uploadSessionId, /^ups_/);
       assert.match(payload.mediaObjectId, /^med_/);
       assert.equal(payload.uploadHeaders['content-type'], 'video/mp4');
+      assert.equal(payload.bucketName, 'clubroom-private');
+      assert.equal(Number.isNaN(Date.parse(payload.expiresAt)), false);
+      assert.equal(typeof payload.requestId, 'string');
 
       const uploadUrl = new URL(payload.uploadUrl);
       assert.equal(uploadUrl.origin, 'https://storage.clubroom.test');
       assert.equal(uploadUrl.pathname.startsWith('/clubroom-private/uploads/'), true);
       assert.equal(uploadUrl.searchParams.get('X-Amz-Algorithm'), 'AWS4-HMAC-SHA256');
+      assert.equal(
+        uploadUrl.searchParams.get('X-Amz-SignedHeaders'),
+        'content-length;content-type;host',
+      );
       assert.equal(Boolean(uploadUrl.searchParams.get('X-Amz-Signature')), true);
       assert.equal(payload.storageKey.includes('../'), false);
 
-      const fixtureTables = getDbFixtureStore().tables;
       const uploadSession = asRows(fixtureTables.uploadSessions).find(
         (row) => asString(row.id) === payload.uploadSessionId,
       );
@@ -9416,7 +10475,9 @@ describe('wave2+ routes', () => {
     const tables = loadTables();
     const coachUserId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
     const previousBackend = env.API_DATA_BACKEND;
+    const previousScanResultToken = env.API_UPLOAD_SCAN_RESULT_TOKEN;
     env.API_DATA_BACKEND = 'db';
+    env.API_UPLOAD_SCAN_RESULT_TOKEN = 'clubroom-video-route-scan-token';
 
     try {
       await withStorageEnv(async () => {
@@ -9466,8 +10527,26 @@ describe('wave2+ routes', () => {
             mediaObjectId: uploadPayload.mediaObjectId,
           },
         });
-        assert.equal(missingScanComplete.statusCode, 400);
-        assert.match(missingScanComplete.body, /malware scanning did not pass/i);
+        assert.equal(missingScanComplete.statusCode, 202);
+        assert.equal((missingScanComplete.json() as { pending: boolean }).pending, true);
+        const pendingStatus = await app.inject({
+          method: 'GET',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+        });
+        assert.equal(pendingStatus.statusCode, 200);
+        assert.deepEqual(
+          {
+            pending: pendingStatus.json().pending,
+            readyToComplete: pendingStatus.json().readyToComplete,
+            scanVerdict: pendingStatus.json().scanVerdict,
+          },
+          {
+            pending: true,
+            readyToComplete: false,
+            scanVerdict: 'PENDING',
+          },
+        );
 
         let fixtureTables = getDbFixtureStore().tables;
         let uploadSession = asRows(fixtureTables.uploadSessions).find(
@@ -9476,19 +10555,73 @@ describe('wave2+ routes', () => {
         let mediaObject = asRows(fixtureTables.mediaObjects).find(
           (row) => asString(row.id) === uploadPayload.mediaObjectId,
         );
-        assert.equal(asString(uploadSession?.status), 'INITIATED');
-        assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
+        assert.equal(asString(uploadSession?.status), 'UPLOADED');
+        assert.equal(asString(mediaObject?.status), 'UPLOADED_UNSCANNED');
+        assert.ok(uploadSession);
+        uploadSession.status = 'SCANNING';
+        uploadSession.scanClaimedAt = new Date().toISOString();
+        uploadSession.scanClaimedBy = 'test-route-worker';
+        uploadSession.activeScanAttemptId = 'sat_video_route_test';
+        uploadSession.scanLeaseExpiresAt = new Date(Date.now() + 60_000).toISOString();
+        uploadSession.scanAttemptCount = 1;
+        const sealedStorageKey = buildSealedStorageKey(
+          asString(mediaObject?.storageKey) as string,
+          'a'.repeat(64),
+        );
 
-        await recordUploadMalwareScanResult({
-          uploadSessionId: uploadPayload.uploadSessionId,
-          mediaObjectId: uploadPayload.mediaObjectId,
-          verdict: 'CLEAN',
-          scanner: 'test-clean-scanner',
-          scannedAt: '2030-01-01T10:00:00.000Z',
-          details: {
-            source: 'route_test_seed',
+        const scanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-video-route-scan-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            sourceResultId: 'scan_result_video_route_test',
+            scanAttemptId: 'sat_video_route_test',
+            verdict: 'CLEAN',
+            scanner: 'test-clean-scanner',
+            objectSizeBytes: 2_400_000,
+            objectETag: '"video-route-etag"',
+            sha256Hex: 'a'.repeat(64),
+            sealedStorageKey,
+            scannedAt: '2030-01-01T10:00:00.000Z',
+            details: {
+              source: 'route_test_api',
+            },
           },
         });
+        assert.equal(scanResult.statusCode, 201);
+        const scanResultPayload = scanResult.json() as {
+          scanResult: {
+            mediaObjectId: string;
+            verdict: string;
+            scanner: string;
+            scannedAt: string;
+          };
+        };
+        assert.equal(scanResultPayload.scanResult.mediaObjectId, uploadPayload.mediaObjectId);
+        assert.equal(scanResultPayload.scanResult.verdict, 'CLEAN');
+        assert.equal(scanResultPayload.scanResult.scanner, 'test-clean-scanner');
+
+        const cleanStatus = await app.inject({
+          method: 'GET',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+        });
+        assert.equal(cleanStatus.statusCode, 200);
+        assert.deepEqual(
+          {
+            pending: cleanStatus.json().pending,
+            readyToComplete: cleanStatus.json().readyToComplete,
+            scanVerdict: cleanStatus.json().scanVerdict,
+          },
+          {
+            pending: false,
+            readyToComplete: true,
+            scanVerdict: 'CLEAN',
+          },
+        );
 
         const finalized = await app.inject({
           method: 'POST',
@@ -9508,6 +10641,27 @@ describe('wave2+ routes', () => {
         assert.equal(finalizedPayload.scanVerdict, 'CLEAN');
         assert.equal(finalizedPayload.scanner, 'test-clean-scanner');
 
+        const completedStatus = await app.inject({
+          method: 'GET',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+        });
+        assert.equal(completedStatus.statusCode, 200);
+        assert.deepEqual(
+          {
+            mediaStatus: completedStatus.json().mediaStatus,
+            pending: completedStatus.json().pending,
+            readyToComplete: completedStatus.json().readyToComplete,
+            scanVerdict: completedStatus.json().scanVerdict,
+          },
+          {
+            mediaStatus: 'AVAILABLE',
+            pending: false,
+            readyToComplete: false,
+            scanVerdict: 'CLEAN',
+          },
+        );
+
         fixtureTables = getDbFixtureStore().tables;
         uploadSession = asRows(fixtureTables.uploadSessions).find(
           (row) => asString(row.id) === uploadPayload.uploadSessionId,
@@ -9526,12 +10680,62 @@ describe('wave2+ routes', () => {
         assert.equal(asString(malwareScan?.verdict) ?? asString(malwareScan?.status), 'CLEAN');
         assert.equal(
           auditEventsFor(fixtureTables, {
+            action: 'upload.scan_result',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'SUCCESS',
+          }).length,
+          1,
+        );
+        assert.equal(
+          auditEventsFor(fixtureTables, {
             action: 'upload.complete',
             resourceId: uploadPayload.mediaObjectId,
             result: 'SUCCESS',
           }).length,
           1,
         );
+
+        const videosBeforeCreate = asRows(fixtureTables.videos).filter(
+          (row) => asString(row.mediaObjectId) === uploadPayload.mediaObjectId,
+        ).length;
+        const callerOwnedCreate = await app.inject({
+          method: 'POST',
+          url: '/v1/videos',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            title: 'Caller-owned actor metadata',
+            coachUserId,
+          },
+        });
+        assert.equal(callerOwnedCreate.statusCode, 400);
+        assert.equal(
+          asRows(fixtureTables.videos).filter(
+            (row) => asString(row.mediaObjectId) === uploadPayload.mediaObjectId,
+          ).length,
+          videosBeforeCreate,
+        );
+
+        assert.ok(mediaObject);
+        mediaObject.kind = 'DOCUMENT';
+        const wrongKind = await app.inject({
+          method: 'POST',
+          url: '/v1/videos',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            title: 'Wrong media kind',
+          },
+        });
+        assert.equal(wrongKind.statusCode, 400);
+        assert.match(wrongKind.body, /kind must be video/i);
+        assert.equal(
+          asRows(fixtureTables.videos).filter(
+            (row) => asString(row.mediaObjectId) === uploadPayload.mediaObjectId,
+          ).length,
+          videosBeforeCreate,
+        );
+        mediaObject.kind = 'VIDEO';
 
         const created = await app.inject({
           method: 'POST',
@@ -9546,10 +10750,67 @@ describe('wave2+ routes', () => {
         });
         assert.equal(created.statusCode, 201);
         const createdPayload = created.json() as {
-          video: { id: string; title: string; uploadStatus: string };
+          video: { id: string; title: string; description?: string; uploadStatus: string };
         };
         assert.equal(createdPayload.video.title, 'Technical Review');
+        assert.equal(createdPayload.video.description, 'Created in db mode');
         assert.equal(createdPayload.video.uploadStatus, 'READY');
+
+        const emptyUpdate = await app.inject({
+          method: 'PATCH',
+          url: `/v1/videos/${createdPayload.video.id}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {},
+        });
+        assert.equal(emptyUpdate.statusCode, 400);
+
+        const callerOwnedUpdate = await app.inject({
+          method: 'PATCH',
+          url: `/v1/videos/${createdPayload.video.id}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            title: 'Rejected update',
+            createdByUserId: coachUserId,
+          },
+        });
+        assert.equal(callerOwnedUpdate.statusCode, 400);
+
+        const updated = await app.inject({
+          method: 'PATCH',
+          url: `/v1/videos/${createdPayload.video.id}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            title: 'Technical Review Updated',
+          },
+        });
+        assert.equal(updated.statusCode, 200);
+        const updatedPayload = updated.json() as {
+          video: { title: string; description?: string };
+        };
+        assert.equal(updatedPayload.video.title, 'Technical Review Updated');
+        assert.equal(updatedPayload.video.description, 'Created in db mode');
+
+        const annotationsBeforeCreate = asRows(fixtureTables.videoAnnotations).filter(
+          (row) => asString(row.videoId) === createdPayload.video.id,
+        ).length;
+        const callerOwnedAnnotation = await app.inject({
+          method: 'POST',
+          url: `/v1/videos/${createdPayload.video.id}/annotations`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            timestamp: 12,
+            label: 'Caller-owned annotation actor',
+            type: 'TECHNIQUE',
+            createdBy: coachUserId,
+          },
+        });
+        assert.equal(callerOwnedAnnotation.statusCode, 400);
+        assert.equal(
+          asRows(fixtureTables.videoAnnotations).filter(
+            (row) => asString(row.videoId) === createdPayload.video.id,
+          ).length,
+          annotationsBeforeCreate,
+        );
 
         const annotation = await app.inject({
           method: 'POST',
@@ -9570,6 +10831,33 @@ describe('wave2+ routes', () => {
         assert.equal(annotationPayload.annotation.note, 'Open up earlier');
         assert.equal(annotationPayload.annotation.type, 'TECHNIQUE');
 
+        const updatedAnnotation = await app.inject({
+          method: 'PATCH',
+          url: `/v1/videos/${createdPayload.video.id}/annotations/${annotationPayload.annotation.id}`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            timestamp: 18,
+            label: 'Body position',
+            note: 'Receive on the back foot',
+            type: 'IMPROVEMENT',
+          },
+        });
+        assert.equal(updatedAnnotation.statusCode, 200);
+        assert.deepEqual(
+          {
+            timestamp: updatedAnnotation.json().annotation.timestamp,
+            label: updatedAnnotation.json().annotation.label,
+            note: updatedAnnotation.json().annotation.note,
+            type: updatedAnnotation.json().annotation.type,
+          },
+          {
+            timestamp: 18,
+            label: 'Body position',
+            note: 'Receive on the back foot',
+            type: 'IMPROVEMENT',
+          },
+        );
+
         const detail = await app.inject({
           method: 'GET',
           url: `/v1/videos/${createdPayload.video.id}`,
@@ -9577,7 +10865,7 @@ describe('wave2+ routes', () => {
         });
         assert.equal(detail.statusCode, 200);
         const detailPayload = detail.json() as { video: { annotations: Array<{ label: string }> } };
-        assert.equal(detailPayload.video.annotations[0]?.label, 'Footwork');
+        assert.equal(detailPayload.video.annotations[0]?.label, 'Body position');
 
         const archivedAnnotation = await app.inject({
           method: 'DELETE',
@@ -9626,6 +10914,7 @@ describe('wave2+ routes', () => {
       });
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.API_UPLOAD_SCAN_RESULT_TOKEN = previousScanResultToken;
       resetDbFixtureStoreForTests();
     }
   });
@@ -9633,9 +10922,25 @@ describe('wave2+ routes', () => {
   it('rejects upload completion and video creation from unsafe media state', async () => {
     const tables = loadTables();
     const coachUserId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
-    const outsiderUserId = findUnprivilegedUserId(tables, new Set([coachUserId]));
+    const outsiderUserId = findNonPrivilegedUserId(tables, new Set([coachUserId]));
+    const adminUserId = findUserWithRole(
+      tables,
+      'security_admin',
+      new Set([coachUserId, outsiderUserId]),
+    );
+    const clubAdminUserId = findUserWithRole(
+      tables,
+      'club_admin',
+      new Set([coachUserId, outsiderUserId, adminUserId]),
+    );
+    const adminRole =
+      rolesForUser(tables, adminUserId).find((role) =>
+        ['security_admin', 'admin'].includes(role),
+      ) ?? 'admin';
     const previousBackend = env.API_DATA_BACKEND;
+    const previousScanResultToken = env.API_UPLOAD_SCAN_RESULT_TOKEN;
     env.API_DATA_BACKEND = 'db';
+    env.API_UPLOAD_SCAN_RESULT_TOKEN = undefined;
 
     try {
       await withStorageEnv(async () => {
@@ -9679,17 +10984,213 @@ describe('wave2+ routes', () => {
           (row) => asString(row.id) === uploadPayload.mediaObjectId,
         );
         assert.ok(mediaObject, 'expected media object created by upload init');
-        mediaObject.status = 'QUARANTINED';
-        await recordUploadMalwareScanResult({
-          uploadSessionId: uploadPayload.uploadSessionId,
-          mediaObjectId: uploadPayload.mediaObjectId,
-          verdict: 'INFECTED',
-          scanner: 'test-scanner',
-          scannedAt: new Date().toISOString(),
-          details: {
-            source: 'route_test_seed',
+
+        const deniedScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: authHeaders(tables, outsiderUserId, 'parent'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            verdict: 'CLEAN',
+            scanner: 'outsider-scanner',
           },
         });
+        assert.equal(deniedScanResult.statusCode, 403);
+
+        const deniedClubAdminScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: authHeaders(tables, clubAdminUserId, 'club_admin'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            verdict: 'CLEAN',
+            scanner: 'club-admin-scanner',
+          },
+        });
+        assert.equal(deniedClubAdminScanResult.statusCode, 403);
+
+        const unconfiguredWorkerScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            verdict: 'CLEAN',
+            scanner: 'unconfigured-worker-scanner',
+          },
+        });
+        assert.equal(unconfiguredWorkerScanResult.statusCode, 403);
+
+        env.API_UPLOAD_SCAN_RESULT_TOKEN = 'clubroom-upload-scan-route-token';
+
+        const invalidWorkerScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'wrong-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            verdict: 'CLEAN',
+            scanner: 'invalid-worker-scanner',
+          },
+        });
+        assert.equal(invalidWorkerScanResult.statusCode, 403);
+
+        const uploadHandoff = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/complete`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+          },
+        });
+        assert.equal(uploadHandoff.statusCode, 202);
+        const uploadSession = asRows(fixtureTables.uploadSessions).find(
+          (row) => asString(row.id) === uploadPayload.uploadSessionId,
+        );
+        assert.ok(uploadSession);
+        uploadSession.status = 'SCANNING';
+        uploadSession.scanClaimedAt = '2029-01-01T00:00:00.000Z';
+        uploadSession.scanClaimedBy = 'test-worker';
+        uploadSession.activeScanAttemptId = 'sat_route_test_worker';
+        uploadSession.scanLeaseExpiresAt = new Date(Date.now() + 60_000).toISOString();
+        uploadSession.scanAttemptCount = 1;
+        const workerScannedAt = '2029-01-01T00:00:00.000Z';
+        const workerScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            sourceResultId: 'scan_result_route_test_worker',
+            scanAttemptId: 'sat_route_test_worker',
+            verdict: 'ERROR',
+            scanner: 'test-worker-scanner',
+            scannedAt: workerScannedAt,
+            details: {
+              source: 'route_test_worker_token',
+            },
+          },
+        });
+        assert.equal(workerScanResult.statusCode, 201);
+        assert.equal(asString(mediaObject.status), 'UPLOADED_UNSCANNED');
+        assert.equal(asString(mediaObject.updatedByUserId), 'system_upload_scan_worker');
+        const workerScanResultReplay = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            sourceResultId: 'scan_result_route_test_worker',
+            scanAttemptId: 'sat_route_test_worker',
+            verdict: 'ERROR',
+            scanner: 'test-worker-scanner',
+            scannedAt: workerScannedAt,
+            details: {
+              source: 'route_test_worker_token',
+            },
+          },
+        });
+        assert.equal(workerScanResultReplay.statusCode, 200);
+        assert.equal(
+          asRows(fixtureTables.malwareScanResults).filter(
+            (row) => asString(row.sourceResultId) === 'scan_result_route_test_worker',
+          ).length,
+          1,
+        );
+        const conflictingWorkerScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            sourceResultId: 'scan_result_route_test_worker',
+            scanAttemptId: 'sat_route_test_worker',
+            verdict: 'ERROR',
+            scanner: 'conflicting-worker-scanner',
+            scannedAt: workerScannedAt,
+          },
+        });
+        assert.equal(conflictingWorkerScanResult.statusCode, 409);
+
+        uploadSession.status = 'SCANNING';
+        uploadSession.scanClaimedAt = '2029-01-01T00:01:00.000Z';
+        uploadSession.scanClaimedBy = 'test-worker';
+        uploadSession.activeScanAttemptId = 'sat_route_test_terminal';
+        uploadSession.scanLeaseExpiresAt = new Date(Date.now() + 60_000).toISOString();
+        uploadSession.scanAttemptCount = 2;
+        const terminalWorkerScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: {
+            'x-clubroom-upload-scan-token': 'clubroom-upload-scan-route-token',
+          },
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            sourceResultId: 'scan_result_route_test_terminal',
+            scanAttemptId: 'sat_route_test_terminal',
+            verdict: 'ERROR',
+            scanner: 'test-worker-scanner',
+            scannedAt: '2029-01-01T00:01:00.000Z',
+            details: {
+              errorCode: 'OBJECT_SIZE_MISMATCH',
+            },
+          },
+        });
+        assert.equal(terminalWorkerScanResult.statusCode, 201);
+        assert.equal(asString(uploadSession.status), 'REJECTED');
+        assert.equal(asString(mediaObject.status), 'REJECTED');
+        assert.equal(uploadSession.scanNextAttemptAt ?? null, null);
+
+        const infectedScanResult = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/scan-result`,
+          headers: authHeaders(tables, adminUserId, adminRole),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            verdict: 'INFECTED',
+            scanner: 'test-scanner',
+            scannedAt: new Date().toISOString(),
+            details: {
+              source: 'route_test_api',
+            },
+          },
+        });
+        assert.equal(infectedScanResult.statusCode, 201);
+        assert.equal(asString(mediaObject.status), 'QUARANTINED');
+        assert.equal(asString(mediaObject.updatedByUserId), adminUserId);
+        assert.equal(
+          auditEventsFor(getDbFixtureStore().tables, {
+            action: 'upload.scan_result',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'DENY',
+          }).length,
+          5,
+        );
+        assert.equal(
+          auditEventsFor(getDbFixtureStore().tables, {
+            action: 'upload.scan_result',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'SUCCESS',
+          }).length,
+          4,
+        );
+        const workerSuccessAudit = auditEventsFor(getDbFixtureStore().tables, {
+          action: 'upload.scan_result',
+          resourceId: uploadPayload.mediaObjectId,
+          result: 'SUCCESS',
+        }).find((row) => asString(asRecord(row.metadataJson)?.actorKind) === 'scanner_worker');
+        assert.ok(workerSuccessAudit, 'expected scanner worker audit event');
+        assert.equal(workerSuccessAudit.actorUserId ?? null, null);
 
         const unsafeVideo = await app.inject({
           method: 'POST',
@@ -9705,6 +11206,7 @@ describe('wave2+ routes', () => {
       });
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.API_UPLOAD_SCAN_RESULT_TOKEN = previousScanResultToken;
       resetDbFixtureStoreForTests();
     }
   });
@@ -9938,6 +11440,57 @@ describe('wave2+ routes', () => {
     assert.equal(deletionPayload.total >= 1, true);
     assert.equal(deletionPayload.requests.length >= 1, true);
 
+    const createRequesterUserId = findUserWithoutPendingDeletionRequest(tables);
+    const createReason = 'Please erase my account after export review.';
+    const createDeletion = await app.inject({
+      method: 'POST',
+      url: '/v1/me/data-deletion-requests',
+      headers: authHeaders(tables, createRequesterUserId),
+      payload: {
+        reason: createReason,
+      },
+    });
+    assert.equal(createDeletion.statusCode, 201);
+    const createDeletionPayload = createDeletion.json() as {
+      request: {
+        id?: string;
+        requesterUserId?: string;
+        status?: string;
+        reason?: string;
+        requestedAt?: string;
+        scheduledDeletionAt?: string;
+      };
+      created: boolean;
+    };
+    assert.equal(createDeletionPayload.created, true);
+    assert.equal(createDeletionPayload.request.requesterUserId, createRequesterUserId);
+    assert.equal(createDeletionPayload.request.status, 'PENDING');
+    assert.equal(createDeletionPayload.request.reason, createReason);
+    assert.ok(createDeletionPayload.request.requestedAt);
+    assert.ok(createDeletionPayload.request.scheduledDeletionAt);
+    assert.equal(
+      Date.parse(createDeletionPayload.request.scheduledDeletionAt!) >
+        Date.parse(createDeletionPayload.request.requestedAt!),
+      true,
+    );
+
+    const duplicateDeletion = await app.inject({
+      method: 'POST',
+      url: '/v1/me/data-deletion-requests',
+      headers: authHeaders(tables, createRequesterUserId),
+      payload: {
+        reason: 'A later duplicate should not create a second pending row.',
+      },
+    });
+    assert.equal(duplicateDeletion.statusCode, 200);
+    const duplicateDeletionPayload = duplicateDeletion.json() as {
+      request: { id?: string; reason?: string };
+      created: boolean;
+    };
+    assert.equal(duplicateDeletionPayload.created, false);
+    assert.equal(duplicateDeletionPayload.request.id, createDeletionPayload.request.id);
+    assert.equal(duplicateDeletionPayload.request.reason, createReason);
+
     const liveTables = getMarketplaceSeedStore().tables;
     assert.equal(
       auditEventsFor(liveTables, {
@@ -9960,72 +11513,129 @@ describe('wave2+ routes', () => {
       }).length,
       1,
     );
+    const createAudits = auditEventsFor(liveTables, {
+      action: 'data_deletion_requests.create',
+      result: 'SUCCESS',
+    });
+    assert.equal(createAudits.length, 2);
+    assert.doesNotMatch(JSON.stringify(createAudits), /Please erase my account/);
+    assert.equal(asRecord(createAudits[1]?.metadataJson)?.duplicatePending, true);
   });
 
-  it('uses the db fixture repository seam for retention and data-deletion reads in db mode', async () => {
+  it('fails closed for trust privacy ops in db mode when Prisma is unavailable', async () => {
     const tables = loadTables();
     const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
     const adminMembership = asRows(tables.userRoleMemberships).find((row) => {
       const role = asString(row.role);
       return role === 'club_admin' || role === 'security_admin';
     });
     assert.ok(adminMembership, 'expected seeded admin role membership');
     const adminUserId = asString(adminMembership.userId) as string;
+    const accessGrantId = asString(asRows(tables.accessGrants)[0]?.id);
+    assert.ok(accessGrantId, 'expected seeded access grant');
+    const retentionRunId = asString(asRows(tables.retentionRuns)[0]?.id);
+    assert.ok(retentionRunId, 'expected seeded retention run');
     const deletionRequest = asRows(tables.dataDeletionRequests)[0];
     assert.ok(deletionRequest, 'expected seeded data deletion request');
     const requesterUserId = asString(deletionRequest.requesterUserId) as string;
+    const deletionRequestId = asString(deletionRequest.id);
+    assert.ok(deletionRequestId, 'expected seeded data deletion request id');
+    const createRequesterUserId = findUserWithoutPendingDeletionRequest(
+      tables,
+      new Set([requesterUserId]),
+    );
+    const fixtureTables = getDbFixtureStore().tables;
+    const dbDeletionRequestCountBefore = asRows(fixtureTables.dataDeletionRequests).length;
 
     env.API_DATA_BACKEND = 'db';
+    env.DATABASE_URL = undefined;
     try {
+      const grants = await app.inject({
+        method: 'GET',
+        url: '/v1/access-grants',
+        headers: authHeaders(tables, adminUserId, asString(adminMembership.role) as string),
+      });
+      assert.equal(grants.statusCode, 503);
+      assert.match(grants.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(grants.body.includes(accessGrantId), false);
+
       const runs = await app.inject({
         method: 'GET',
         url: '/v1/admin/retention-runs',
         headers: authHeaders(tables, adminUserId, asString(adminMembership.role) as string),
       });
-      assert.equal(runs.statusCode, 200);
-      const runsPayload = runs.json() as {
-        runs: Array<{ id?: string }>;
-        seedVersion: string | null;
-      };
-      assert.equal(runsPayload.seedVersion, null);
-      assert.equal(
-        runsPayload.runs.some((run) => run.id === asString(asRows(tables.retentionRuns)[0]?.id)),
-        true,
-      );
+      assert.equal(runs.statusCode, 503);
+      assert.match(runs.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(runs.body.includes(retentionRunId), false);
 
       const deletion = await app.inject({
         method: 'GET',
         url: '/v1/me/data-deletion-requests',
         headers: authHeaders(tables, requesterUserId),
       });
-      assert.equal(deletion.statusCode, 200);
-      const deletionPayload = deletion.json() as {
-        requests: Array<{ id?: string; requesterUserId?: string }>;
-        total: number;
-        seedVersion: string | null;
-      };
-      assert.equal(deletionPayload.seedVersion, null);
-      assert.equal(deletionPayload.total, 1);
-      assert.equal(deletionPayload.requests[0]?.id, asString(deletionRequest.id));
-      assert.equal(deletionPayload.requests[0]?.requesterUserId, requesterUserId);
+      assert.equal(deletion.statusCode, 503);
+      assert.match(deletion.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(deletion.body.includes(deletionRequestId), false);
+      assert.equal(deletion.body.includes(requesterUserId), false);
 
-      const fixtureTables = getDbFixtureStore().tables;
+      const create = await app.inject({
+        method: 'POST',
+        url: '/v1/me/data-deletion-requests',
+        headers: authHeaders(tables, createRequesterUserId),
+        payload: {
+          reason: 'DB fixture mode account deletion request.',
+        },
+      });
+      assert.equal(create.statusCode, 503);
+      assert.match(create.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(create.body.includes(createRequesterUserId), false);
+      assert.equal(create.body.includes('DB fixture mode account deletion request'), false);
+      assert.equal(
+        asRows(fixtureTables.dataDeletionRequests).length,
+        dbDeletionRequestCountBefore,
+      );
+      assert.equal(
+        asRows(fixtureTables.dataDeletionRequests).filter(
+          (row) =>
+            asString(row.requesterUserId) === createRequesterUserId &&
+            asString(row.status) === 'PENDING' &&
+            !asString(row.cancelledAt),
+        ).length,
+        0,
+      );
+      assert.equal(
+        auditEventsFor(fixtureTables, {
+          action: 'access_grants.read',
+          result: 'ERROR',
+        }).length,
+        1,
+      );
       assert.equal(
         auditEventsFor(fixtureTables, {
           action: 'retention_runs.read',
-          result: 'SUCCESS',
+          result: 'ERROR',
         }).length,
         1,
       );
       assert.equal(
         auditEventsFor(fixtureTables, {
           action: 'data_deletion_requests.read',
-          result: 'SUCCESS',
+          result: 'ERROR',
         }).length,
         1,
       );
+      const createAudits = auditEventsFor(fixtureTables, {
+        action: 'data_deletion_requests.create',
+        result: 'ERROR',
+      });
+      assert.equal(createAudits.length, 1);
+      assert.equal(asString(asRecord(createAudits[0]?.metadataJson)?.reason), 'prisma_unavailable');
+      assert.equal(asRecord(createAudits[0]?.metadataJson)?.reasonProvided, true);
+      assert.doesNotMatch(JSON.stringify(createAudits), /DB fixture mode account deletion request/);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
       resetDbFixtureStoreForTests();
     }
   });
@@ -10040,8 +11650,17 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, coachUserId, 'coach'),
     });
     assert.equal(coachProfile.statusCode, 200);
-    const coachProfilePayload = coachProfile.json() as { availabilityTemplates: unknown[] };
-    assert.equal(coachProfilePayload.availabilityTemplates.length >= 1, true);
+    const coachProfilePayload = coachProfile.json() as { profile?: { userId?: unknown } };
+    assert.equal(asString(coachProfilePayload.profile?.userId), coachUserId);
+
+    const coachAvailability = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/availability/templates',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(coachAvailability.statusCode, 200);
+    const coachAvailabilityPayload = coachAvailability.json() as { templates: unknown[] };
+    assert.equal(coachAvailabilityPayload.templates.length >= 1, true);
 
     const coachOfferings = await app.inject({
       method: 'GET',

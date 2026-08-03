@@ -41,10 +41,16 @@ export default function EmergencyQuickAccessScreen() {
   }
 
   if (e.status === 'error') {
+    const terminalAccessError = e.error?.code === 'NOT_FOUND' || e.error?.code === 'UNAUTHORIZED';
     return renderState(
       <ErrorState
-        message={e.error?.message || 'Could not load emergency information for this athlete.'}
-        onRetry={e.retry}
+        title={terminalAccessError ? 'Emergency information unavailable' : undefined}
+        message={
+          terminalAccessError
+            ? (e.error?.message ?? 'This player is not available from your roster.')
+            : e.error?.message || 'Could not load emergency information for this athlete.'
+        }
+        onRetry={terminalAccessError ? undefined : e.retry}
       />,
     );
   }
@@ -71,7 +77,12 @@ export default function EmergencyQuickAccessScreen() {
         showBack
         centerTitle
         right={
-          <Clickable onPress={e.handleRefresh} hitSlop={8} disabled={e.refreshing}>
+          <Clickable
+            onPress={e.handleRefresh}
+            hitSlop={8}
+            disabled={e.refreshing}
+            accessibilityLabel="Refresh emergency information"
+          >
             <Ionicons
               name="refresh"
               size={22}
@@ -110,9 +121,6 @@ export default function EmergencyQuickAccessScreen() {
           <EmergencyQuickCard
             athleteName={e.emergencyData.athleteName}
             alertLevel={e.emergencyData.alertLevel}
-            allergies={e.emergencyData.allergies}
-            conditions={e.emergencyData.conditions}
-            medications={e.emergencyData.medications}
             primaryContact={e.emergencyData.primaryContact}
             onCallPrimary={
               e.emergencyData.primaryContact

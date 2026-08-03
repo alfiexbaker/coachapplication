@@ -34,6 +34,7 @@ import { resolveDefaultBookingTarget } from '@/utils/booking-targets';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { isBrowserFetchFailure } from '@/utils/network-errors';
+import { buildAuthScopedSnapshotKey } from '@/utils/auth-scoped-snapshot-key';
 const logger = createLogger('DiscoverSessions');
 export const SKILL_FILTERS: {
   value: FootballObjective | '';
@@ -89,7 +90,7 @@ interface DiscoverSessionsData {
   offerings: SessionOffering[];
   pendingInvites: SessionInvite[];
 }
-let lastDiscoverSessionsSnapshot: DiscoverSessionsData | null = null;
+const discoverSessionsSnapshots = new Map<string, DiscoverSessionsData>();
 export interface UseDiscoverSessionsResult {
   loading: boolean;
   status: ScreenStatus;
@@ -131,6 +132,13 @@ export function useDiscoverSessions() {
       ].join(':'),
     )
     .join('|');
+  const snapshotKey = buildAuthScopedSnapshotKey(
+    currentUser?.id,
+    'discover-sessions',
+    currentUser?.role,
+    contextChildrenSignature,
+    activeChildId,
+  );
   const hasParentInviteScope = Boolean(
     currentUser &&
     currentUser.role !== 'COACH' &&
@@ -265,11 +273,14 @@ export function useDiscoverSessions() {
     loadingStrategy: 'warm-first',
   });
   useEffect(() => {
-    if (data) {
-      lastDiscoverSessionsSnapshot = data;
+    if (data && snapshotKey) {
+      discoverSessionsSnapshots.set(snapshotKey, data);
     }
-  }, [data]);
-  const resolvedData = data ?? lastDiscoverSessionsSnapshot;
+  }, [data, snapshotKey]);
+  const resolvedData =
+    data ??
+    (status === 'loading' && snapshotKey ? discoverSessionsSnapshots.get(snapshotKey) : null) ??
+    null;
   const offerings = resolvedData?.offerings;
   const pendingInvites = resolvedData?.pendingInvites ?? [];
   const loading = status === 'loading' && !resolvedData;

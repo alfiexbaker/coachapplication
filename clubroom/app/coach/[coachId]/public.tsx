@@ -111,6 +111,7 @@ export default function PublicCoachProfileScreen() {
           onMessage={profile.handleMessage}
           offeringSummary={profile.offeringSummary}
           isBlocked={profile.isBlocked}
+          actionsUnavailable={profile.profileActionsBlocked}
         />
 
         {/* Tab Bar */}

@@ -1,0 +1,53 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T15:00:12.988Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "invite-code-settings-audit"
+    ],
+    "role": "coach",
+    "chunkIndex": 1,
+    "chunkSize": 1,
+    "retries": 1,
+    "pauseMs": 900
+  },
+  "totals": {
+    "total": 1,
+    "ok": 0,
+    "failed": 1,
+    "high": 1,
+    "medium": 0,
+    "none": 0
+  },
+  "results": [
+    {
+      "id": "coach_invite_code_settings_ready",
+      "role": "coach",
+      "title": "Authorized coach sees the canonical club invite controls",
+      "path": "/club/settings?clubId=clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1&section=invites",
+      "finalPath": "/club/settings",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/invite-code-settings-audit/coach__coach_invite_code_settings_ready.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "action_failed:assertTextVisible:Error: Text not visible: Invite Codes",
+        "action_failed:assertTextVisible:Error: Text not visible: Share codes to invite coaches and members",
+        "action_failed:assertTextVisible:Error: Text not visible: Member Invite",
+        "action_failed:assertTargetInViewport:Error: Viewport target not visible: Invite Codes",
+        "action_failed:assertTargetUnobscured:Error: Unobscured target not visible: Invite Codes"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 30109
+    }
+  ]
+}

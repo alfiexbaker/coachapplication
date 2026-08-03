@@ -1,9 +1,10 @@
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { ServiceEvents } from '@/services/event-bus';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, validationError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
+import { useRequiredParam } from '@/hooks/use-required-param';
 import {
   orgOwnerDashboardService,
   type OrgOwnerDashboardData,
@@ -24,14 +25,14 @@ export interface UseClubDashboardResult {
 }
 
 export function useClubDashboard(): UseClubDashboardResult {
-  const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const router = useRouter();
   const { currentUser } = useAuth();
-  const resolvedClubId = clubId ?? '';
+  const clubIdParam = useRequiredParam('clubId');
+  const resolvedClubId = clubIdParam.valid ? clubIdParam.value : '';
 
   const loadDashboard = async () => {
-    if (!resolvedClubId) {
-      return err(validationError('Club ID is required'));
+    if (!clubIdParam.valid) {
+      return err(validationError('Invalid club dashboard link.'));
     }
     if (!currentUser?.id) {
       return err(validationError('You must be signed in to view this dashboard'));
@@ -49,7 +50,8 @@ export function useClubDashboard(): UseClubDashboardResult {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<OrgOwnerDashboardData>({
     load: loadDashboard,
-    deps: [currentUser?.id, resolvedClubId],
+    deps: [currentUser?.id, clubIdParam.valid, resolvedClubId],
+    dataKey: `owner-dashboard:${currentUser?.id ?? 'anonymous'}:${resolvedClubId || 'missing'}`,
     events: [
       ServiceEvents.CLUB_MEMBER_JOINED,
       ServiceEvents.CLUB_MEMBER_LEFT,

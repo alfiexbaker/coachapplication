@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   bookingIdSchema,
@@ -7,12 +7,15 @@ import {
   cancelBookingRequestSchema,
   confirmBookingRequestSchema,
   completeBookingRequestSchema,
+  completeGroupSessionRequestSchema,
   createBookingRequestSchema,
   createBookingSeriesRequestSchema,
   inviteResponseRequestSchema,
   joinGroupSessionWaitlistRequestSchema,
+  markGroupSessionAttendanceRequestSchema,
   pauseBookingSeriesRequestSchema,
   reopenBookingRequestSchema,
+  resolveBookingRequestSchema,
   registerGroupSessionRequestSchema,
   resumeBookingSeriesRequestSchema,
   updateBookingRequestSchema,
@@ -25,7 +28,9 @@ import {
   badRequest,
   conflict,
   forbidden,
+  isZodValidationError,
   notFound,
+  serviceUnavailable,
 } from '../../lib/http-errors.js';
 import {
   resolveCreateBookingIdempotency,
@@ -35,14 +40,18 @@ import {
 import { cancellationRecordRepository } from '../../repositories/p0/cancellation-record-repository.js';
 import { resolveBookingReviewRepository } from '../../repositories/p0/booking-review-repository.js';
 import {
+  resolveUserBlockRepository,
+  type BlockRelationship,
+} from '../../repositories/p0/user-block-repository.js';
+import {
   assertBookingSeriesCreateAccess,
   assertBookingSeriesOccurrencesValid,
   resolveCreateBookingSeriesIdempotency,
   resolveBookingSeriesRepository,
 } from '../../repositories/p0/booking-series-repository.js';
 import { resolveGroupSessionRepository } from '../../repositories/p0/group-session-repository.js';
-import { isPrivilegedAdminAuth } from '../../lib/authz.js';
-import { recordAuditEvent } from '../../lib/audit-runtime.js';
+import { isPrivilegedAdminAuth, isSystemAdminAuth } from '../../lib/authz.js';
+import { buildAuditEventData, recordAuditEvent } from '../../lib/audit-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -50,16 +59,26 @@ import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/pr
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
 import { generateInvoiceForBooking, getBookingInvoiceContext } from '../../lib/invoice-runtime.js';
 import {
+  formatInstantInTimeZone,
+  isSupportedTimeZone,
+  localDateTimeToUtc,
+} from '../../lib/time-zone.js';
+import {
   assertCoachAvailabilitySlotOpen,
   resolveCoachAvailabilityTables,
   slotToScheduledAt,
 } from '../coach-club/availability.js';
 type SeedRow = Record<string, unknown>;
-type InviteRuntimeBackend = 'seed' | 'db-fixture' | 'db';
+type InviteRuntimeBackend = 'seed' | 'db';
 type InviteRuntimeStore = {
   version: string | null;
   tables: SeedTables;
   backend: InviteRuntimeBackend;
+};
+type InviteRuntimeCommitFilter = {
+  inviteIds?: ReadonlySet<string>;
+  targetIds?: ReadonlySet<string>;
+  idempotencyKeys?: ReadonlySet<string>;
 };
 type InviteRsvpStatus = 'going' | 'maybe' | 'cant_go';
 type InviteRsvpResponseRow = {
@@ -110,16 +129,58 @@ const bookingSessionNoteRequestSchema = z.object({
 const cancellationRecordsQuerySchema = z.object({
   coachId: z.string().trim().min(1).optional(),
 });
+const bookingStepAnalyticsRequestSchema = z.object({
+  id: z.string().trim().min(1).max(160).optional(),
+  createdAt: z.string().datetime().optional(),
+  source: z.string().trim().min(1).max(120),
+  role: z.enum(['parent', 'athlete', 'coach', 'admin']),
+  actingAs: z.enum(['self', 'club']),
+  step: z.enum(['type', 'schedule', 'details', 'review', 'confirm']),
+  status: z.enum(['success', 'validation_fail', 'conflict_fail', 'abandoned']),
+  failure_code: z.string().trim().min(1).max(160).nullable().optional(),
+  coachId: z.string().trim().min(1).max(160).optional(),
+  ownerCoachId: z.string().trim().min(1).max(160).optional(),
+  assigneeCoachId: z.string().trim().min(1).max(160).optional(),
+  clubId: z.string().trim().min(1).max(160).optional(),
+});
 const INVITE_CREATE_ENDPOINT_KEY = 'POST:/v1/invites';
 const INVITE_IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const INVITE_RUNTIME_TRANSACTION_OPTIONS = {
   maxWait: 5_000,
   timeout: 15_000,
 };
+type ActiveBookingBlock = {
+  counterpartUserId: string;
+  relationship: Exclude<BlockRelationship, 'none'>;
+};
+
+async function findActiveBookingBlock(params: {
+  coachUserId: string;
+  counterpartyUserIds: Array<string | null | undefined>;
+}): Promise<ActiveBookingBlock | null> {
+  const counterpartUserIds = new Set(
+    params.counterpartyUserIds.filter(
+      (userId): userId is string => Boolean(userId) && userId !== params.coachUserId,
+    ),
+  );
+  const repository = resolveUserBlockRepository();
+  for (const counterpartUserId of counterpartUserIds) {
+    const status = await repository.getBlockStatus(counterpartUserId, params.coachUserId);
+    if (status.blocked && status.relationship !== 'none') {
+      return {
+        counterpartUserId,
+        relationship: status.relationship,
+      };
+    }
+  }
+  return null;
+}
+
 async function recordInviteAudit(params: {
   request: FastifyRequest;
   action:
     | 'invite.create'
+    | 'invite.read'
     | 'invite.cancel'
     | 'invite.remind'
     | 'invite.dismiss'
@@ -223,14 +284,27 @@ async function getInviteRuntimeStore(params?: {
   existingSessionId?: string;
   inviteId?: string;
   parentUserId?: string;
+  unavailableAudit?: {
+    request: FastifyRequest;
+    action: Parameters<typeof recordInviteAudit>[0]['action'];
+    resourceId?: string | null;
+    subjectUserId?: string | null;
+    metadata?: Record<string, unknown>;
+  };
 }): Promise<InviteRuntimeStore> {
   if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
-    const store = getDbFixtureStore();
-    return {
-      version: store.version,
-      tables: store.tables,
-      backend: 'db-fixture',
-    };
+    if (params?.unavailableAudit) {
+      await recordInviteAudit({
+        ...params.unavailableAudit,
+        result: 'ERROR',
+        metadata: {
+          ...(params.unavailableAudit.metadata ?? {}),
+          reason: 'prisma_unavailable',
+          status: 503,
+        },
+      });
+    }
+    getPrismaClientOrThrow();
   }
   if (getApiDataBackend() === 'db') {
     const prisma = getPrismaClientOrThrow();
@@ -385,14 +459,35 @@ async function getInviteRuntimeStore(params?: {
     backend: 'seed',
   };
 }
-async function commitInviteRuntimeStore(store: InviteRuntimeStore): Promise<void> {
+function inviteIdempotencyCommitKey(entry: SeedRow): string | null {
+  const userId = asString(entry.userId);
+  const endpointKey = asString(entry.endpointKey);
+  const idempotencyKey = asString(entry.idempotencyKey);
+  if (!userId || !endpointKey || !idempotencyKey) {
+    return null;
+  }
+  return `${userId}:${endpointKey}:${idempotencyKey}`;
+}
+async function commitInviteRuntimeStore(
+  store: InviteRuntimeStore,
+  filter: InviteRuntimeCommitFilter = {},
+): Promise<void> {
   if (store.backend !== 'db') {
     return;
   }
   const prisma = getPrismaClientOrThrow();
-  const invites = asRows(store.tables.invites);
-  const targets = asRows(store.tables.inviteTargets);
-  const idempotencyKeys = asRows(store.tables.idempotencyKeys);
+  const invites = asRows(store.tables.invites).filter((invite) => {
+    const inviteId = asString(invite.id);
+    return !filter.inviteIds || Boolean(inviteId && filter.inviteIds.has(inviteId));
+  });
+  const targets = asRows(store.tables.inviteTargets).filter((target) => {
+    const targetId = asString(target.id);
+    return !filter.targetIds || Boolean(targetId && filter.targetIds.has(targetId));
+  });
+  const idempotencyKeys = asRows(store.tables.idempotencyKeys).filter((entry) => {
+    const key = inviteIdempotencyCommitKey(entry);
+    return !filter.idempotencyKeys || Boolean(key && filter.idempotencyKeys.has(key));
+  });
   await prisma.$transaction(async (tx) => {
     await Promise.all(
       invites.map((invite) => {
@@ -537,45 +632,80 @@ const clubEventTypeSchema = z.enum([
   'OTHER',
 ]);
 const clubEventTargetAudienceSchema = z.enum(['ALL', 'COACHES', 'PARENTS', 'ATHLETES', 'SQUAD']);
-const clubEventWriteSchema = z.object({
+// Role-targeted club events are not enforceable by the current visibility and invite model.
+// Keep legacy values readable, but only accept scopes the backend can actually enforce.
+const clubEventWritableTargetAudienceSchema = z.enum(['ALL', 'ATHLETES', 'SQUAD']);
+const clubEventStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED']);
+function isValidClubEventDate(value: string): boolean {
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+const clubEventDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine(isValidClubEventDate, 'Expected a valid calendar date');
+const clubEventTimeSchema = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
+const clubEventWriteShape = {
   title: z.string().trim().min(1).max(180).optional(),
   description: z.string().max(5000).optional(),
   eventType: clubEventTypeSchema.optional(),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
-  startTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/)
-    .optional(),
-  endTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/)
-    .optional(),
+  date: clubEventDateSchema.optional(),
+  startTime: clubEventTimeSchema.optional(),
+  endTime: clubEventTimeSchema.optional(),
   venue: z.string().trim().min(1).max(240).optional(),
   address: z.string().max(500).optional(),
   isVirtual: z.boolean().optional(),
   meetingLink: z.string().url().optional(),
-  targetAudience: clubEventTargetAudienceSchema.optional(),
+  targetAudience: clubEventWritableTargetAudienceSchema.optional(),
   squadIds: z.array(z.string().trim().min(1)).optional(),
   athleteIds: z.array(z.string().trim().min(1)).max(200).optional(),
   maxAttendees: z.number().int().min(1).max(10000).optional(),
   price: z.number().min(0).max(100000).optional(),
   currency: z.string().trim().length(3).optional(),
   rsvpRequired: z.boolean().optional(),
-  rsvpDeadline: z.string().optional(),
+  rsvpDeadline: clubEventDateSchema.optional(),
   imageUrl: z.string().url().optional(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED']).optional(),
-});
-const createClubEventRequestSchema = clubEventWriteSchema.extend({
-  title: z.string().trim().min(1).max(180),
-  eventType: clubEventTypeSchema,
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  venue: z.string().trim().min(1).max(240),
-  targetAudience: clubEventTargetAudienceSchema,
-});
+};
+const clubEventWriteSchema = z
+  .object({
+    ...clubEventWriteShape,
+    status: clubEventStatusSchema.optional(),
+  })
+  .strict();
+const createClubEventRequestSchema = z
+  .object({
+    ...clubEventWriteShape,
+    title: z.string().trim().min(1).max(180),
+    description: z.string().max(5000).default(''),
+    eventType: clubEventTypeSchema,
+    date: clubEventDateSchema,
+    startTime: clubEventTimeSchema,
+    venue: z.string().trim().min(1).max(240),
+    isVirtual: z.boolean().default(false),
+    targetAudience: clubEventWritableTargetAudienceSchema,
+    squadIds: z.array(z.string().trim().min(1)).default([]),
+    athleteIds: z.array(z.string().trim().min(1)).max(200).default([]),
+    price: z.number().min(0).max(100000).default(0),
+    currency: z.string().trim().length(3).default('GBP'),
+    rsvpRequired: z.boolean().default(true),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.endTime && value.endTime <= value.startTime) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endTime'],
+        message: 'Event end time must be after its start time',
+      });
+    }
+    if (value.rsvpDeadline && value.rsvpDeadline > value.date) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rsvpDeadline'],
+        message: 'RSVP deadline cannot be after the event date',
+      });
+    }
+  });
 const updateClubEventRequestSchema = clubEventWriteSchema.refine(
   (value) => Object.keys(value).length > 0,
   'At least one event field is required',
@@ -585,11 +715,71 @@ const eventSquadInviteRequestSchema = z.object({
   excludeAthleteIds: z.array(z.string().trim().min(1)).max(1000).optional(),
   excludeMemberIds: z.array(z.string().trim().min(1)).max(1000).optional(),
 });
+const organizerEventInvitesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+});
 const eventAthleteInviteRequestSchema = z.object({
   athleteIds: z.array(z.string().trim().min(1)).min(1).max(200),
 });
 type ClubEventWriteBody = z.infer<typeof clubEventWriteSchema>;
 type CreateClubEventRequestBody = z.infer<typeof createClubEventRequestSchema>;
+const clubEventRsvpSummarySchema = z
+  .object({
+    going: z.number().int().nonnegative(),
+    maybe: z.number().int().nonnegative(),
+    notGoing: z.number().int().nonnegative(),
+    totalGuests: z.number().int().nonnegative(),
+  })
+  .strict();
+const clubEventProjectionSchema = z
+  .object({
+    id: z.string().min(1),
+    clubId: z.string().min(1),
+    createdBy: z.string().min(1),
+    title: z.string().min(1).max(180),
+    description: z.string().max(5000),
+    eventType: clubEventTypeSchema,
+    date: clubEventDateSchema,
+    startDate: clubEventDateSchema,
+    startTime: clubEventTimeSchema,
+    endTime: clubEventTimeSchema.optional(),
+    timeZone: z.string().min(1).max(80),
+    venue: z.string().min(1).max(240),
+    location: z.string().min(1).max(240),
+    address: z.string().max(500).optional(),
+    isVirtual: z.boolean(),
+    meetingLink: z.string().url().optional(),
+    targetAudience: clubEventTargetAudienceSchema,
+    squadIds: z.array(z.string().min(1)),
+    athleteIds: z.array(z.string().min(1)),
+    allClub: z.boolean(),
+    maxAttendees: z.number().int().positive().optional(),
+    maxParticipants: z.number().int().positive().optional(),
+    currentParticipants: z.number().int().nonnegative().optional(),
+    price: z.number().nonnegative(),
+    currency: z.string().length(3),
+    rsvpRequired: z.boolean(),
+    rsvpDeadline: z.string().datetime().optional(),
+    rsvpSummary: clubEventRsvpSummarySchema.optional(),
+    status: clubEventStatusSchema,
+    imageUrl: z.string().url().optional(),
+    createdAt: z.string().datetime(),
+  })
+  .strict();
+type EventSquadInviteAggregate = {
+  id: string;
+  squadId: string;
+  targetType: 'EVENT';
+  targetId: string;
+  invitedBy: string;
+  invitedAt: string;
+  memberCount: number;
+  responses: {
+    accepted: number;
+    declined: number;
+    pending: number;
+  };
+};
 
 function toDbEventRsvpStatus(
   status: EventRsvpRequestBody['status'],
@@ -638,7 +828,19 @@ async function assertCanReadEventRsvps(params: {
   request: FastifyRequest;
   eventId: string;
   authUserId: string;
+  targetUserId?: string | null;
 }): Promise<{ clubId: string }> {
+  const targetUserId = params.targetUserId ?? null;
+  if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
+    await recordEventRsvpReadAudit({
+      request: params.request,
+      eventId: params.eventId,
+      authUserId: params.authUserId,
+      result: 'ERROR',
+      metadata: { reason: 'prisma_unavailable', status: 503 },
+    });
+    getPrismaClientOrThrow();
+  }
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const event = await prisma.clubEvent.findFirst({
@@ -670,20 +872,31 @@ async function assertCanReadEventRsvps(params: {
       select: {
         active: true,
         deletedAt: true,
+        role: true,
       },
     });
-    if (
-      !isPrivilegedAdminAuth(params.request.auth) &&
-      (!membership?.active || membership.deletedAt)
-    ) {
+    const role = parseOrganizationRole(membership?.role);
+    const isActiveMember = Boolean(membership?.active && !membership.deletedAt);
+    const canRead =
+      isPrivilegedAdminAuth(params.request.auth) ||
+      Boolean(isActiveMember && role && isClubStaffRole(role)) ||
+      (targetUserId === params.authUserId && isActiveMember);
+    if (!canRead) {
       await recordEventRsvpReadAudit({
         request: params.request,
         eventId: params.eventId,
         authUserId: params.authUserId,
         result: 'DENY',
-        metadata: { reason: 'not_club_member', clubId: event.clubId },
+        metadata: {
+          reason: targetUserId ? 'not_self_or_event_staff' : 'not_event_staff',
+          clubId: event.clubId,
+        },
       });
-      throw forbidden('User is not a member of event club');
+      throw forbidden(
+        targetUserId
+          ? 'Only the attendee, event staff, or admins can read event RSVPs'
+          : 'Only event staff can read event RSVPs',
+      );
     }
     return { clubId: event.clubId };
   }
@@ -706,22 +919,31 @@ async function assertCanReadEventRsvps(params: {
     throw notFound('Club event not found', { eventId: params.eventId });
   }
   const clubId = asString(event.clubId) ?? '';
-  const hasClubMembership = asRows(store.tables.clubMemberships).some(
-    (row) =>
-      asString(row.clubId) === clubId &&
-      asString(row.userId) === params.authUserId &&
-      row.active !== false &&
-      !asString(row.deletedAt),
+  const membership =
+    asRows(store.tables.clubMemberships).find(
+      (row) =>
+        asString(row.clubId) === clubId && asString(row.userId) === params.authUserId,
+    ) ?? null;
+  const isActiveMember = Boolean(
+    membership && membership.active !== false && !asString(membership.deletedAt),
   );
-  if (!isPrivilegedAdminAuth(params.request.auth) && !hasClubMembership) {
+  const canRead =
+    isPrivilegedAdminAuth(params.request.auth) ||
+    isActiveClubStaffMembership(membership) ||
+    (targetUserId === params.authUserId && isActiveMember);
+  if (!canRead) {
     await recordEventRsvpReadAudit({
       request: params.request,
       eventId: params.eventId,
       authUserId: params.authUserId,
       result: 'DENY',
-      metadata: { reason: 'not_club_member', clubId },
+      metadata: { reason: targetUserId ? 'not_self_or_event_staff' : 'not_event_staff', clubId },
     });
-    throw forbidden('User is not a member of event club');
+    throw forbidden(
+      targetUserId
+        ? 'Only the attendee, event staff, or admins can read event RSVPs'
+        : 'Only event staff can read event RSVPs',
+    );
   }
   return { clubId };
 }
@@ -731,6 +953,71 @@ function isActiveClubStaffMembership(row: SeedRow | null | undefined): boolean {
   return Boolean(
     row && row.active !== false && !asString(row.deletedAt) && role && isClubStaffRole(role),
   );
+}
+
+async function assertClubBookingCoachMembership(params: {
+  clubId: string;
+  coachUserId: string;
+}): Promise<void> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const club = await prisma.club.findFirst({
+      where: {
+        id: params.clubId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!club) {
+      throw notFound('Club not found', { clubId: params.clubId });
+    }
+
+    const membership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId: params.clubId,
+          userId: params.coachUserId,
+        },
+      },
+      select: {
+        active: true,
+        deletedAt: true,
+        role: true,
+      },
+    });
+    const role = parseOrganizationRole(membership?.role);
+    if (!membership?.active || membership.deletedAt || !role || !isClubStaffRole(role)) {
+      throw forbidden('Booking coach is not active staff for this club', {
+        clubId: params.clubId,
+        coachUserId: params.coachUserId,
+      });
+    }
+    return;
+  }
+
+  const store =
+    getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  const club = asRows(store.tables.clubs).find(
+    (row) => asString(row.id) === params.clubId && !asString(row.deletedAt),
+  );
+  if (!club) {
+    throw notFound('Club not found', { clubId: params.clubId });
+  }
+  const membership =
+    asRows(store.tables.clubMemberships).find(
+      (row) =>
+        asString(row.clubId) === params.clubId && asString(row.userId) === params.coachUserId,
+    ) ?? null;
+  if (!isActiveClubStaffMembership(membership)) {
+    throw forbidden('Booking coach is not active staff for this club', {
+      clubId: params.clubId,
+      coachUserId: params.coachUserId,
+    });
+  }
 }
 
 async function recordEventRsvpReminderAudit(params: {
@@ -756,6 +1043,9 @@ async function assertCanRemindEventRsvps(params: {
   eventId: string;
   authUserId: string;
 }): Promise<{ clubId: string; eventTitle: string }> {
+  if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
+    getPrismaClientOrThrow();
+  }
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const event = await prisma.clubEvent.findFirst({
@@ -1077,6 +1367,397 @@ function resolveStoreEventSquadInviteTargets(params: {
     missingSquadIds: [],
     targetAthleteCount: athleteIds.size,
     recipientUserIds: [...recipientUserIds],
+  };
+}
+
+function eventSquadIdsFromRow(row: SeedRow): string[] {
+  const metadata = asObject(row.metadataJson) ?? {};
+  return dedupeStrings([...asStringArray(row.squadIdsJson), ...asStringArray(metadata.squadIds)]);
+}
+
+function eventInviteOrganizerId(row: SeedRow): string {
+  return (
+    asString(row.creatorUserId) ?? asString(row.createdByUserId) ?? asString(row.createdBy) ?? ''
+  );
+}
+
+function eventInviteTimestamp(row: SeedRow): string {
+  return asString(row.createdAt) ?? isoNow();
+}
+
+function createEventSquadInviteAggregate(params: {
+  event: SeedRow;
+  eventId: string;
+  squadId: string;
+}): EventSquadInviteAggregate {
+  return {
+    id: `squad_event_${params.eventId}_${params.squadId}`,
+    squadId: params.squadId,
+    targetType: 'EVENT',
+    targetId: params.eventId,
+    invitedBy: eventInviteOrganizerId(params.event),
+    invitedAt: eventInviteTimestamp(params.event),
+    memberCount: 0,
+    responses: {
+      accepted: 0,
+      declined: 0,
+      pending: 0,
+    },
+  };
+}
+
+function responseBucketForLinkedUsers(
+  userIds: string[],
+  statusesByUserId: ReadonlyMap<string, EventRsvpRequestBody['status']>,
+): 'accepted' | 'declined' | null {
+  let hasDeclined = false;
+  for (const userId of userIds) {
+    const status = statusesByUserId.get(userId);
+    if (status === 'GOING') {
+      return 'accepted';
+    }
+    if (status === 'NOT_GOING') {
+      hasDeclined = true;
+    }
+  }
+  return hasDeclined ? 'declined' : null;
+}
+
+function finishEventSquadInviteAggregates(
+  aggregates: EventSquadInviteAggregate[],
+): EventSquadInviteAggregate[] {
+  for (const aggregate of aggregates) {
+    aggregate.responses.pending = Math.max(
+      0,
+      aggregate.memberCount - aggregate.responses.accepted - aggregate.responses.declined,
+    );
+  }
+  return aggregates;
+}
+
+async function buildDbEventSquadInviteAggregates(
+  event: SeedRow,
+): Promise<EventSquadInviteAggregate[]> {
+  const eventId = asString(event.id);
+  const clubId = asString(event.clubId);
+  if (!eventId || !clubId) {
+    return [];
+  }
+  const requestedSquadIds = eventSquadIdsFromRow(event);
+  if (requestedSquadIds.length === 0) {
+    return [];
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const squads = await prisma.squad.findMany({
+    where: {
+      id: {
+        in: requestedSquadIds,
+      },
+      clubId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+  const validSquadIds = new Set(squads.map((squad) => squad.id));
+  const squadIds = requestedSquadIds.filter((squadId) => validSquadIds.has(squadId));
+  if (squadIds.length === 0) {
+    return [];
+  }
+
+  const aggregates = new Map<string, EventSquadInviteAggregate>(
+    squadIds.map(
+      (squadId) =>
+        [
+          squadId,
+          createEventSquadInviteAggregate({
+            event,
+            eventId,
+            squadId,
+          }),
+        ] as const,
+    ),
+  );
+  const [memberships, rsvps] = await Promise.all([
+    prisma.squadMembership.findMany({
+      where: {
+        squadId: {
+          in: squadIds,
+        },
+        status: 'active',
+        deletedAt: null,
+      },
+      select: {
+        squadId: true,
+        athleteId: true,
+        athlete: {
+          select: {
+            userId: true,
+            status: true,
+            deletedAt: true,
+            guardianLinks: {
+              where: {
+                deletedAt: null,
+              },
+              select: {
+                guardianUserId: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.eventRsvp.findMany({
+      where: {
+        clubEventId: eventId,
+      },
+      select: {
+        userId: true,
+        status: true,
+      },
+    }),
+  ]);
+  const statusesByUserId = new Map(
+    rsvps.map((rsvp) => [rsvp.userId, toApiEventRsvpStatus(rsvp.status)]),
+  );
+  const countedMemberships = new Set<string>();
+
+  for (const membership of memberships) {
+    const aggregate = aggregates.get(membership.squadId);
+    if (!aggregate || membership.athlete.status !== 'active' || membership.athlete.deletedAt) {
+      continue;
+    }
+    const membershipKey = `${membership.squadId}:${membership.athleteId}`;
+    if (countedMemberships.has(membershipKey)) {
+      continue;
+    }
+    countedMemberships.add(membershipKey);
+    aggregate.memberCount += 1;
+    const linkedUserIds = dedupeStrings([
+      ...(membership.athlete.userId ? [membership.athlete.userId] : []),
+      ...membership.athlete.guardianLinks.map((link) => link.guardianUserId),
+    ]);
+    const responseBucket = responseBucketForLinkedUsers(linkedUserIds, statusesByUserId);
+    if (responseBucket === 'accepted') {
+      aggregate.responses.accepted += 1;
+    } else if (responseBucket === 'declined') {
+      aggregate.responses.declined += 1;
+    }
+  }
+
+  return finishEventSquadInviteAggregates(
+    squadIds.flatMap((squadId) => {
+      const aggregate = aggregates.get(squadId);
+      return aggregate ? [aggregate] : [];
+    }),
+  );
+}
+
+function buildStoreEventSquadInviteAggregates(params: {
+  tables: SeedTables;
+  event: SeedRow;
+}): EventSquadInviteAggregate[] {
+  const eventId = asString(params.event.id);
+  const clubId = asString(params.event.clubId);
+  if (!eventId || !clubId) {
+    return [];
+  }
+  const requestedSquadIds = eventSquadIdsFromRow(params.event);
+  if (requestedSquadIds.length === 0) {
+    return [];
+  }
+  const validSquadIds = new Set(
+    asRows(params.tables.squads)
+      .filter(
+        (row) =>
+          requestedSquadIds.includes(asString(row.id) ?? '') &&
+          asString(row.clubId) === clubId &&
+          !asString(row.deletedAt),
+      )
+      .map((row) => asString(row.id))
+      .filter((squadId): squadId is string => Boolean(squadId)),
+  );
+  const squadIds = requestedSquadIds.filter((squadId) => validSquadIds.has(squadId));
+  if (squadIds.length === 0) {
+    return [];
+  }
+
+  const aggregates = new Map<string, EventSquadInviteAggregate>(
+    squadIds.map(
+      (squadId) =>
+        [
+          squadId,
+          createEventSquadInviteAggregate({
+            event: params.event,
+            eventId,
+            squadId,
+          }),
+        ] as const,
+    ),
+  );
+  const athletesById = new Map(
+    asRows(params.tables.athletes)
+      .map((athlete) => [asString(athlete.id), athlete] as const)
+      .filter((entry): entry is [string, SeedRow] => Boolean(entry[0])),
+  );
+  const guardianIdsByAthleteId = new Map<string, string[]>();
+  for (const link of asRows(params.tables.guardianChildLinks)) {
+    const athleteId = asString(link.athleteId);
+    const guardianUserId = asString(link.guardianUserId);
+    if (!athleteId || !guardianUserId || asString(link.deletedAt)) {
+      continue;
+    }
+    guardianIdsByAthleteId.set(athleteId, [
+      ...(guardianIdsByAthleteId.get(athleteId) ?? []),
+      guardianUserId,
+    ]);
+  }
+  const statusesByUserId = new Map(
+    asRows(params.tables.eventRsvps)
+      .filter(
+        (rsvp) => asString(rsvp.clubEventId) === eventId || asString(rsvp.eventId) === eventId,
+      )
+      .map((rsvp) => [asString(rsvp.userId), toApiEventRsvpStatus(rsvp.status)] as const)
+      .filter((entry): entry is [string, EventRsvpRequestBody['status']] => Boolean(entry[0])),
+  );
+  const countedMemberships = new Set<string>();
+
+  for (const membership of asRows(params.tables.squadMemberships)) {
+    const squadId = asString(membership.squadId);
+    const athleteId = asString(membership.athleteId);
+    if (
+      !squadId ||
+      !athleteId ||
+      !squadIds.includes(squadId) ||
+      asString(membership.status) !== 'active' ||
+      asString(membership.deletedAt)
+    ) {
+      continue;
+    }
+    const aggregate = aggregates.get(squadId);
+    const athlete = athletesById.get(athleteId);
+    if (
+      !aggregate ||
+      !athlete ||
+      (asString(athlete.status) && asString(athlete.status) !== 'active') ||
+      asString(athlete.deletedAt)
+    ) {
+      continue;
+    }
+    const membershipKey = `${squadId}:${athleteId}`;
+    if (countedMemberships.has(membershipKey)) {
+      continue;
+    }
+    countedMemberships.add(membershipKey);
+    aggregate.memberCount += 1;
+    const linkedUserIds = dedupeStrings([
+      ...(asString(athlete.userId) ? [asString(athlete.userId) as string] : []),
+      ...(guardianIdsByAthleteId.get(athleteId) ?? []),
+    ]);
+    const responseBucket = responseBucketForLinkedUsers(linkedUserIds, statusesByUserId);
+    if (responseBucket === 'accepted') {
+      aggregate.responses.accepted += 1;
+    } else if (responseBucket === 'declined') {
+      aggregate.responses.declined += 1;
+    }
+  }
+
+  return finishEventSquadInviteAggregates(
+    squadIds.flatMap((squadId) => {
+      const aggregate = aggregates.get(squadId);
+      return aggregate ? [aggregate] : [];
+    }),
+  );
+}
+
+async function buildEventSquadInviteAggregates(params: {
+  event: SeedRow;
+  tables?: SeedTables;
+}): Promise<EventSquadInviteAggregate[]> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    return buildDbEventSquadInviteAggregates(params.event);
+  }
+  const tables =
+    params.tables ??
+    (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore().tables
+      : getMarketplaceSeedStore().tables);
+  return buildStoreEventSquadInviteAggregates({
+    tables,
+    event: params.event,
+  });
+}
+
+async function listOrganizerEventSquadInviteAggregates(params: {
+  organizerId: string;
+  allowedClubIds?: Set<string>;
+  limit: number;
+}): Promise<{ invites: EventSquadInviteAggregate[]; seedVersion?: string | null }> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const events = await prisma.clubEvent.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          {
+            creatorUserId: params.organizerId,
+          },
+          {
+            createdByUserId: params.organizerId,
+          },
+        ],
+        ...(params.allowedClubIds
+          ? {
+              clubId: {
+                in: [...params.allowedClubIds],
+              },
+            }
+          : {}),
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: params.limit,
+    });
+    const aggregateGroups = await Promise.all(
+      events.map((event) => buildDbEventSquadInviteAggregates(normalizeForJson(event) as SeedRow)),
+    );
+    return {
+      invites: aggregateGroups.flat(),
+    };
+  }
+
+  const store =
+    getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  const events = asRows(store.tables.clubEvents)
+    .filter((event) => {
+      if (asString(event.deletedAt)) {
+        return false;
+      }
+      const organizerId = eventInviteOrganizerId(event);
+      const clubId = asString(event.clubId);
+      if (organizerId !== params.organizerId || !clubId) {
+        return false;
+      }
+      return !params.allowedClubIds || params.allowedClubIds.has(clubId);
+    })
+    .sort(
+      (left, right) =>
+        Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''),
+    )
+    .slice(0, params.limit);
+  return {
+    invites: events.flatMap((event) =>
+      buildStoreEventSquadInviteAggregates({
+        tables: store.tables,
+        event,
+      }),
+    ),
+    seedVersion: store.version,
   };
 }
 
@@ -1442,53 +2123,114 @@ const CLUB_EVENT_TYPES = new Set([
 ]);
 const CLUB_EVENT_TARGET_AUDIENCES = new Set(['ALL', 'COACHES', 'PARENTS', 'ATHLETES', 'SQUAD']);
 
-function isoTimePart(value: string | undefined): string {
-  if (!value) {
-    return '';
-  }
-  const match = value.match(/T(\d{2}:\d{2})/);
-  return match?.[1] ?? value.slice(11, 16);
-}
-
-function toClubEventType(value: unknown): string {
+function toClubEventType(value: unknown): string | undefined {
   const normalized = asString(value)
     ?.replace(/[-\s]+/g, '_')
     .toUpperCase();
-  return normalized && CLUB_EVENT_TYPES.has(normalized) ? normalized : 'OTHER';
+  return normalized && CLUB_EVENT_TYPES.has(normalized) ? normalized : undefined;
 }
 
-function toClubEventTargetAudience(value: unknown, visibility: unknown): string {
+function toClubEventTargetAudience(value: unknown): string | undefined {
   const normalized = asString(value)
     ?.replace(/[-\s]+/g, '_')
     .toUpperCase();
-  if (normalized && CLUB_EVENT_TARGET_AUDIENCES.has(normalized)) {
-    return normalized;
+  return normalized && CLUB_EVENT_TARGET_AUDIENCES.has(normalized) ? normalized : undefined;
+}
+
+type ClubEventRsvpSummary = z.infer<typeof clubEventRsvpSummarySchema>;
+
+function emptyClubEventRsvpSummary(): ClubEventRsvpSummary {
+  return { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
+}
+
+function buildClubEventRsvpSummary(rows: SeedRow[]): ClubEventRsvpSummary {
+  const summary = emptyClubEventRsvpSummary();
+  for (const row of rows) {
+    const count = asNumber(asObject(row._count)?._all) ?? 1;
+    const guests = asNumber(asObject(row._sum)?.guestCount) ?? asNumber(row.guestCount) ?? 0;
+    const status = asString(row.status);
+    if (status === 'GOING') {
+      summary.going += count;
+      summary.totalGuests += guests;
+    } else if (status === 'MAYBE') {
+      summary.maybe += count;
+    } else if (status === 'DECLINED' || status === 'NOT_GOING') {
+      summary.notGoing += count;
+    }
   }
-  return asString(visibility) === 'squad' ? 'SQUAD' : 'ALL';
+  return summary;
+}
+
+function withClubEventRsvpSummary(event: SeedRow, rows: SeedRow[]): SeedRow {
+  return {
+    ...event,
+    rsvpSummaryJson: buildClubEventRsvpSummary(rows),
+  };
 }
 
 function buildClubEventResponse(row: SeedRow): SeedRow {
   const metadata = asObject(row.metadataJson) ?? {};
-  const startsAt = asString(row.startsAt) ?? asString(row.startDate) ?? isoNow();
+  const id = asString(row.id);
+  const clubId = asString(row.clubId);
+  const createdBy =
+    asString(row.creatorUserId) ?? asString(row.createdByUserId) ?? asString(row.createdBy);
+  const title = asString(row.title);
+  const startsAt = asString(row.startsAt) ?? asString(row.startDate);
   const endsAt = asString(row.endsAt) ?? asString(row.endDate);
-  const date = startsAt.slice(0, 10);
+  const venue = asString(row.location) ?? asString(metadata.venue);
+  const status = asString(row.status);
+  const createdAt = asString(row.createdAt);
+  const eventType = toClubEventType(metadata.type ?? row.eventType);
+  const targetAudience = toClubEventTargetAudience(metadata.targetAudience);
+  const timeZone = asString(metadata.timeZone) ?? 'UTC';
+  if (
+    !id ||
+    !clubId ||
+    !createdBy ||
+    !title ||
+    !startsAt ||
+    !venue ||
+    !status ||
+    !createdAt ||
+    !eventType ||
+    !targetAudience ||
+    !isSupportedTimeZone(timeZone)
+  ) {
+    throw serviceUnavailable('Persisted club event data is incomplete');
+  }
+  const startsAtDate = new Date(startsAt);
+  const endsAtDate = endsAt ? new Date(endsAt) : null;
+  if (
+    !Number.isFinite(startsAtDate.getTime()) ||
+    (endsAtDate && !Number.isFinite(endsAtDate.getTime()))
+  ) {
+    throw serviceUnavailable('Persisted club event schedule is invalid');
+  }
+  const localStart = formatInstantInTimeZone(startsAtDate, timeZone);
+  const localEnd = endsAtDate ? formatInstantInTimeZone(endsAtDate, timeZone) : null;
   const capacity = asNumber(row.guestLimit) ?? asNumber(row.maxAttendees);
-  const targetAudience = toClubEventTargetAudience(metadata.targetAudience, row.visibility);
   const priceMinor = asNumber(row.priceMinor) ?? asNumber(metadata.priceMinor);
-  return {
-    id: asString(row.id) ?? null,
-    clubId: asString(row.clubId) ?? null,
-    createdBy:
-      asString(row.creatorUserId) ?? asString(row.createdByUserId) ?? asString(row.createdBy) ?? '',
-    title: asString(row.title) ?? 'Club event',
+  const rsvpSummaryValue = asObject(row.rsvpSummaryJson);
+  const rsvpSummary = rsvpSummaryValue
+    ? clubEventRsvpSummarySchema.safeParse(rsvpSummaryValue)
+    : null;
+  if (rsvpSummary && !rsvpSummary.success) {
+    throw serviceUnavailable('Persisted club event RSVP summary is invalid');
+  }
+  const projection = {
+    id,
+    clubId,
+    createdBy,
+    title,
     description: asString(row.description) ?? '',
-    eventType: toClubEventType(metadata.type ?? row.eventType),
-    date,
-    startDate: date,
-    startTime: isoTimePart(startsAt),
-    endTime: isoTimePart(endsAt),
-    venue: asString(row.location) ?? asString(metadata.venue) ?? 'Club venue',
-    location: asString(row.location) ?? asString(metadata.venue) ?? 'Club venue',
+    eventType,
+    date: localStart.date,
+    startDate: localStart.date,
+    startTime: localStart.time,
+    ...(localEnd ? { endTime: localEnd.time } : {}),
+    timeZone,
+    venue,
+    location: venue,
     address: asString(metadata.address),
     isVirtual: asBoolean(metadata.isVirtual) ?? false,
     meetingLink: asString(metadata.meetingLink),
@@ -1504,26 +2246,80 @@ function buildClubEventResponse(row: SeedRow): SeedRow {
     currency: asString(row.currency) ?? asString(metadata.currency) ?? 'GBP',
     rsvpRequired: asBoolean(metadata.rsvpRequired) ?? true,
     rsvpDeadline: asString(row.rsvpDeadlineAt) ?? asString(metadata.rsvpDeadline),
-    attendees: [],
-    status: asString(row.status) ?? 'DRAFT',
+    ...(rsvpSummary?.success
+      ? {
+          rsvpSummary: rsvpSummary.data,
+          currentParticipants: rsvpSummary.data.going + rsvpSummary.data.totalGuests,
+        }
+      : {}),
+    status,
     imageUrl: asString(metadata.imageUrl),
-    createdAt: asString(row.createdAt) ?? isoNow(),
+    createdAt,
   };
+  const parsed = clubEventProjectionSchema.safeParse(projection);
+  if (!parsed.success) {
+    throw serviceUnavailable('Persisted club event data does not match the API contract');
+  }
+  return parsed.data;
 }
 
-function eventWriteDateTime(date: string | undefined, time: string | undefined): Date | null {
-  if (!date || !time) {
+function eventWriteDateTime(
+  date: string | undefined,
+  time: string | undefined,
+  timeZone: string | undefined,
+): Date | null {
+  if (!date || !time || !timeZone) {
     return null;
   }
-  const parsed = new Date(`${date}T${time}:00.000Z`);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
+  return localDateTimeToUtc(date, time, timeZone);
 }
 
-function eventWriteIso(date: string | undefined, time: string | undefined): string | null {
-  return eventWriteDateTime(date, time)?.toISOString() ?? null;
+function eventWriteIso(
+  date: string | undefined,
+  time: string | undefined,
+  timeZone: string | undefined,
+): string | null {
+  return eventWriteDateTime(date, time, timeZone)?.toISOString() ?? null;
 }
 
-function toEventMetadata(body: ClubEventWriteBody, existing?: SeedRow): SeedRow {
+function validateClubEventCreatorTimeZone(value: unknown): string {
+  const timeZone = asString(value)?.trim();
+  if (!timeZone) {
+    throw conflict('Set an account time zone before creating club events');
+  }
+  if (!isSupportedTimeZone(timeZone)) {
+    throw serviceUnavailable('Stored user time zone is invalid');
+  }
+  return timeZone;
+}
+
+async function resolveClubEventCreatorTimeZone(authUserId: string): Promise<string> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const user = await prisma.user.findFirst({
+      where: { id: authUserId, deletedAt: null },
+      select: { timeZone: true },
+    });
+    if (!user) {
+      throw serviceUnavailable('Authenticated user profile is unavailable');
+    }
+    return validateClubEventCreatorTimeZone(user.timeZone);
+  }
+
+  const store =
+    getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  const user = asRows(store.tables.users).find(
+    (row) => asString(row.id) === authUserId && !asString(row.deletedAt),
+  );
+  if (!user) {
+    throw serviceUnavailable('Authenticated user profile is unavailable');
+  }
+  return validateClubEventCreatorTimeZone(user.timeZone);
+}
+
+function toEventMetadata(body: ClubEventWriteBody, existing?: SeedRow, timeZone?: string): SeedRow {
   const metadata = {
     ...(asObject(existing?.metadataJson) ?? {}),
   };
@@ -1539,6 +2335,7 @@ function toEventMetadata(body: ClubEventWriteBody, existing?: SeedRow): SeedRow 
   if (body.imageUrl !== undefined) metadata.imageUrl = body.imageUrl;
   if (body.squadIds !== undefined) metadata.squadIds = body.squadIds;
   if (body.athleteIds !== undefined) metadata.athleteIds = dedupeStrings(body.athleteIds);
+  if (timeZone !== undefined) metadata.timeZone = timeZone;
   return metadata;
 }
 
@@ -1556,14 +2353,15 @@ function buildSeedClubEventRow(params: {
   clubId: string;
   authUserId: string;
   body: CreateClubEventRequestBody;
+  timeZone: string;
   now: string;
 }): SeedRow {
-  const startsAt = eventWriteIso(params.body.date, params.body.startTime);
+  const startsAt = eventWriteIso(params.body.date, params.body.startTime, params.timeZone);
   if (!startsAt) {
     throw badRequest('Event start date and time must be valid');
   }
-  const endsAt = eventWriteIso(params.body.date, params.body.endTime);
-  const metadata = toEventMetadata(params.body);
+  const endsAt = eventWriteIso(params.body.date, params.body.endTime, params.timeZone);
+  const metadata = toEventMetadata(params.body, undefined, params.timeZone);
   return {
     id: newId('evt'),
     clubId: params.clubId,
@@ -1653,6 +2451,216 @@ async function recordClubEventWriteAudit(params: {
   });
 }
 
+async function recordClubEventInviteReadAudit(params: {
+  request: FastifyRequest;
+  action: 'club_event.invites.read' | 'club_event.organizer_invites.read';
+  resourceType: 'club_event' | 'user';
+  resourceId: string;
+  authUserId: string;
+  result: 'SUCCESS' | 'DENY' | 'ERROR';
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: params.resourceType,
+    resourceId: params.resourceId,
+    subjectUserId: params.authUserId,
+    result: params.result,
+    metadata: params.metadata,
+  });
+}
+
+async function assertCanReadEventInviteAggregates(params: {
+  request: FastifyRequest;
+  eventId: string;
+  authUserId: string;
+}): Promise<{ clubId: string; event: SeedRow; seedVersion?: string | null }> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const event = await prisma.clubEvent.findFirst({
+      where: {
+        id: params.eventId,
+        deletedAt: null,
+      },
+    });
+    if (!event) {
+      await recordClubEventInviteReadAudit({
+        request: params.request,
+        action: 'club_event.invites.read',
+        resourceType: 'club_event',
+        resourceId: params.eventId,
+        authUserId: params.authUserId,
+        result: 'DENY',
+        metadata: { reason: 'event_not_found' },
+      });
+      throw notFound('Club event not found', { eventId: params.eventId });
+    }
+    const membership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId: event.clubId,
+          userId: params.authUserId,
+        },
+      },
+      select: {
+        active: true,
+        deletedAt: true,
+        role: true,
+      },
+    });
+    const role = parseOrganizationRole(membership?.role);
+    const canRead =
+      isPrivilegedAdminAuth(params.request.auth) ||
+      Boolean(membership?.active && !membership.deletedAt && role && isClubStaffRole(role));
+    if (!canRead) {
+      await recordClubEventInviteReadAudit({
+        request: params.request,
+        action: 'club_event.invites.read',
+        resourceType: 'club_event',
+        resourceId: params.eventId,
+        authUserId: params.authUserId,
+        result: 'DENY',
+        metadata: { reason: 'not_event_staff', clubId: event.clubId },
+      });
+      throw forbidden('Only event staff or admins can read event invite aggregates');
+    }
+    return {
+      clubId: event.clubId,
+      event: normalizeForJson(event) as SeedRow,
+    };
+  }
+
+  const store =
+    getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  const event = asRows(store.tables.clubEvents).find(
+    (row) => asString(row.id) === params.eventId && !asString(row.deletedAt),
+  );
+  if (!event) {
+    await recordClubEventInviteReadAudit({
+      request: params.request,
+      action: 'club_event.invites.read',
+      resourceType: 'club_event',
+      resourceId: params.eventId,
+      authUserId: params.authUserId,
+      result: 'DENY',
+      metadata: { reason: 'event_not_found' },
+    });
+    throw notFound('Club event not found', { eventId: params.eventId });
+  }
+  const clubId = asString(event.clubId) ?? '';
+  const membership =
+    asRows(store.tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === params.authUserId,
+    ) ?? null;
+  const canRead =
+    isPrivilegedAdminAuth(params.request.auth) || isActiveClubStaffMembership(membership);
+  if (!canRead) {
+    await recordClubEventInviteReadAudit({
+      request: params.request,
+      action: 'club_event.invites.read',
+      resourceType: 'club_event',
+      resourceId: params.eventId,
+      authUserId: params.authUserId,
+      result: 'DENY',
+      metadata: { reason: 'not_event_staff', clubId },
+    });
+    throw forbidden('Only event staff or admins can read event invite aggregates');
+  }
+  return { clubId, event, seedVersion: store.version };
+}
+
+async function assertCanReadOrganizerEventInviteAggregates(params: {
+  request: FastifyRequest;
+  organizerId: string;
+  authUserId: string;
+}): Promise<{ allowedClubIds?: Set<string>; seedVersion?: string | null }> {
+  const isAdmin = isPrivilegedAdminAuth(params.request.auth);
+  if (!isAdmin && params.organizerId !== params.authUserId) {
+    await recordClubEventInviteReadAudit({
+      request: params.request,
+      action: 'club_event.organizer_invites.read',
+      resourceType: 'user',
+      resourceId: params.organizerId,
+      authUserId: params.authUserId,
+      result: 'DENY',
+      metadata: { reason: 'not_self_or_admin' },
+    });
+    throw forbidden('Only the organizer or admins can read organizer event invite aggregates');
+  }
+  if (isAdmin) {
+    return {};
+  }
+
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const memberships = await prisma.clubMembership.findMany({
+      where: {
+        userId: params.authUserId,
+        active: true,
+        deletedAt: null,
+      },
+      select: {
+        clubId: true,
+        role: true,
+      },
+    });
+    const allowedClubIds = new Set(
+      memberships
+        .filter((membership) => {
+          const role = parseOrganizationRole(membership.role);
+          return Boolean(role && isClubStaffRole(role));
+        })
+        .map((membership) => membership.clubId),
+    );
+    if (allowedClubIds.size === 0) {
+      await recordClubEventInviteReadAudit({
+        request: params.request,
+        action: 'club_event.organizer_invites.read',
+        resourceType: 'user',
+        resourceId: params.organizerId,
+        authUserId: params.authUserId,
+        result: 'DENY',
+        metadata: { reason: 'not_event_staff' },
+      });
+      throw forbidden(
+        'Only active event staff or admins can read organizer event invite aggregates',
+      );
+    }
+    return { allowedClubIds };
+  }
+
+  const store =
+    getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  const allowedClubIds = new Set(
+    asRows(store.tables.clubMemberships)
+      .filter(
+        (membership) =>
+          asString(membership.userId) === params.authUserId &&
+          isActiveClubStaffMembership(membership),
+      )
+      .map((membership) => asString(membership.clubId))
+      .filter((clubId): clubId is string => Boolean(clubId)),
+  );
+  if (allowedClubIds.size === 0) {
+    await recordClubEventInviteReadAudit({
+      request: params.request,
+      action: 'club_event.organizer_invites.read',
+      resourceType: 'user',
+      resourceId: params.organizerId,
+      authUserId: params.authUserId,
+      result: 'DENY',
+      metadata: { reason: 'not_event_staff' },
+    });
+    throw forbidden('Only active event staff or admins can read organizer event invite aggregates');
+  }
+  return { allowedClubIds, seedVersion: store.version };
+}
+
 async function assertCanWriteClubEvent(params: {
   request: FastifyRequest;
   clubId: string;
@@ -1723,6 +2731,47 @@ async function assertCanWriteClubEvent(params: {
   }
 }
 
+async function withDbClubEventRsvpSummaries(events: SeedRow[]): Promise<SeedRow[]> {
+  const eventIds = events
+    .map((event) => asString(event.id))
+    .filter((eventId): eventId is string => Boolean(eventId));
+  if (eventIds.length === 0) {
+    return events;
+  }
+  const prisma = getPrismaClientOrThrow();
+  const grouped = await prisma.eventRsvp.groupBy({
+    by: ['clubEventId', 'status'],
+    where: { clubEventId: { in: eventIds } },
+    _count: { _all: true },
+    _sum: { guestCount: true },
+  });
+  const rowsByEventId = new Map<string, SeedRow[]>();
+  for (const row of asRows(normalizeForJson(grouped))) {
+    const eventId = asString(row.clubEventId);
+    if (!eventId) continue;
+    const rows = rowsByEventId.get(eventId) ?? [];
+    rows.push(row);
+    rowsByEventId.set(eventId, rows);
+  }
+  return events.map((event) =>
+    withClubEventRsvpSummary(event, rowsByEventId.get(asString(event.id) ?? '') ?? []),
+  );
+}
+
+function withStoreClubEventRsvpSummaries(events: SeedRow[], tables: SeedTables): SeedRow[] {
+  const rowsByEventId = new Map<string, SeedRow[]>();
+  for (const row of asRows(tables.eventRsvps)) {
+    const eventId = asString(row.clubEventId) ?? asString(row.eventId);
+    if (!eventId) continue;
+    const rows = rowsByEventId.get(eventId) ?? [];
+    rows.push(row);
+    rowsByEventId.set(eventId, rows);
+  }
+  return events.map((event) =>
+    withClubEventRsvpSummary(event, rowsByEventId.get(asString(event.id) ?? '') ?? []),
+  );
+}
+
 async function listReadableClubEvents(params: {
   request: FastifyRequest;
   clubId: string;
@@ -1764,20 +2813,16 @@ async function listReadableClubEvents(params: {
       orderBy: { startsAt: 'desc' },
     });
     const normalizedEvents = events.map((event) => normalizeForJson(event) as SeedRow);
-    if (!canReadDrafts) {
-      return {
-        events: normalizedEvents.filter((event) =>
+    const readableEvents = canReadDrafts
+      ? normalizedEvents
+      : normalizedEvents.filter((event) =>
           canReadPublishedClubEventForUser({
             event,
             isActiveMember,
             linkedAthleteIds,
           }),
-        ),
-      };
-    }
-    return {
-      events: normalizedEvents,
-    };
+        );
+    return { events: await withDbClubEventRsvpSummaries(readableEvents) };
   }
 
   const store =
@@ -1823,7 +2868,10 @@ async function listReadableClubEvents(params: {
         new Date(asString(right.startsAt) ?? asString(right.createdAt) ?? isoNow()).getTime() -
         new Date(asString(left.startsAt) ?? asString(left.createdAt) ?? isoNow()).getTime(),
     );
-  return { events, seedVersion: store.version };
+  return {
+    events: withStoreClubEventRsvpSummaries(events, store.tables),
+    seedVersion: store.version,
+  };
 }
 
 async function resolveReadableClubEvent(params: {
@@ -1892,9 +2940,10 @@ async function resolveReadableClubEvent(params: {
           : 'Only club members or targeted athlete links can read this club event',
       );
     }
+    const [eventWithSummary] = await withDbClubEventRsvpSummaries([normalizedEvent]);
     return {
       clubId: event.clubId,
-      event: normalizedEvent,
+      event: eventWithSummary ?? normalizedEvent,
     };
   }
 
@@ -1950,7 +2999,13 @@ async function resolveReadableClubEvent(params: {
         : 'Only club members or targeted athlete links can read this club event',
     );
   }
-  return { clubId, event, seedVersion: store.version };
+  const [eventWithSummary] = withStoreClubEventRsvpSummaries([event], store.tables);
+  event.rsvpSummaryJson = eventWithSummary?.rsvpSummaryJson ?? emptyClubEventRsvpSummary();
+  return {
+    clubId,
+    event,
+    seedVersion: store.version,
+  };
 }
 
 async function recordEventAttendanceReadAudit(params: {
@@ -2276,6 +3331,12 @@ const groupSessionScheduleEntrySchema = z.object({
   startTime: z.string().trim().min(1),
   endTime: z.string().trim().min(1),
 });
+const groupSessionScheduleSchema = z
+  .array(groupSessionScheduleEntrySchema)
+  .min(1)
+  .refine((entries) => new Set(entries.map((entry) => entry.date)).size === entries.length, {
+    message: 'Group session schedule dates must be unique',
+  });
 const inviteAudienceTypeSchema = z.enum(['OPEN', 'CLOSED', 'SQUAD_ONLY']);
 const createGroupSessionRequestSchema = z.object({
   coachId: z.string().trim().min(1),
@@ -2284,7 +3345,7 @@ const createGroupSessionRequestSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(4000).optional(),
   sessionType: z.enum(['CAMP', 'CLINIC', 'TEAM_TRAINING', 'OPEN_SESSION', 'TRIAL', 'TRAINING']),
-  schedule: z.array(groupSessionScheduleEntrySchema).min(1),
+  schedule: groupSessionScheduleSchema,
   maxParticipants: z.number().int().min(1).max(500),
   pricePerParticipant: z.number().min(0).optional(),
   currency: z.string().trim().length(3).optional(),
@@ -2313,10 +3374,6 @@ const bookingReviewRequestSchema = z.object({
   comment: z.string().trim().max(2000).nullable().optional(),
   categories: z.record(z.number().min(1).max(5)).optional(),
 });
-const markGroupSessionAttendanceRequestSchema = z.object({
-  date: z.string().trim().min(1),
-  attended: z.boolean(),
-});
 const sessionRsvpStatusSchema = z.enum(['pending', 'going', 'maybe', 'not_going']);
 const sessionRsvpMemberSchema = z.object({
   userId: z.string().trim().min(1),
@@ -2337,6 +3394,12 @@ const sessionRsvpBatchCountsQuerySchema = z.object({
 });
 const groupSessionRegistrationsQuerySchema = z.object({
   athleteIds: z.string().optional(),
+});
+const groupSessionRosterQuerySchema = z.object({
+  forCompletion: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
 });
 const invitesQuerySchema = z.object({
   coachUserId: z.string().optional(),
@@ -3026,10 +4089,7 @@ function buildSessionInviteView(params: {
 
 function isActiveSquadMembership(row: SeedRow | null | undefined): boolean {
   return Boolean(
-    row &&
-      !asString(row.deletedAt) &&
-      row.active !== false &&
-      asString(row.status) !== 'INACTIVE',
+    row && !asString(row.deletedAt) && row.active !== false && asString(row.status) !== 'INACTIVE',
   );
 }
 
@@ -3093,12 +4153,12 @@ function assertCanCreateSquadInvite(params: {
       ownerCoachUserId === params.coachUserId ||
       Boolean(
         clubId &&
-          memberships.some(
-            (row) =>
-              asString(row.clubId) === clubId &&
-              asString(row.userId) === params.coachUserId &&
-              isActiveClubStaffMembership(row),
-          ),
+        memberships.some(
+          (row) =>
+            asString(row.clubId) === clubId &&
+            asString(row.userId) === params.coachUserId &&
+            isActiveClubStaffMembership(row),
+        ),
       );
     if (!canManageSquad) {
       throw forbidden('Coach is not allowed to create invites for this squad');
@@ -3392,6 +4452,85 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
+
+  app.post('/booking-step-analytics', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = bookingStepAnalyticsRequestSchema.parse(request.body ?? {});
+    const eventId = newId('bsa');
+    const now = new Date();
+
+    if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+      const prisma = getPrismaClientOrThrow();
+      const event = await prisma.bookingStepAnalyticsEvent.create({
+        data: {
+          id: eventId,
+          userId: authUserId,
+          source: body.source,
+          role: body.role,
+          actingAs: body.actingAs,
+          step: body.step,
+          status: body.status,
+          failureCode: body.failure_code ?? null,
+          coachUserId: body.coachId ?? null,
+          ownerCoachUserId: body.ownerCoachId ?? null,
+          assigneeCoachUserId: body.assigneeCoachId ?? null,
+          clubId: body.clubId ?? null,
+          clientEventId: body.id ?? null,
+          clientCreatedAt: toOptionalDate(body.createdAt),
+          createdAt: now,
+        },
+        select: {
+          id: true,
+          createdAt: true,
+        },
+      });
+      return reply.status(201).send({
+        event: {
+          id: event.id,
+          createdAt: event.createdAt.toISOString(),
+        },
+        requestId: request.requestId,
+      });
+    }
+
+    const store =
+      getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+        ? getDbFixtureStore()
+        : getMarketplaceSeedStore();
+    if (!Array.isArray(store.tables.bookingStepAnalyticsEvents)) {
+      store.tables.bookingStepAnalyticsEvents = [];
+    }
+    const event = {
+      id: eventId,
+      userId: authUserId,
+      source: body.source,
+      role: body.role,
+      actingAs: body.actingAs,
+      step: body.step,
+      status: body.status,
+      failureCode: body.failure_code ?? null,
+      coachUserId: body.coachId ?? null,
+      ownerCoachUserId: body.ownerCoachId ?? null,
+      assigneeCoachUserId: body.assigneeCoachId ?? null,
+      clubId: body.clubId ?? null,
+      clientEventId: body.id ?? null,
+      clientCreatedAt: body.createdAt ?? null,
+      createdAt: now.toISOString(),
+    };
+    store.tables.bookingStepAnalyticsEvents.push(event);
+    return reply.status(201).send({
+      event: {
+        id: event.id,
+        createdAt: event.createdAt,
+      },
+      requestId: request.requestId,
+      seedVersion: store.version,
+    });
+  });
+
   app.get('/cancellation-records', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -3531,34 +4670,64 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       )?.bookingId,
     );
     const repository = resolveBookingRepository();
-    const booking = await repository.getVisibleBookingById({
-      authUserId,
-      bookingId,
-    });
-    const actorIsBookedFamily =
-      booking.bookedByUserId === authUserId ||
-      booking.participants.some((participant) => participant.guardianUserId === authUserId);
-    const actorIsCoachOnly = booking.coachUserId === authUserId && !actorIsBookedFamily;
-    if (actorIsCoachOnly) {
-      throw forbidden('Only the booked family or athlete can rebook from this booking context');
-    }
-    return reply.send({
-      sourceBookingId: booking.id,
-      coachId: booking.coachUserId,
-      bookedByUserId: booking.bookedByUserId ?? null,
-      status: booking.status,
-      serviceType: booking.serviceType ?? null,
-      sessionTemplateId: booking.sessionTemplateId ?? null,
-      durationMinutes: booking.durationMinutes,
-      location: booking.location,
-      objectives: booking.objectives,
-      priceMinor: booking.priceMinor ?? null,
-      currency: booking.currency,
-      athleteIds: booking.participants.flatMap((participant) =>
+    try {
+      const booking = await repository.getVisibleBookingById({
+        authUserId,
+        bookingId,
+      });
+      const actorIsBookedFamily =
+        booking.bookedByUserId === authUserId ||
+        booking.participants.some((participant) => participant.guardianUserId === authUserId);
+      const actorIsCoachOnly = booking.coachUserId === authUserId && !actorIsBookedFamily;
+      if (actorIsCoachOnly) {
+        throw forbidden('Only the booked family or athlete can rebook from this booking context');
+      }
+      const athleteIds = booking.participants.flatMap((participant) =>
         participant.status !== 'cancelled' ? [participant.athleteId] : [],
-      ),
-      requestId: request.requestId,
-    });
+      );
+      await recordAuditEvent({
+        request,
+        action: 'booking.rebook_context.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          status: booking.status,
+          participantCount: athleteIds.length,
+        },
+      });
+      return reply.send({
+        sourceBookingId: booking.id,
+        coachId: booking.coachUserId,
+        bookedByUserId: booking.bookedByUserId ?? null,
+        status: booking.status,
+        serviceType: booking.serviceType ?? null,
+        sessionTemplateId: booking.sessionTemplateId ?? null,
+        durationMinutes: booking.durationMinutes,
+        location: booking.location,
+        objectives: booking.objectives,
+        priceMinor: booking.priceMinor ?? null,
+        currency: booking.currency,
+        athleteIds,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking.rebook_context.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
   app.get('/bookings/:bookingId', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -3575,11 +4744,40 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       )?.bookingId,
     );
     const repository = resolveBookingRepository();
-    const booking = await repository.getVisibleBookingById({
-      authUserId,
-      bookingId,
-    });
-    return reply.send(booking);
+    try {
+      const booking = await repository.getVisibleBookingById({
+        authUserId,
+        bookingId,
+      });
+      await recordAuditEvent({
+        request,
+        action: 'booking.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          status: booking.status,
+          participantCount: booking.participants.length,
+        },
+      });
+      return reply.send(booking);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
   app.patch('/bookings/:bookingId', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -3662,6 +4860,25 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
     const body = createBookingRequestSchema.parse(request.body);
+    const activeBlock = await findActiveBookingBlock({
+      coachUserId: body.coachUserId,
+      counterpartyUserIds: [authUserId, body.bookedByUserId],
+    });
+    if (activeBlock) {
+      await recordAuditEvent({
+        request,
+        action: 'booking.create',
+        resourceType: 'booking',
+        subjectUserId: body.coachUserId,
+        result: 'DENY',
+        metadata: {
+          reason: 'active_block_relationship',
+          counterpartUserId: activeBlock.counterpartUserId,
+          relationship: activeBlock.relationship,
+        },
+      });
+      throw conflict('Booking is unavailable because one side has blocked the other');
+    }
     const idempotentResponse = await resolveCreateBookingIdempotency({
       authUserId,
       body,
@@ -3669,14 +4886,22 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (idempotentResponse) {
       return reply.status(idempotentResponse.responseStatus).send(idempotentResponse.response);
     }
-    const availability = await resolveCoachAvailabilityTables(body.coachUserId);
-    assertCoachAvailabilitySlotOpen({
-      tables: availability.tables,
-      coachUserId: body.coachUserId,
-      scheduledAt: body.scheduledAt,
-      durationMinutes: body.durationMinutes,
-      applySchedulingRules: true,
-    });
+    if (body.clubId) {
+      await assertClubBookingCoachMembership({
+        clubId: body.clubId,
+        coachUserId: body.coachUserId,
+      });
+    }
+    if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+      const availability = await resolveCoachAvailabilityTables(body.coachUserId);
+      assertCoachAvailabilitySlotOpen({
+        tables: availability.tables,
+        coachUserId: body.coachUserId,
+        scheduledAt: body.scheduledAt,
+        durationMinutes: body.durationMinutes,
+        applySchedulingRules: true,
+      });
+    }
     const repository = resolveBookingRepository();
     const response = await repository.createBooking({
       authUserId,
@@ -3728,6 +4953,25 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
     const body = createBookingSeriesRequestSchema.parse(request.body);
+    const activeBlock = await findActiveBookingBlock({
+      coachUserId: body.coachUserId,
+      counterpartyUserIds: [authUserId, body.bookedByUserId],
+    });
+    if (activeBlock) {
+      await recordAuditEvent({
+        request,
+        action: 'booking_series.create',
+        resourceType: 'booking_series',
+        subjectUserId: body.coachUserId,
+        result: 'DENY',
+        metadata: {
+          reason: 'active_block_relationship',
+          counterpartUserId: activeBlock.counterpartUserId,
+          relationship: activeBlock.relationship,
+        },
+      });
+      throw conflict('Booking is unavailable because one side has blocked the other');
+    }
     const idempotentResponse = await resolveCreateBookingSeriesIdempotency({
       authUserId,
       body,
@@ -3884,6 +5128,69 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     return reply.send(response);
   });
+  const resolveBookingRequest = async (
+    request: FastifyRequest,
+    reply: FastifyReply,
+    action: 'decline' | 'withdraw',
+  ) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const bookingId = bookingIdSchema.parse(
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
+    );
+    const body = resolveBookingRequestSchema.parse(request.body);
+    const repository = resolveBookingRepository();
+    try {
+      const response = await repository.resolveBookingRequest({
+        authUserId,
+        requestId: request.requestId,
+        bookingId,
+        action,
+        body,
+      });
+      await recordAuditEvent({
+        request,
+        action: `booking.request.${action}`,
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: response.bookedByUserId ?? null,
+        result: 'SUCCESS',
+        metadata: {
+          status: response.status,
+          hasNote: Boolean(body.note?.trim()),
+        },
+      });
+      return reply.send(response);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: `booking.request.${action}`,
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          hasNote: Boolean(body.note?.trim()),
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  };
+  app.post('/bookings/:bookingId/decline', (request, reply) =>
+    resolveBookingRequest(request, reply, 'decline'),
+  );
+  app.post('/bookings/:bookingId/withdraw', (request, reply) =>
+    resolveBookingRequest(request, reply, 'withdraw'),
+  );
   app.post('/bookings/:bookingId/reopen', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -3924,13 +5231,41 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     );
     const body = confirmBookingRequestSchema.parse(request.body ?? {});
     const repository = resolveBookingRepository();
-    const response = await repository.confirmBooking({
-      authUserId,
-      requestId: request.requestId,
-      bookingId,
-      body,
-    });
-    return reply.send(response);
+    try {
+      const response = await repository.confirmBooking({
+        authUserId,
+        requestId: request.requestId,
+        bookingId,
+        body,
+      });
+      await recordAuditEvent({
+        request,
+        action: 'booking.confirm',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: response.bookedByUserId ?? null,
+        result: 'SUCCESS',
+        metadata: {
+          status: response.status,
+          hasNote: Boolean(body.note?.trim()),
+        },
+      });
+      return reply.send(response);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking.confirm',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          hasNote: Boolean(body.note?.trim()),
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
   app.post('/bookings/:bookingId/complete', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -4015,8 +5350,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         resourceId: bookingId,
         subjectUserId: authUserId,
         result: 'SUCCESS',
+        sensitiveRead: true,
         metadata: {
-          noteId: result.note?.id ?? null,
+          hasNote: Boolean(result.note),
         },
       });
       return reply.send({
@@ -4032,6 +5368,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         resourceId: bookingId,
         subjectUserId: authUserId,
         result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
           status: error instanceof ApiProblemError ? error.status : 500,
@@ -4110,16 +5447,44 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       )?.bookingId,
     );
     const repository = resolveBookingReviewRepository();
-    const result = await repository.getBookingReviewForActor({
-      authUserId,
-      bookingId,
-    });
-    return reply.send({
-      hasReviewed: Boolean(result.review),
-      review: result.review,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      const result = await repository.getBookingReviewForActor({
+        authUserId,
+        bookingId,
+      });
+      await recordAuditEvent({
+        request,
+        action: 'booking_review.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          hasReviewed: Boolean(result.review),
+        },
+      });
+      return reply.send({
+        hasReviewed: Boolean(result.review),
+        review: result.review,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking_review.read',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
   app.post('/bookings/:bookingId/reviews', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -4475,7 +5840,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const result = await resolveGroupSessionRepository().cancelSession({
       authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      isPrivilegedAdmin: isSystemAdminAuth(request.auth),
       sessionId,
       requestId: request.requestId,
     });
@@ -4509,6 +5874,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       intent === 'waitlist' ? 'group_session.waitlist_joined' : 'group_session.registered';
     let athleteId: string | undefined;
     let parentUserId: string | undefined;
+    let activeBlock: ActiveBookingBlock | null = null;
     try {
       const body =
         intent === 'waitlist'
@@ -4520,7 +5886,21 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       if (!isPrivilegedAdmin && parentUserId && parentUserId !== authUserId) {
         throw forbidden('parentUserId must match authenticated user');
       }
-      const result = await resolveGroupSessionRepository().registerAthlete({
+      const repository = resolveGroupSessionRepository();
+      const visibleSession = await repository.getVisibleSessionById({
+        authUserId,
+        isPrivilegedAdmin,
+        sessionId,
+        requestId: request.requestId,
+      });
+      activeBlock = await findActiveBookingBlock({
+        coachUserId: visibleSession.session.coachId,
+        counterpartyUserIds: [authUserId, parentUserId],
+      });
+      if (activeBlock) {
+        throw conflict('Registration is unavailable because one side has blocked the other');
+      }
+      const result = await repository.registerAthlete({
         authUserId,
         isPrivilegedAdmin,
         requestId: request.requestId,
@@ -4589,6 +5969,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           athleteId: athleteId ?? null,
           parentUserId: parentUserId ?? null,
+          ...(activeBlock
+            ? {
+                reason: 'active_block_relationship',
+                counterpartUserId: activeBlock.counterpartUserId,
+                relationship: activeBlock.relationship,
+              }
+            : {}),
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
           status: error instanceof ApiProblemError ? error.status : 500,
         },
@@ -4619,18 +6006,101 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
+    const query = groupSessionRosterQuerySchema.parse(request.query ?? {});
     const result = await resolveGroupSessionRepository().listSessionRoster({
       authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      isPrivilegedAdmin: isSystemAdminAuth(request.auth),
       sessionId,
+      forCompletion: query.forCompletion ?? false,
     });
     return reply.send({
       session: result.session,
       registrations: result.registrations,
       total: result.registrations.length,
+      occurrenceDate: result.occurrenceDate,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+  app.post('/group-sessions/:sessionId/complete', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
+    if (!sessionId) {
+      throw notFound('Group session id is required');
+    }
+    let body: z.infer<typeof completeGroupSessionRequestSchema> | undefined;
+    try {
+      body = completeGroupSessionRequestSchema.parse(request.body ?? {});
+      const attended = body.attendance.filter((entry) => entry.status === 'ATTENDED').length;
+      const noShow = body.attendance.length - attended;
+      const result = await resolveGroupSessionRepository().completeSession({
+        authUserId,
+        isPrivilegedAdmin: isSystemAdminAuth(request.auth),
+        sessionId,
+        body,
+        requestId: request.requestId,
+        successAuditEvent: buildAuditEventData({
+          request,
+          action: 'group_session.completed',
+          resourceType: 'group_session',
+          resourceId: sessionId,
+          subjectUserId: authUserId,
+          result: 'SUCCESS',
+          metadata: {
+            occurrenceDate: body.occurrenceDate,
+            attendanceCount: body.attendance.length,
+            attended,
+            noShow,
+            completionScope: 'occurrence',
+          },
+        }),
+      });
+      return reply.send({
+        groupSession: result.session,
+        registrations: result.registrations,
+        occurrenceDate: result.occurrenceDate,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      try {
+        await recordAuditEvent({
+          request,
+          action: 'group_session.completed',
+          resourceType: 'group_session',
+          resourceId: sessionId,
+          subjectUserId: authUserId,
+          result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+          metadata: {
+            occurrenceDate: body?.occurrenceDate ?? null,
+            attendanceCount: body?.attendance.length ?? null,
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      } catch (auditError) {
+        request.log.error(
+          {
+            auditError,
+            action: 'group_session.completed',
+            resourceId: sessionId,
+          },
+          'Failed to persist denied group session completion audit',
+        );
+      }
+      throw error;
+    }
   });
   app.delete('/group-session-registrations/:registrationId', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -4652,7 +6122,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     try {
       const result = await resolveGroupSessionRepository().cancelRegistration({
         authUserId,
-        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        isPrivilegedAdmin: isSystemAdminAuth(request.auth),
         registrationId,
       });
       await recordAuditEvent({
@@ -4702,35 +6172,71 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!registrationId) {
       throw notFound('Registration id is required');
     }
-    const body = markGroupSessionAttendanceRequestSchema.parse(request.body ?? {});
-    const result = await resolveGroupSessionRepository().markAttendance({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      registrationId,
-      date: body.date,
-      attended: body.attended,
-    });
-    await recordAuditEvent({
-      request,
-      action: body.attended
-        ? 'group_session.attendance_marked'
-        : 'group_session.attendance_cleared',
-      resourceType: 'group_session_registration',
-      resourceId: registrationId,
-      result: 'SUCCESS',
-      metadata: {
-        sessionId: result.registration.sessionId,
-        athleteId: result.registration.athleteId,
-        attendanceDate: body.date,
-        attended: body.attended,
-        registrationStatus: result.registration.status,
-      },
-    });
-    return reply.send({
-      registration: result.registration,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    let body: z.infer<typeof markGroupSessionAttendanceRequestSchema> | undefined;
+    let attendanceStatus: 'ATTENDED' | 'NO_SHOW' | null | undefined;
+    let action = 'group_session.attendance_updated';
+    try {
+      body = markGroupSessionAttendanceRequestSchema.parse(request.body ?? {});
+      attendanceStatus =
+        body.status !== undefined ? body.status : body.attended ? 'ATTENDED' : null;
+      action =
+        attendanceStatus === 'ATTENDED'
+          ? 'group_session.attendance_marked'
+          : attendanceStatus === 'NO_SHOW'
+            ? 'group_session.no_show_recorded'
+            : 'group_session.attendance_cleared';
+      const result = await resolveGroupSessionRepository().markAttendance({
+        authUserId,
+        isPrivilegedAdmin: isSystemAdminAuth(request.auth),
+        registrationId,
+        date: body.date,
+        status: attendanceStatus,
+        successAuditEvent: buildAuditEventData({
+          request,
+          action,
+          resourceType: 'group_session_registration',
+          resourceId: registrationId,
+          subjectUserId: authUserId,
+          result: 'SUCCESS',
+          metadata: {
+            attendanceDate: body.date,
+            attendanceStatus,
+          },
+        }),
+      });
+      return reply.send({
+        registration: result.registration,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      try {
+        await recordAuditEvent({
+          request,
+          action,
+          resourceType: 'group_session_registration',
+          resourceId: registrationId,
+          subjectUserId: authUserId,
+          result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+          metadata: {
+            attendanceDate: body?.date ?? null,
+            attendanceStatus: attendanceStatus ?? null,
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      } catch (auditError) {
+        request.log.error(
+          {
+            auditError,
+            action,
+            resourceId: registrationId,
+          },
+          'Failed to persist denied group session attendance audit',
+        );
+      }
+      throw error;
+    }
   });
   app.get('/group-session-registrations', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -4999,16 +6505,46 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const query = sessionRsvpBatchCountsQuerySchema.parse(request.query ?? {});
     const sessionIds = splitCsvQueryValue(query.sessionIds);
-    const result = await resolveGroupSessionRepository().getBatchSessionRsvpCounts({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      sessionIds,
-    });
-    return reply.send({
-      countsBySessionId: result.countsBySessionId,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    const auditResourceId = sessionIds.length === 1 ? sessionIds[0] : null;
+    try {
+      const result = await resolveGroupSessionRepository().getBatchSessionRsvpCounts({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        sessionIds,
+      });
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: auditResourceId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          count: Object.keys(result.countsBySessionId).length,
+          sessionIds,
+          scope: 'batch-counts',
+        },
+      });
+      return reply.send({
+        countsBySessionId: result.countsBySessionId,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: auditResourceId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          httpStatus: error instanceof ApiProblemError ? error.status : 500,
+          sessionIds,
+          scope: 'batch-counts',
+        },
+      });
+      throw error;
+    }
   });
   app.get('/session-rsvps/:rsvpId', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -5027,16 +6563,43 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!rsvpId) {
       throw notFound('Session RSVP id is required');
     }
-    const result = await resolveGroupSessionRepository().getSessionRsvpById({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      rsvpId,
-    });
-    return reply.send({
-      rsvp: result.rsvp,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      const result = await resolveGroupSessionRepository().getSessionRsvpById({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        rsvpId,
+      });
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: rsvpId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          sessionId: result.rsvp.sessionId,
+          scope: 'rsvp',
+        },
+      });
+      return reply.send({
+        rsvp: result.rsvp,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: rsvpId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          httpStatus: error instanceof ApiProblemError ? error.status : 500,
+          scope: 'rsvp',
+        },
+      });
+      throw error;
+    }
   });
   app.patch('/session-rsvps/:rsvpId/respond', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -5101,18 +6664,47 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const query = sessionRsvpsQuerySchema.parse(request.query ?? {});
     const userId = query.userId ?? authUserId;
-    const result = await resolveGroupSessionRepository().listSessionRsvpsForUser({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      userId,
-      status: query.status,
-    });
-    return reply.send({
-      rsvps: result.rsvps,
-      total: result.rsvps.length,
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+    try {
+      const result = await resolveGroupSessionRepository().listSessionRsvpsForUser({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        userId,
+        status: query.status,
+      });
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: userId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          count: result.rsvps.length,
+          requestedStatus: query.status ?? null,
+          scope: 'user',
+        },
+      });
+      return reply.send({
+        rsvps: result.rsvps,
+        total: result.rsvps.length,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordSessionRsvpAudit({
+        request,
+        action: 'session_rsvp.read',
+        resourceId: userId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          httpStatus: error instanceof ApiProblemError ? error.status : 500,
+          requestedStatus: query.status ?? null,
+          scope: 'user',
+        },
+      });
+      throw error;
+    }
   });
   app.get('/invites', async (request, reply) => {
     const authUserId = request.auth?.userId;
@@ -5141,6 +6733,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const store = await getInviteRuntimeStore({
       coachUserId: requestedCoachUserId,
       parentUserId: requestedParentUserId,
+      unavailableAudit: {
+        request,
+        action: 'invite.read',
+        subjectUserId: requestedParentUserId ?? requestedCoachUserId ?? authUserId,
+        metadata: {
+          route: 'list',
+          requestedCoachUserId: requestedCoachUserId ?? null,
+          requestedParentUserId: requestedParentUserId ?? null,
+          requestedGroupId: requestedGroupId ?? null,
+          requestedInviteType: requestedInviteType ?? null,
+        },
+      },
     });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
@@ -5333,12 +6937,43 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('coachUserId must match authenticated user');
     }
+    const activeBlock = await findActiveBookingBlock({
+      coachUserId: body.coachUserId,
+      counterpartyUserIds: [body.parentUserId],
+    });
+    if (activeBlock) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.create',
+        result: 'DENY',
+        subjectUserId: body.parentUserId,
+        metadata: {
+          reason: 'active_block_relationship',
+          coachUserId: body.coachUserId,
+          parentUserId: body.parentUserId,
+          counterpartUserId: activeBlock.counterpartUserId,
+          relationship: activeBlock.relationship,
+        },
+      });
+      throw conflict('Invite is unavailable because one side has blocked the other');
+    }
     const store = await getInviteRuntimeStore({
       athleteIds: body.athleteIds,
       authUserId,
       coachUserId: body.coachUserId,
       existingSessionId: body.existingSessionId,
       parentUserId: body.parentUserId,
+      unavailableAudit: {
+        request,
+        action: 'invite.create',
+        subjectUserId: body.parentUserId,
+        metadata: {
+          coachUserId: body.coachUserId,
+          parentUserId: body.parentUserId,
+          athleteIds: body.athleteIds,
+          inviteAudienceType: body.inviteType ?? 'OPEN',
+        },
+      },
     });
     const idempotentResponse = findSeedCreateInviteIdempotency({
       tables: store.tables,
@@ -5506,7 +7141,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       inviteId,
       now,
     });
-    await commitInviteRuntimeStore(store);
+    await commitInviteRuntimeStore(store, {
+      inviteIds: new Set([inviteId]),
+      targetIds: new Set(
+        createdTargets.flatMap((target) => {
+          const targetId = asString(target.id);
+          return targetId ? [targetId] : [];
+        }),
+      ),
+      idempotencyKeys: body.idempotencyKey
+        ? new Set([`${authUserId}:${INVITE_CREATE_ENDPOINT_KEY}:${body.idempotencyKey}`])
+        : new Set(),
+    });
     return reply.status(201).send({
       invite: buildSessionInviteView({
         tables: store.tables,
@@ -5536,6 +7182,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const store = await getInviteRuntimeStore({
       inviteId,
+      unavailableAudit: {
+        request,
+        action: 'invite.read',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        metadata: { route: 'detail' },
+      },
     });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
@@ -5584,6 +7237,15 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const store = await getInviteRuntimeStore({
       inviteId,
       parentUserId: authUserId,
+      unavailableAudit: {
+        request,
+        action: 'invite.rsvp.read',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        metadata: {
+          requestedStatus: requestedStatus ?? null,
+        },
+      },
     });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -5677,6 +7339,16 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       inviteId,
       parentUserId: authUserId,
       athleteIds: body.childId ? [body.childId] : undefined,
+      unavailableAudit: {
+        request,
+        action: 'invite.rsvp.respond',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        metadata: {
+          requestedStatus: body.status,
+          childId: body.childId ?? null,
+        },
+      },
     });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -5836,6 +7508,16 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const store = await getInviteRuntimeStore({
       inviteId,
       parentUserId: authUserId,
+      unavailableAudit: {
+        request,
+        action: 'invite.rsvp.update',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        metadata: {
+          responseId,
+          requestedStatus: body.status,
+        },
+      },
     });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -5941,6 +7623,12 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const store = await getInviteRuntimeStore({
       inviteId,
+      unavailableAudit: {
+        request,
+        action: 'invite.cancel',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+      },
     });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
@@ -6022,6 +7710,12 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const store = await getInviteRuntimeStore({
       inviteId,
+      unavailableAudit: {
+        request,
+        action: 'invite.remind',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+      },
     });
     const invites = asRows(store.tables.invites);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -6090,6 +7784,12 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const store = await getInviteRuntimeStore({
       inviteId,
+      unavailableAudit: {
+        request,
+        action: 'invite.dismiss',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+      },
     });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -6159,6 +7859,15 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const store = await getInviteRuntimeStore({
       inviteId,
       parentUserId: authUserId,
+      unavailableAudit: {
+        request,
+        action: 'invite.respond',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        metadata: {
+          requestedResponse: body.response,
+        },
+      },
     });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
@@ -6187,6 +7896,33 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         },
       });
       throw forbidden('Invite does not belong to authenticated user');
+    }
+    if (body.response === 'ACCEPTED') {
+      const coachUserId = asString(invite.senderUserId);
+      if (!coachUserId) {
+        throw badRequest('Invite is missing its coach');
+      }
+      const activeBlock = await findActiveBookingBlock({
+        coachUserId,
+        counterpartyUserIds: [authUserId],
+      });
+      if (activeBlock) {
+        await recordInviteAudit({
+          request,
+          action: 'invite.respond',
+          resourceId: inviteId,
+          subjectUserId: authUserId,
+          result: 'DENY',
+          metadata: {
+            reason: 'active_block_relationship',
+            requestedResponse: body.response,
+            coachUserId,
+            counterpartUserId: activeBlock.counterpartUserId,
+            relationship: activeBlock.relationship,
+          },
+        });
+        throw conflict('Invite is unavailable because one side has blocked the other');
+      }
     }
     const now = isoNow();
     const existingBookingId = asString(invite.bookingId);
@@ -6618,43 +8354,87 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!eventId) {
       throw notFound('Event id is required');
     }
-    const { clubId, eventTitle } = await assertCanRemindEventRsvps({
-      request,
-      eventId,
-      authUserId,
-    });
-    if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
-      const prisma = getPrismaClientOrThrow();
-      const maybeRsvps = await prisma.eventRsvp.findMany({
-        where: {
-          clubEventId: eventId,
-          status: 'MAYBE',
-        },
-        select: {
-          userId: true,
-        },
+    try {
+      const { clubId, eventTitle } = await assertCanRemindEventRsvps({
+        request,
+        eventId,
+        authUserId,
       });
-      const now = new Date();
-      if (maybeRsvps.length > 0) {
-        await prisma.notification.createMany({
-          data: maybeRsvps.map((rsvp) => ({
-            id: newId('nfn'),
-            userId: rsvp.userId,
-            type: 'EVENT_RSVP_REMINDER',
-            title: 'Reminder: Event RSVP',
-            body: `Please confirm attendance for "${eventTitle}".`,
-            status: 'UNREAD',
-            sourceType: 'club_event',
-            sourceId: eventId,
-            deepLink: `/events/${eventId}/rsvp`,
-            metadataJson: {
-              clubId,
-              eventId,
-            },
-            createdAt: now,
-            updatedAt: now,
-          })),
+      if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+        const prisma = getPrismaClientOrThrow();
+        const maybeRsvps = await prisma.eventRsvp.findMany({
+          where: {
+            clubEventId: eventId,
+            status: 'MAYBE',
+          },
+          select: {
+            userId: true,
+          },
         });
+        const now = new Date();
+        if (maybeRsvps.length > 0) {
+          await prisma.notification.createMany({
+            data: maybeRsvps.map((rsvp) => ({
+              id: newId('nfn'),
+              userId: rsvp.userId,
+              type: 'EVENT_RSVP_REMINDER',
+              title: 'Reminder: Event RSVP',
+              body: `Please confirm attendance for "${eventTitle}".`,
+              status: 'UNREAD',
+              sourceType: 'club_event',
+              sourceId: eventId,
+              deepLink: `/events/${eventId}/rsvp`,
+              metadataJson: {
+                clubId,
+                eventId,
+              },
+              createdAt: now,
+              updatedAt: now,
+            })),
+          });
+        }
+        await recordEventRsvpReminderAudit({
+          request,
+          eventId,
+          authUserId,
+          result: 'SUCCESS',
+          metadata: { clubId, reminderCount: maybeRsvps.length },
+        });
+        return reply.send({
+          eventId,
+          reminderCount: maybeRsvps.length,
+          requestId: request.requestId,
+        });
+      }
+
+      const store =
+        getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+          ? getDbFixtureStore()
+          : getMarketplaceSeedStore();
+      if (!Array.isArray(store.tables.notifications)) {
+        store.tables.notifications = [];
+      }
+      const now = isoNow();
+      const maybeRsvps = asRows(store.tables.eventRsvps).filter(
+        (row) =>
+          (asString(row.clubEventId) === eventId || asString(row.eventId) === eventId) &&
+          toApiEventRsvpStatus(row.status) === 'MAYBE' &&
+          Boolean(asString(row.userId)),
+      );
+      for (const rsvp of maybeRsvps) {
+        const userId = asString(rsvp.userId);
+        if (!userId) {
+          continue;
+        }
+        store.tables.notifications.push(
+          buildEventRsvpReminderNotification({
+            eventId,
+            clubId,
+            eventTitle,
+            userId,
+            now,
+          }),
+        );
       }
       await recordEventRsvpReminderAudit({
         request,
@@ -6667,51 +8447,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         eventId,
         reminderCount: maybeRsvps.length,
         requestId: request.requestId,
+        seedVersion: store.version,
       });
-    }
-
-    const store =
-      getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
-        ? getDbFixtureStore()
-        : getMarketplaceSeedStore();
-    if (!Array.isArray(store.tables.notifications)) {
-      store.tables.notifications = [];
-    }
-    const now = isoNow();
-    const maybeRsvps = asRows(store.tables.eventRsvps).filter(
-      (row) =>
-        (asString(row.clubEventId) === eventId || asString(row.eventId) === eventId) &&
-        toApiEventRsvpStatus(row.status) === 'MAYBE' &&
-        Boolean(asString(row.userId)),
-    );
-    for (const rsvp of maybeRsvps) {
-      const userId = asString(rsvp.userId);
-      if (!userId) {
-        continue;
-      }
-      store.tables.notifications.push(
-        buildEventRsvpReminderNotification({
+    } catch (error) {
+      if (!(error instanceof ApiProblemError && error.status < 500)) {
+        await recordEventRsvpReminderAudit({
+          request,
           eventId,
-          clubId,
-          eventTitle,
-          userId,
-          now,
-        }),
-      );
+          authUserId,
+          result: 'ERROR',
+          metadata: {
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      }
+      throw error;
     }
-    await recordEventRsvpReminderAudit({
-      request,
-      eventId,
-      authUserId,
-      result: 'SUCCESS',
-      metadata: { clubId, reminderCount: maybeRsvps.length },
-    });
-    return reply.send({
-      eventId,
-      reminderCount: maybeRsvps.length,
-      requestId: request.requestId,
-      seedVersion: store.version,
-    });
   });
 
   app.get('/clubs/:clubId/events', async (request, reply) => {
@@ -6730,24 +8482,24 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Club id is required');
     }
     try {
-      const { events, seedVersion } = await listReadableClubEvents({
+      const { events } = await listReadableClubEvents({
         request,
         clubId,
         authUserId,
       });
+      const eventPayloads = events.map(buildClubEventResponse);
       await recordClubEventListAudit({
         request,
         clubId,
         authUserId,
         result: 'SUCCESS',
-        metadata: { total: events.length },
+        metadata: { total: eventPayloads.length },
       });
       return reply.send({
         clubId,
-        events: events.map(buildClubEventResponse),
-        total: events.length,
+        events: eventPayloads,
+        total: eventPayloads.length,
         requestId: request.requestId,
-        seedVersion,
       });
     } catch (error) {
       await recordClubEventListAudit({
@@ -6779,20 +8531,59 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!clubId) {
       throw notFound('Club id is required');
     }
-    const body = createClubEventRequestSchema.parse(request.body ?? {});
     await assertCanWriteClubEvent({
       request,
       action: 'club_event.create',
       clubId,
       authUserId,
     });
-    const bodyForWrite: CreateClubEventRequestBody =
-      body.athleteIds !== undefined
-        ? {
-            ...body,
-            athleteIds: dedupeStrings(body.athleteIds),
-          }
-        : body;
+    let bodyForWrite: CreateClubEventRequestBody;
+    let startsAt: Date;
+    let endsAt: Date | null;
+    let timeZone: string;
+    try {
+      const body = createClubEventRequestSchema.parse(request.body ?? {});
+      bodyForWrite =
+        body.athleteIds !== undefined
+          ? {
+              ...body,
+              athleteIds: dedupeStrings(body.athleteIds),
+            }
+          : body;
+      timeZone = await resolveClubEventCreatorTimeZone(authUserId);
+      const parsedStartsAt = eventWriteDateTime(
+        bodyForWrite.date,
+        bodyForWrite.startTime,
+        timeZone,
+      );
+      if (!parsedStartsAt) {
+        throw badRequest('Event start date and time must be valid');
+      }
+      startsAt = parsedStartsAt;
+      endsAt = bodyForWrite.endTime
+        ? eventWriteDateTime(bodyForWrite.date, bodyForWrite.endTime, timeZone)
+        : null;
+      if (bodyForWrite.endTime && !endsAt) {
+        throw badRequest('Event end time must be valid');
+      }
+    } catch (error) {
+      await recordClubEventWriteAudit({
+        request,
+        action: 'club_event.create',
+        clubId,
+        authUserId,
+        result: 'DENY',
+        metadata: {
+          errorCode:
+            isZodValidationError(error)
+              ? 'VALIDATION_FAILED'
+              : error instanceof ApiProblemError
+                ? error.code
+                : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
     if ((bodyForWrite.athleteIds ?? []).length > 0) {
       await assertClubEventAthleteTargetsValid({
         request,
@@ -6802,82 +8593,90 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         athleteIds: bodyForWrite.athleteIds ?? [],
       });
     }
-    const startsAt = eventWriteDateTime(bodyForWrite.date, bodyForWrite.startTime);
-    if (!startsAt) {
-      throw badRequest('Event start date and time must be valid');
-    }
-    const endsAt = bodyForWrite.endTime
-      ? eventWriteDateTime(bodyForWrite.date, bodyForWrite.endTime)
-      : null;
-    if (bodyForWrite.endTime && !endsAt) {
-      throw badRequest('Event end time must be valid');
-    }
-    if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
-      const prisma = getPrismaClientOrThrow();
-      const event = await prisma.clubEvent.create({
-        data: {
-          id: newId('evt'),
+    try {
+      if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+        const prisma = getPrismaClientOrThrow();
+        const event = await prisma.clubEvent.create({
+          data: {
+            id: newId('evt'),
+            clubId,
+            creatorUserId: authUserId,
+            title: bodyForWrite.title,
+            description: bodyForWrite.description ?? null,
+            startsAt,
+            endsAt,
+            location: bodyForWrite.venue,
+            status: 'DRAFT',
+            visibility: eventVisibilityForBody(bodyForWrite),
+            rsvpDeadlineAt: bodyForWrite.rsvpDeadline
+              ? toOptionalDate(bodyForWrite.rsvpDeadline)
+              : null,
+            guestLimit: bodyForWrite.maxAttendees ?? null,
+            metadataJson: toEventMetadata(bodyForWrite, undefined, timeZone) as never,
+            createdByUserId: authUserId,
+            updatedByUserId: authUserId,
+          },
+        });
+        const eventPayload = buildClubEventResponse(
+          withClubEventRsvpSummary(normalizeForJson(event) as SeedRow, []),
+        );
+        await recordClubEventWriteAudit({
+          request,
+          action: 'club_event.create',
+          eventId: event.id,
           clubId,
-          creatorUserId: authUserId,
-          title: bodyForWrite.title,
-          description: bodyForWrite.description ?? null,
-          startsAt,
-          endsAt,
-          location: bodyForWrite.venue,
-          status: 'DRAFT',
-          visibility: eventVisibilityForBody(bodyForWrite),
-          rsvpDeadlineAt: bodyForWrite.rsvpDeadline
-            ? toOptionalDate(bodyForWrite.rsvpDeadline)
-            : null,
-          guestLimit: bodyForWrite.maxAttendees ?? null,
-          metadataJson: toEventMetadata(bodyForWrite) as never,
-          createdByUserId: authUserId,
-          updatedByUserId: authUserId,
-        },
+          authUserId,
+          result: 'SUCCESS',
+          metadata: { status: event.status },
+        });
+        return reply.status(201).send({
+          event: eventPayload,
+          requestId: request.requestId,
+        });
+      }
+
+      const store =
+        getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+          ? getDbFixtureStore()
+          : getMarketplaceSeedStore();
+      if (!Array.isArray(store.tables.clubEvents)) {
+        store.tables.clubEvents = [];
+      }
+      const event = buildSeedClubEventRow({
+        clubId,
+        authUserId,
+        body: bodyForWrite,
+        timeZone,
+        now: isoNow(),
       });
+      store.tables.clubEvents.push(event);
+      const eventPayload = buildClubEventResponse(withClubEventRsvpSummary(event, []));
       await recordClubEventWriteAudit({
         request,
         action: 'club_event.create',
-        eventId: event.id,
+        eventId: asString(event.id),
         clubId,
         authUserId,
         result: 'SUCCESS',
-        metadata: { status: event.status },
+        metadata: { status: asString(event.status) },
       });
       return reply.status(201).send({
-        event: buildClubEventResponse(normalizeForJson(event) as SeedRow),
+        event: eventPayload,
         requestId: request.requestId,
       });
+    } catch (error) {
+      await recordClubEventWriteAudit({
+        request,
+        action: 'club_event.create',
+        clubId,
+        authUserId,
+        result: 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
     }
-
-    const store =
-      getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
-        ? getDbFixtureStore()
-        : getMarketplaceSeedStore();
-    if (!Array.isArray(store.tables.clubEvents)) {
-      store.tables.clubEvents = [];
-    }
-    const event = buildSeedClubEventRow({
-      clubId,
-      authUserId,
-      body: bodyForWrite,
-      now: isoNow(),
-    });
-    store.tables.clubEvents.push(event);
-    await recordClubEventWriteAudit({
-      request,
-      action: 'club_event.create',
-      eventId: asString(event.id),
-      clubId,
-      authUserId,
-      result: 'SUCCESS',
-      metadata: { status: asString(event.status) },
-    });
-    return reply.status(201).send({
-      event: buildClubEventResponse(event),
-      requestId: request.requestId,
-      seedVersion: store.version,
-    });
   });
 
   app.get('/events/:eventId', async (request, reply) => {
@@ -6895,23 +8694,39 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!eventId) {
       throw notFound('Event id is required');
     }
-    const { clubId, event, seedVersion } = await resolveReadableClubEvent({
-      request,
-      eventId,
-      authUserId,
-    });
-    await recordClubEventReadAudit({
-      request,
-      eventId,
-      authUserId,
-      result: 'SUCCESS',
-      metadata: { clubId, status: asString(event.status) ?? null },
-    });
-    return reply.send({
-      event: buildClubEventResponse(event),
-      requestId: request.requestId,
-      seedVersion,
-    });
+    try {
+      const { clubId, event } = await resolveReadableClubEvent({
+        request,
+        eventId,
+        authUserId,
+      });
+      const eventPayload = buildClubEventResponse(event);
+      await recordClubEventReadAudit({
+        request,
+        eventId,
+        authUserId,
+        result: 'SUCCESS',
+        metadata: { clubId, status: asString(event.status) ?? null },
+      });
+      return reply.send({
+        event: eventPayload,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      if (!(error instanceof ApiProblemError && error.status < 500)) {
+        await recordClubEventReadAudit({
+          request,
+          eventId,
+          authUserId,
+          result: 'ERROR',
+          metadata: {
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      }
+      throw error;
+    }
   });
 
   app.patch('/events/:eventId', async (request, reply) => {
@@ -6965,14 +8780,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           athleteIds: bodyForWrite.athleteIds,
         });
       }
-      const existingDate = existing.startsAt.toISOString().slice(0, 10);
-      const existingStartTime = existing.startsAt.toISOString().slice(11, 16);
-      const existingEndTime = existing.endsAt?.toISOString().slice(11, 16);
+      const normalizedExisting = normalizeForJson(existing) as SeedRow;
+      const current = buildClubEventResponse(normalizedExisting);
+      const existingDate = asString(current.date);
+      const existingStartTime = asString(current.startTime);
+      const existingEndTime = asString(current.endTime);
+      const eventTimeZone = asString(current.timeZone);
       const startsAt =
         bodyForWrite.date !== undefined || bodyForWrite.startTime !== undefined
           ? eventWriteDateTime(
               bodyForWrite.date ?? existingDate,
               bodyForWrite.startTime ?? existingStartTime,
+              eventTimeZone,
             )
           : undefined;
       const endsAt =
@@ -6982,12 +8801,17 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
             : eventWriteDateTime(
                 bodyForWrite.date ?? existingDate,
                 bodyForWrite.endTime ?? existingEndTime,
+                eventTimeZone,
               )
           : undefined;
-      if (startsAt === null || endsAt === null) {
+      if (startsAt === null || (bodyForWrite.endTime !== undefined && endsAt === null)) {
         throw badRequest('Event date and time must be valid');
       }
-      const normalizedExisting = normalizeForJson(existing) as SeedRow;
+      const effectiveStartsAt = startsAt ?? existing.startsAt;
+      const effectiveEndsAt = endsAt === undefined ? existing.endsAt : endsAt;
+      if (effectiveEndsAt && effectiveEndsAt <= effectiveStartsAt) {
+        throw badRequest('Event end time must be after its start time');
+      }
       const event = await prisma.clubEvent.update({
         where: {
           id: eventId,
@@ -7060,11 +8884,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
     }
     const current = buildClubEventResponse(event);
+    const eventTimeZone = asString(current.timeZone);
     const startsAt =
       bodyForWrite.date !== undefined || bodyForWrite.startTime !== undefined
         ? eventWriteIso(
             bodyForWrite.date ?? asString(current.date),
             bodyForWrite.startTime ?? asString(current.startTime),
+            eventTimeZone,
           )
         : undefined;
     const endsAt =
@@ -7074,10 +8900,20 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           : eventWriteIso(
               bodyForWrite.date ?? asString(current.date),
               bodyForWrite.endTime ?? asString(current.endTime),
+              eventTimeZone,
             )
         : undefined;
-    if (startsAt === null || endsAt === null) {
+    if (startsAt === null || (bodyForWrite.endTime !== undefined && endsAt === null)) {
       throw badRequest('Event date and time must be valid');
+    }
+    const effectiveStartsAt = startsAt ?? asString(event.startsAt);
+    const effectiveEndsAt =
+      endsAt === undefined ? asString(event.endsAt) : endsAt === null ? undefined : endsAt;
+    if (!effectiveStartsAt || !Number.isFinite(Date.parse(effectiveStartsAt))) {
+      throw serviceUnavailable('Persisted club event schedule is invalid');
+    }
+    if (effectiveEndsAt && Date.parse(effectiveEndsAt) <= Date.parse(effectiveStartsAt)) {
+      throw badRequest('Event end time must be after its start time');
     }
     if (bodyForWrite.title !== undefined) event.title = bodyForWrite.title;
     if (bodyForWrite.description !== undefined) event.description = bodyForWrite.description;
@@ -7114,6 +8950,129 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
       seedVersion: store.version,
     });
+  });
+
+  app.get('/events/:eventId/invites/squads', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const eventId = asString(
+      (
+        request.params as {
+          eventId?: string;
+        }
+      ).eventId,
+    );
+    if (!eventId) {
+      throw notFound('Event id is required');
+    }
+    try {
+      const { clubId, event, seedVersion } = await assertCanReadEventInviteAggregates({
+        request,
+        eventId,
+        authUserId,
+      });
+      const invites = await buildEventSquadInviteAggregates({ event });
+      await recordClubEventInviteReadAudit({
+        request,
+        action: 'club_event.invites.read',
+        resourceType: 'club_event',
+        resourceId: eventId,
+        authUserId,
+        result: 'SUCCESS',
+        metadata: { clubId, count: invites.length },
+      });
+      return reply.send({
+        eventId,
+        invites,
+        total: invites.length,
+        requestId: request.requestId,
+        seedVersion,
+      });
+    } catch (error) {
+      if (!(error instanceof ApiProblemError && error.status < 500)) {
+        await recordClubEventInviteReadAudit({
+          request,
+          action: 'club_event.invites.read',
+          resourceType: 'club_event',
+          resourceId: eventId,
+          authUserId,
+          result: 'ERROR',
+          metadata: {
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      }
+      throw error;
+    }
+  });
+
+  app.get('/organizers/:organizerId/event-invites', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const organizerId = asString(
+      (
+        request.params as {
+          organizerId?: string;
+        }
+      ).organizerId,
+    );
+    if (!organizerId) {
+      throw notFound('Organizer id is required');
+    }
+    const query = organizerEventInvitesQuerySchema.parse(request.query ?? {});
+    try {
+      const scope = await assertCanReadOrganizerEventInviteAggregates({
+        request,
+        organizerId,
+        authUserId,
+      });
+      const { invites, seedVersion } = await listOrganizerEventSquadInviteAggregates({
+        organizerId,
+        allowedClubIds: scope.allowedClubIds,
+        limit: query.limit,
+      });
+      await recordClubEventInviteReadAudit({
+        request,
+        action: 'club_event.organizer_invites.read',
+        resourceType: 'user',
+        resourceId: organizerId,
+        authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          count: invites.length,
+          limit: query.limit,
+          scopedClubCount: scope.allowedClubIds?.size ?? null,
+        },
+      });
+      return reply.send({
+        organizerId,
+        invites,
+        total: invites.length,
+        requestId: request.requestId,
+        seedVersion: seedVersion ?? scope.seedVersion,
+      });
+    } catch (error) {
+      if (!(error instanceof ApiProblemError && error.status < 500)) {
+        await recordClubEventInviteReadAudit({
+          request,
+          action: 'club_event.organizer_invites.read',
+          resourceType: 'user',
+          resourceId: organizerId,
+          authUserId,
+          result: 'ERROR',
+          metadata: {
+            errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+            status: error instanceof ApiProblemError ? error.status : 500,
+          },
+        });
+      }
+      throw error;
+    }
   });
 
   app.post('/events/:eventId/invites/club', async (request, reply) => {
@@ -7313,6 +9272,21 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
       const prisma = getPrismaClientOrThrow();
       const now = new Date();
+      const nextSquadIds = dedupeStrings([...eventSquadIdsFromRow(event), ...targets.squadIds]);
+      const squadScopeBody: ClubEventWriteBody = {
+        targetAudience: 'SQUAD',
+        squadIds: nextSquadIds,
+      };
+      await prisma.clubEvent.update({
+        where: {
+          id: eventId,
+        },
+        data: {
+          visibility: eventVisibilityForBody(squadScopeBody, event),
+          metadataJson: toEventMetadata(squadScopeBody, event) as never,
+          updatedByUserId: authUserId,
+        },
+      });
       if (targets.recipientUserIds.length > 0) {
         await prisma.notification.createMany({
           data: targets.recipientUserIds.map((userId) => ({
@@ -7362,6 +9336,16 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       store.tables.notifications = [];
     }
     const now = isoNow();
+    const nextSquadIds = dedupeStrings([...eventSquadIdsFromRow(event), ...targets.squadIds]);
+    const squadScopeBody: ClubEventWriteBody = {
+      targetAudience: 'SQUAD',
+      squadIds: nextSquadIds,
+    };
+    event.visibility = eventVisibilityForBody(squadScopeBody, event);
+    event.metadataJson = toEventMetadata(squadScopeBody, event);
+    event.squadIdsJson = nextSquadIds;
+    event.updatedByUserId = authUserId;
+    event.updatedAt = now;
     for (const userId of targets.recipientUserIds) {
       store.tables.notifications.push(
         buildClubEventInviteNotification({
@@ -8025,6 +10009,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       request,
       eventId,
       authUserId,
+      targetUserId: userId,
     });
     if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
       const prisma = getPrismaClientOrThrow();
@@ -8092,7 +10077,24 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Event id is required');
     }
     const body = eventRsvpRequestSchema.parse(request.body);
-    if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
+      await recordAuditEvent({
+        request,
+        action: 'event.rsvp',
+        resourceType: 'club_event',
+        resourceId: eventId,
+        subjectUserId: authUserId,
+        result: 'ERROR',
+        metadata: {
+          reason: 'prisma_unavailable',
+          status: 503,
+          requestedStatus: body.status,
+          guestCount: body.guestCount ?? 0,
+        },
+      });
+      getPrismaClientOrThrow();
+    }
+    if (getApiDataBackend() === 'db') {
       const prisma = getPrismaClientOrThrow();
       const event = await prisma.clubEvent.findFirst({
         where: {
@@ -8188,10 +10190,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const store =
-      getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
-        ? getDbFixtureStore()
-        : getMarketplaceSeedStore();
+    const store = getMarketplaceSeedStore();
     const events = asRows(store.tables.clubEvents);
     const rsvps = asRows(store.tables.eventRsvps);
     const memberships = asRows(store.tables.clubMemberships);

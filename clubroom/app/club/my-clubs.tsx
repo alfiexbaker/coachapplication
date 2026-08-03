@@ -1,9 +1,7 @@
-import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
@@ -72,12 +70,21 @@ async function joinClubWithCode({
   onRefresh();
 }
 
+function closeMyClubs() {
+  if (router.canGoBack()) {
+    router.back();
+    return;
+  }
+  router.replace(Routes.HOME);
+}
+
 export default function MyClubsScreen() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
-  const params = useLocalSearchParams<{ inviteCode?: string; inviteRole?: string }>();
+  const params = useLocalSearchParams<{ inviteCode?: string }>();
   const isCoachAccount = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-  const handledInviteRef = useRef<string | null>(null);
+  const initialInviteCode =
+    typeof params.inviteCode === 'string' ? params.inviteCode.trim().toUpperCase() : '';
 
   const loadMyClubs = async () => {
     if (!currentUser?.id) {
@@ -151,7 +158,6 @@ export default function MyClubsScreen() {
         </View>
 
         <Row align="center" gap="xxs">
-          <ThemedText style={[styles.openLabel, { color: colors.tint }]}>Open</ThemedText>
           <Ionicons name="chevron-forward" size={16} color={colors.tint} />
         </Row>
       </SurfaceCard>
@@ -166,31 +172,13 @@ export default function MyClubsScreen() {
       showToast,
     });
 
-  useEffect(() => {
-    if (!currentUser?.id || !params.inviteCode) {
-      return;
-    }
-    const normalizedCode = String(params.inviteCode).trim().toUpperCase();
-    if (!normalizedCode || handledInviteRef.current === normalizedCode) {
-      return;
-    }
-    handledInviteRef.current = normalizedCode;
-    void joinClubWithCode({
-      code: normalizedCode,
-      currentUserId: currentUser.id,
-      onRefresh,
-      showToast,
-    });
-  }, [currentUser?.id, onRefresh, params.inviteCode, params.inviteRole, showToast]);
-
   if (status === 'loading') {
     return (
       <PageContainer
         header={
           <ScreenHeader
             title="My Clubs"
-            subtitle="All your clubs in one place"
-            action={{ icon: 'close', onPress: () => router.back(), label: 'Close' }}
+            action={{ icon: 'close', onPress: closeMyClubs, accessibilityLabel: 'Close' }}
           />
         }
       >
@@ -205,8 +193,7 @@ export default function MyClubsScreen() {
         header={
           <ScreenHeader
             title="My Clubs"
-            subtitle="All your clubs in one place"
-            action={{ icon: 'close', onPress: () => router.back(), label: 'Close' }}
+            action={{ icon: 'close', onPress: closeMyClubs, accessibilityLabel: 'Close' }}
           />
         }
       >
@@ -220,8 +207,7 @@ export default function MyClubsScreen() {
       header={
         <ScreenHeader
           title="My Clubs"
-          subtitle="All your clubs in one place"
-          action={{ icon: 'close', onPress: () => router.back(), label: 'Close' }}
+          action={{ icon: 'close', onPress: closeMyClubs, accessibilityLabel: 'Close' }}
         />
       }
       refreshing={refreshing}
@@ -229,8 +215,6 @@ export default function MyClubsScreen() {
       contentStyle={styles.content}
       gap={Spacing.md}
     >
-      <JoinClubCard isCoach={isCoachAccount} onJoin={handleJoin} />
-
       {clubs.length === 0 ? (
         <EmptyState
           icon="people-outline"
@@ -240,15 +224,13 @@ export default function MyClubsScreen() {
               ? 'Create your first club or join one with an invite code.'
               : 'Join a club with an invite code to see updates and sessions.'
           }
-          actionLabel={isCoachAccount ? 'Create Club' : undefined}
-          onPressAction={isCoachAccount ? () => router.push(Routes.CLUB_CREATE) : undefined}
         />
       ) : (
         <View style={styles.list}>
           {staffClubs.length > 0 ? (
             <View style={styles.sectionBlock}>
               <ThemedText style={[styles.sectionHeading, { color: colors.muted }]}>
-                Clubs You Manage
+                Clubs you manage
               </ThemedText>
               <View style={styles.list}>{staffClubs.map(renderClubCard)}</View>
             </View>
@@ -256,13 +238,20 @@ export default function MyClubsScreen() {
           {memberClubs.length > 0 ? (
             <View style={styles.sectionBlock}>
               <ThemedText style={[styles.sectionHeading, { color: colors.muted }]}>
-                {staffClubs.length > 0 ? 'Clubs You Follow' : 'Your Clubs'}
+                {staffClubs.length > 0 ? 'Clubs you follow' : 'Your clubs'}
               </ThemedText>
               <View style={styles.list}>{memberClubs.map(renderClubCard)}</View>
             </View>
           ) : null}
         </View>
       )}
+
+      <JoinClubCard
+        key={initialInviteCode || 'manual-invite'}
+        isCoach={isCoachAccount}
+        initialCode={initialInviteCode}
+        onJoin={handleJoin}
+      />
     </PageContainer>
   );
 }
@@ -313,8 +302,5 @@ const styles = StyleSheet.create({
   },
   rolePillText: {
     ...Typography.micro,
-  },
-  openLabel: {
-    ...Typography.smallSemiBold,
   },
 });

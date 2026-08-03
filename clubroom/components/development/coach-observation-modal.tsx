@@ -2,15 +2,12 @@
  * CoachObservationModal — Add or edit a coach observation about an athlete.
  *
  * Uses React Native Modal with pageSheet presentation.
- * Category picker + text input + private toggle.
+ * Category picker and text input.
  */
 
 import { useState, useEffect, useRef, type ComponentProps, startTransition } from 'react';
-import { View, StyleSheet, TextInput, Modal, ScrollView, Switch, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, Modal, ScrollView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-type IconName = ComponentProps<typeof Ionicons>['name'];
-
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -23,10 +20,12 @@ import {
 } from '@/services/coach-observation-service';
 import { uiFeedback } from '@/services/ui-feedback';
 
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
 interface CoachObservationModalProps {
   visible: boolean;
   observation?: CoachObservation | null;
-  onSave: (data: { text: string; category: ObservationCategory; isPrivate: boolean }) => void;
+  onSave: (data: { text: string; category: ObservationCategory }) => void;
   onClose: () => void;
   saving?: boolean;
 }
@@ -43,18 +42,15 @@ export const CoachObservationModal = function CoachObservationModal({
 
   const [text, setText] = useState('');
   const [category, setCategory] = useState<ObservationCategory>('OTHER');
-  const [isPrivate, setIsPrivate] = useState(false);
   const initialStateRef = useRef({
     text: '',
     category: 'OTHER' as ObservationCategory,
-    isPrivate: false,
   });
 
   useEffect(() => {
     if (visible) {
       const nextText = observation?.text ?? '';
       const nextCategory = observation?.category ?? 'OTHER';
-      const nextPrivate = observation?.isPrivate ?? false;
       startTransition(() => {
         setText(nextText);
       });
@@ -62,13 +58,9 @@ export const CoachObservationModal = function CoachObservationModal({
         setCategory(nextCategory);
       });
       startTransition(() => {
-        setIsPrivate(nextPrivate);
-      });
-      startTransition(() => {
         initialStateRef.current = {
           text: nextText,
           category: nextCategory,
-          isPrivate: nextPrivate,
         };
       });
     }
@@ -79,15 +71,14 @@ export const CoachObservationModal = function CoachObservationModal({
     const initialState = initialStateRef.current;
     return (
       text.trim() !== initialState.text.trim() ||
-      category !== initialState.category ||
-      isPrivate !== initialState.isPrivate
+      category !== initialState.category
     );
   };
 
   const handleSave = () => {
     if (!canSave) return;
     Keyboard.dismiss();
-    onSave({ text: text.trim(), category, isPrivate });
+    onSave({ text: text.trim(), category });
   };
 
   const closeNow = () => {
@@ -184,7 +175,7 @@ export const CoachObservationModal = function CoachObservationModal({
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="What have you observed? Strategies that work, things to watch for..."
+              placeholder="What helps? What should you watch for?"
               placeholderTextColor={colors.muted}
               multiline
               style={[
@@ -206,23 +197,6 @@ export const CoachObservationModal = function CoachObservationModal({
               {text.length}/2000
             </ThemedText>
           </View>
-
-          <Row align="center" justify="space-between" style={styles.toggleRow}>
-            <View style={styles.toggleLabel}>
-              <Row gap="xs" align="center">
-                <Ionicons name="lock-closed" size={16} color={colors.muted} />
-                <ThemedText style={Typography.body}>Private</ThemedText>
-              </Row>
-              <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                Only visible to you
-              </ThemedText>
-            </View>
-            <Switch
-              value={isPrivate}
-              onValueChange={setIsPrivate}
-              trackColor={{ false: colors.border, true: colors.tint }}
-            />
-          </Row>
         </ScrollView>
       </View>
     </Modal>
@@ -264,6 +238,4 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     ...Typography.body,
   },
-  toggleRow: { paddingVertical: Spacing.xs },
-  toggleLabel: { flex: 1, gap: Spacing.micro },
 });

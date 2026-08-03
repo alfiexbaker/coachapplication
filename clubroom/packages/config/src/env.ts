@@ -61,6 +61,39 @@ const envSchema = z
     API_PASSWORD_RESET_SMTP_USERNAME: z.string().optional(),
     API_PASSWORD_RESET_SMTP_PASSWORD: z.string().optional(),
     API_PASSWORD_RESET_SMTP_SECURE: boolish.default(false),
+    API_UPLOAD_SCAN_RESULT_TOKEN: z.string().min(32).optional(),
+    API_UPLOAD_SCAN_API_BASE_URL: z.string().url().optional(),
+    API_UPLOAD_SCAN_COMMAND: z.string().trim().min(1).default('clamscan'),
+    API_UPLOAD_SCAN_DATABASE_DIR: z.string().trim().min(1).optional(),
+    API_UPLOAD_SCAN_BATCH_SIZE: z.coerce.number().int().min(1).max(20).default(2),
+    API_UPLOAD_SCAN_POLL_INTERVAL_MS: z.coerce.number().int().min(1000).max(300_000).default(5000),
+    API_UPLOAD_SCAN_LEASE_MS: z.coerce.number().int().min(60_000).max(7_200_000).default(2_820_000),
+    API_UPLOAD_SCAN_DOWNLOAD_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(5000)
+      .max(7_200_000)
+      .default(900_000),
+    API_UPLOAD_SCAN_TIMEOUT_MS: z.coerce.number().int().min(5000).max(7_200_000).default(900_000),
+    API_UPLOAD_SCAN_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(2_000_000_000)
+      .default(2_000_000_000),
+    API_UPLOAD_SCAN_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
+    API_UPLOAD_SCAN_MAX_DEFINITION_AGE_HOURS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(168)
+      .default(48),
+    API_UPLOAD_STAGING_CLEANUP_GRACE_MS: z.coerce
+      .number()
+      .int()
+      .min(60 * 60_000)
+      .max(7 * 24 * 60 * 60_000)
+      .default(24 * 60 * 60_000),
 
     SENTRY_URL: z.string().url().default('https://sentry.io/'),
     SENTRY_DSN: z.string().url().optional(),
@@ -76,6 +109,19 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['API_DATA_BACKEND'],
         message: 'API_DATA_BACKEND=seed is test-only; normal API runtimes must use db.',
+      });
+    }
+    if (
+      value.API_UPLOAD_SCAN_LEASE_MS <
+      value.API_UPLOAD_SCAN_DOWNLOAD_TIMEOUT_MS * 2 +
+        value.API_UPLOAD_SCAN_TIMEOUT_MS +
+        120_000
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['API_UPLOAD_SCAN_LEASE_MS'],
+        message:
+          'Upload scan lease must exceed download, scan, sealed-upload, and callback timeouts by at least 120 seconds.',
       });
     }
   });

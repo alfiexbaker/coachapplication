@@ -283,17 +283,6 @@ export const NextSessionCard = function NextSessionCard({ booking }: { booking?:
             </ThemedText>
           </View>
         </Row>
-        <Clickable
-          style={[styles.bookButton, { backgroundColor: palette.tint }]}
-          onPress={() => router.push(Routes.DISCOVER_MAP)}
-        >
-          <Row align="center" justify="center" gap="xs">
-            <Ionicons name="search" size={14} color={palette.surface} />
-            <ThemedText style={[styles.bookButtonText, { color: palette.surface }]}>
-              Find a Coach
-            </ThemedText>
-          </Row>
-        </Clickable>
       </SurfaceCard>
     );
   }
@@ -741,16 +730,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bookButton: {
-    minHeight: 40,
-    borderRadius: Radii.md,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookButtonText: {
-    ...Typography.smallSemiBold,
   },
   section: { gap: Spacing.sm },
   sectionHeader: {

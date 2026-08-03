@@ -1,19 +1,20 @@
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { PageHeader } from '@/components/primitives/page-header';
 import { Button } from '@/components/primitives/button';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
-import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { VerificationStatusCard } from '@/components/verification/verification-status-card';
+import { Spacing, Typography } from '@/constants/theme';
 import { useInsuranceVerification } from '@/hooks/use-insurance-verification';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function InsuranceVerificationScreen() {
-  const { colors: palette } = useTheme();
+  const { colors } = useTheme();
   const {
     status,
     screenStatus,
@@ -29,20 +30,14 @@ export default function InsuranceVerificationScreen() {
     handleSubmit,
     setUploaded,
   } = useInsuranceVerification();
-
-  const header = (
-    <PageHeader
-      title="Insurance"
-      showBack
-      backIcon="arrow-back"
-      onBackPress={() => router.back()}
-      centerTitle
-    />
-  );
+  const header = <PageHeader title="Insurance" showBack onBackPress={() => router.back()} />;
+  const item = status?.insurance;
+  const isExpired = item?.status === 'EXPIRED';
+  const isRejected = item?.status === 'FAILED';
 
   return (
     <VerificationScreenState
-      colors={palette}
+      colors={colors}
       screenStatus={screenStatus}
       error={error}
       retry={retry}
@@ -58,74 +53,82 @@ export default function InsuranceVerificationScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <SurfaceCard style={styles.card}>
-          <Row gap="sm" align="center">
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: isVerified
-                    ? withAlpha(palette.success, 0.12)
-                    : isPending
-                      ? withAlpha(palette.warning, 0.12)
-                      : withAlpha(palette.muted, 0.12),
-                },
-              ]}
-            >
-              <Ionicons
-                name={isVerified ? 'shield-checkmark' : isPending ? 'time' : 'document-text'}
-                size={28}
-                color={isVerified ? palette.success : isPending ? palette.warning : palette.muted}
-              />
-            </View>
-            <View style={styles.statusText}>
-              <ThemedText type="defaultSemiBold">
-                {isVerified
-                  ? 'Insurance Verified'
-                  : isPending
-                    ? 'Verification Pending'
-                    : 'Not Verified'}
-              </ThemedText>
-              <ThemedText style={{ color: palette.muted }}>
-                {isVerified
-                  ? 'Your public liability insurance is verified and up to date.'
-                  : isPending
-                    ? 'Your documents are being reviewed.'
-                    : 'Upload your public liability insurance certificate to get verified.'}
-              </ThemedText>
-            </View>
-          </Row>
-        </SurfaceCard>
+        <VerificationStatusCard
+          colors={colors}
+          icon={
+            isVerified
+              ? 'shield-checkmark'
+              : isPending
+                ? 'time'
+                : isExpired
+                  ? 'alert-circle'
+                  : isRejected
+                    ? 'close-circle'
+                    : 'document-text'
+          }
+          tone={
+            isVerified
+              ? colors.success
+              : isPending
+                ? colors.warning
+                : isExpired || isRejected
+                  ? colors.error
+                  : colors.muted
+          }
+          title={
+            isVerified
+              ? 'Insurance verified'
+              : isPending
+                ? 'Under review'
+                : isExpired
+                  ? 'Insurance expired'
+                  : isRejected
+                    ? 'Insurance not approved'
+                    : 'Not submitted'
+          }
+          detail={
+            isVerified
+              ? item?.expiresAt
+                ? `Valid until ${new Date(item.expiresAt).toLocaleDateString()}`
+                : 'Your public liability insurance is verified.'
+              : isPending
+                ? 'Your insurance certificate is awaiting review.'
+                : isExpired
+                  ? 'Submit a current insurance certificate.'
+                  : isRejected
+                    ? 'Check the certificate and submit it again.'
+                    : 'Submit your public liability insurance certificate.'
+          }
+        />
 
-        <SurfaceCard style={styles.card}>
-          <ThemedText type="defaultSemiBold">Requirements</ThemedText>
-          <View style={styles.requirements}>
-            {[
-              'Public liability insurance (minimum £5M cover)',
-              'Must be current and not expired',
-              'Must cover coaching activities with minors',
-              'Certificate must show your name and policy number',
-            ].map((req) => (
-              <Row key={req} gap="xs" align="flex-start">
-                <Ionicons name="checkmark" size={16} color={palette.success} style={styles.reqIcon} />
-                <ThemedText style={[styles.reqText, { color: palette.muted }]}>{req}</ThemedText>
-              </Row>
-            ))}
-          </View>
-        </SurfaceCard>
+        {!isVerified && !isPending ? (
+          <>
+            <ThemedText style={{ color: colors.muted }}>
+              Select a PDF, JPG, PNG, WebP or HEIC file up to 20 MB.
+            </ThemedText>
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">Requirements</ThemedText>
+              {[
+                'At least £5 million public liability cover',
+                'Current policy covering coaching with minors',
+                'Your name and policy number visible',
+              ].map((requirement) => (
+                <Row key={requirement} gap="sm" align="flex-start">
+                  <Ionicons name="checkmark" size={16} color={colors.success} />
+                  <ThemedText style={[styles.small, { color: colors.muted, flex: 1 }]}>
+                    {requirement}
+                  </ThemedText>
+                </Row>
+              ))}
+            </View>
 
-        {!isVerified && (
-          <View style={styles.actions}>
             {uploaded ? (
-              <SurfaceCard style={styles.uploadedCard}>
+              <SurfaceCard>
                 <Row gap="sm" align="center">
-                  <Ionicons name="document-text" size={24} color={palette.success} />
-                  <View style={styles.uploadedText}>
-                    <ThemedText type="defaultSemiBold">Certificate selected</ThemedText>
-                    <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-                      Ready to submit for review
-                    </ThemedText>
-                  </View>
+                  <Ionicons name="document-text" size={22} color={colors.success} />
+                  <ThemedText type="defaultSemiBold" style={styles.selectedDocument}>
+                    Certificate selected
+                  </ThemedText>
                   <Button
                     onPress={() => setUploaded(false)}
                     disabled={submitting}
@@ -139,27 +142,16 @@ export default function InsuranceVerificationScreen() {
             <Button
               onPress={handleUpload}
               disabled={submitting}
-              variant={uploaded ? 'secondary' : 'primary'}
-              label={uploaded ? 'Choose different document' : 'Upload certificate'}
+              variant="outline"
+              label={uploaded ? 'Choose different document' : 'Choose document'}
             />
             <Button
               onPress={handleSubmit}
               disabled={!uploaded || submitting}
-              variant="primary"
               label={submitting ? 'Submitting...' : 'Submit for review'}
             />
-          </View>
-        )}
-
-        <SurfaceCard style={styles.card}>
-          <Row gap="sm" align="flex-start">
-            <Ionicons name="information-circle" size={20} color={palette.tint} />
-            <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-              Verified coaches with insurance appear higher in search results and display a trust
-              badge on their profile.
-            </ThemedText>
-          </Row>
-        </SurfaceCard>
+          </>
+        ) : null}
       </ScrollView>
     </VerificationScreenState>
   );
@@ -167,20 +159,7 @@ export default function InsuranceVerificationScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  card: { gap: Spacing.sm },
-  actions: { gap: Spacing.sm },
-  uploadedCard: { gap: Spacing.sm },
-  uploadedText: { flex: 1, gap: Spacing.micro },
-  statusBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: { flex: 1, gap: Spacing.micro },
-  requirements: { gap: Spacing.xs },
-  reqIcon: { marginTop: Spacing.micro },
-  reqText: { flex: 1, ...Typography.bodySmall },
-  infoText: { flex: 1, ...Typography.small },
+  section: { gap: Spacing.sm },
+  small: { ...Typography.small },
+  selectedDocument: { flex: 1 },
 });

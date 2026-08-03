@@ -110,7 +110,7 @@ export default function MemberManagementScreen() {
             <Row gap="xs" align="center">
               <Ionicons name="information-circle-outline" size={20} color={colors.muted} />
               <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                Only club admins and coaches can manage member settings.
+                You do not have permission to manage this member.
               </ThemedText>
             </Row>
           </SurfaceCard>

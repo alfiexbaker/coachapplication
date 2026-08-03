@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
@@ -76,6 +77,14 @@ export interface DataDeletionRequestListResult {
   requests: Array<Record<string, unknown>>;
   dataVersion: string | null;
 }
+export interface DataDeletionRequestCreateInput {
+  reason?: string;
+}
+export interface DataDeletionRequestCreateResult {
+  request: Record<string, unknown>;
+  created: boolean;
+  dataVersion: string | null;
+}
 export interface TrustAccessRepository {
   isAthleteSelf(userId: string, athleteId: string): Promise<boolean>;
   getGuardianAthleteIds(userId: string): Promise<string[]>;
@@ -84,7 +93,15 @@ export interface TrustAccessRepository {
   getTrustAdminOverview(): Promise<TrustAdminOverview>;
   listRetentionRuns(): Promise<RetentionRunListResult>;
   listDataDeletionRequestsForUser(userId: string): Promise<DataDeletionRequestListResult>;
+  createDataDeletionRequestForUser(
+    userId: string,
+    input: DataDeletionRequestCreateInput,
+  ): Promise<DataDeletionRequestCreateResult>;
 }
+const DATA_DELETION_PENDING_DAYS = 30;
+
+const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+
 function isActiveRow(row: SeedRow): boolean {
   return !asString(row.deletedAt);
 }
@@ -236,6 +253,48 @@ function buildDataDeletionRequestsFromTables(
     dataVersion,
   };
 }
+function dataDeletionRows(tables: SeedTables): SeedRow[] {
+  if (!Array.isArray(tables.dataDeletionRequests)) {
+    tables.dataDeletionRequests = [];
+  }
+  return tables.dataDeletionRequests;
+}
+function scheduledDeletionDate(requestedAt: Date): Date {
+  return new Date(requestedAt.getTime() + DATA_DELETION_PENDING_DAYS * 24 * 60 * 60 * 1000);
+}
+function createDataDeletionRequestInTables(
+  tables: SeedTables,
+  userId: string,
+  input: DataDeletionRequestCreateInput,
+  dataVersion: string | null,
+): DataDeletionRequestCreateResult {
+  const rows = dataDeletionRows(tables);
+  const existing = rows.find(
+    (row) =>
+      asString(row.requesterUserId) === userId &&
+      asString(row.status) === 'PENDING' &&
+      !asString(row.cancelledAt),
+  );
+  if (existing) {
+    return { request: existing, created: false, dataVersion };
+  }
+
+  const requestedAt = new Date();
+  const request: SeedRow = {
+    id: newId('ddr'),
+    requesterUserId: userId,
+    status: 'PENDING',
+    requestedAt: requestedAt.toISOString(),
+    scheduledDeletionAt: scheduledDeletionDate(requestedAt).toISOString(),
+    cancelledAt: null,
+    reason: input.reason ?? null,
+    metadataJson: {
+      requestedVia: 'api',
+    },
+  };
+  rows.push(request);
+  return { request, created: true, dataVersion };
+}
 class SeedTrustAccessRepository implements TrustAccessRepository {
   async isAthleteSelf(userId: string, athleteId: string): Promise<boolean> {
     return isAthleteSelfInTables(getMarketplaceSeedStore().tables, userId, athleteId);
@@ -353,6 +412,13 @@ class SeedTrustAccessRepository implements TrustAccessRepository {
   async listDataDeletionRequestsForUser(userId: string): Promise<DataDeletionRequestListResult> {
     const store = getMarketplaceSeedStore();
     return buildDataDeletionRequestsFromTables(store.tables, userId, store.version);
+  }
+  async createDataDeletionRequestForUser(
+    userId: string,
+    input: DataDeletionRequestCreateInput,
+  ): Promise<DataDeletionRequestCreateResult> {
+    const store = getMarketplaceSeedStore();
+    return createDataDeletionRequestInTables(store.tables, userId, input, store.version);
   }
 }
 class DbTrustAccessRepository implements TrustAccessRepository {
@@ -525,9 +591,6 @@ class DbTrustAccessRepository implements TrustAccessRepository {
     return user?.isVerified === true || coachProfile?.dbsChecked === true || Boolean(verification);
   }
   async getTrustAdminOverview(): Promise<TrustAdminOverview> {
-    if (shouldUseDbFixtureFallback()) {
-      return new FixtureTrustAccessRepository().getTrustAdminOverview();
-    }
     const prisma = getPrismaClientOrThrow();
     const [grants, auditEvents, securityEvents, retentionPolicies, legalHolds] = await Promise.all([
       prisma.accessGrant.findMany({
@@ -566,9 +629,6 @@ class DbTrustAccessRepository implements TrustAccessRepository {
     });
   }
   async listRetentionRuns(): Promise<RetentionRunListResult> {
-    if (shouldUseDbFixtureFallback()) {
-      return new FixtureTrustAccessRepository().listRetentionRuns();
-    }
     const prisma = getPrismaClientOrThrow();
     const runs = await prisma.retentionRun.findMany({
       orderBy: {
@@ -581,9 +641,6 @@ class DbTrustAccessRepository implements TrustAccessRepository {
     });
   }
   async listDataDeletionRequestsForUser(userId: string): Promise<DataDeletionRequestListResult> {
-    if (shouldUseDbFixtureFallback()) {
-      return new FixtureTrustAccessRepository().listDataDeletionRequestsForUser(userId);
-    }
     const prisma = getPrismaClientOrThrow();
     const requests = await prisma.dataDeletionRequest.findMany({
       where: {
@@ -595,6 +652,50 @@ class DbTrustAccessRepository implements TrustAccessRepository {
     });
     return normalizeForJson({
       requests,
+      dataVersion: null,
+    });
+  }
+  async createDataDeletionRequestForUser(
+    userId: string,
+    input: DataDeletionRequestCreateInput,
+  ): Promise<DataDeletionRequestCreateResult> {
+    const prisma = getPrismaClientOrThrow();
+    const existing = await prisma.dataDeletionRequest.findFirst({
+      where: {
+        requesterUserId: userId,
+        status: 'PENDING',
+        cancelledAt: null,
+      },
+      orderBy: {
+        requestedAt: 'desc',
+      },
+    });
+    if (existing) {
+      return normalizeForJson({
+        request: existing,
+        created: false,
+        dataVersion: null,
+      });
+    }
+
+    const requestedAt = new Date();
+    const request = await prisma.dataDeletionRequest.create({
+      data: {
+        id: newId('ddr'),
+        requesterUserId: userId,
+        status: 'PENDING',
+        requestedAt,
+        scheduledDeletionAt: scheduledDeletionDate(requestedAt),
+        cancelledAt: null,
+        reason: input.reason ?? null,
+        metadataJson: {
+          requestedVia: 'api',
+        },
+      },
+    });
+    return normalizeForJson({
+      request,
+      created: true,
       dataVersion: null,
     });
   }
@@ -645,6 +746,12 @@ class FixtureTrustAccessRepository extends SeedTrustAccessRepository {
   }
   async listDataDeletionRequestsForUser(userId: string): Promise<DataDeletionRequestListResult> {
     return buildDataDeletionRequestsFromTables(getDbFixtureStore().tables, userId, null);
+  }
+  async createDataDeletionRequestForUser(
+    userId: string,
+    input: DataDeletionRequestCreateInput,
+  ): Promise<DataDeletionRequestCreateResult> {
+    return createDataDeletionRequestInTables(getDbFixtureStore().tables, userId, input, null);
   }
 }
 function buildTrustAccessFromFixtureTables(tables: SeedTables, userId: string): string[] {

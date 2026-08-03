@@ -38,6 +38,7 @@ import {
   type FeedFilter,
 } from '@/components/social/feed-filters';
 import { useScrollToTopOnTabReselect } from '@/hooks/use-scroll-to-top-on-tab-reselect';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { uiFeedback } from '@/services/ui-feedback';
 import { mergeUpdatesFeed } from '@/utils/updates-feed';
@@ -57,7 +58,7 @@ export default function FeedScreen() {
   useScrollToTopOnTabReselect(listRef);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [visibleCount, setVisibleCount] = useState(20);
-  const feedByIdRef = useRef<Map<string, AggregatedFeedPost>>(new Map());
+  const feedByIdRef = useLazyRef(() => new Map<string, AggregatedFeedPost>());
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
@@ -120,7 +121,7 @@ export default function FeedScreen() {
 
   useEffect(() => {
     feedByIdRef.current = new Map(feed.map((post) => [post.id, post]));
-  }, [feed]);
+  }, [feed, feedByIdRef]);
 
   const handleLikePost = async (postId: string) => {
     if (!currentUser?.id) return;

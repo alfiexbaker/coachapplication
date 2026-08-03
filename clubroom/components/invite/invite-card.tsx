@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { formatInUserTimezone } from '@/utils/timezone';
@@ -21,7 +20,6 @@ interface InviteCardProps {
   respondingTo: string | null;
   onAccept: (invite: SessionInvite) => void;
   onDecline: (invite: SessionInvite) => void;
-  onRsvp: (inviteId: string, status: 'going' | 'maybe' | 'cant_go') => void;
 }
 
 function getStatusBadge(
@@ -47,7 +45,6 @@ export const InviteCard = function InviteCard({
   respondingTo,
   onAccept,
   onDecline,
-  onRsvp,
 }: InviteCardProps) {
   const { colors: palette } = useTheme();
   const [showDetails, setShowDetails] = useState(false);
@@ -214,53 +211,36 @@ export const InviteCard = function InviteCard({
         )}
       </Row>
 
-      {/* RSVP */}
-      {(isPending || invite.status === 'MAYBE') && !isExpired && (
-        <View style={styles.rsvpSection}>
-          <RsvpButtonGroup
-            currentStatus={invite.status === 'MAYBE' ? 'maybe' : undefined}
-            onRespond={(s) => onRsvp(invite.id, s)}
+      {isPending && !isExpired && (
+        <Row style={styles.actions}>
+          <Clickable
+            style={[styles.declineButton, { borderColor: palette.border }]}
+            onPress={() => onDecline(invite)}
             disabled={isResponding}
-            compact
-          />
-          {isPending && (
-            <Row style={styles.actions}>
-              <Clickable
-                style={[styles.declineButton, { borderColor: palette.border }]}
-                onPress={() => onDecline(invite)}
-                disabled={isResponding}
-                accessibilityLabel="Decline invite"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: isResponding }}
-              >
-                <ThemedText style={[styles.declineText, { color: palette.muted }]}>
-                  Decline
-                </ThemedText>
-              </Clickable>
-              <Clickable
-                style={[styles.acceptButton, { backgroundColor: palette.tint }]}
-                onPress={() => onAccept(invite)}
-                disabled={isResponding}
-                accessibilityLabel="Accept invite"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: isResponding }}
-              >
-                {isResponding ? (
-                  <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
-                    Booking…
-                  </ThemedText>
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-                    <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
-                      Accept
-                    </ThemedText>
-                  </>
-                )}
-              </Clickable>
-            </Row>
-          )}
-        </View>
+            accessibilityLabel="Decline invite"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isResponding }}
+          >
+            <ThemedText style={[styles.declineText, { color: palette.muted }]}>Decline</ThemedText>
+          </Clickable>
+          <Clickable
+            style={[styles.acceptButton, { backgroundColor: palette.tint }]}
+            onPress={() => onAccept(invite)}
+            disabled={isResponding}
+            accessibilityLabel="Accept invite"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isResponding }}
+          >
+            {isResponding ? (
+              <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Booking…</ThemedText>
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept</ThemedText>
+              </>
+            )}
+          </Clickable>
+        </Row>
       )}
 
       {/* Accepted slot */}
@@ -356,7 +336,6 @@ const styles = StyleSheet.create({
   metaRow: { alignItems: 'center', justifyContent: 'space-between' },
   price: { ...Typography.heading },
   expires: { ...Typography.smallSemiBold },
-  rsvpSection: { gap: Spacing.sm },
   actions: { gap: Spacing.sm, marginTop: Spacing.xs },
   declineButton: {
     flex: 1,

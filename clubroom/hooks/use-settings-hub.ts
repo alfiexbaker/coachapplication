@@ -10,7 +10,7 @@ export function useSettingsHub() {
   const { currentUser, logout } = useAuth();
 
   const isCoach = checkIsCoach(currentUser);
-  const { children } = useChildContext();
+  const { children, isParent } = useChildContext();
   const childCount = children.length;
 
   const handleLogout = () => {
@@ -28,5 +28,5 @@ export function useSettingsHub() {
     ]);
   };
 
-  return { currentUser, isCoach, childCount, handleLogout };
+  return { currentUser, isCoach, isParent, childCount, handleLogout };
 }

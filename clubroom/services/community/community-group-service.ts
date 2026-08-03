@@ -26,7 +26,6 @@ import {
   conflictError,
   unauthorized,
   storageError,
-  unsupportedError,
 } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -40,15 +39,6 @@ import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-sto
 
 const logger = createLogger('CommunityGroupService');
 const USE_MOCK = api.useMock;
-
-function communityGroupApiUnsupported<T>(action: string): Result<T, ServiceError> {
-  logger.warn('Community group mutation blocked in API mode', { action });
-  return err(
-    unsupportedError(`${action} needs a /v1 community group API before it can run in API mode.`, {
-      missingAuthority: 'community_groups',
-    }),
-  );
-}
 
 async function resolveMemberName(parentId: string, fallback = 'Member'): Promise<string> {
   const userResult = await userService.getUserById(parentId);

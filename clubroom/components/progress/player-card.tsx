@@ -5,12 +5,12 @@ import Animated, {
   Easing,
   Extrapolation,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
@@ -133,7 +133,7 @@ export const PlayerCard = function PlayerCard({ data }: PlayerCardProps) {
       { duration: 260, easing: Easing.bezier(0.2, 0.78, 0.2, 1) },
       (finished) => {
         if (finished) {
-          runOnJS(handleFlipFinish)();
+          scheduleOnRN(handleFlipFinish);
         }
       },
     ));

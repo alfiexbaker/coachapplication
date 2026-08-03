@@ -37,6 +37,27 @@ test('buildProfileSubjectOptions includes self before child options when request
   assert.equal(options[1]?.id, 'child1');
 });
 
+test('buildProfileSubjectOptions uses the canonical linked athlete identity for self', () => {
+  const options = buildProfileSubjectOptions({
+    currentUser: {
+      id: 'usr_athlete',
+      athleteId: 'ath_real_profile',
+      athleteName: 'Alfie Barton',
+      name: 'Alex Barton',
+    },
+    children: [],
+  });
+
+  assert.deepEqual(options, [
+    {
+      id: 'ath_real_profile',
+      name: 'Alfie Barton',
+      initials: 'ME',
+      kind: 'self',
+    },
+  ]);
+});
+
 test('buildProfileSubjectOptions omits self when includeSelf is false', () => {
   const options = buildProfileSubjectOptions({
     currentUser: { id: 'user1', name: 'Amelia', fullName: 'Amelia Shaw' },

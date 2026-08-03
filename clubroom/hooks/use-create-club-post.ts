@@ -1,154 +1,152 @@
 /**
- * Hook for the Create Club Post modal screen.
- * Manages form state, image picking, audience targeting, and post submission.
+ * Backend-authoritative composer for club-wide updates.
  */
 
-import { useState, useEffect, startTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+
 import { api } from '@/constants/config';
+import type { Club, ClubMembership, ClubPostType } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { clubFeedService } from '@/services/social-feed-service';
-import { squadService } from '@/services/squad-service';
-import { eventService } from '@/services/event';
-import type {
-  Club,
-  ClubEvent,
-  ClubMembership,
-  ClubPostType,
-  ClubSquad,
-  FeedType,
-} from '@/constants/types';
 import { canCreateClubPost } from '@/utils/club-ui-permissions';
-
 import { runAsyncFinally } from '@/utils/async-control';
+
+const CLUB_CONTEXT_ERROR_MESSAGE = 'Could not load your club access.';
+const CLUB_ACCESS_MESSAGE = 'You do not have permission to publish updates for this club.';
 
 export type PostTypeOption = {
   key: ClubPostType;
   label: string;
-  icon: string;
-  description: string;
 };
 
 export const POST_TYPES: PostTypeOption[] = [
-  {
-    key: 'general',
-    label: 'Update',
-    icon: 'create-outline',
-    description: 'Share a general update',
-  },
-  {
-    key: 'announcement',
-    label: 'Announcement',
-    icon: 'megaphone-outline',
-    description: 'Important club news',
-  },
-  {
-    key: 'photo',
-    label: 'Photo',
-    icon: 'images-outline',
-    description: 'Share photos with the club',
-  },
-  {
-    key: 'video',
-    label: 'Video',
-    icon: 'videocam-outline',
-    description: 'Share videos with the club',
-  },
-  {
-    key: 'event',
-    label: 'Event',
-    icon: 'calendar-outline',
-    description: 'Announce an upcoming event',
-  },
+  { key: 'general', label: 'Update' },
+  { key: 'announcement', label: 'Announcement' },
 ];
+
+type ClubContextStatus = 'loading' | 'ready' | 'error' | 'denied' | 'empty';
+
+type ClubContext = {
+  status: ClubContextStatus;
+  club?: Club;
+  membership?: ClubMembership;
+  message?: string;
+};
 
 function isMembershipForUser(membership: ClubMembership, userId: string): boolean {
   const normalizedUserId = userId.replace(/^usr_/, '');
   return membership.userId === userId || membership.userId === normalizedUserId;
 }
 
-export function useCreateClubPost(clubId: string | undefined) {
-  const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+function actorName(user: { fullName?: string; username?: string }): string | null {
+  return user.fullName?.trim() || user.username?.trim() || null;
+}
 
+export function useCreateClubPost(clubId: string | undefined) {
+  const { currentUser, isLoading: authLoading } = useAuth();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [postType, setPostType] = useState<ClubPostType>('general');
-  const [postAs, setPostAs] = useState<'self' | 'club'>('self');
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [eventDate, setEventDate] = useState<Date | null>(null);
-  const [eventLocation, setEventLocation] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [feedType, setFeedType] = useState<FeedType>('CLUB');
-  const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
-  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [postAs, setPostAs] = useState<'self' | 'club'>('club');
   const [isPosting, setIsPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
-  const [availableSquads, setAvailableSquads] = useState<ClubSquad[]>([]);
-  const [availableEvents, setAvailableEvents] = useState<ClubEvent[]>([]);
-  const [clubContext, setClubContext] = useState<{
-    club: Club | undefined;
-    membership: ClubMembership | undefined;
-    resolvedClubId: string | undefined;
-  }>({
-    club: undefined,
-    membership: undefined,
-    resolvedClubId: undefined,
-  });
-
-  const { club, membership, resolvedClubId } = clubContext;
-  const canPostAsClub = canCreateClubPost(membership);
+  const [contextRequest, setContextRequest] = useState(0);
+  const [clubContext, setClubContext] = useState<ClubContext>({ status: 'loading' });
+  const submissionInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
 
+    const setResolvedContext = (clubs: Club[], memberships: ClubMembership[], userId: string) => {
+      const membershipForClub = (candidateClubId: string) =>
+        memberships.find(
+          (candidate) =>
+            candidate.clubId === candidateClubId && isMembershipForUser(candidate, userId),
+        );
+
+      if (clubId) {
+        const requestedClub = clubs.find((candidate) => candidate.id === clubId);
+        const requestedMembership = membershipForClub(clubId);
+
+        if (!requestedClub || !requestedMembership || !canCreateClubPost(requestedMembership)) {
+          setClubContext({ status: 'denied', message: CLUB_ACCESS_MESSAGE });
+          return;
+        }
+
+        setClubContext({
+          status: 'ready',
+          club: requestedClub,
+          membership: requestedMembership,
+        });
+        return;
+      }
+
+      const eligibleClub = clubs.find((candidate) => {
+        const membership = membershipForClub(candidate.id);
+        return canCreateClubPost(membership);
+      });
+
+      if (!eligibleClub) {
+        setClubContext({
+          status: clubs.length === 0 ? 'empty' : 'denied',
+          message:
+            clubs.length === 0 ? 'Join a club before publishing an update.' : CLUB_ACCESS_MESSAGE,
+        });
+        return;
+      }
+
+      setClubContext({
+        status: 'ready',
+        club: eligibleClub,
+        membership: membershipForClub(eligibleClub.id),
+      });
+    };
+
     const loadClubContext = async () => {
+      if (authLoading) {
+        if (active) setClubContext({ status: 'loading' });
+        return;
+      }
+
       if (!currentUser?.id) {
         if (active) {
-          setClubContext({ club: undefined, membership: undefined, resolvedClubId: undefined });
+          setClubContext({ status: 'denied', message: 'Sign in to publish club updates.' });
         }
         return;
+      }
+
+      if (active) {
+        setClubContext({ status: 'loading' });
+        setPostError(null);
       }
 
       if (api.useMock) {
-        const userClubs = clubFeedService.getUserClubs(currentUser.id);
-        const nextClubId = clubId || userClubs[0]?.id;
-        if (active) {
-          setClubContext({
-            club: userClubs.find((candidate) => candidate.id === nextClubId),
-            membership: nextClubId
-              ? clubFeedService.getMembership(currentUser.id, nextClubId)
-              : undefined,
-            resolvedClubId: nextClubId,
-          });
-        }
+        const clubs = clubFeedService.getUserClubs(currentUser.id);
+        const memberships = clubs.flatMap((club) => {
+          const membership = clubFeedService.getMembership(currentUser.id, club.id);
+          return membership ? [membership] : [];
+        });
+        if (active) setResolvedContext(clubs, memberships, currentUser.id);
         return;
       }
 
-      const result = await clubAuthorityService.listClubs();
-      if (!active) return;
-      if (!result.success) {
-        setPostError(result.error.message);
-        setClubContext({ club: undefined, membership: undefined, resolvedClubId: undefined });
-        return;
+      try {
+        const result = await clubAuthorityService.listClubs();
+        if (!active) return;
+        if (!result.success) {
+          setClubContext({ status: 'error', message: result.error.message });
+          return;
+        }
+        setResolvedContext(result.data.clubs, result.data.memberships, currentUser.id);
+      } catch {
+        if (active) {
+          setClubContext({ status: 'error', message: CLUB_CONTEXT_ERROR_MESSAGE });
+        }
       }
-      const nextClubId = clubId || result.data.clubs[0]?.id;
-      setClubContext({
-        club: result.data.clubs.find((candidate) => candidate.id === nextClubId),
-        membership: nextClubId
-          ? result.data.memberships.find(
-              (candidate) =>
-                candidate.clubId === nextClubId && isMembershipForUser(candidate, currentUser.id),
-            )
-          : undefined,
-        resolvedClubId: nextClubId,
-      });
     };
 
     void loadClubContext();
@@ -156,276 +154,77 @@ export function useCreateClubPost(clubId: string | undefined) {
     return () => {
       active = false;
     };
-  }, [clubId, currentUser?.id]);
+  }, [authLoading, clubId, contextRequest, currentUser?.id]);
 
-  useEffect(() => {
-    let active = true;
-
-    const loadSquads = async () => {
-      if (!resolvedClubId) {
-        if (active) {
-          setAvailableSquads([]);
-        }
-        return;
-      }
-
-      try {
-        const squads = await squadService.getSquads(resolvedClubId);
-        if (active) {
-          setAvailableSquads(squads);
-        }
-      } catch {
-        if (active) {
-          setAvailableSquads([]);
-        }
-      }
-    };
-
-    void loadSquads();
-
-    return () => {
-      active = false;
-    };
-  }, [resolvedClubId]);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadEvents = async () => {
-      if (!resolvedClubId) {
-        if (active) {
-          setAvailableEvents([]);
-        }
-        return;
-      }
-
-      try {
-        const clubEvents = await eventService.getAllClubEvents(resolvedClubId);
-        if (active) {
-          const upcoming = clubEvents
-            .filter((event) => event.status !== 'CANCELLED')
-            .sort((a, b) => a.date.localeCompare(b.date));
-          setAvailableEvents(upcoming);
-        }
-      } catch {
-        if (active) {
-          setAvailableEvents([]);
-        }
-      }
-    };
-
-    void loadEvents();
-
-    return () => {
-      active = false;
-    };
-  }, [resolvedClubId]);
-
-  const selectedSquad = availableSquads.find((s) => s.id === selectedSquadId);
-  const selectedEvent = availableEvents.find((event) => event.id === selectedEventId) ?? null;
-  const audienceLabel =
-    audienceType === 'club' ? 'Club-wide' : selectedSquad?.name || 'Select a group';
-
-  useEffect(() => {
-    if (postAs === 'club' && feedType !== 'CLUB') {
-      startTransition(() => {
-        setFeedType('CLUB');
-      });
-    }
-  }, [postAs, feedType]);
-  useEffect(() => {
-    if (!canPostAsClub && postAs !== 'self') {
-      startTransition(() => {
-        setPostAs('self');
-      });
-    }
-  }, [canPostAsClub, postAs]);
-  useEffect(() => {
-    if (feedType !== 'CLUB' && audienceType !== 'club') {
-      startTransition(() => {
-        setAudienceType('club');
-      });
-      startTransition(() => {
-        setSelectedSquadId(null);
-      });
-    }
-  }, [feedType, audienceType]);
-
-  const handleSelectEvent = (eventId: string) => {
-    const event = availableEvents.find((candidate) => candidate.id === eventId);
-    if (!event) return;
-
-    setSelectedEventId(event.id);
-    setPostType('event');
-    setEventDate(new Date(`${event.date}T12:00:00`));
-    setEventLocation(event.venue || event.location || '');
-    if (!title.trim()) {
-      setTitle(event.title);
-    }
-    if (!body.trim()) {
-      setBody(event.description);
-    }
-  };
-
-  const clearSelectedEvent = () => {
-    setSelectedEventId(null);
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (!result.canceled) {
-      const media = result.assets[0];
-      if (media.type === 'video') {
-        setVideoUri(media.uri);
-        setImageUri(null);
-        setPostType('video');
-      } else {
-        setImageUri(media.uri);
-        setVideoUri(null);
-        setPostType('photo');
-      }
-    }
-  };
-
-  const removeImage = () => {
-    setImageUri(null);
-    setVideoUri(null);
-    setPostError(null);
-  };
-
-  const handleSetPostAs = (value: 'self' | 'club') => {
-    if (value === 'club' && !canPostAsClub) {
-      setPostAs('self');
-      return;
-    }
-    setPostAs(value);
-    if (value === 'club') {
-      setFeedType('CLUB');
-    }
-  };
-
-  const handleSetFeedType = (value: FeedType) => {
-    if (postAs === 'club') {
-      setFeedType('CLUB');
-      return;
-    }
-    if (value === 'BOTH' || value === 'PERSONAL' || value === 'CLUB') {
-      setFeedType(value);
-    }
-  };
-
-  const canPublishSelectedPost =
-    (postAs === 'club' && canPostAsClub) ||
-    (postAs === 'self' && isCoach && feedType !== 'CLUB') ||
-    (postAs === 'self' && feedType === 'CLUB' && canPostAsClub);
+  const canPostAsClub = canCreateClubPost(clubContext.membership);
+  const canPost =
+    clubContext.status === 'ready' && body.trim().length > 0 && canPostAsClub && !isPosting;
 
   const handlePost = async () => {
-    if (!body.trim() && !imageUri && !videoUri) return;
-    if (!currentUser || !resolvedClubId || !membership) return;
-    if (!canPublishSelectedPost) return;
-    if (feedType === 'CLUB' && audienceType === 'squad' && !selectedSquadId) return;
-    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (submissionInFlight.current || !canPost || !currentUser || !clubContext.club) return;
 
+    const resolvedActorName = actorName(currentUser);
+    if (api.useMock && !resolvedActorName) {
+      setPostError('Add your name to your profile before publishing.');
+      return;
+    }
+
+    submissionInFlight.current = true;
     setIsPosting(true);
     setPostError(null);
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
-    await runAsyncFinally(async () => {
-      let posted = false;
-      if (isCoach && (feedType === 'PERSONAL' || feedType === 'BOTH')) {
-        const result = await clubFeedService.createCoachPostAuthority({
-          coachId: currentUser.id,
-          coachName: currentUser.fullName || currentUser.username || 'Unknown',
-          title:
-            title.trim() ||
-            (postType === 'photo' ? 'Photo' : postType === 'video' ? 'Video' : 'Update'),
-          body: body.trim(),
-          postType,
-          feedType,
-          imageUrl: imageUri || undefined,
-          videoUrl: videoUri || undefined,
-          eventId: postType === 'event' ? selectedEventId || undefined : undefined,
-          eventDate: eventDate?.toISOString(),
-          eventLocation: eventLocation.trim() || undefined,
-          clubId: resolvedClubId,
-          clubName: club?.name,
-        });
-        posted = result.success;
-        if (!result.success) {
-          setPostError(result.error.message);
-        }
-      } else {
-        const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
-        const finalAudienceLabel =
-          audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
-        const result = await clubFeedService.createPostAuthority({
-          clubId: resolvedClubId,
-          authorId: currentUser.id,
-          authorName:
-            postAs === 'club' && club
-              ? club.name
-              : currentUser.fullName || currentUser.username || 'Unknown',
-          title:
-            title.trim() ||
-            (postType === 'photo' ? 'Photo' : postType === 'video' ? 'Video' : 'Update'),
-          body: body.trim(),
-          postType,
-          postAs,
-          feedType,
-          audience,
-          audienceLabel: finalAudienceLabel,
-          squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
-          imageUrl: imageUri || undefined,
-          videoUrl: videoUri || undefined,
-          eventId: postType === 'event' ? selectedEventId || undefined : undefined,
-          eventDate: eventDate?.toISOString(),
-          eventLocation: eventLocation.trim() || undefined,
-        });
-        posted = result.success;
-        if (!result.success) {
-          setPostError(result.error.message);
-        }
-      }
+    await runAsyncFinally(
+      async () => {
+        try {
+          const result = await clubFeedService.createPostAuthority({
+            clubId: clubContext.club!.id,
+            clubName: clubContext.club!.name,
+            authorId: currentUser.id,
+            authorName: postAs === 'club' ? clubContext.club!.name : (resolvedActorName ?? ''),
+            title: title.trim() || (postType === 'announcement' ? 'Announcement' : 'Update'),
+            body: body.trim(),
+            postType,
+            postAs,
+            feedType: 'CLUB',
+            audience: 'club',
+            audienceLabel: 'Club-wide',
+          });
 
-      if (posted) {
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          if (!result.success) {
+            setPostError(result.error.message);
+            return;
+          }
+
+          if (Platform.OS !== 'web') {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          router.back();
+        } catch {
+          setPostError('Could not publish this update. Try again.');
         }
-        router.back();
-      }
-    }, () => {
-      setIsPosting(false);
-    });
+      },
+      () => {
+        submissionInFlight.current = false;
+        setIsPosting(false);
+      },
+    );
   };
 
-  const hasAudienceTarget =
-    feedType !== 'CLUB' || audienceType !== 'squad' || Boolean(selectedSquadId);
-  const canPost =
-    (body.trim().length > 0 || imageUri !== null || videoUri !== null) &&
-    !!resolvedClubId &&
-    !!membership &&
-    canPublishSelectedPost &&
-    hasAudienceTarget &&
-    !isPosting;
-
-  const handleSelectAudienceClub = () => {
-    setAudienceType('club');
-    setSelectedSquadId(null);
+  const retryClubContext = () => setContextRequest((request) => request + 1);
+  const handleSetPostAs = (value: 'self' | 'club') => {
+    if (value === 'club' && !canPostAsClub) return;
+    setPostAs(value);
   };
-  const handleSelectAudienceSquad = () => {
-    if (availableSquads.length === 0) return;
-    setAudienceType('squad');
-  };
-  const openDatePicker = () => setShowDatePicker(true);
-  const closeDatePicker = () => setShowDatePicker(false);
 
   return {
-    club,
+    club: clubContext.club,
+    contextStatus: clubContext.status,
+    contextMessage: clubContext.message,
+    retryClubContext,
     canPostAsClub,
-    isCoach,
     title,
     setTitle,
     body,
@@ -434,32 +233,6 @@ export function useCreateClubPost(clubId: string | undefined) {
     setPostType,
     postAs,
     setPostAs: handleSetPostAs,
-    imageUri,
-    videoUri,
-    pickImage,
-    removeImage,
-    eventDate,
-    setEventDate,
-    eventLocation,
-    setEventLocation,
-    showDatePicker,
-    openDatePicker,
-    closeDatePicker,
-    feedType,
-    setFeedType: handleSetFeedType,
-    audienceType,
-    handleSelectAudienceClub,
-    handleSelectAudienceSquad,
-    selectedSquadId,
-    setSelectedSquadId,
-    availableSquads,
-    selectedSquad,
-    availableEvents,
-    selectedEventId,
-    selectedEvent,
-    handleSelectEvent,
-    clearSelectedEvent,
-    audienceLabel,
     isPosting,
     postError,
     canPost,

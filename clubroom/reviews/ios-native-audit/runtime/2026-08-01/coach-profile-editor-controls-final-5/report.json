@@ -1,0 +1,261 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T22:36:55.431Z",
+  "meta": {
+    "roles": [
+      "coach",
+      "parent",
+      "guardian",
+      "athlete",
+      "admin"
+    ],
+    "profiles": [
+      "coach-profile-canonical"
+    ],
+    "chunkIndex": null,
+    "retries": 0,
+    "pauseMs": 250,
+    "failOn": "medium",
+    "outDir": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5"
+  },
+  "totals": {
+    "total": 11,
+    "ok": 11,
+    "failed": 0,
+    "high": 0,
+    "medium": 1,
+    "none": 10
+  },
+  "results": [
+    {
+      "id": "coach_profile_editor_redirect",
+      "role": "coach",
+      "title": "Coach profile compatibility link opens the canonical editor",
+      "path": "/coach-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_editor_redirect.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 3877
+    },
+    {
+      "id": "coach_profile_bio_edit",
+      "role": "coach",
+      "title": "Coach edits a full-length profile bio without an implicit write",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_bio_edit.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4794
+    },
+    {
+      "id": "coach_profile_focus_pricing",
+      "role": "coach",
+      "title": "Coach changes football focus and validates pricing without saving",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_focus_pricing.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 6106
+    },
+    {
+      "id": "coach_profile_links_contact",
+      "role": "coach",
+      "title": "Coach validates social links and edits contact fields without saving",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_links_contact.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 8023
+    },
+    {
+      "id": "coach_profile_experience_validation",
+      "role": "coach",
+      "title": "Coach inspects experience fields and receives inline validation",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_experience_validation.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 7566
+    },
+    {
+      "id": "coach_profile_language_edit",
+      "role": "coach",
+      "title": "Coach validates and adds a language locally",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_language_edit.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 8995
+    },
+    {
+      "id": "coach_profile_qualification_edit",
+      "role": "coach",
+      "title": "Coach validates and adds a qualification label locally",
+      "path": "/edit-profile",
+      "finalPath": "/edit-profile",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/coach__coach_profile_qualification_edit.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 10046
+    },
+    {
+      "id": "parent_coach_profile_denied",
+      "role": "parent",
+      "title": "parent cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/parent__parent_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4882
+    },
+    {
+      "id": "guardian_coach_profile_denied",
+      "role": "guardian",
+      "title": "guardian cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/guardian__guardian_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 5430
+    },
+    {
+      "id": "athlete_coach_profile_denied",
+      "role": "athlete",
+      "title": "athlete cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/athlete__athlete_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "console:[ERROR] [22:36:37.039] [BookingCrudService] Failed to list bookings",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch",
+        "console:[ERROR] [22:36:37.040] [BookingSearchService] Failed to get bookings",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch",
+        "console:[ERROR] [22:36:37.040] [UserHomeScreen] Failed to load home data",
+        "console:Stack: Error: Failed to fetch\n    at BookingCrudService.list (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381330:17)\n    at async Object.getBookingsForUser (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:387435:26)\n    at async Object.loadHomeFrame (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:522993:28)\n    at async http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415069:33\n    at async runAsyncTryCatchFinally (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405825:14)\n    at async Object.t17 [as current] (http://localhost:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415068:16)",
+        "console:Message: Failed to fetch"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4560
+    },
+    {
+      "id": "admin_coach_profile_denied",
+      "role": "admin",
+      "title": "admin cannot mount the coach self-profile route",
+      "path": "/coach-profile",
+      "finalPath": "/club/my-clubs",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/coach-profile-editor-controls-final-5/admin__admin_coach_profile_denied.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4476
+    }
+  ]
+}

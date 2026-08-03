@@ -40,7 +40,12 @@ export const InjurySummaryCard = function InjurySummaryCard({
             </ThemedText>
           </View>
         </Row>
-        <ThemedText style={[styles.description, { color: colors.muted }]}>{injuryName}</ThemedText>
+        <ThemedText
+          numberOfLines={2}
+          style={[styles.description, { color: colors.muted }]}
+        >
+          {injuryName}
+        </ThemedText>
         <Row gap="md" wrap>
           <Row gap="xxs" align="center">
             <Ionicons name="calendar-outline" size={16} color={colors.muted} />
@@ -48,6 +53,14 @@ export const InjurySummaryCard = function InjurySummaryCard({
               {injuryService.formatDate(injury.occurredAt)}
             </ThemedText>
           </Row>
+          {injury.expectedRecovery ? (
+            <Row gap="xxs" align="center">
+              <Ionicons name="calendar-clear-outline" size={16} color={colors.muted} />
+              <ThemedText style={[styles.metaText, { color: colors.muted }]}>
+                Expected {injuryService.formatDate(injury.expectedRecovery)}
+              </ThemedText>
+            </Row>
+          ) : null}
           {injury.sharedWithCoach && (
             <Row gap="xxs" align="center">
               <Ionicons name="share-social-outline" size={16} color={colors.tint} />
@@ -67,12 +80,7 @@ function getInjuryName(description: string, bodyPartLabel: string): string {
   if (!normalized) return `${bodyPartLabel} injury`;
 
   const firstSentence = normalized.split(/[.!?]/)[0]?.trim() ?? normalized;
-  const injuryMatch = firstSentence.match(/^(.{1,48}?\binjury\b)/i);
-  if (injuryMatch?.[1]) return injuryMatch[1].trim();
-
-  const words = firstSentence.split(/\s+/).filter(Boolean);
-  if (words.length <= 3) return firstSentence;
-  return words.slice(0, 3).join(' ');
+  return firstSentence;
 }
 
 const styles = StyleSheet.create({

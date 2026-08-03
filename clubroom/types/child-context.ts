@@ -113,6 +113,9 @@ export interface ChildContextValue {
   /** True while initial load is in progress */
   loading: boolean;
 
+  /** Error from the authoritative child/squad read, if the current child context is unavailable */
+  error: string | null;
+
   /** Force re-fetch from service */
   refresh: () => Promise<void>;
 }

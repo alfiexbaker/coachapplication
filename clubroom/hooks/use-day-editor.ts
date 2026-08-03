@@ -1,9 +1,11 @@
 /**
  * useDayEditor — State, effects, validation, and handlers for DayEditorSheet.
  */
-import { useState, useEffect, useRef, startTransition } from 'react';
-import { PanResponder, Platform, useWindowDimensions } from 'react-native';
-import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
+import { useState, useEffect, startTransition } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
+import { Gesture } from 'react-native-gesture-handler';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
@@ -176,26 +178,32 @@ export function useDayEditor({
     }
   }, [height, visible, slideAnim, overlayOpacity]);
 
-  // Pan responder
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 5,
-    onPanResponderMove: (_, gesture) => {
-      if (gesture.dy > 0) slideAnim.set(gesture.dy);
-    },
-    onPanResponderRelease: (_, gesture) => {
-      if (gesture.dy > 80) {
+  const dismissGesture = Gesture.Pan()
+    .minDistance(5)
+    .onUpdate((event) => {
+      if (event.translationY > 0) {
+        slideAnim.set(event.translationY);
+      }
+    })
+    .onEnd((event) => {
+      if (event.translationY > 80) {
         slideAnim.set(withTiming(height, { duration: 250 }));
         overlayOpacity.set(
           withTiming(0, { duration: 150 }, (finished) => {
-            if (finished) runOnJS(onClose)();
+            if (finished) {
+              scheduleOnRN(onClose);
+            }
           }),
         );
       } else {
         slideAnim.set(withTiming(0, { duration: 200 }));
       }
-    },
-  });
+    })
+    .onFinalize((_event, succeeded) => {
+      if (!succeeded) {
+        slideAnim.set(withTiming(0, { duration: 200 }));
+      }
+    });
 
   const isValid = (() => {
     const [startH, startM] = startTime.split(':').map(Number);
@@ -319,7 +327,7 @@ export function useDayEditor({
     setRepeatWeeks,
     slideAnim,
     overlayOpacity,
-    panResponder,
+    dismissGesture,
     isValid,
     overlapWarning,
     isNewTimeBlock,

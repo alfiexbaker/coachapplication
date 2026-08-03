@@ -20,12 +20,11 @@
  * - GET /v1/videos/:id - Signed playback detail
  * - POST /v1/videos/:id/annotations - Add annotation
  * - PATCH /v1/videos/:id/annotations/:annotationId - Update annotation
- * - DELETE /v1/videos/:id/annotations/:annotationId - Delete annotation
+ * - DELETE /v1/videos/:id/annotations/:annotationId - Archive annotation
  * - PATCH /v1/videos/:id/share - Update sharing
  */
 
-import { apiClient } from './api-client';
-import { apiFetch } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { api } from '@/constants/config';
 import type {
   SessionVideo,
@@ -36,6 +35,7 @@ import type {
 } from '@/constants/types';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { userService } from './user-service';
+import { waitForUploadScanCompletion } from './upload-authority-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { Platform } from 'react-native';
@@ -298,13 +298,6 @@ interface ApiUploadInitResponse {
   uploadHeaders?: Record<string, string>;
 }
 
-interface ApiUploadCompleteResponse {
-  uploadSessionId: string;
-  mediaObjectId: string;
-  mediaStatus: 'AVAILABLE';
-  scanVerdict: 'CLEAN';
-}
-
 interface ApiAnnotationResponse {
   annotation: ApiVideoAnnotation;
 }
@@ -382,6 +375,26 @@ function buildUploadFileName(uri: string, title: string): string {
   return `${normalizedTitle || 'video'}.mp4`;
 }
 
+async function videoFileSizeBytes(uri: string, _providedSize: number): Promise<number> {
+  const size =
+    Platform.OS === 'web'
+      ? await (async () => {
+          const response = await fetch(uri);
+          if (!response.ok) {
+            throw new Error(`Unable to read video file (${response.status})`);
+          }
+          return (await response.blob()).size;
+        })()
+      : await (async () => {
+          const info = await FileSystem.getInfoAsync(uri);
+          return info.exists ? info.size : undefined;
+        })();
+  if (!Number.isSafeInteger(size) || (size ?? 0) <= 0) {
+    throw new Error('Video file size could not be determined');
+  }
+  return size as number;
+}
+
 async function uploadFileToSignedUrl(
   fileUri: string,
   uploadUrl: string,
@@ -389,6 +402,9 @@ async function uploadFileToSignedUrl(
 ): Promise<void> {
   if (Platform.OS === 'web') {
     const source = await fetch(fileUri);
+    if (!source.ok) {
+      throw new Error(`Unable to read video file (${source.status})`);
+    }
     const blob = await source.blob();
     const response = await fetch(uploadUrl, {
       method: 'PUT',
@@ -517,6 +533,7 @@ export const videoService = {
 
     const fileName = buildUploadFileName(videoUrl, input.title);
     const contentType = inferVideoContentType(fileName);
+    const exactFileSize = await videoFileSizeBytes(videoUrl, fileSize);
     reportStage?.('initializing-upload');
     const uploadInit = requireApiResult(
       await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
@@ -525,7 +542,7 @@ export const videoService = {
           kind: 'VIDEO',
           contentType,
           fileName,
-          sizeBytes: Math.max(1, fileSize),
+          sizeBytes: exactFileSize,
           metadata: {
             coachId: input.coachId,
             athleteIds: input.athleteIds,
@@ -542,15 +559,10 @@ export const videoService = {
 
     reportStage?.('finalizing-upload');
     requireApiResult(
-      await apiFetch<ApiUploadCompleteResponse>(
-        `/v1/uploads/${uploadInit.uploadSessionId}/complete`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            mediaObjectId: uploadInit.mediaObjectId,
-          }),
-        },
-      ),
+      await waitForUploadScanCompletion({
+        uploadSessionId: uploadInit.uploadSessionId,
+        mediaObjectId: uploadInit.mediaObjectId,
+      }),
       'Failed to finalize video upload',
     );
 
@@ -649,7 +661,7 @@ export const videoService = {
       await apiFetch<void>(`/v1/videos/${videoId}/annotations/${annotationId}`, {
         method: 'DELETE',
       }),
-      'Failed to remove video annotation',
+      'Failed to archive video annotation',
     );
     emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
       videoId,
@@ -716,7 +728,7 @@ export const videoService = {
   },
 
   /**
-   * Delete video
+   * Archive video from active views while preserving audit history.
    */
   async deleteVideo(videoId: string): Promise<void> {
     if (USE_MOCK) {
@@ -736,7 +748,7 @@ export const videoService = {
 
     requireApiResult(
       await apiFetch<void>(`/v1/videos/${videoId}`, { method: 'DELETE' }),
-      'Failed to delete video',
+      'Failed to archive video',
     );
     emitTyped(ServiceEvents.VIDEO_DELETED, {
       videoId,
@@ -852,7 +864,11 @@ export const videoService = {
       input.note,
     );
 
-    // Enhance with creator info if provided
+    if (!USE_MOCK) {
+      return annotation;
+    }
+
+    // Mock mode has no backend actor, so retain legacy display metadata there only.
     if (createdBy || createdByName) {
       return {
         ...annotation,
@@ -958,7 +974,7 @@ export const videoService = {
   },
 
   /**
-   * Delete an annotation from a video
+   * Archive an annotation from active video feedback.
    */
   async deleteAnnotation(videoId: string, annotationId: string): Promise<boolean> {
     if (!USE_MOCK) {
@@ -969,7 +985,7 @@ export const videoService = {
         if (result.error.code === 'NOT_FOUND') {
           return false;
         }
-        throw new Error(result.error.message || 'Failed to delete video annotation');
+        throw new Error(result.error.message || 'Failed to archive video annotation');
       }
       emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
         videoId,

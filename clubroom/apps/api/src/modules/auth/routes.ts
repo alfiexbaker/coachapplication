@@ -10,13 +10,39 @@ import {
   revokeAuthSession,
   resetPasswordWithToken,
   updateAuthUserProfile,
+  verifyEmailWithToken,
 } from '../../lib/auth-runtime.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
-import { ApiProblemError, forbidden } from '../../lib/http-errors.js';
-import { deliverPasswordResetEmail } from '../../lib/password-reset-delivery.js';
+import { ApiProblemError, forbidden, isZodValidationError } from '../../lib/http-errors.js';
+import {
+  deliverEmailVerificationEmail,
+  deliverPasswordResetEmail,
+} from '../../lib/password-reset-delivery.js';
 
 function isResetTokenResponseEnabled(): boolean {
-  return process.env.NODE_ENV === 'test' || process.env.API_PASSWORD_RESET_TOKEN_RESPONSE === '1';
+  if (process.env.API_PASSWORD_RESET_TOKEN_RESPONSE !== '1') {
+    return false;
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return true;
+  }
+  return (
+    process.env.NODE_ENV === 'development' &&
+    process.env.API_PASSWORD_RESET_DEV_OUTBOX === 'true'
+  );
+}
+
+function isEmailVerificationTokenResponseEnabled(): boolean {
+  if (process.env.API_EMAIL_VERIFICATION_TOKEN_RESPONSE !== '1') {
+    return false;
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return true;
+  }
+  return (
+    process.env.NODE_ENV === 'development' &&
+    process.env.API_PASSWORD_RESET_DEV_OUTBOX === 'true'
+  );
 }
 
 function emailDomain(email: string): string | null {
@@ -122,6 +148,24 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   app.post('/auth/register', async (request, reply) => {
     const body = registerRequestSchema.parse(request.body);
     const result = await registerAuthUser(body, request.headers['user-agent']);
+    const delivery = result.emailVerification
+      ? await deliverEmailVerificationEmail({
+          code: result.emailVerification.token,
+          email: result.emailVerification.email,
+          expiresAt: result.emailVerification.expiresAt,
+          requestId: request.requestId,
+        })
+      : { provider: 'none' as const, status: 'skipped' as const };
+    if (delivery.status === 'failed') {
+      request.log.warn(
+        {
+          provider: delivery.provider,
+          error: delivery.error,
+          emailDomain: emailDomain(body.email),
+        },
+        'Email verification delivery failed',
+      );
+    }
     await recordAuditEvent({
       request,
       action: 'auth.register',
@@ -129,10 +173,21 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       resourceId: result.user.id,
       subjectUserId: result.user.id,
       result: 'SUCCESS',
+      metadata: {
+        emailVerificationIssued: Boolean(result.emailVerification),
+        emailVerificationDeliveryProvider: delivery.provider,
+        emailVerificationDeliveryStatus: delivery.status,
+      },
     });
     return reply.status(201).send({
       user: result.user,
       tokens: result.tokens,
+      ...(isEmailVerificationTokenResponseEnabled() && result.emailVerification
+        ? {
+            emailVerificationToken: result.emailVerification.token,
+            emailVerificationExpiresAt: result.emailVerification.expiresAt,
+          }
+        : {}),
       requestId: request.requestId,
     });
   });
@@ -240,13 +295,18 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         resourceId: authUserId,
         subjectUserId: authUserId,
         result:
-          error instanceof z.ZodError || (error instanceof ApiProblemError && error.status < 500)
+          isZodValidationError(error) || (error instanceof ApiProblemError && error.status < 500)
             ? 'DENY'
             : 'ERROR',
         metadata: {
           changedFields,
           errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
-          status: error instanceof z.ZodError ? 400 : error instanceof ApiProblemError ? error.status : 500,
+          status:
+            isZodValidationError(error)
+              ? 400
+              : error instanceof ApiProblemError
+                ? error.status
+                : 500,
         },
       });
       throw error;
@@ -335,20 +395,40 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    verifyEmailSchema.parse(request.body);
-    const user = await updateAuthUserProfile(authUserId, { isVerified: true });
-    await recordAuditEvent({
-      request,
-      action: 'auth.verify_email',
-      resourceType: 'user',
-      resourceId: authUserId,
-      subjectUserId: authUserId,
-      result: 'SUCCESS',
-    });
-    return reply.send({
-      user,
-      requestId: request.requestId,
-    });
+    const body = verifyEmailSchema.parse(request.body);
+    try {
+      const user = await verifyEmailWithToken(authUserId, body.code);
+      await recordAuditEvent({
+        request,
+        action: 'auth.verify_email',
+        resourceType: 'user',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          codeLength: body.code.length,
+        },
+      });
+      return reply.send({
+        user,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'auth.verify_email',
+        resourceType: 'user',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          reason: 'invalid_or_expired_email_verification_code',
+          codeLength: body.code.length,
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/auth/check-email', async (request, reply) => {

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
@@ -10,6 +12,10 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
 async function setupApiModeCoach() {
@@ -85,8 +91,8 @@ function goalPayload(overrides: {
   return {
     goal: {
       id: 'goal_api_1',
-      athleteId: 'ath_api_goal',
-      ownerUserId: 'ath_api_goal',
+      athleteId: 'ath_api-goal',
+      ownerUserId: 'ath_api-goal',
       creatorUserId: 'coach_api_analytics',
       title: 'Improve first touch',
       category: 'BALL_SKILLS',
@@ -110,6 +116,38 @@ function goalPayload(overrides: {
   };
 }
 
+function skillUpdatePayload(score = 8) {
+  return {
+    athleteId: 'ath_api-goal',
+    skillAssessment: {
+      id: 'ska_api-goal-skill-update',
+      athleteId: 'ath_api-goal',
+      skillDefinitionId: 'skd_api-dribbling',
+      assessorUserId: 'usr_api-analytics-coach',
+      score,
+      notes: null,
+      bookingId: null,
+      assessedAt: '2026-07-07T12:15:00.000Z',
+      createdAt: '2026-07-07T12:15:00.000Z',
+    },
+    skillDefinition: {
+      id: 'skd_api-dribbling',
+      code: 'DRIBBLING_SKILLS',
+      name: 'Dribbling & Skills',
+      category: 'Technical',
+      description: 'Dribbling definition.',
+      active: true,
+      createdAt: '2026-07-07T12:00:00.000Z',
+      updatedAt: '2026-07-07T12:00:00.000Z',
+    },
+    previousScore: null,
+    score,
+    replayed: false,
+    seedVersion: null,
+    requestId: 'req_api_goal_skill_update',
+  };
+}
+
 afterEach(async () => {
   globalThis.fetch = originalFetch;
   const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
@@ -117,6 +155,31 @@ afterEach(async () => {
 });
 
 describe('analyticsTrackingService API mode', () => {
+  it('does not log raw goal create payload text on failures', () => {
+    const source = readProjectFile('services/analytics/analytics-tracking-service.ts');
+
+    assert.doesNotMatch(
+      source,
+      /logger\.error\('Failed to create goal',\s*\{\s*input,/,
+      'goal create failure logs must not include the full input payload',
+    );
+    assert.match(
+      source,
+      /milestoneCount: input\.milestones\?\.length \?\? 0/,
+      'milestone diagnostics should log counts instead of milestone text',
+    );
+    assert.match(
+      source,
+      /titleLength: input\.title\.trim\(\)\.length/,
+      'title diagnostics should log length instead of raw title text',
+    );
+    assert.match(
+      source,
+      /hasDescription: \(input\.description\?\.trim\(\)\.length \?\? 0\) > 0/,
+      'description diagnostics should log presence instead of raw text',
+    );
+  });
+
   it('uses /v1 skill and goal mutation authority without local storage', async () => {
     const restoreUser = await setupApiModeCoach();
     const restoreStorage = await trapGenericStorage();
@@ -132,10 +195,10 @@ describe('analyticsTrackingService API mode', () => {
       const body = init?.body ? JSON.parse(String(init.body)) : undefined;
       calls.push({ method, path: `${url.pathname}${url.search}`, body, headers: init?.headers });
 
-      if (url.pathname === '/v1/athletes/ath_api_goal/skill-updates' && method === 'POST') {
-        return jsonResponse({ score: body.score });
+      if (url.pathname === '/v1/athletes/ath_api-goal/skill-updates' && method === 'POST') {
+        return jsonResponse(skillUpdatePayload(body.score));
       }
-      if (url.pathname === '/v1/athletes/ath_api_goal/goals' && method === 'POST') {
+      if (url.pathname === '/v1/athletes/ath_api-goal/goals' && method === 'POST') {
         return jsonResponse(goalPayload());
       }
       if (url.pathname === '/v1/goals/goal_api_1/progress' && method === 'PATCH') {
@@ -182,14 +245,14 @@ describe('analyticsTrackingService API mode', () => {
 
     try {
       const skillResult = await analyticsTrackingService.updateSkillLevel(
-        'ath_api_goal',
+        'ath_api-goal',
         'Dribbling & Skills',
         78,
       );
       assert.equal(skillResult.success, true);
 
       const created = await analyticsTrackingService.createGoal({
-        athleteId: 'ath_api_goal',
+        athleteId: 'ath_api-goal',
         title: 'Improve first touch',
         description: 'Backend-owned goal',
         category: 'BALL_SKILLS',
@@ -224,21 +287,23 @@ describe('analyticsTrackingService API mode', () => {
     assert.deepEqual(
       calls.map((call) => `${call.method} ${call.path}`),
       [
-        'POST /v1/athletes/ath_api_goal/skill-updates',
-        'POST /v1/athletes/ath_api_goal/goals',
+        'POST /v1/athletes/ath_api-goal/skill-updates',
+        'POST /v1/athletes/ath_api-goal/goals',
         'PATCH /v1/goals/goal_api_1/progress',
         'PATCH /v1/goals/goal_api_1/milestones/ms_api_1',
         'POST /v1/goals/goal_api_1/milestones',
         'PATCH /v1/goals/goal_api_1',
       ],
     );
-    assert.deepEqual(calls[0]?.body, {
-      skillName: 'Dribbling & Skills',
-      score: 8,
-    });
+    assert.equal((calls[0]?.body as { skillName?: string }).skillName, 'Dribbling & Skills');
+    assert.equal((calls[0]?.body as { score?: number }).score, 8);
+    assert.match(
+      (calls[0]?.body as { idempotencyKey?: string }).idempotencyKey ?? '',
+      /^skill-update_/,
+    );
     assert.equal(
       (calls[0]?.headers as Record<string, string>)['x-coach-athlete-ids'],
-      'ath_api_goal',
+      'ath_api-goal',
     );
     assert.equal((calls[0]?.headers as Record<string, string>)['x-coach-verified'], '1');
     assert.equal(
@@ -252,5 +317,41 @@ describe('analyticsTrackingService API mode', () => {
       targetDate: '2026-10-01',
       milestones: ['Ten clean receives'],
     });
+  });
+
+  it('fails closed for invalid skill input and malformed API output', async () => {
+    const restoreUser = await setupApiModeCoach();
+    const restoreStorage = await trapGenericStorage();
+    const { analyticsTrackingService } = await import(
+      '@/services/analytics/analytics-tracking-service'
+    );
+    let fetchCalls = 0;
+    globalThis.fetch = (async () => {
+      fetchCalls += 1;
+      return jsonResponse({ ...skillUpdatePayload(8), score: 7 });
+    }) as typeof fetch;
+
+    try {
+      const invalid = await analyticsTrackingService.updateSkillLevel(
+        'ath_api-goal',
+        'Passing',
+        Number.NaN,
+      );
+      assert.equal(invalid.success, false);
+      assert.equal(invalid.success ? '' : invalid.error.code, 'VALIDATION');
+      assert.equal(fetchCalls, 0);
+
+      const malformed = await analyticsTrackingService.updateSkillLevel(
+        'ath_api-goal',
+        'Passing',
+        8,
+      );
+      assert.equal(malformed.success, false);
+      assert.match(malformed.success ? '' : malformed.error.message, /did not match contract/i);
+      assert.equal(fetchCalls, 1);
+    } finally {
+      restoreStorage();
+      restoreUser();
+    }
   });
 });

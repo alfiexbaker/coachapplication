@@ -48,7 +48,6 @@ const BASE_HIDDEN_ROUTES = [
   'coach-profile',
   'edit-profile',
   'profile',
-  'admin/invite-codes',
   'earnings',
   'roster',
 ];
@@ -276,7 +275,7 @@ export default function TabLayout() {
       hiddenRoutes: currentHiddenRoutes,
       restrictedRoutes: Array.from(currentRestrictedRouteSet),
     });
-    router.replace(Routes.HOME_INDEX);
+    router.replace(Routes.HOME);
     showToast('Access restricted', 'error');
   }, [
     currentUser?.children?.length,
@@ -327,7 +326,7 @@ export default function TabLayout() {
         hiddenRoutes: currentHiddenRoutes,
         restrictedRoutes: Array.from(currentRestrictedRouteSet),
       });
-      router.replace(Routes.HOME_INDEX);
+      router.replace(Routes.HOME);
       showToast('Access restricted', 'error');
     }, [
       currentUser?.children?.length,
@@ -421,7 +420,7 @@ export default function TabLayout() {
 
   return (
     <ErrorBoundary>
-      <RouteAccessGate allowed={!blockedTabSegment} redirectHref={Routes.HOME_INDEX}>
+      <RouteAccessGate allowed={!blockedTabSegment} redirectHref={Routes.HOME}>
         <Tabs screenOptions={tabBarOptions}>
           {roleConfig.primary.map(({ name, title, icon, badge }) => (
             <Tabs.Screen

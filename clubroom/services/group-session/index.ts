@@ -61,6 +61,8 @@ export const groupSessionService = {
     sessionCrudService.publishSession(...args),
   cancelSession: (...args: Parameters<typeof sessionCrudService.cancelSession>) =>
     sessionCrudService.cancelSession(...args),
+  completeSession: (...args: Parameters<typeof sessionCrudService.completeSession>) =>
+    sessionCrudService.completeSession(...args),
   updateOffPlatformParticipants: (
     ...args: Parameters<typeof sessionCrudService.updateOffPlatformParticipants>
   ) => sessionCrudService.updateOffPlatformParticipants(...args),
@@ -82,6 +84,9 @@ export const groupSessionService = {
   ) => sessionRegistrationService.cancelRegistration(...args),
   getSessionRoster: (...args: Parameters<typeof sessionRegistrationService.getSessionRoster>) =>
     sessionRegistrationService.getSessionRoster(...args),
+  getCompletionRoster: (
+    ...args: Parameters<typeof sessionRegistrationService.getCompletionRoster>
+  ) => sessionRegistrationService.getCompletionRoster(...args),
   markAttendance: (...args: Parameters<typeof sessionRegistrationService.markAttendance>) =>
     sessionRegistrationService.markAttendance(...args),
   getParentRegistrations: (

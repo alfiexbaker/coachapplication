@@ -9,6 +9,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
 import { Row } from '@/components/primitives';
+import { formatBookingPrice } from './multi-week-picker-helpers';
 
 interface MultiWeekConfirmationProps {
   selectedWeeks: WeekRow[];
@@ -57,8 +58,7 @@ const WeekSummaryRow = function WeekSummaryRow({
         </ThemedText>
       </View>
       <ThemedText style={[Typography.smallSemiBold, { color: palette.text }]}>
-        {currency}
-        {week.price}
+        {formatBookingPrice(week.price, currency)}
       </ThemedText>
     </Row>
   );
@@ -120,8 +120,7 @@ export function MultiWeekConfirmation({
           Total
         </ThemedText>
         <ThemedText type="defaultSemiBold" style={{ color: palette.text }}>
-          {currency}
-          {totalCost.toFixed(0)}
+          {formatBookingPrice(totalCost, currency)}
         </ThemedText>
       </Row>
 

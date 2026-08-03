@@ -1,8 +1,3 @@
-import { useState } from 'react';
-
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { eventService } from '@/services/event-service';
@@ -16,6 +11,7 @@ import type {
 } from '@/constants/types';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { isEventStaffWorkspaceDenied } from '@/utils/event-workspace';
 
 const logger = createLogger('useEventAttendees');
 
@@ -25,6 +21,7 @@ interface EventAttendeesData {
   attendance: EventAttendance[];
   stats: EventAttendanceStats | null;
   currentAttendance: EventAttendance | null;
+  canManageEvent: boolean;
 }
 
 export interface UseEventAttendeesResult {
@@ -39,20 +36,23 @@ export interface UseEventAttendeesResult {
   refreshing: boolean;
   onRefresh: () => void;
   retry: () => void;
-  isCoach: boolean;
+  actorRole: 'COACH' | 'PARENT' | 'ATHLETE';
+  canManageEvent: boolean;
   isEventToday: boolean;
   checkInAvailable: boolean;
   currentUser: ReturnType<typeof useAuth>['currentUser'];
   handleCheckIn: (input: CheckInInput) => Promise<void>;
   handleUndoCheckIn: () => Promise<void>;
-  handleAttendeePress: (userId: string) => void;
-  handleExport: () => void;
-  handleSendReminder: () => void;
 }
 
 export function useEventAttendees(id: string | undefined): UseEventAttendeesResult {
   const { currentUser } = useAuth();
-  const isCoach = currentUser?.role === 'COACH';
+  const actorRole =
+    currentUser?.role === 'COACH'
+      ? 'COACH'
+      : currentUser?.role === 'PARENT'
+        ? 'PARENT'
+        : 'ATHLETE';
 
   const loadData = async () => {
     if (!id || !currentUser) {
@@ -62,25 +62,62 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
         attendance: [],
         stats: null,
         currentAttendance: null,
+        canManageEvent: false,
       });
     }
 
     try {
-      const [eventData, rsvpsData, attendanceData, statsData, userAttendance] = await Promise.all([
+      const [eventData, userAttendance] = await Promise.all([
         eventService.getEvent(id),
-        eventService.getEventRSVPs(id),
-        eventService.getAttendeeList(id),
-        eventService.getAttendanceStats(id),
         eventService.getUserAttendance(id, currentUser.id),
       ]);
 
-      return ok<EventAttendeesData>({
-        event: eventData,
-        rsvps: rsvpsData,
-        attendance: attendanceData,
-        stats: statsData,
-        currentAttendance: userAttendance,
-      });
+      if (!eventData) {
+        return ok<EventAttendeesData>({
+          event: eventData,
+          rsvps: [],
+          attendance: [],
+          stats: null,
+          currentAttendance: userAttendance,
+          canManageEvent: false,
+        });
+      }
+
+      try {
+        const attendance = await eventService.getAttendeeList(id);
+        const [rsvps, stats] = await Promise.all([
+          eventService.getEventRSVPs(id),
+          eventService.getAttendanceStats(id),
+        ]);
+        return ok<EventAttendeesData>({
+          event: eventData,
+          rsvps,
+          attendance,
+          stats,
+          currentAttendance: userAttendance,
+          canManageEvent: true,
+        });
+      } catch (staffWorkspaceError) {
+        if (!isEventStaffWorkspaceDenied(staffWorkspaceError)) {
+          logger.error('Failed to load event attendee workspace:', staffWorkspaceError);
+          return err(
+            serviceError(
+              'UNKNOWN',
+              'Failed to load attendees. Pull down to refresh.',
+              staffWorkspaceError,
+            ),
+          );
+        }
+        logger.info('Event attendee workspace unavailable to current actor', { eventId: id });
+        return ok<EventAttendeesData>({
+          event: eventData,
+          rsvps: [],
+          attendance: [],
+          stats: null,
+          currentAttendance: userAttendance,
+          canManageEvent: false,
+        });
+      }
     } catch (loadError) {
       logger.error('Failed to load attendee data', loadError);
       return err(
@@ -92,6 +129,9 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventAttendeesData>({
     load: loadData,
     deps: [id, currentUser?.id],
+    dataKey: id
+      ? `event-attendees:${currentUser?.id ?? 'anonymous'}:${id}`
+      : 'event-attendees:missing',
     isEmpty: (value) => value.event === null,
     refetchOnFocus: true,
   });
@@ -101,6 +141,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const attendance = data?.attendance ?? [];
   const stats = data?.stats ?? null;
   const currentAttendance = data?.currentAttendance ?? null;
+  const canManageEvent = data?.canManageEvent ?? false;
   const loading = status === 'loading';
 
   const handleCheckIn = async (input: CheckInInput) => {
@@ -124,30 +165,6 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
     }
   };
 
-  const handleAttendeePress = (userId: string) => {
-    logger.press('AttendeeRow', { userId });
-    router.push(Routes.profile(userId));
-  };
-
-  const handleExport = () => {
-    logger.press('ExportAttendees', { eventId: id });
-    const names = attendance.map((a) => a.userId).join('\n');
-    uiFeedback.showToast(`${attendance.length} checked in:\n\n${names || 'No attendees yet'}`);
-  };
-
-  const handleSendReminder = () => {
-    logger.press('SendReminder', { eventId: id });
-    const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
-    if (nonResponders === 0) {
-      uiFeedback.showToast('Everyone has already responded!');
-      return;
-    }
-    uiFeedback.showToast(
-      `Reminder sent to ${nonResponders} attendee${nonResponders === 1 ? '' : 's'}.`,
-      'success',
-    );
-  };
-
   const isEventToday = event ? eventService.isEventToday(event) : false;
   const checkInAvailable = event ? eventService.isCheckInAvailable(event) : false;
 
@@ -163,14 +180,12 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
     refreshing,
     onRefresh,
     retry,
-    isCoach,
+    actorRole,
+    canManageEvent,
     isEventToday,
     checkInAvailable,
     currentUser,
     handleCheckIn,
     handleUndoCheckIn,
-    handleAttendeePress,
-    handleExport,
-    handleSendReminder,
   };
 }

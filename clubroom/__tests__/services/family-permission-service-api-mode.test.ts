@@ -61,7 +61,7 @@ function familyPayload() {
         id: 'fmem_primary',
         familyId: 'fam_permissions_api',
         userId: 'usr_parent_permissions',
-        role: 'PRIMARY',
+        role: 'owner',
         permissions: null,
         childAccessAthleteIds: [],
         createdAt: '2026-07-01T00:00:00.000Z',
@@ -144,6 +144,10 @@ describe('familyPermissionService API mode', () => {
           'fam_permissions_api',
           'VIEW_PROGRESS',
         ),
+        true,
+      );
+      assert.equal(
+        await familyPermissionService.isAdmin('usr_parent_permissions', 'fam_permissions_api'),
         true,
       );
       assert.equal(

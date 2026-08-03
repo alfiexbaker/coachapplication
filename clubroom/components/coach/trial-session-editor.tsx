@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { trialService, type TrialOffering } from '@/services/trial-service';
 import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
+import { ErrorState } from '@/components/ui/screen-states';
 import { TrialDiscoveryPreview } from './trial-discovery-preview';
 
 import { TrialFormFields } from './trial-session-editor-sections';
@@ -33,6 +34,15 @@ interface TrialSessionEditorProps {
   onBack?: () => void;
 }
 
+const DEFAULT_TRIAL_FORM = {
+  enabled: false,
+  trialPrice: '15',
+  normalPrice: '45',
+  durationMinutes: '60',
+  limitPerFamily: '1',
+  description: 'Try a session with no commitment. See if we are the right fit for your child.',
+} as const;
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
@@ -46,44 +56,55 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   const trialSettingsWritable = Boolean(coachId);
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadVersion, setLoadVersion] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-  const [trialPrice, setTrialPrice] = useState('15');
-  const [normalPrice, setNormalPrice] = useState('45');
-  const [durationMinutes, setDurationMinutes] = useState('60');
-  const [limitPerFamily, setLimitPerFamily] = useState('1');
-  const [description, setDescription] = useState(
-    'Try a session with no commitment. See if we are the right fit for your child.',
+  const [enabled, setEnabled] = useState<boolean>(DEFAULT_TRIAL_FORM.enabled);
+  const [trialPrice, setTrialPrice] = useState<string>(DEFAULT_TRIAL_FORM.trialPrice);
+  const [normalPrice, setNormalPrice] = useState<string>(DEFAULT_TRIAL_FORM.normalPrice);
+  const [durationMinutes, setDurationMinutes] = useState<string>(
+    DEFAULT_TRIAL_FORM.durationMinutes,
   );
+  const [limitPerFamily, setLimitPerFamily] = useState<string>(DEFAULT_TRIAL_FORM.limitPerFamily);
+  const [description, setDescription] = useState<string>(DEFAULT_TRIAL_FORM.description);
 
   useEffect(() => {
     if (!coachId) {
+      setLoadError(null);
       setLoading(false);
       return;
     }
 
-    (async () => {
-      await runAsyncTryCatchFinally(
-        async () => {
-          const existing = await trialService.getTrialOffering(coachId);
-          if (existing) {
-            setEnabled(existing.enabled);
-            setTrialPrice(String(existing.trialPrice));
-            setNormalPrice(String(existing.normalPrice));
-            setDurationMinutes(String(existing.durationMinutes));
-            setLimitPerFamily(String(existing.limitPerFamily));
-            setDescription(existing.description);
-          }
-        },
-        async (error) => {
-          // Defaults are fine
-        },
-        () => {
+    let active = true;
+    setLoading(true);
+    setLoadError(null);
+    void runAsyncTryCatchFinally(
+      async () => {
+        const existing = await trialService.getTrialOffering(coachId);
+        if (!active) return;
+        setEnabled(existing?.enabled ?? DEFAULT_TRIAL_FORM.enabled);
+        setTrialPrice(String(existing?.trialPrice ?? DEFAULT_TRIAL_FORM.trialPrice));
+        setNormalPrice(String(existing?.normalPrice ?? DEFAULT_TRIAL_FORM.normalPrice));
+        setDurationMinutes(String(existing?.durationMinutes ?? DEFAULT_TRIAL_FORM.durationMinutes));
+        setLimitPerFamily(String(existing?.limitPerFamily ?? DEFAULT_TRIAL_FORM.limitPerFamily));
+        setDescription(existing?.description ?? DEFAULT_TRIAL_FORM.description);
+      },
+      async () => {
+        if (active) {
+          setLoadError('Trial settings could not be loaded.');
+        }
+      },
+      () => {
+        if (active) {
           setLoading(false);
-        },
-      );
-    })();
-  }, [coachId]);
+        }
+      },
+    );
+
+    return () => {
+      active = false;
+    };
+  }, [coachId, loadVersion]);
 
   const handleToggleEnabled = (newValue: boolean) => {
     if (!trialSettingsWritable) {
@@ -148,6 +169,18 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
     return (
       <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
         <ActivityIndicator size="large" color={palette.tint} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={[styles.errorContainer, { backgroundColor: palette.background }]}>
+        <ErrorState
+          title="Trial settings unavailable"
+          message={loadError}
+          onRetry={() => setLoadVersion((version) => version + 1)}
+        />
       </View>
     );
   }
@@ -250,6 +283,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   contentContainer: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.sm },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorContainer: { flex: 1 },
   headerArea: { paddingHorizontal: Spacing.xs, marginBottom: Spacing.md },
   toggleCard: { marginBottom: Spacing.sm },
   toggleRow: { alignItems: 'center', gap: Spacing.sm },

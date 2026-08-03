@@ -12,11 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useScheduleConflicts } from '@/hooks/use-schedule-conflicts';
 import { ScheduleConflictBanner } from './schedule-conflict-banner';
 import type { ChildInfo } from '@/types/child-context';
-import {
-  ChildFilterRow,
-  CalendarDayGrid,
-  EventListSection,
-} from './family-calendar-sections';
+import { ChildFilterRow, CalendarDayGrid, EventListSection } from './family-calendar-sections';
 import { DAYS, MONTHS } from './family-calendar-helpers';
 import { Row } from '@/components/primitives';
 
@@ -48,7 +44,7 @@ export function FamilyCalendar({
   getChildById,
 }: FamilyCalendarProps) {
   const { colors: palette } = useTheme();
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(selectedDate));
 
   const calendarData = (() => {
     const year = currentMonth.getFullYear();
@@ -100,13 +96,8 @@ export function FamilyCalendar({
   const selectedDateEvents = getEventsForDate(selectedDate);
 
   // Schedule conflict detection (Phase 5)
-  const {
-    conflicts,
-    hasConflicts,
-    conflictsByEventId,
-    isDayDismissed,
-    dismissDay,
-  } = useScheduleConflicts({ events: filteredEvents, isMultiChild });
+  const { conflicts, hasConflicts, conflictsByEventId, isDayDismissed, dismissDay } =
+    useScheduleConflicts({ events: filteredEvents, isMultiChild });
 
   const selectedDateStr = toDateStr(selectedDate);
 
@@ -120,9 +111,7 @@ export function FamilyCalendar({
     if (!date || !hasConflicts) return false;
     const dateStr = toDateStr(date);
     return conflicts.some(
-      (c) =>
-        c.eventA.start.split('T')[0] === dateStr ||
-        c.eventB.start.split('T')[0] === dateStr,
+      (c) => c.eventA.start.split('T')[0] === dateStr || c.eventB.start.split('T')[0] === dateStr,
     );
   };
 
@@ -130,8 +119,7 @@ export function FamilyCalendar({
     dismissDay(selectedDateStr);
   };
 
-  const showBanner =
-    selectedDateConflicts.length > 0 && !isDayDismissed(selectedDateStr);
+  const showBanner = selectedDateConflicts.length > 0 && !isDayDismissed(selectedDateStr);
 
   return (
     <View style={styles.container}>

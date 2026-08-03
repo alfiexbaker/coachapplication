@@ -6,6 +6,7 @@
 
 import type {
   OrganizationCommercialMode,
+  OrganizationJoinPolicy,
   OrganizationRole,
 } from '@/contracts/club-governance';
 import type { SportCategory, FootballObjective } from './user-types';
@@ -15,7 +16,7 @@ import type { SportCategory, FootballObjective } from './user-types';
 // ============================================================================
 
 export type ClubRole = OrganizationRole;
-export type { OrganizationCommercialMode };
+export type { OrganizationCommercialMode, OrganizationJoinPolicy };
 
 export interface Club {
   id: string;
@@ -27,12 +28,16 @@ export interface Club {
   profilePhotoUrl?: string;
   coverPhotoUrl?: string;
   tagline?: string;
+  visibility?: 'private' | 'public';
+  joinPolicy?: OrganizationJoinPolicy;
   memberCount: number;
   coachCount: number;
   squadCount: number;
   ownerId: string;
   inviteCode: string;
   commercialMode?: OrganizationCommercialMode;
+  /** Backend-derived capability for fixture creation and management UI. */
+  canManageMatches?: boolean;
 }
 
 export interface ClubMembership {
@@ -51,11 +56,11 @@ export interface ClubSquad {
   id: string;
   clubId: string;
   name: string;
-  level: string;
+  level?: string;
   description?: string;
   memberCount: number;
-  primaryCoach: string;
-  meetLocation: string;
+  primaryCoach?: string;
+  meetLocation?: string;
   nextSession?: string;
   tags?: string[];
   ageMin?: number;

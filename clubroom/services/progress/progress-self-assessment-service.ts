@@ -8,7 +8,14 @@ import {
   toApiAthleteId,
 } from '@/services/api-auth-context';
 import { notificationTriggers } from '@/services/notification-trigger';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  err,
+  ok,
+  storageError,
+  unsupportedError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressSelfAssessmentService');
@@ -236,7 +243,11 @@ async function schedulePromptsForCompletedBooking(
 async function dispatchDuePrompts(athleteId?: string): Promise<Result<number, ServiceError>> {
   if (isApiMode()) {
     if (!athleteId) {
-      return ok(0);
+      return err(
+        unsupportedError(
+          'Global self-assessment prompt dispatch is backend-owned in API mode; provide an athlete id for actor-scoped dispatch.',
+        ),
+      );
     }
     const access = await resolveSelfAssessmentApiAccess(athleteId);
     if (!access.success) {

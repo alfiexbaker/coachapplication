@@ -8,6 +8,12 @@ import { networkError } from '@/types/result';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
+const API_COACH_CONTEXT = {
+  requestorId: 'coach_api_1',
+  requestorRole: 'coach' as const,
+  isVerifiedCoach: true,
+};
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -41,12 +47,34 @@ describe('safetyService API mode', () => {
     });
 
     try {
-      const result = await safetyService.getAthleteEmergency('athlete_api', 'API Athlete');
+      const result = await safetyService.getAthleteEmergency(
+        'athlete_api',
+        API_COACH_CONTEXT,
+        'API Athlete',
+      );
 
       assert.equal(result.success, false);
       assert.equal(!result.success && result.error.message, 'backend unavailable');
     } finally {
       familyHealthService.getEmergencyInfo = originalGetEmergencyInfo;
+    }
+  });
+
+  it('does not claim emergency data was cached when API mode has no offline authority', async () => {
+    const { safetyService } = await import('@/services/safety-service');
+
+    const result = await safetyService.preCacheSessionEmergencyInfo(
+      [{ athleteId: 'ath_safety_api_1', athleteName: 'API Athlete' }],
+      API_COACH_CONTEXT,
+    );
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.equal(result.error.code, 'UNSUPPORTED');
+      assert.deepEqual(result.error.details, {
+        capability: 'offline-emergency-cache',
+        authority: '/v1/athletes/:athleteId/{medical,emergency-contacts,consents}',
+      });
     }
   });
 

@@ -6,6 +6,7 @@ import {
   ok,
   err,
   notFound,
+  serviceError,
   storageError,
   unsupportedError,
 } from '@/types/result';
@@ -45,13 +46,22 @@ interface ApiUserSearchEntry {
   email?: string;
   avatar?: string;
   postcode?: string;
-  dateOfBirth?: string;
   role: User['role'];
 }
 
 interface ApiUserSearchResponse {
   users: ApiUserSearchEntry[];
   total: number;
+  requestId?: string;
+}
+
+interface ApiUserProfileResponse {
+  user: ApiUserSearchEntry;
+  requestId?: string;
+}
+
+interface ApiAuthProfileResponse {
+  user: AuthUserRecord;
   requestId?: string;
 }
 
@@ -114,20 +124,21 @@ function mapApiSearchUser(user: ApiUserSearchEntry): User {
     email: user.email ?? '',
     avatar: user.avatar,
     postcode: user.postcode ?? '',
-    dateOfBirth: user.dateOfBirth ?? '',
+    dateOfBirth: '',
     role: normalizeUserRole(user.role, user.role),
   };
 }
 
 class UserService {
   private async loadUsers(): Promise<User[]> {
-    const authUser = await apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null);
     if (!apiClient.isMockMode) {
-      const mappedAuthUser = authUser ? mapAuthUserToUser(authUser) : null;
-      return mappedAuthUser ? [mappedAuthUser] : [];
+      return [];
     }
 
-    const users = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+    const [authUser, users] = await Promise.all([
+      apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null),
+      apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
+    ]);
 
     const usersById = new Map<string, User>();
 
@@ -148,6 +159,16 @@ class UserService {
 
   async getUserById(id: string): Promise<Result<User, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const result = await apiFetch<ApiUserProfileResponse>(
+          `/v1/users/${encodeURIComponent(id)}`,
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(mapApiSearchUser(result.data.user));
+      }
+
       const users = await this.loadUsers();
       const user = users.find((candidate) => accountIdsMatch(candidate.id, id));
 
@@ -167,6 +188,21 @@ class UserService {
       const uniqueIds = [...new Set(ids.filter(Boolean))];
       if (uniqueIds.length === 0) {
         return ok([]);
+      }
+
+      if (!apiClient.isMockMode) {
+        const results = await Promise.all(uniqueIds.map((id) => this.getUserById(id)));
+        const users: User[] = [];
+        for (const result of results) {
+          if (result.success) {
+            users.push(result.data);
+            continue;
+          }
+          if (result.error.code !== 'NOT_FOUND') {
+            return err(result.error);
+          }
+        }
+        return ok(users);
       }
 
       const users = await this.loadUsers();
@@ -318,6 +354,20 @@ class UserService {
 
   async getCurrentUser(): Promise<Result<User, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const result = await apiFetch<ApiAuthProfileResponse>('/v1/auth/me');
+        if (!result.success) {
+          return err(result.error);
+        }
+
+        const currentUser = mapAuthUserToUser(result.data.user);
+        if (!currentUser) {
+          return err(serviceError('UNKNOWN', 'The current-user response was invalid.'));
+        }
+
+        return ok(currentUser);
+      }
+
       const authUser = await apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null);
       if (!authUser) {
         return err(notFound('Current user'));

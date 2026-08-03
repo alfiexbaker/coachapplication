@@ -10,38 +10,76 @@
  *   fetch(`${config.api.baseUrl}/users`);
  */
 
-import Constants from 'expo-constants';
-
 // -----------------------------------------------------------------------------
 // Environment Helpers
 // -----------------------------------------------------------------------------
 
-const getEnv = (key: string, defaultValue: string = ''): string => {
-  // Try Expo Constants first (from app.config.ts extra)
-  const extra = Constants.expoConfig?.extra;
-  if (extra && key in extra) {
-    return String(extra[key]);
-  }
+const PUBLIC_ENV_VALUES = {
+  ENV: process.env.EXPO_PUBLIC_ENV,
+  DEBUG: process.env.EXPO_PUBLIC_DEBUG,
+  NATIVE_AUDIT_TEST_MODE: process.env.EXPO_PUBLIC_NATIVE_AUDIT_TEST_MODE,
+  REVYL_AUTH_BYPASS_ENABLED: process.env.EXPO_PUBLIC_REVYL_AUTH_BYPASS_ENABLED,
+  REVYL_AUTH_BYPASS_TOKEN: process.env.EXPO_PUBLIC_REVYL_AUTH_BYPASS_TOKEN,
+  FEATURE_FAMILY_SHARING: process.env.EXPO_PUBLIC_FEATURE_FAMILY_SHARING,
+  FEATURE_GROUP_SESSIONS: process.env.EXPO_PUBLIC_FEATURE_GROUP_SESSIONS,
+  FEATURE_VIDEO_ANALYSIS: process.env.EXPO_PUBLIC_FEATURE_VIDEO_ANALYSIS,
+  FEATURE_SKILL_TREE: process.env.EXPO_PUBLIC_FEATURE_SKILL_TREE,
+  FEATURE_PAYMENTS: process.env.EXPO_PUBLIC_FEATURE_PAYMENTS,
+  FEATURE_PACKAGES: process.env.EXPO_PUBLIC_FEATURE_PACKAGES,
+  FEATURE_PROMO_CODES: process.env.EXPO_PUBLIC_FEATURE_PROMO_CODES,
+  FEATURE_CLUB_FEED: process.env.EXPO_PUBLIC_FEATURE_CLUB_FEED,
+  FEATURE_CHALLENGES: process.env.EXPO_PUBLIC_FEATURE_CHALLENGES,
+  FEATURE_LEADERBOARDS: process.env.EXPO_PUBLIC_FEATURE_LEADERBOARDS,
+  FEATURE_AI_INSIGHTS: process.env.EXPO_PUBLIC_FEATURE_AI_INSIGHTS,
+  FEATURE_LIVE_TRACKING: process.env.EXPO_PUBLIC_FEATURE_LIVE_TRACKING,
+  API_URL: process.env.EXPO_PUBLIC_API_URL,
+  API_TIMEOUT: process.env.EXPO_PUBLIC_API_TIMEOUT,
+  USE_MOCK: process.env.EXPO_PUBLIC_USE_MOCK,
+  PRE_API_LIVE_MODE: process.env.EXPO_PUBLIC_PRE_API_LIVE_MODE,
+  AUTH_PROVIDER: process.env.EXPO_PUBLIC_AUTH_PROVIDER,
+  SESSION_TIMEOUT: process.env.EXPO_PUBLIC_SESSION_TIMEOUT,
+  STORAGE_PROVIDER: process.env.EXPO_PUBLIC_STORAGE_PROVIDER,
+  CACHE_TTL: process.env.EXPO_PUBLIC_CACHE_TTL,
+  ANALYTICS_ENABLED: process.env.EXPO_PUBLIC_ANALYTICS_ENABLED,
+  ANALYTICS_PROVIDER: process.env.EXPO_PUBLIC_ANALYTICS_PROVIDER,
+  SEGMENT_WRITE_KEY: process.env.EXPO_PUBLIC_SEGMENT_WRITE_KEY,
+  SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  SENTRY_ENVIRONMENT: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT,
+  SENTRY_RELEASE: process.env.EXPO_PUBLIC_SENTRY_RELEASE,
+  SENTRY_TRACES_SAMPLE_RATE: process.env.EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE,
+  LOG_LEVEL: process.env.EXPO_PUBLIC_LOG_LEVEL,
+  PUSH_PROVIDER: process.env.EXPO_PUBLIC_PUSH_PROVIDER,
+  QUIET_HOURS_START: process.env.EXPO_PUBLIC_QUIET_HOURS_START,
+  QUIET_HOURS_END: process.env.EXPO_PUBLIC_QUIET_HOURS_END,
+  GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+  DEFAULT_SEARCH_RADIUS: process.env.EXPO_PUBLIC_DEFAULT_SEARCH_RADIUS,
+  RATE_LIMIT_RPM: process.env.EXPO_PUBLIC_RATE_LIMIT_RPM,
+  BOOKING_RATE_LIMIT: process.env.EXPO_PUBLIC_BOOKING_RATE_LIMIT,
+  HAPTICS_ENABLED: process.env.EXPO_PUBLIC_HAPTICS_ENABLED,
+  ANIMATION_SCALE: process.env.EXPO_PUBLIC_ANIMATION_SCALE,
+  DEFAULT_CURRENCY: process.env.EXPO_PUBLIC_DEFAULT_CURRENCY,
+  DEFAULT_LOCALE: process.env.EXPO_PUBLIC_DEFAULT_LOCALE,
+} as const;
 
-  // Fall back to process.env for build-time values
-  const envKey = `EXPO_PUBLIC_${key.toUpperCase()}`;
-  return process.env[envKey] ?? defaultValue;
-};
+type PublicEnvKey = keyof typeof PUBLIC_ENV_VALUES;
 
-const getBool = (key: string, defaultValue: boolean = false): boolean => {
+const getEnv = (key: PublicEnvKey, defaultValue: string = ''): string =>
+  PUBLIC_ENV_VALUES[key] ?? defaultValue;
+
+const getBool = (key: PublicEnvKey, defaultValue: boolean = false): boolean => {
   const value = getEnv(key);
   if (value === '') return defaultValue;
   return value === 'true' || value === '1';
 };
 
-const getNumber = (key: string, defaultValue: number = 0): number => {
+const getNumber = (key: PublicEnvKey, defaultValue: number = 0): number => {
   const value = getEnv(key);
   if (value === '') return defaultValue;
   const parsed = parseInt(value, 10);
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-const getFloat = (key: string, defaultValue: number = 0): number => {
+const getFloat = (key: PublicEnvKey, defaultValue: number = 0): number => {
   const value = getEnv(key);
   if (value === '') return defaultValue;
   const parsed = parseFloat(value);
@@ -61,6 +99,17 @@ export const isStaging = env === 'staging';
 export const isProduction = env === 'production';
 export const isDebug = getBool('DEBUG', isDevelopment);
 export const isTestRuntime = process.env.NODE_ENV === 'test';
+
+/**
+ * Local native-audit escape hatch. It exists solely to let a development client
+ * exercise retained mock role fixtures without real credentials or data.
+ * Any non-development environment fails closed, including staging and production.
+ */
+export const nativeAudit = {
+  testMode: isDevelopment && getBool('NATIVE_AUDIT_TEST_MODE', false),
+  authBypassEnabled: getBool('REVYL_AUTH_BYPASS_ENABLED', false),
+  authBypassToken: getEnv('REVYL_AUTH_BYPASS_TOKEN'),
+} as const;
 
 /** Whether to show detailed error info (stack traces, error codes). True only in dev builds. */
 export const showErrorDetails = __DEV__;
@@ -114,7 +163,7 @@ function assertRuntimeModeConfig(): void {
       'Invalid Clubroom runtime config: EXPO_PUBLIC_PRE_API_LIVE_MODE=true is no longer supported.',
     );
   }
-  if (api.useMock && !isTestRuntime) {
+  if (api.useMock && !isTestRuntime && !nativeAudit.testMode) {
     throw new Error(
       'Invalid Clubroom runtime config: EXPO_PUBLIC_USE_MOCK=true is test-only; normal app runtimes must use the /v1 API.',
     );
@@ -218,6 +267,7 @@ export const config = {
   isProduction,
   isDebug,
   isTestRuntime,
+  nativeAudit,
   features,
   api,
   auth,

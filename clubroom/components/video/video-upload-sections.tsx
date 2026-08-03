@@ -184,7 +184,7 @@ const renderRequirementsList = function renderRequirementsList({
   const items = [
     `Max duration: ${Math.floor(maxDurationSeconds / 60)} minutes`,
     `Max file size: ${maxFileSizeMB} MB`,
-    'Formats: MP4, MOV, AVI',
+    'Formats: MP4, MOV, M4V',
   ];
 
   return (

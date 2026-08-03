@@ -21,7 +21,7 @@ describe('squad invite API mode', () => {
     assert.ok(source.includes('invitesCache = isMockMode() ? cloneInvites(MOCK_INVITES) : []'));
   });
 
-  it('keeps legacy squad invite mirrors no-op instead of local storage backed', async (t) => {
+  it('fails closed when legacy squad invite mirrors are called', async (t) => {
     const [{ apiClient }, squadInviteModule] = await Promise.all([
       import('@/services/api-client'),
       import('@/services/invite/squad-invite-service'),
@@ -51,13 +51,93 @@ describe('squad invite API mode', () => {
       client.remove = original.remove;
     });
 
-    assert.deepEqual(await squadInviteModule.loadSquadInvites(), []);
-    assert.deepEqual(await squadInviteModule.loadSquadSessionInvites(), []);
-    assert.deepEqual(await squadInviteModule.loadInviteHistory(), []);
-    await assert.doesNotReject(() => squadInviteModule.saveSquadInvites([]));
-    await assert.doesNotReject(() => squadInviteModule.saveSquadSessionInvites([]));
-    await assert.doesNotReject(() => squadInviteModule.saveInviteHistory([]));
+    await assert.rejects(() => squadInviteModule.loadSquadInvites(), /unavailable in API mode/);
+    await assert.rejects(
+      () => squadInviteModule.loadSquadSessionInvites(),
+      /unavailable in API mode/,
+    );
+    await assert.rejects(() => squadInviteModule.loadInviteHistory(), /unavailable in API mode/);
+    await assert.rejects(
+      () => squadInviteModule.saveSquadInvites([]),
+      /unavailable in API mode/,
+    );
+    await assert.rejects(
+      () => squadInviteModule.saveSquadSessionInvites([]),
+      /unavailable in API mode/,
+    );
+    await assert.rejects(
+      () => squadInviteModule.saveInviteHistory([]),
+      /unavailable in API mode/,
+    );
     await assert.doesNotReject(() => squadInviteModule.squadInviteService.clearCache());
+  });
+
+  it('fails closed when exported squad invite cache helpers are called in API mode', async () => {
+    const squadInviteModule = await import('@/services/invite/squad-invite-service');
+    const squadInvite = {
+      id: 'squad_invite_local',
+      squadId: 'squad_local',
+      targetType: 'SESSION' as const,
+      targetId: 'session_local',
+      invitedBy: 'coach_local',
+      invitedAt: '2030-01-01T10:00:00.000Z',
+      memberCount: 1,
+      responses: {
+        accepted: 0,
+        declined: 0,
+        pending: 1,
+      },
+    };
+    const squadSessionInvite = {
+      id: 'squad_session_invite_local',
+      squadId: 'squad_local',
+      sessionId: 'session_local',
+      invitedMembers: [],
+      sentAt: '2030-01-01T10:00:00.000Z',
+      sentBy: 'coach_local',
+      status: 'SENT' as const,
+      result: {
+        sent: 1,
+        successful: 1,
+        failed: 0,
+        skipped: 0,
+        totalAttempted: 1,
+        errors: [],
+      },
+    };
+    const history = {
+      id: 'squad_history_local',
+      squadId: 'squad_local',
+      sessionId: 'session_local',
+      sessionType: 'Training',
+      focus: 'Passing',
+      sentAt: '2030-01-01T10:00:00.000Z',
+      sentBy: 'coach_local',
+      inviteCount: 1,
+      acceptedCount: 0,
+      declinedCount: 0,
+      pendingCount: 1,
+      status: 'ACTIVE' as const,
+    };
+
+    assert.throws(
+      () => squadInviteModule.setSquadInvitesCache([squadInvite]),
+      /unavailable in API mode/,
+    );
+    assert.throws(
+      () => squadInviteModule.setSquadSessionInvitesCache([squadSessionInvite]),
+      /unavailable in API mode/,
+    );
+    assert.throws(
+      () => squadInviteModule.setInviteHistoryCache([history]),
+      /unavailable in API mode/,
+    );
+    assert.throws(() => squadInviteModule.getSquadInvitesCache(), /unavailable in API mode/);
+    assert.throws(
+      () => squadInviteModule.getSquadSessionInvitesCache(),
+      /unavailable in API mode/,
+    );
+    assert.throws(() => squadInviteModule.getInviteHistoryCache(), /unavailable in API mode/);
   });
 
   it('passes squad context through the session invite authority payload', async (t) => {

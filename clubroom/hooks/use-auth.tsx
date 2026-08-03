@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { createContext, useEffect, useRef, useState, type ReactNode, use } from 'react';
-import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
 import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
@@ -22,13 +21,14 @@ export type { UserRole, SimplifiedUserType };
 
 type DemoUser = Omit<User, 'role'> & {
   role: UserRole;
+  accountType?: AccountType;
+  athleteId?: string;
+  athleteName?: string;
   username: string;
   password?: string;
   fullName?: string;
   bio?: string;
   addressLine?: string;
-  schoolId?: string;
-  schoolName?: string;
   // Simplified user type fields
   type?: SimplifiedUserType;
   // For USER type - optional children (for booking on behalf of kids)
@@ -45,6 +45,8 @@ type DemoUser = Omit<User, 'role'> & {
   // For COACH type - availability
   isLive?: boolean;
   liveStatusReason?: string;
+  // Verification gates coach-private data such as athlete health.
+  isVerified?: boolean;
   // Admin flag
   isSystemAdmin?: boolean;
 };
@@ -630,65 +632,6 @@ const DEMO_USERS: DemoUser[] = [
   },
 ];
 
-const API_DEV_USERS: DemoUser[] = [
-  {
-    id: 'usr_65972cc3-8f9b-7199-b867-7df5b7faf34b',
-    username: 'coach1',
-    role: 'COACH',
-    type: 'COACH',
-    fullName: 'Amelia Shaw',
-    name: 'Amelia Shaw',
-    email: 'amelia.shaw@clubroom.demo',
-    postcode: 'SW1A 1AA',
-    dateOfBirth: '2001-07-12',
-    isLive: true,
-  },
-  {
-    id: 'usr_197727c3-a2c5-7868-8c57-72b09c97a1d6',
-    username: 'parent1',
-    role: 'USER',
-    type: 'USER',
-    fullName: 'Olivia Barton',
-    name: 'Olivia Barton',
-    email: 'olivia.barton@clubroom.demo',
-    postcode: 'SW1A 1AA',
-    dateOfBirth: '1987-03-18',
-    hasChildren: true,
-  },
-  {
-    id: 'usr_b5998f06-1720-7001-bb01-8d3c253de429',
-    username: 'athlete1',
-    role: 'USER',
-    type: 'USER',
-    fullName: 'Alex Barton',
-    name: 'Alex Barton',
-    email: 'alex.barton@clubroom.demo',
-    postcode: 'SW1A 1AA',
-    dateOfBirth: '2011-02-18',
-  },
-  {
-    id: 'usr_ef3f51b6-47e4-7036-bfdd-d80b40324559',
-    username: 'admin1',
-    role: 'ADMIN',
-    type: 'USER',
-    fullName: 'Clara Finch',
-    name: 'Clara Finch',
-    email: 'clara.finch@clubroom.demo',
-    postcode: 'N5 2RT',
-    dateOfBirth: '1984-04-17',
-    isSystemAdmin: true,
-  },
-];
-
-function resolveApiLoginEmail(identifier: string): string {
-  const normalized = identifier.trim().toLowerCase();
-  if (normalized.includes('@')) {
-    return normalized;
-  }
-  const match = API_DEV_USERS.find((user) => user.username.toLowerCase() === normalized);
-  return match?.email?.toLowerCase() ?? normalized;
-}
-
 function mapAuthProfileToDemoUser(user: UserProfile): DemoUser {
   const fullName = `${user.firstName} ${user.lastName}`.trim();
   const normalizedRoles = user.roles ?? [];
@@ -697,8 +640,11 @@ function mapAuthProfileToDemoUser(user: UserProfile): DemoUser {
 
   return {
     id: user.id,
+    athleteId: user.athleteId,
+    athleteName: user.athleteName,
     username: user.email.split('@')[0]?.toLowerCase() || user.id,
     role: derivedRole,
+    accountType: user.accountType,
     type: derivedRole === 'COACH' ? 'COACH' : 'USER',
     fullName,
     name: fullName,
@@ -715,9 +661,9 @@ function mapAuthProfileToDemoUser(user: UserProfile): DemoUser {
     isOrganization: user.isOrganization,
     organizationName: user.organizationName,
     isLive: user.isLive,
+    isVerified: user.isVerified,
     bio: user.bio,
-    isSystemAdmin:
-      normalizedRoles.includes('club_admin') || normalizedRoles.includes('security_admin'),
+    isSystemAdmin: normalizedRoles.includes('admin') || normalizedRoles.includes('security_admin'),
   };
 }
 
@@ -739,7 +685,6 @@ type AuthContextValue = {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  registerCoach: (data: CoachSignupData) => Promise<boolean>;
   registerFromOnboarding: (data: OnboardingData) => Promise<boolean>;
   forgotPassword: (email: string) => Promise<void>;
   error: string | null;
@@ -750,7 +695,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const MOCK_API_MODE = apiConfig.useMock;
 
 async function forgotPassword(email: string) {
-  logger.info('Forgot password requested', { email });
+  logger.info('Forgot password requested');
   await authService.forgotPassword(email);
 }
 
@@ -759,8 +704,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isAuthenticatingRef = useRef(false);
-  const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
-  const activeUsers = MOCK_API_MODE ? registeredUsers : API_DEV_USERS;
+  const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(() =>
+    MOCK_API_MODE ? DEMO_USERS : [],
+  );
+  const activeUsers = MOCK_API_MODE ? registeredUsers : [];
 
   useEffect(() => {
     if (!MOCK_API_MODE) {
@@ -861,7 +808,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!MOCK_API_MODE) {
-          const email = resolveApiLoginEmail(normalizedUsername);
+          const email = normalizedUsername;
           const result = await authService.login(email, password.trim());
           if (!result.success) {
             logger.warn('API login failed', { email, error: result.error.message });
@@ -886,6 +833,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
 
         if (match) {
+          const now = Date.now();
+          const { password: _password, ...sessionUser } = match;
+          const sessionTokens = {
+            accessToken: `demo_access_${match.id}_${now}`,
+            refreshToken: `demo_refresh_${match.id}_${now}`,
+            expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+          };
+
+          try {
+            await Promise.all([
+              apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
+              authService.storeTokens(sessionTokens),
+            ]);
+          } catch (persistError) {
+            logger.error('Failed to persist demo auth session', persistError);
+            setError('Could not save the sign-in session. Please try again.');
+            return false;
+          }
+
           logger.success('Login successful', {
             username: match.username,
             role: match.role,
@@ -893,27 +859,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           setCurrentUser(match);
           setError(null);
-
-          const now = Date.now();
-          const sessionUser = {
-            id: match.id,
-            fullName: match.fullName || match.name || match.username,
-            email: match.email || `${match.username}@demo.clubroom.app`,
-            role: match.role,
-            joinedDate: new Date().toISOString(),
-          };
-          const sessionTokens = {
-            accessToken: `demo_access_${match.id}_${now}`,
-            refreshToken: `demo_refresh_${match.id}_${now}`,
-            expiresAt: now + 7 * 24 * 60 * 60 * 1000,
-          };
-
-          void Promise.all([
-            apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
-            authService.storeTokens(sessionTokens),
-          ]).catch((persistError) => {
-            logger.error('Failed to persist demo auth session', persistError);
-          });
 
           return true;
         }
@@ -926,65 +871,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticatingRef.current = false;
       },
     );
-  };
-
-  const registerCoach = async (data: CoachSignupData) => {
-    // Generate username from email
-    const username = data.email.split('@')[0].toLowerCase();
-    logger.info('Coach registration attempt', { username, email: data.email });
-
-    if (!MOCK_API_MODE) {
-      const result = await authService.register({
-        email: data.email,
-        password: data.password,
-        phone: data.phone,
-        accountType: 'COACH',
-        firstName: data.fullName.trim().split(/\s+/)[0] || data.fullName,
-        lastName: data.fullName.trim().split(/\s+/).slice(1).join(' ') || 'Coach',
-        inviteCode: data.inviteCode,
-        isOrganization: false,
-      });
-      if (!result.success) {
-        setError(result.error.message);
-        return false;
-      }
-
-      const mappedUser = mapAuthProfileToDemoUser(result.data.user);
-      setCurrentUser(mappedUser);
-      setError(null);
-      return true;
-    }
-
-    // Check if username already exists
-    if (registeredUsers.find((user) => user.username === username)) {
-      logger.warn('Registration failed: Account already exists', { username });
-      setError('An account with this email already exists.');
-      return false;
-    }
-
-    const newUser: DemoUser = {
-      id: username,
-      username,
-      password: data.password,
-      role: 'COACH',
-      fullName: data.fullName,
-      email: data.email,
-      schoolId: data.schoolId,
-      schoolName: data.schoolName,
-      name: data.fullName,
-      postcode: 'SW1A 1AA',
-      dateOfBirth: '1990-01-01',
-    };
-
-    logger.success('Coach registered successfully', {
-      username,
-      schoolName: data.schoolName,
-      role: newUser.role,
-    });
-    setRegisteredUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setError(null);
-    return true;
   };
 
   const registerFromOnboarding = async (data: OnboardingData) => {
@@ -1031,6 +917,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username,
       password: data.password,
       role: roleMap[data.accountType],
+      accountType: data.accountType,
       type: data.accountType === 'COACH' ? 'COACH' : 'USER',
       fullName,
       name: fullName,
@@ -1103,7 +990,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     login,
     logout,
-    registerCoach,
     registerFromOnboarding,
     forgotPassword,
     error,

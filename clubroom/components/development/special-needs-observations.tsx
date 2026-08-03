@@ -11,49 +11,84 @@ import type { CoachObservation } from '@/services/coach-observation-service';
 
 interface SpecialNeedsObservationsProps {
   observations: CoachObservation[];
+  loading?: boolean;
+  error?: string | null;
   onAdd: () => void;
   onEdit: (observation: CoachObservation) => void;
   onDelete: (observationId: string) => void;
+  onRetry?: () => void;
+  currentUserId: string;
 }
 
 export const SpecialNeedsObservations = function SpecialNeedsObservations({
   observations,
+  loading = false,
+  error = null,
   onAdd,
   onEdit,
   onDelete,
+  onRetry,
+  currentUserId,
 }: SpecialNeedsObservationsProps) {
   const { colors } = useTheme();
 
   return (
     <View style={styles.section}>
       <Row align="center" justify="space-between">
-        <ThemedText type="heading">My Observations</ThemedText>
-        <Clickable onPress={onAdd} accessibilityLabel="Add observation" hitSlop={8}>
-          <Row gap="xs" align="center">
-            <Ionicons name="add" size={18} color={colors.tint} />
-            <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>Add</ThemedText>
-          </Row>
-        </Clickable>
+        <ThemedText type="heading">Coach observations</ThemedText>
+        {!error && !loading && (
+          <Clickable onPress={onAdd} accessibilityLabel="Add observation" hitSlop={8}>
+            <Row gap="xs" align="center">
+              <Ionicons name="add" size={18} color={colors.tint} />
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+                Add
+              </ThemedText>
+            </Row>
+          </Clickable>
+        )}
       </Row>
 
-      {observations.length === 0 ? (
+      {loading ? (
         <SurfaceCard style={styles.emptyCard}>
           <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
-            {`Add your first observation - what works in sessions, strategies you've tried, things to watch for.`}
+            Loading observations...
           </ThemedText>
-          <Clickable
-            onPress={onAdd}
-            accessibilityLabel="Add first observation"
-            style={[styles.emptyCta, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
-          >
-            <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-              Add Observation
+        </SurfaceCard>
+      ) : error ? (
+        <SurfaceCard style={styles.errorCard}>
+          <Row gap="xs" align="center">
+            <Ionicons name="alert-circle" size={18} color={colors.error} />
+            <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>
+              {error}
             </ThemedText>
-          </Clickable>
+          </Row>
+          {onRetry && (
+            <Clickable
+              onPress={onRetry}
+              accessibilityLabel="Retry loading observations"
+              style={[styles.emptyCta, { backgroundColor: withAlpha(colors.error, 0.09) }]}
+            >
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>
+                Retry
+              </ThemedText>
+            </Clickable>
+          )}
+        </SurfaceCard>
+      ) : observations.length === 0 ? (
+        <SurfaceCard style={styles.emptyCard}>
+          <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
+            Record what helps in sessions and what to watch for.
+          </ThemedText>
         </SurfaceCard>
       ) : (
         observations.map((obs) => (
-          <ObservationCard key={obs.id} observation={obs} onEdit={onEdit} onDelete={onDelete} />
+          <ObservationCard
+            key={obs.id}
+            observation={obs}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            canManage={obs.coachId === currentUserId}
+          />
         ))
       )}
     </View>
@@ -64,10 +99,12 @@ const ObservationCard = function ObservationCard({
   observation,
   onEdit,
   onDelete,
+  canManage,
 }: {
   observation: CoachObservation;
   onEdit: (obs: CoachObservation) => void;
   onDelete: (id: string) => void;
+  canManage: boolean;
 }) {
   const { colors } = useTheme();
 
@@ -90,17 +127,7 @@ const ObservationCard = function ObservationCard({
 
       <ThemedText style={Typography.small}>{observation.text}</ThemedText>
 
-      <Row align="center" justify="space-between">
-        {observation.isPrivate ? (
-          <Row gap="xs" align="center">
-            <Ionicons name="lock-closed" size={12} color={colors.muted} />
-            <ThemedText style={[Typography.micro, { color: colors.muted, textTransform: 'none' }]}>
-              Private
-            </ThemedText>
-          </Row>
-        ) : (
-          <View />
-        )}
+      {canManage ? (
         <Row gap="sm" align="center">
           <Clickable onPress={handleEdit} accessibilityLabel="Edit observation" hitSlop={8}>
             <ThemedText style={[Typography.caption, { color: colors.tint }]}>Edit</ThemedText>
@@ -109,7 +136,7 @@ const ObservationCard = function ObservationCard({
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>Remove</ThemedText>
           </Clickable>
         </Row>
-      </Row>
+      ) : null}
     </SurfaceCard>
   );
 };
@@ -127,6 +154,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     minHeight: 44,
     justifyContent: 'center',
+  },
+  errorCard: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    alignItems: 'center',
   },
   card: { padding: Spacing.sm, gap: Spacing.xs },
 });

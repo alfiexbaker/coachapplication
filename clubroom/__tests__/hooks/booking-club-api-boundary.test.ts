@@ -19,7 +19,7 @@ test('club authority resolves individual clubs without local mirrors in API mode
 
   const helper = source.slice(methodStart, updateStart);
   const mockBranchStart = helper.indexOf('if (api.useMock) {');
-  const apiBranchStart = helper.indexOf('const result = await this.listClubs();');
+  const apiBranchStart = helper.indexOf('const headersResult = await resolveHeaders();');
 
   assert.ok(mockBranchStart >= 0, 'mock branch should be explicit');
   assert.ok(apiBranchStart > mockBranchStart, 'API branch should follow mock branch');
@@ -33,8 +33,21 @@ test('club authority resolves individual clubs without local mirrors in API mode
     'API mode must resolve clubs through /v1 club authority, not local social-feed mirrors',
   );
   assert.ok(
-    helper.includes('result.data.clubs.find((candidate) => candidate.id === clubId)'),
-    'API branch should resolve the club from authority-visible clubs',
+    helper.includes('apiFetch<ApiClubResponse>(`/v1/clubs/${encodeURIComponent(clubId)}`'),
+    'API branch should call the direct club detail authority route',
+  );
+  assert.ok(
+    helper.includes('headers: headersResult.data'),
+    'API branch should send resolved auth context headers',
+  );
+  assert.equal(
+    helper.slice(apiBranchStart).includes('this.listClubs()'),
+    false,
+    'API mode must not fetch every visible club to resolve one club detail',
+  );
+  assert.ok(
+    helper.includes('socialFeedService.syncAuthorityClubs'),
+    'successful API club detail reads may refresh the compatibility cache',
   );
 });
 
@@ -44,8 +57,6 @@ test('booking club display paths use club authority instead of social-feed club 
     'app/(tabs)/bookings/report-problem.tsx',
     'app/book/[coachId]/confirmation.tsx',
     'app/book/[coachId]/review.tsx',
-    'components/bookings/booking-info-cards.tsx',
-    'components/bookings/booking-ownership-block.tsx',
   ];
 
   for (const file of files) {
@@ -55,7 +66,7 @@ test('booking club display paths use club authority instead of social-feed club 
       `${file} should import club authority`,
     );
     assert.ok(
-      source.includes('clubAuthorityService.getClubById('),
+      /clubAuthorityService\s*\.\s*getClubById\s*\(/.test(source),
       `${file} should resolve club display data through authority`,
     );
     assert.equal(
@@ -71,34 +82,136 @@ test('booking club display paths use club authority instead of social-feed club 
   }
 });
 
-test('bookings list only uses local user clubs inside mock mode', () => {
-  const source = readSource('hooks/use-bookings.ts');
-  const loaderStart = source.indexOf('const loadData = useCallback(async () => {');
-  const localLookupStart = source.indexOf('socialFeedService.getUserClubs(currentUser.id)', loaderStart);
-  const eventScopeStart = source.indexOf('const clubIds = collectRelevantClubIds({', loaderStart);
+test('booking problem reports fail closed when support context cannot load', () => {
+  const source = readSource('app/(tabs)/bookings/report-problem.tsx');
+  const submitStart = source.indexOf('const handleSubmit = async () => {');
+  const disabledStart = source.indexOf('disabled={', submitStart);
+  const disabledEnd = source.indexOf('accessibilityLabel="Send report"', disabledStart);
 
-  assert.ok(loaderStart >= 0, 'test should find bookings loader');
-  assert.ok(localLookupStart > loaderStart, 'test should find local user-club lookup');
-  assert.ok(eventScopeStart > localLookupStart, 'test should find club event scope boundary');
+  assert.ok(submitStart >= 0, 'test should find submit handler');
+  assert.ok(disabledStart > submitStart, 'test should find submit disabled props');
+  assert.ok(disabledEnd > disabledStart, 'test should find disabled prop boundary');
 
-  const lookupBlock = source.slice(loaderStart, eventScopeStart);
+  const submitBlock = source.slice(submitStart, disabledStart);
+  const disabledBlock = source.slice(disabledStart, disabledEnd);
 
   assert.ok(
-    source.includes("import { clubAuthorityService } from '@/services/club-authority-service';"),
-    'bookings loader should import club authority',
+    source.includes("const bookingParam = useRequiredParam('bookingId')"),
+    'screen should require canonical booking context',
   );
   assert.ok(
-    lookupBlock.includes('if (apiClient.isMockMode) {'),
-    'local user-club lookup should sit behind mock mode',
+    source.includes("if (!bookingId || loadState === 'unavailable')"),
+    'missing and permanently denied booking context should fail closed',
   );
   assert.ok(
-    lookupBlock.includes('const authorityClubs = await clubAuthorityService.listClubs();'),
-    'API mode should load viewer clubs through /v1 authority',
+    source.includes('title="Booking unavailable"'),
+    'permanent denial should expose a quiet unavailable state',
+  );
+  assert.ok(
+    source.includes('actionLabel="Back to bookings"'),
+    'permanent denial should provide one safe exit',
+  );
+  assert.ok(
+    submitBlock.includes('!supportContext || !selectedCategory || !bookingId'),
+    'submission should require the loaded booking and selected issue type',
   );
   assert.equal(
-    source.slice(eventScopeStart).includes('socialFeedService.getUserClubs'),
+    submitBlock.includes('await bookingService.getBooking(bookingId)'),
     false,
-    'event scope should not call local user-club mirrors after authority resolution',
+    'submission should reuse the loaded booking while the API rechecks authority',
+  );
+  assert.ok(
+    source.includes('trimmedDescription.length >= MIN_DETAILS_LENGTH'),
+    'the primary action should stay disabled until details meet the minimum',
+  );
+  assert.ok(
+    disabledBlock.includes('!canSubmit'),
+    'the button disabled state should use the same submission predicate',
+  );
+  assert.ok(
+    source.includes('accessibilityRole="radio"') &&
+      source.includes('accessibilityState={{ checked: isSelected }}'),
+    'issue categories should expose native radio semantics',
+  );
+  assert.ok(
+    source.includes('accessibilityLabel="Issue details"'),
+    'the multiline input should have a stable accessible name',
+  );
+  assert.ok(
+    source.includes('<KeyboardAvoidingView'),
+    'the form should remain usable with the iOS keyboard open',
+  );
+  assert.equal(
+    /within 24 hours|reviewed within 24 hours|Help us improve/.test(source),
+    false,
+    'the screen must not invent response-time promises or generic improvement copy',
+  );
+});
+
+test('bookings list does not use local club mirrors for viewer scope', () => {
+  const source = readSource('hooks/use-bookings.ts');
+  const loaderStart = source.indexOf('const loadData = useCallback(async () => {');
+  const groupSessionsStart = source.indexOf('const groupSessionsPromise = (', loaderStart);
+  const groupRegistrationsStart = source.indexOf(
+    'const groupRegistrationsPromise = sessionRegistrationService',
+    groupSessionsStart,
+  );
+  const promiseAllStart = source.indexOf('const [groupSessions, groupRegistrations]', groupRegistrationsStart);
+
+  assert.ok(loaderStart >= 0, 'test should find bookings loader');
+  assert.ok(groupSessionsStart > loaderStart, 'test should find group-session authority read');
+  assert.ok(
+    groupRegistrationsStart > groupSessionsStart,
+    'test should find group-registration authority read',
+  );
+  assert.ok(promiseAllStart > groupRegistrationsStart, 'test should find authority read boundary');
+
+  const groupSessionsBlock = source.slice(groupSessionsStart, groupRegistrationsStart);
+  const groupRegistrationsBlock = source.slice(groupRegistrationsStart, promiseAllStart);
+
+  assert.equal(
+    source.includes("from '@/services/social-feed-service'"),
+    false,
+    'bookings loader must not import social-feed club mirrors',
+  );
+  assert.equal(
+    source.includes('socialFeedService.'),
+    false,
+    'bookings loader must not call local social-feed mirrors',
+  );
+  assert.equal(
+    source.includes('getUserClubs') || source.includes('getUserMemberships'),
+    false,
+    'viewer scope must not come from local club membership mirrors',
+  );
+  assert.ok(
+    source.includes('const childClubIds = new Set<string>();'),
+    'viewer club scope should come from loaded child context',
+  );
+  assert.ok(
+    source.includes('for (const child of contextChildren)'),
+    'viewer club scope should be derived from current child context',
+  );
+  for (const [name, block, errorName] of [
+    ['group sessions', groupSessionsBlock, 'sessionError'],
+    ['group registrations', groupRegistrationsBlock, 'registrationError'],
+  ] as const) {
+    assert.ok(
+      block.includes('if (!apiClient.isMockMode) {'),
+      `${name} failures should branch by runtime mode`,
+    );
+    assert.ok(
+      block.includes(`throw ${errorName};`),
+      `${name} failures should surface outside mock mode`,
+    );
+    assert.ok(
+      block.includes('return [];'),
+      `${name} may only collapse to [] in mock compatibility mode`,
+    );
+  }
+  assert.ok(
+    source.includes('const recurringBookings = apiClient.isMockMode'),
+    'local recurring booking cache should remain explicitly mock-only',
   );
 });
 

@@ -7,9 +7,10 @@
  * API Integration Notes:
  * - Academy is a club compatibility label in API mode.
  * - Reads use /v1/clubs and member/staff projections.
- * - Compatible create, branding, invite, join, role, removal, commercial-mode, and delete writes
+ * - Compatible create, branding, invite, join, role, removal, visibility,
+ *   commercial-mode, and delete writes
  *   delegate to club /v1 routes.
- * - Academy visibility-only actions fail closed until matching club contracts exist.
+ * - Academy approval-only actions fail closed until matching club contracts exist.
  */
 
 import { apiClient } from './api-client';
@@ -38,7 +39,6 @@ import {
   validationError,
   conflictError,
   storageError,
-  unsupportedError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
@@ -61,16 +61,6 @@ const ACADEMY_STAFF_ROLES = new Set<AcademyMembership['role']>([
   'COACH',
   'ASSISTANT',
 ]);
-
-function academyUnsupportedError(action: string): ServiceError {
-  return unsupportedError(
-    `${action} needs a club-backed /v1 authority before it can run in API mode. Academy is a club compatibility label in the current product model.`,
-    {
-      missingAuthority: 'academy',
-      canonicalAuthority: 'club',
-    },
-  );
-}
 
 function parseAcademyMembershipId(
   membershipId: string,
@@ -129,8 +119,8 @@ function mapClubToAcademy(club: Club): Academy {
     coachCount: club.coachCount,
     athleteCount: Math.max(0, club.memberCount - club.coachCount),
     sessionCount: 0,
-    isPublic: true,
-    requiresApproval: false,
+    isPublic: club.visibility !== 'private',
+    requiresApproval: club.joinPolicy === 'REQUEST_TO_JOIN',
     ownerId: club.ownerId,
     commercialMode: club.commercialMode,
     createdAt: API_FALLBACK_DATE,
@@ -636,22 +626,18 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    if (settings.isPublic !== undefined || settings.requiresApproval !== undefined) {
-      return err(academyUnsupportedError('Updating academy visibility or approval settings'));
-    }
-    const current = await getAcademyFromClub(academyId);
-    if (!current.success) return current;
-    const result = await clubService.updateBranding(academyId, {
+    const result = await clubAuthorityService.updateClubDetails(academyId, {
       ...(settings.name !== undefined ? { name: settings.name } : {}),
       ...(settings.description !== undefined ? { tagline: settings.description } : {}),
+      ...(settings.isPublic !== undefined
+        ? { visibility: settings.isPublic ? 'public' : 'private' }
+        : {}),
+      ...(settings.requiresApproval !== undefined
+        ? { joinPolicy: settings.requiresApproval ? 'REQUEST_TO_JOIN' : 'INVITE_ONLY' }
+        : {}),
     });
     if (!result.success) return err(result.error);
-    return ok({
-      ...current.data,
-      name: result.data.name,
-      slug: toSlug(result.data.name),
-      description: result.data.tagline,
-    });
+    return ok(mapClubToAcademy(result.data));
   },
   async updateCommercialMode(
     academyId: string,

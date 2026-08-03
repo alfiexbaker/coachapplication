@@ -529,11 +529,17 @@ describe('p0 core routes', () => {
 
     assert.equal(res.statusCode, 200);
     const payload = res.json() as {
+      version: string;
       apiVersion: string;
+      apiStatus: string;
+      minimumDeprecationDays: number;
       marketplaceSeedEnabled: boolean;
       apiDataBackend: string;
     };
+    assert.equal(payload.version, '0.1.0');
     assert.equal(payload.apiVersion, 'v1');
+    assert.equal(payload.apiStatus, 'preview');
+    assert.equal(payload.minimumDeprecationDays, 180);
     assert.equal(payload.apiDataBackend, 'seed');
     assert.equal(typeof payload.marketplaceSeedEnabled, 'boolean');
   });
@@ -640,6 +646,15 @@ describe('p0 core routes', () => {
       deletedAt: null,
       deletedByUserId: null,
     });
+    ensureRows(tables, 'malwareScanResults').push({
+      id: 'scan_verification_dbs_test_clean',
+      mediaObjectId,
+      verdict: 'CLEAN',
+      scanner: 'route-test',
+      detailsJson: {},
+      scannedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
     const submittedVerification = await app.inject({
       method: 'POST',
       url: '/v1/coaches/me/verifications/dbs/documents',
@@ -696,6 +711,54 @@ describe('p0 core routes', () => {
       1,
     );
 
+    const unsafeMediaObjectId = 'med_verification_unsafe_dbs_test';
+    ensureRows(tables, 'mediaObjects').push({
+      id: unsafeMediaObjectId,
+      ownerUserId: coachUserId,
+      kind: 'DOCUMENT',
+      status: 'AVAILABLE',
+      storageKey: 'test/verification/unsafe-dbs-certificate.pdf',
+      bucketName: 'clubroom-private',
+      contentType: 'application/pdf',
+      sizeBytes: 4096,
+      visibilityScope: 'private',
+      consentRequired: false,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    ensureRows(tables, 'malwareScanResults').push({
+      id: 'scan_verification_dbs_test_unsafe',
+      mediaObjectId: unsafeMediaObjectId,
+      verdict: 'INFECTED',
+      scanner: 'route-test',
+      detailsJson: {},
+      scannedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
+    const unsafeMediaSubmit = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/verifications/dbs/documents',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        mediaObjectId: unsafeMediaObjectId,
+        fileLabel: 'Unsafe DBS certificate',
+      },
+    });
+    assert.equal(unsafeMediaSubmit.statusCode, 400);
+    assert.match(unsafeMediaSubmit.body, /must pass malware scanning/i);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
     const publicMediaObjectId = 'med_verification_public_dbs_test';
     ensureRows(tables, 'mediaObjects').push({
       id: publicMediaObjectId,
@@ -715,6 +778,15 @@ describe('p0 core routes', () => {
       deletedAt: null,
       deletedByUserId: null,
     });
+    ensureRows(tables, 'malwareScanResults').push({
+      id: 'scan_verification_public_dbs_test_clean',
+      mediaObjectId: publicMediaObjectId,
+      verdict: 'CLEAN',
+      scanner: 'route-test',
+      detailsJson: {},
+      scannedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
     const publicMediaSubmit = await app.inject({
       method: 'POST',
       url: '/v1/coaches/me/verifications/dbs/documents',
@@ -731,7 +803,7 @@ describe('p0 core routes', () => {
         resourceId: `${coachUserId}:dbs`,
         result: 'DENY',
       }).length,
-      1,
+      2,
     );
 
     const verificationStatus = await app.inject({
@@ -788,7 +860,163 @@ describe('p0 core routes', () => {
     if (visibleClub?.viewerMembership?.role === 'coach') {
       assert.equal(visibleClub.viewerGovernance.role, 'COACH');
     }
-    assert.equal(typeof visibleClub?.inviteCode, 'string');
+    assert.equal(visibleClub?.inviteCode, null);
+  });
+
+  it('allows the verification size limit and rejects unsafe evidence', async () => {
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const coachProfile = asRows(tables.coachProfiles)[0];
+    assert.ok(coachProfile, 'expected seeded coach profile');
+    const coachUserId = asString(coachProfile.userId) as string;
+    const now = new Date().toISOString();
+    const cases = [
+      {
+        id: 'med_verification_svg_test',
+        kind: 'IMAGE',
+        contentType: 'image/svg+xml',
+        sizeBytes: 4096,
+        expectedMessage: /must be PDF, JPEG, PNG, WebP, or HEIC/i,
+      },
+      {
+        id: 'med_verification_text_test',
+        kind: 'DOCUMENT',
+        contentType: 'text/plain',
+        sizeBytes: 4096,
+        expectedMessage: /must be PDF, JPEG, PNG, WebP, or HEIC/i,
+      },
+      {
+        id: 'med_verification_kind_mismatch_test',
+        kind: 'DOCUMENT',
+        contentType: 'image/png',
+        sizeBytes: 4096,
+        expectedMessage: /kind does not match its content type/i,
+      },
+      {
+        id: 'med_verification_oversized_test',
+        kind: 'DOCUMENT',
+        contentType: 'application/pdf',
+        sizeBytes: 20 * 1024 * 1024 + 1,
+        expectedMessage: /non-empty and 20 MB or smaller/i,
+      },
+      {
+        id: 'med_verification_empty_test',
+        kind: 'DOCUMENT',
+        contentType: 'application/pdf',
+        sizeBytes: 0,
+        expectedMessage: /non-empty and 20 MB or smaller/i,
+      },
+    ] as const;
+
+    const maxSizeMediaObjectId = 'med_verification_max_size_test';
+    ensureRows(tables, 'mediaObjects').push({
+      id: maxSizeMediaObjectId,
+      ownerUserId: coachUserId,
+      kind: 'DOCUMENT',
+      status: 'AVAILABLE',
+      storageKey: 'test/verification/max-size.pdf',
+      bucketName: 'clubroom-private',
+      contentType: 'application/pdf',
+      sizeBytes: 20 * 1024 * 1024,
+      visibilityScope: 'private',
+      consentRequired: false,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    ensureRows(tables, 'malwareScanResults').push({
+      id: 'scan_verification_max_size_test',
+      mediaObjectId: maxSizeMediaObjectId,
+      verdict: 'CLEAN',
+      scanner: 'route-test',
+      detailsJson: {},
+      scannedAt: now,
+      createdAt: now,
+    });
+    const maxSizeResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/verifications/dbs/documents',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        mediaObjectId: maxSizeMediaObjectId,
+        fileLabel: '20 MB verification evidence',
+      },
+    });
+    assert.equal(maxSizeResponse.statusCode, 201);
+
+    for (const testCase of cases) {
+      ensureRows(tables, 'mediaObjects').push({
+        id: testCase.id,
+        ownerUserId: coachUserId,
+        kind: testCase.kind,
+        status: 'AVAILABLE',
+        storageKey: `test/verification/${testCase.id}`,
+        bucketName: 'clubroom-private',
+        contentType: testCase.contentType,
+        sizeBytes: testCase.sizeBytes,
+        visibilityScope: 'private',
+        consentRequired: false,
+        createdByUserId: coachUserId,
+        updatedByUserId: coachUserId,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByUserId: null,
+      });
+      ensureRows(tables, 'malwareScanResults').push({
+        id: `scan_${testCase.id}`,
+        mediaObjectId: testCase.id,
+        verdict: 'CLEAN',
+        scanner: 'route-test',
+        detailsJson: {},
+        scannedAt: now,
+        createdAt: now,
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/coaches/me/verifications/dbs/documents',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          mediaObjectId: testCase.id,
+          fileLabel: 'Rejected verification evidence',
+        },
+      });
+      assert.equal(response.statusCode, 400);
+      assert.match(response.body, testCase.expectedMessage);
+    }
+
+    const rejectedIds = new Set<string>(cases.map((testCase) => testCase.id));
+    assert.equal(
+      asRows(tables.verificationDocuments).some(
+        (row) => asString(row.mediaObjectId) === maxSizeMediaObjectId,
+      ),
+      true,
+    );
+    assert.equal(
+      asRows(tables.verificationDocuments).some((row) =>
+        rejectedIds.has(asString(row.mediaObjectId) ?? ''),
+      ),
+      false,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'DENY',
+      }).length,
+      cases.length,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
   });
 
   it('resolves join codes and joins members directly through /v1/clubs/join', async () => {
@@ -805,21 +1033,29 @@ describe('p0 core routes', () => {
     const standaloneMemberId = memberUserIds.find((userId) => !clubMemberUserIds.has(userId));
     assert.ok(standaloneMemberId, 'expected standalone member for direct join');
 
-    const seededCoach = asRows(tables.coachProfiles)[0];
-    const coachUserId = asString(seededCoach.userId) as string;
-    const clubsRes = await app.inject({
-      method: 'GET',
-      url: '/v1/clubs',
-      headers: {
-        'x-auth-user-id': coachUserId,
-        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
-        'x-acting-role': 'coach',
-      },
+    const inviteManagerMembership = asRows(tables.clubMemberships).find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return Boolean(
+        isActiveClubMembership(row) &&
+          role &&
+          canUseClubCapability(role, 'manage_staff_and_invites'),
+      );
     });
-    const clubsPayload = clubsRes.json() as {
-      clubs: { id: string; inviteCode: string }[];
+    assert.ok(inviteManagerMembership, 'expected club invite manager');
+    const clubId = asString(inviteManagerMembership.clubId) as string;
+    const inviteManagerUserId = asString(inviteManagerMembership.userId) as string;
+    const inviteCodesRes = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/invite-codes`,
+      headers: authHeaders(tables, inviteManagerUserId, 'coach'),
+    });
+    assert.equal(inviteCodesRes.statusCode, 200);
+    const inviteCodesPayload = inviteCodesRes.json() as {
+      inviteCodes: Array<{ code: string; role: string }>;
     };
-    const inviteCode = clubsPayload.clubs[0]?.inviteCode;
+    const inviteCode = inviteCodesPayload.inviteCodes.find(
+      (candidate) => candidate.role === 'MEMBER',
+    )?.code;
     assert.ok(inviteCode, 'expected primary club invite code');
 
     const resolveRes = await app.inject({
@@ -1099,6 +1335,23 @@ describe('p0 core routes', () => {
       .find((userId) => !existingClubUserIds.has(userId));
     assert.ok(targetMemberUserId, 'expected standalone member user');
 
+    const inviteCountBeforeInvalidRequest = asRows(getMarketplaceSeedStore().tables.invites).length;
+    const invalidCreateRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetUserIds: [targetMemberUserId],
+        role: 'MEMBER',
+        source: 'local_override',
+      },
+    });
+    assert.equal(invalidCreateRes.statusCode, 400);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.invites).length,
+      inviteCountBeforeInvalidRequest,
+    );
+
     const createRes = await app.inject({
       method: 'POST',
       url: `/v1/clubs/${clubId}/invites`,
@@ -1136,6 +1389,31 @@ describe('p0 core routes', () => {
           invite.role === 'MEMBER',
       ),
       true,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.list',
+        resourceId: targetMemberUserId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+
+    const invalidRespondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${createPayload.invites[0]?.id}/respond`,
+      headers: authHeaders(tables, targetMemberUserId, 'member'),
+      payload: { response: 'accepted', source: 'local_override' },
+    });
+    assert.equal(invalidRespondRes.statusCode, 400);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.clubMemberships).some(
+        (membership) =>
+          asString(membership.clubId) === clubId &&
+          asString(membership.userId) === targetMemberUserId &&
+          isActiveClubMembership(membership),
+      ),
+      false,
     );
 
     const respondRes = await app.inject({
@@ -1390,8 +1668,8 @@ describe('p0 core routes', () => {
       assert.equal(deliveryAudits.length, 1);
       assert.equal(JSON.stringify(deliveryAudits).includes(inviteEmail), false);
       assert.equal(
-        (deliveryAudits[0]?.metadataJson as { delivery?: { sent?: number } } | undefined)
-          ?.delivery?.sent,
+        (deliveryAudits[0]?.metadataJson as { delivery?: { sent?: number } } | undefined)?.delivery
+          ?.sent,
         1,
       );
     } finally {
@@ -2020,7 +2298,7 @@ describe('p0 core routes', () => {
       assert.match(created.id, /^bok_/);
       assert.equal(created.coachUserId, coachUserId);
       assert.equal(created.bookedByUserId, bookedByUserId);
-      assert.equal(created.status, 'CONFIRMED');
+      assert.equal(created.status, 'AWAITING_CONFIRMATION');
       assert.equal(created.version, 1);
 
       const fixtureStore = getDbFixtureStore();
@@ -2049,6 +2327,20 @@ describe('p0 core routes', () => {
       });
       assert.equal(coachDetail.statusCode, 200);
       assert.equal((coachDetail.json() as { id: string }).id, created.id);
+
+      const familyDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${created.id}`,
+        headers: authHeaders(tables, bookedByUserId, 'parent'),
+      });
+      assert.equal(familyDetail.statusCode, 200);
+
+      const athleteDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${created.id}`,
+        headers: authHeaders(tables, participantAthleteUserId, 'athlete'),
+      });
+      assert.equal(athleteDetail.statusCode, 200);
 
       const unrelatedParentId = asRows(tables.guardianChildLinks)
         .map((row) => asString(row.guardianUserId))
@@ -2092,6 +2384,28 @@ describe('p0 core routes', () => {
           },
         });
         assert.equal(deniedCancelResponse.statusCode, 403);
+      }
+
+      const bookingReadEvents = auditEventsFor(fixtureStore.tables, {
+        action: 'booking.read',
+        resourceId: created.id,
+      });
+      assert.equal(
+        bookingReadEvents.filter((event) => asString(event.result) === 'SUCCESS').length,
+        3,
+      );
+      assert.equal(
+        bookingReadEvents.filter((event) => asString(event.result) === 'DENY').length,
+        deniedActors.length,
+      );
+      assert.equal(
+        bookingReadEvents.every((event) => event.sensitiveRead === true),
+        true,
+      );
+      for (const event of bookingReadEvents) {
+        const metadata = JSON.stringify(event.metadataJson ?? {});
+        assert.doesNotMatch(metadata, /First touch under pressure|DB Lifecycle Test Pitch/i);
+        assert.doesNotMatch(metadata, /price|notes|objectives|athleteId/i);
       }
     } finally {
       env.API_DATA_BACKEND = previousBackend;
@@ -2144,8 +2458,22 @@ describe('p0 core routes', () => {
     const store = getMarketplaceSeedStore();
     const created = create.json() as { id: string; status: string; version: number };
     assert.match(created.id, /^bok_/);
-    assert.equal(created.status, 'CONFIRMED');
+    assert.equal(created.status, 'AWAITING_CONFIRMATION');
     assert.equal(created.version, 1);
+
+    const confirmed = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/confirm`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        expectedVersion: created.version,
+        idempotencyKey: 'booking-lifecycle-coach-confirm',
+      },
+    });
+    assert.equal(confirmed.statusCode, 200, confirmed.body);
+    const confirmedPayload = confirmed.json() as { status: string; version: number };
+    assert.equal(confirmedPayload.status, 'CONFIRMED');
+    assert.equal(confirmedPayload.version, created.version + 1);
 
     const listed = await app.inject({
       method: 'GET',
@@ -2187,7 +2515,7 @@ describe('p0 core routes', () => {
       },
       payload: {
         reason: 'Schedule change',
-        expectedVersion: created.version + 1,
+        expectedVersion: confirmedPayload.version + 1,
       },
     });
     assert.equal(staleCancel.statusCode, 409);
@@ -2195,7 +2523,7 @@ describe('p0 core routes', () => {
     const cancelPayload = {
       reason: 'Schedule change',
       note: 'Need to move the session to next week.',
-      expectedVersion: created.version,
+      expectedVersion: confirmedPayload.version,
       idempotencyKey: 'booking-cancel-idempotency-test',
     };
     const cancelled = await app.inject({
@@ -2218,7 +2546,7 @@ describe('p0 core routes', () => {
     assert.equal(cancelledPayload.id, created.id);
     assert.equal(cancelledPayload.status, 'CANCELLED');
     assert.equal(typeof cancelledPayload.cancelledAt, 'string');
-    assert.equal(cancelledPayload.version, created.version + 1);
+    assert.equal(cancelledPayload.version, confirmedPayload.version + 1);
 
     const cancelledAgain = await app.inject({
       method: 'POST',
@@ -2265,7 +2593,7 @@ describe('p0 core routes', () => {
       },
       payload: {
         note: 'Keeping the original slot after all.',
-        expectedVersion: created.version,
+        expectedVersion: confirmedPayload.version,
       },
     });
     assert.equal(staleReopen.statusCode, 409);
@@ -3104,10 +3432,7 @@ describe('p0 core routes', () => {
       assert.equal(completedAttendanceRecords.length, 1);
       assert.equal(asString(completedAttendanceRecords[0]?.status), 'ATTENDED');
       assert.equal(asString(completedAttendanceRecords[0]?.recordedByUserId), coachUserId);
-      assert.equal(
-        asString(completedAttendanceRecords[0]?.notes),
-        'Sharp delivery and focus',
-      );
+      assert.equal(asString(completedAttendanceRecords[0]?.notes), 'Sharp delivery and focus');
       assert.equal(asNumber(completedAttendanceRecords[0]?.effortRating), 5);
       const completedSessionNotes = asRows(fixtureStore.tables.sessionNotes).filter(
         (row) => asString(row.bookingId) === asString(bookingToComplete.id),
@@ -3240,6 +3565,18 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, coachUserId, 'coach'),
       });
       assert.equal(deniedCoachRebookContext.statusCode, 403);
+      const rebookReadEvents = auditEventsFor(fixtureStore.tables, {
+        action: 'booking.rebook_context.read',
+        resourceId: asString(bookingToComplete.id),
+      });
+      assert.deepEqual(rebookReadEvents.map((event) => asString(event.result)).sort(), [
+        'DENY',
+        'SUCCESS',
+      ]);
+      assert.equal(
+        rebookReadEvents.every((event) => event.sensitiveRead === true),
+        true,
+      );
 
       const deniedFutureReview = await app.inject({
         method: 'POST',
@@ -3311,8 +3648,7 @@ describe('p0 core routes', () => {
       const noShowStatusEvent = asRows(fixtureStore.tables.bookingStatusEvents)
         .filter(
           (row) =>
-            asString(row.bookingId) === noShowBookingId &&
-            asString(row.toStatus) === 'COMPLETED',
+            asString(row.bookingId) === noShowBookingId && asString(row.toStatus) === 'COMPLETED',
         )
         .at(-1);
       const noShowMetadata = noShowStatusEvent?.metadataJson as
@@ -3447,6 +3783,19 @@ describe('p0 core routes', () => {
       assert.equal(submittedReviewStatusPayload.review?.id, reviewPayload.review.id);
       assert.equal(submittedReviewStatusPayload.review?.bookingId, asString(bookingToComplete.id));
       assert.equal(submittedReviewStatusPayload.review?.reviewerUserId, bookedByUserId);
+      const reviewReadEvents = auditEventsFor(fixtureStore.tables, {
+        action: 'booking_review.read',
+        resourceId: asString(bookingToComplete.id),
+      });
+      assert.deepEqual(reviewReadEvents.map((event) => asString(event.result)).sort(), [
+        'DENY',
+        'SUCCESS',
+        'SUCCESS',
+      ]);
+      assert.equal(
+        reviewReadEvents.every((event) => event.sensitiveRead === true),
+        true,
+      );
 
       const reviewReplay = await app.inject({
         method: 'POST',
@@ -4320,7 +4669,7 @@ describe('p0 core routes', () => {
     );
   });
 
-  it('serves session invites through the db fixture repository seam in db mode', async () => {
+  it('fails closed for session invite lists in db mode before fixture invite exposure', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     const previousDatabaseUrl = env.DATABASE_URL;
 
@@ -4342,13 +4691,16 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, parentUserId, 'parent'),
       });
 
-      assert.equal(res.statusCode, 200);
-      const payload = res.json() as {
-        invites: Array<{ id: string; parentId: string }>;
-        seedVersion: string | null;
-      };
-      assert.equal(payload.seedVersion, getDbFixtureStore().version);
-      assert.ok(payload.invites.some((invite) => invite.id === inviteId));
+      assert.equal(res.statusCode, 503);
+      assert.match(res.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(res.body.includes(inviteId), false);
+      assert.equal(res.body.includes(parentUserId), false);
+      const readAudit = auditEventsFor(tables, {
+        action: 'invite.read',
+        result: 'ERROR',
+      }).at(-1);
+      assert.equal(asString(readAudit?.actorUserId), parentUserId);
+      assert.equal(asString(asRecord(readAudit?.metadataJson)?.reason), 'prisma_unavailable');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       env.DATABASE_URL = previousDatabaseUrl;
@@ -4969,6 +5321,107 @@ describe('p0 core routes', () => {
     assert.equal(cancelledDetailPayload.invite.status, 'EXPIRED');
   });
 
+  it('denies blocked invite creation and acceptance before booking side effects', async () => {
+    const tables = loadTables();
+    const coachProfile = asRows(tables.coachProfiles)[0];
+    assert.ok(coachProfile, 'expected seeded coach profile');
+    const coachUserId = asString(coachProfile.userId) as string;
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.guardianUserId) && asString(row.guardianUserId) !== coachUserId,
+    );
+    assert.ok(guardianLink, 'expected guardian-child link');
+    const parentUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const store = getMarketplaceSeedStore();
+    const slot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+    const invitePayload = {
+      coachUserId,
+      athleteIds: [athleteId],
+      parentUserId,
+      proposedSlots: [slot],
+      sessionType: '1:1 Coaching',
+      focus: 'Blocked invite authority',
+      inviteType: 'CLOSED',
+      priceMinor: 3500,
+      durationMinutes: 60,
+    };
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: invitePayload,
+    });
+    assert.equal(created.statusCode, 201, created.body);
+    const inviteId = (created.json() as { invite: { id: string } }).invite.id;
+
+    const now = new Date().toISOString();
+    ensureRows(store.tables, 'userBlocks').push({
+      id: 'ubl_invite_booking_denied',
+      blockerUserId: parentUserId,
+      blockedUserId: coachUserId,
+      createdByUserId: parentUserId,
+      updatedByUserId: parentUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    const countsBefore = {
+      invites: asRows(store.tables.invites).length,
+      bookings: asRows(store.tables.bookings).length,
+      series: asRows(store.tables.recurringSeries).length,
+    };
+
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        ...invitePayload,
+        focus: 'Second blocked invite',
+      },
+    });
+    assert.equal(deniedCreate.statusCode, 409, deniedCreate.body);
+    assert.equal(asRows(store.tables.invites).length, countsBefore.invites);
+
+    const deniedAccept = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${inviteId}/respond`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        response: 'ACCEPTED',
+        selectedSlot: slot,
+      },
+    });
+    assert.equal(deniedAccept.statusCode, 409, deniedAccept.body);
+    assert.equal(asRows(store.tables.bookings).length, countsBefore.bookings);
+    assert.equal(asRows(store.tables.recurringSeries).length, countsBefore.series);
+    const storedInvite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
+    const storedTargets = asRows(store.tables.inviteTargets).filter(
+      (row) => asString(row.inviteId) === inviteId,
+    );
+    assert.equal(asString(storedInvite?.bookingId), undefined);
+    assert.equal(
+      storedTargets.every((row) => asString(row.status) === 'PENDING'),
+      true,
+    );
+    for (const action of ['invite.create', 'invite.respond']) {
+      assert.equal(
+        auditEventsFor(store.tables, { action, result: 'DENY' }).some(
+          (event) => asString(asRecord(event.metadataJson)?.reason) === 'active_block_relationship',
+        ),
+        true,
+      );
+    }
+  });
+
   it('accepts selected recurring invite weeks through /v1/invites respond', async () => {
     const tables = loadTables();
     const coachProfile = asRows(tables.coachProfiles)[0];
@@ -5095,8 +5548,9 @@ describe('p0 core routes', () => {
     assert.deepEqual(asRecord(respondAudit?.metadataJson)?.bookingIds, acceptedPayload.bookingIds);
   });
 
-  it('accepts direct session invites through db booking authority in API mode', async () => {
+  it('fails closed for session invite creation in db mode before fixture invite or booking side effects', async () => {
     const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
 
     try {
       const tables = loadTables();
@@ -5116,12 +5570,12 @@ describe('p0 core routes', () => {
         coachUserId,
         excludePendingInvites: true,
       });
-      const marketplaceStore = getMarketplaceSeedStore();
-      const marketplaceBookingCountBefore = asRows(marketplaceStore.tables.bookings).length;
       const fixtureStore = getDbFixtureStore();
+      const dbInviteCountBefore = asRows(fixtureStore.tables.invites).length;
       const dbBookingCountBefore = asRows(fixtureStore.tables.bookings).length;
 
       env.API_DATA_BACKEND = 'db';
+      env.DATABASE_URL = undefined;
       const created = await app.inject({
         method: 'POST',
         url: '/v1/invites',
@@ -5139,89 +5593,22 @@ describe('p0 core routes', () => {
           durationMinutes: 60,
         },
       });
-      assert.equal(created.statusCode, 201);
-      const createdPayload = created.json() as { invite: { id: string } };
-      assert.equal(
-        auditEventsFor(fixtureStore.tables, {
-          action: 'invite.create',
-          resourceId: createdPayload.invite.id,
-          result: 'SUCCESS',
-        }).length,
-        1,
-      );
-
-      const accepted = await app.inject({
-        method: 'POST',
-        url: `/v1/invites/${createdPayload.invite.id}/respond`,
-        headers: authHeaders(tables, parentUserId, 'parent'),
-        payload: {
-          response: 'ACCEPTED',
-          selectedSlot: acceptedSlot,
-        },
-      });
-      assert.equal(accepted.statusCode, 200, accepted.body);
-      const acceptedPayload = accepted.json() as {
-        invite: { id: string; status: string; bookingId?: string | null };
-        bookingId?: string | null;
-        booking?: { id: string; coachUserId: string; bookedByUserId?: string } | null;
-      };
-      assert.equal(acceptedPayload.invite.id, createdPayload.invite.id);
-      assert.equal(acceptedPayload.invite.status, 'ACCEPTED');
-      assert.match(acceptedPayload.bookingId ?? '', /^bok_/);
-      assert.equal(
-        acceptedPayload.bookingId,
-        acceptedPayload.booking?.id ?? acceptedPayload.bookingId,
-      );
-      assert.equal(acceptedPayload.booking?.coachUserId, coachUserId);
-      assert.equal(acceptedPayload.booking?.bookedByUserId, parentUserId);
-      assert.equal(asRows(marketplaceStore.tables.bookings).length, marketplaceBookingCountBefore);
-      assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore + 1);
-      assert.equal(
-        asRows(fixtureStore.tables.bookings).some(
-          (row) => asString(row.id) === acceptedPayload.bookingId,
-        ),
-        true,
-      );
-      const dbAcceptAudit = auditEventsFor(fixtureStore.tables, {
-        action: 'invite.respond',
-        resourceId: createdPayload.invite.id,
-        result: 'SUCCESS',
+      assert.equal(created.statusCode, 503);
+      assert.match(created.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(created.body.includes(parentUserId), false);
+      assert.equal(created.body.includes(athleteId), false);
+      assert.equal(asRows(fixtureStore.tables.invites).length, dbInviteCountBefore);
+      assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore);
+      const createAudit = auditEventsFor(fixtureStore.tables, {
+        action: 'invite.create',
+        result: 'ERROR',
       }).at(-1);
-      assert.equal(
-        asString(asRecord(dbAcceptAudit?.metadataJson)?.bookingId),
-        acceptedPayload.bookingId,
-      );
-      assert.equal(asRecord(dbAcceptAudit?.metadataJson)?.replay, false);
-
-      const detail = await app.inject({
-        method: 'GET',
-        url: `/v1/bookings/${acceptedPayload.bookingId}`,
-        headers: authHeaders(tables, parentUserId, 'parent'),
-      });
-      assert.equal(detail.statusCode, 200);
-      assert.equal(detail.json().id, acceptedPayload.bookingId);
-
-      const replay = await app.inject({
-        method: 'POST',
-        url: `/v1/invites/${createdPayload.invite.id}/respond`,
-        headers: authHeaders(tables, parentUserId, 'parent'),
-        payload: {
-          response: 'ACCEPTED',
-          selectedSlot: acceptedSlot,
-        },
-      });
-      assert.equal(replay.statusCode, 200);
-      assert.equal(replay.json().bookingId, acceptedPayload.bookingId);
-      assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore + 1);
-      const dbRespondAudits = auditEventsFor(fixtureStore.tables, {
-        action: 'invite.respond',
-        resourceId: createdPayload.invite.id,
-        result: 'SUCCESS',
-      });
-      assert.equal(dbRespondAudits.length, 2);
-      assert.equal(asRecord(dbRespondAudits.at(-1)?.metadataJson)?.replay, true);
+      assert.equal(asString(createAudit?.actorUserId), coachUserId);
+      assert.equal(asString(createAudit?.subjectUserId), parentUserId);
+      assert.equal(asString(asRecord(createAudit?.metadataJson)?.reason), 'prisma_unavailable');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
       resetMarketplaceSeedStoreForTests();
       resetDbFixtureStoreForTests();
     }
@@ -5310,9 +5697,24 @@ describe('p0 core routes', () => {
     });
     assert.equal(list.statusCode, 200);
     const listPayload = list.json() as {
-      events: Array<{ id: string; clubId: string; status: string }>;
+      clubId: string;
+      events: Array<{
+        id: string;
+        clubId: string;
+        status: string;
+        currentParticipants: number;
+        rsvpSummary: {
+          going: number;
+          maybe: number;
+          notGoing: number;
+          totalGuests: number;
+        };
+      }>;
       total: number;
+      requestId: string;
     };
+    assert.deepEqual(Object.keys(listPayload).sort(), ['clubId', 'events', 'requestId', 'total']);
+    assert.equal(listPayload.clubId, clubId);
     assert.equal(
       listPayload.events.some((event) => event.id === eventId),
       true,
@@ -5328,6 +5730,37 @@ describe('p0 core routes', () => {
       );
     }
     assert.equal(listPayload.total, listPayload.events.length);
+    const listedEvent = listPayload.events.find((event) => event.id === eventId);
+    assert.ok(listedEvent, 'expected listed event projection');
+    const eventRsvps = asRows(tables.eventRsvps).filter(
+      (row) => asString(row.clubEventId) === eventId || asString(row.eventId) === eventId,
+    );
+    const expectedRsvpSummary = eventRsvps.reduce<{
+      going: number;
+      maybe: number;
+      notGoing: number;
+      totalGuests: number;
+    }>(
+      (summary, rsvp) => {
+        const guestCount = Number(rsvp.guestCount ?? 0);
+        if (asString(rsvp.status) === 'GOING') {
+          summary.going += 1;
+          summary.totalGuests += guestCount;
+        } else if (asString(rsvp.status) === 'MAYBE') {
+          summary.maybe += 1;
+        } else {
+          summary.notGoing += 1;
+        }
+        return summary;
+      },
+      { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 },
+    );
+    assert.deepEqual(listedEvent.rsvpSummary, expectedRsvpSummary);
+    assert.equal(
+      listedEvent.currentParticipants,
+      expectedRsvpSummary.going + expectedRsvpSummary.totalGuests,
+    );
+    assert.equal('attendees' in listedEvent, false);
 
     const detail = await app.inject({
       method: 'GET',
@@ -5340,13 +5773,19 @@ describe('p0 core routes', () => {
         id: string;
         clubId: string;
         title: string;
-        attendees: unknown[];
+        currentParticipants: number;
+        rsvpSummary: typeof expectedRsvpSummary;
       };
     };
     assert.equal(detailPayload.event.id, eventId);
     assert.equal(detailPayload.event.clubId, clubId);
     assert.equal(detailPayload.event.title, asString(clubEvent.title));
-    assert.equal(Array.isArray(detailPayload.event.attendees), true);
+    assert.deepEqual(detailPayload.event.rsvpSummary, expectedRsvpSummary);
+    assert.equal(
+      detailPayload.event.currentParticipants,
+      expectedRsvpSummary.going + expectedRsvpSummary.totalGuests,
+    );
+    assert.equal('attendees' in detailPayload.event, false);
 
     const outsiderUserId = asRows(tables.users)
       .map((row) => asString(row.id))
@@ -5485,6 +5924,28 @@ describe('p0 core routes', () => {
     });
     assert.equal(deniedCreate.statusCode, 403);
 
+    const invalidOwnershipCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        ...createPayload,
+        description: 'must-not-be-copied-to-event-audit',
+        status: 'PUBLISHED',
+      },
+    });
+    assert.equal(invalidOwnershipCreate.statusCode, 400);
+    const invalidTimeCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        ...createPayload,
+        endTime: '09:00',
+      },
+    });
+    assert.equal(invalidTimeCreate.statusCode, 400);
+
     const created = await app.inject({
       method: 'POST',
       url: `/v1/clubs/${clubId}/events`,
@@ -5493,13 +5954,63 @@ describe('p0 core routes', () => {
     });
     assert.equal(created.statusCode, 201);
     const createdPayload = created.json() as {
-      event: { id: string; clubId: string; title: string; status: string; price: number };
+      event: {
+        id: string;
+        clubId: string;
+        title: string;
+        status: string;
+        price: number;
+        date: string;
+        startTime: string;
+        endTime?: string;
+        timeZone: string;
+        currentParticipants: number;
+        rsvpSummary: {
+          going: number;
+          maybe: number;
+          notGoing: number;
+          totalGuests: number;
+        };
+      };
+      requestId: string;
     };
+    assert.deepEqual(Object.keys(createdPayload).sort(), ['event', 'requestId']);
     assert.equal(createdPayload.event.clubId, clubId);
     assert.equal(createdPayload.event.title, createPayload.title);
     assert.equal(createdPayload.event.status, 'DRAFT');
     assert.equal(createdPayload.event.price, 4.5);
+    assert.equal(createdPayload.event.date, createPayload.date);
+    assert.equal(createdPayload.event.startTime, createPayload.startTime);
+    assert.equal(createdPayload.event.endTime, createPayload.endTime);
+    assert.equal(createdPayload.event.timeZone, 'Europe/London');
+    assert.equal(createdPayload.event.currentParticipants, 0);
+    assert.deepEqual(createdPayload.event.rsvpSummary, {
+      going: 0,
+      maybe: 0,
+      notGoing: 0,
+      totalGuests: 0,
+    });
+    assert.equal('attendees' in createdPayload.event, false);
     const eventId = createdPayload.event.id;
+    const storedCreatedEvent = asRows(getMarketplaceSeedStore().tables.clubEvents).find(
+      (row) => asString(row.id) === eventId,
+    );
+    assert.equal(asString(storedCreatedEvent?.startsAt), '2026-09-12T09:00:00.000Z');
+    assert.equal(asString(storedCreatedEvent?.endsAt), '2026-09-12T12:00:00.000Z');
+    assert.equal(asString(asRecord(storedCreatedEvent?.metadataJson)?.timeZone), 'Europe/London');
+
+    const nonexistentLocalTime = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        ...createPayload,
+        date: '2026-03-29',
+        startTime: '01:30',
+        endTime: '02:30',
+      },
+    });
+    assert.equal(nonexistentLocalTime.statusCode, 400);
 
     const deniedPatch = await app.inject({
       method: 'PATCH',
@@ -5508,6 +6019,27 @@ describe('p0 core routes', () => {
       payload: { status: 'PUBLISHED' },
     });
     assert.equal(deniedPatch.statusCode, 403);
+
+    const rescheduled = await app.inject({
+      method: 'PATCH',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        date: '2026-01-15',
+        startTime: '10:00',
+        endTime: '12:00',
+      },
+    });
+    assert.equal(rescheduled.statusCode, 200);
+    const rescheduledPayload = rescheduled.json() as {
+      event: { date: string; startTime: string; endTime?: string; timeZone: string };
+    };
+    assert.equal(rescheduledPayload.event.date, '2026-01-15');
+    assert.equal(rescheduledPayload.event.startTime, '10:00');
+    assert.equal(rescheduledPayload.event.endTime, '12:00');
+    assert.equal(rescheduledPayload.event.timeZone, 'Europe/London');
+    assert.equal(asString(storedCreatedEvent?.startsAt), '2026-01-15T10:00:00.000Z');
+    assert.equal(asString(storedCreatedEvent?.endsAt), '2026-01-15T12:00:00.000Z');
 
     const published = await app.inject({
       method: 'PATCH',
@@ -5772,13 +6304,27 @@ describe('p0 core routes', () => {
       }).length,
       1,
     );
+    const validationAudits = asRows(getMarketplaceSeedStore().tables.auditEvents).filter((row) => {
+      const metadata = asRecord(row.metadataJson);
+      return (
+        asString(row.action) === 'club_event.create' &&
+        asString(row.actorUserId) === staffUserId &&
+        asString(row.result) === 'DENY' &&
+        asString(metadata?.errorCode) === 'VALIDATION_FAILED'
+      );
+    });
+    assert.equal(validationAudits.length, 3);
+    assert.equal(
+      JSON.stringify(validationAudits).includes('must-not-be-copied-to-event-audit'),
+      false,
+    );
     assert.equal(
       auditEventsFor(getMarketplaceSeedStore().tables, {
         action: 'club_event.update',
         resourceId: eventId,
         result: 'SUCCESS',
       }).length,
-      2,
+      3,
     );
     assert.equal(
       auditEventsFor(getMarketplaceSeedStore().tables, {
@@ -6095,9 +6641,11 @@ describe('p0 core routes', () => {
     );
   });
 
-  it('creates event RSVPs through the db fixture backend', async () => {
+  it('fails closed for event RSVP writes in db mode before fixture RSVP side effects', async () => {
     const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
     env.API_DATA_BACKEND = 'db';
+    env.DATABASE_URL = undefined;
 
     try {
       const fixtureStore = getDbFixtureStore();
@@ -6117,6 +6665,7 @@ describe('p0 core routes', () => {
       const clubEvent = asRows(tables.clubEvents).find((row) => asString(row.clubId) === clubId);
       assert.ok(clubEvent, 'expected db-fixture event for member club');
       const eventId = asString(clubEvent.id) as string;
+      const rsvpCount = asRows(getDbFixtureStore().tables.eventRsvps).length;
 
       const rsvp = await app.inject({
         method: 'POST',
@@ -6128,101 +6677,23 @@ describe('p0 core routes', () => {
           notes: 'Cannot attend this time.',
         },
       });
-      assert.equal(rsvp.statusCode, 200);
-      const rsvpPayload = rsvp.json() as {
-        rsvp: { eventId: string; status: string; guestCount: number; notes?: string };
-      };
-      assert.equal(rsvpPayload.rsvp.eventId, eventId);
-      assert.equal(rsvpPayload.rsvp.status, 'NOT_GOING');
-      assert.equal(rsvpPayload.rsvp.guestCount, 0);
+      assert.equal(rsvp.statusCode, 503);
+      assert.match(rsvp.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(rsvp.body.includes(eventId), false);
+      assert.equal(rsvp.body.includes(memberUserId), false);
 
-      const storedRsvp = asRows(getDbFixtureStore().tables.eventRsvps).find(
-        (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
-      );
-      assert.equal(asString(storedRsvp?.status), 'NOT_GOING');
-      const list = await app.inject({
-        method: 'GET',
-        url: `/v1/events/${eventId}/rsvps`,
-        headers: authHeaders(tables, memberUserId, 'parent'),
-      });
-      assert.equal(list.statusCode, 200);
-      const listPayload = list.json() as {
-        rsvps: Array<{ eventId: string; userId: string; status: string }>;
-      };
-      assert.equal(
-        listPayload.rsvps.some(
-          (item) =>
-            item.eventId === eventId && item.userId === memberUserId && item.status === 'NOT_GOING',
-        ),
-        true,
-      );
-      const detail = await app.inject({
-        method: 'GET',
-        url: `/v1/events/${eventId}/rsvps/${memberUserId}`,
-        headers: authHeaders(tables, memberUserId, 'parent'),
-      });
-      assert.equal(detail.statusCode, 200);
-      const detailPayload = detail.json() as {
-        rsvp: { eventId: string; userId: string; status: string } | null;
-      };
-      assert.equal(detailPayload.rsvp?.eventId, eventId);
-      assert.equal(detailPayload.rsvp?.userId, memberUserId);
-      assert.equal(detailPayload.rsvp?.status, 'NOT_GOING');
+      assert.equal(asRows(getDbFixtureStore().tables.eventRsvps).length, rsvpCount);
       assert.equal(
         auditEventsFor(getDbFixtureStore().tables, {
           action: 'event.rsvp',
           resourceId: eventId,
-          result: 'SUCCESS',
-        }).length,
-        1,
-      );
-      assert.equal(
-        auditEventsFor(getDbFixtureStore().tables, {
-          action: 'event.rsvp.read',
-          resourceId: eventId,
-          result: 'SUCCESS',
-        }).length >= 2,
-        true,
-      );
-
-      const maybeRsvp = await app.inject({
-        method: 'POST',
-        url: `/v1/events/${eventId}/rsvp`,
-        headers: authHeaders(tables, memberUserId, 'parent'),
-        payload: {
-          status: 'MAYBE',
-          guestCount: 0,
-        },
-      });
-      assert.equal(maybeRsvp.statusCode, 200);
-
-      const reminder = await app.inject({
-        method: 'POST',
-        url: `/v1/events/${eventId}/rsvps/remind`,
-        headers: authHeaders(tables, staffUserId, 'coach'),
-      });
-      assert.equal(reminder.statusCode, 200);
-      const reminderPayload = reminder.json() as { reminderCount: number };
-      assert.equal(reminderPayload.reminderCount >= 1, true);
-      assert.equal(
-        asRows(getDbFixtureStore().tables.notifications).some(
-          (row) =>
-            asString(row.userId) === memberUserId &&
-            asString(row.type) === 'EVENT_RSVP_REMINDER' &&
-            asString(row.sourceId) === eventId,
-        ),
-        true,
-      );
-      assert.equal(
-        auditEventsFor(getDbFixtureStore().tables, {
-          action: 'event.rsvp.remind',
-          resourceId: eventId,
-          result: 'SUCCESS',
+          result: 'ERROR',
         }).length,
         1,
       );
     } finally {
       env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
     }
   });
 
@@ -6595,60 +7066,55 @@ describe('p0 core routes', () => {
 
   it('registers a visible athlete for a group session and creates a linked booking', async () => {
     const tables = loadTables();
-    const guardianLinks = asRows(tables.guardianChildLinks);
-    const sessions = asRows(tables.groupSessions);
-    const registrations = asRows(tables.groupSessionRegistrations);
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.guardianUserId) && asString(row.athleteId),
+    );
+    const coachUserId = asString(asRows(tables.coachingOfferings)[0]?.coachUserId);
+    const parentUserId = asString(guardianLink?.guardianUserId);
+    const athleteId = asString(guardianLink?.athleteId);
+    assert.ok(parentUserId, 'expected guardian user id');
+    assert.ok(athleteId, 'expected linked athlete id');
+    assert.ok(coachUserId, 'expected coach user id');
 
-    let selection:
-      | {
-          parentUserId: string;
-          athleteId: string;
-          sessionId: string;
-        }
-      | undefined;
+    const createdSession = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        coachId: coachUserId,
+        title: 'Future Registration Authority Session',
+        sessionType: 'OPEN_SESSION',
+        schedule: [
+          {
+            date: addDaysIso(12),
+            startTime: '17:00',
+            endTime: '18:00',
+          },
+        ],
+        maxParticipants: 8,
+        pricePerParticipant: 15,
+        currency: 'GBP',
+        waitlistEnabled: true,
+        inviteType: 'OPEN',
+      },
+    });
+    assert.equal(createdSession.statusCode, 201, createdSession.body);
+    const sessionId = (createdSession.json() as { groupSession: { id: string } }).groupSession.id;
 
-    for (const guardianLink of guardianLinks) {
-      const parentUserId = asString(guardianLink.guardianUserId);
-      const athleteId = asString(guardianLink.athleteId);
-      if (!parentUserId || !athleteId) {
-        continue;
-      }
-
-      for (const session of sessions) {
-        const sessionId = asString(session.id);
-        const currentParticipants = asNumber(session.currentParticipants) ?? 0;
-        const maxParticipants = asNumber(session.maxParticipants) ?? 0;
-        const alreadyRegistered = registrations.some(
-          (row) =>
-            asString(row.groupSessionId) === sessionId &&
-            asString(row.athleteId) === athleteId &&
-            asString(row.status) !== 'CANCELLED',
-        );
-
-        if (sessionId && currentParticipants < maxParticipants && !alreadyRegistered) {
-          selection = { parentUserId, athleteId, sessionId };
-          break;
-        }
-      }
-
-      if (selection) {
-        break;
-      }
-    }
-
-    assert.ok(selection, 'expected a visible athlete/session pair with available capacity');
+    const publishedSession = await app.inject({
+      method: 'PATCH',
+      url: `/v1/group-sessions/${sessionId}/publish`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(publishedSession.statusCode, 200, publishedSession.body);
 
     const response = await app.inject({
       method: 'POST',
-      url: `/v1/group-sessions/${selection?.sessionId}/register`,
-      headers: {
-        'x-auth-user-id': selection?.parentUserId,
-        'x-auth-roles': rolesForUser(tables, selection?.parentUserId ?? '').join(',') || 'parent',
-        'x-acting-role': rolesForUser(tables, selection?.parentUserId ?? '')[0] ?? 'parent',
-      },
+      url: `/v1/group-sessions/${sessionId}/register`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
       payload: {
-        athleteId: selection?.athleteId,
-        parentUserId: selection?.parentUserId,
+        athleteId,
+        parentUserId,
       },
     });
 
@@ -6663,13 +7129,13 @@ describe('p0 core routes', () => {
       sessionStatus: string;
     };
 
-    assert.equal(payload.registration.athleteId, selection?.athleteId);
-    assert.equal(payload.registration.parentUserId, selection?.parentUserId);
+    assert.equal(payload.registration.athleteId, athleteId);
+    assert.equal(payload.registration.parentUserId, parentUserId);
     assert.equal(payload.registration.status, 'REGISTERED');
     assert.ok(['PUBLISHED', 'FULL'].includes(payload.sessionStatus));
     assert.match(payload.booking?.id ?? '', /^bok_/);
     assert.equal(payload.booking?.status, 'CONFIRMED');
-    assert.equal(payload.booking?.groupSessionId, selection?.sessionId);
+    assert.equal(payload.booking?.groupSessionId, sessionId);
   });
 
   it('blocks registration for unassigned club sessions before creating registration or booking rows', async () => {

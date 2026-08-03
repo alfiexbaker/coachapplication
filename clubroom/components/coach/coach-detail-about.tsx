@@ -14,13 +14,7 @@ interface CoachDetailAboutProps {
   coach: Coach;
 }
 
-function SummaryChip({
-  icon,
-  label,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-}) {
+function SummaryChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
   const { colors } = useTheme();
 
   return (
@@ -67,8 +61,11 @@ export const CoachDetailAbout = function CoachDetailAbout({ coach }: CoachDetail
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Background
           </ThemedText>
-          {coach.experiences.map((experience, index) => (
-            <Row key={`${experience.title}-${index}`} style={styles.experienceItem}>
+          {coach.experiences.map((experience) => (
+            <Row
+              key={`${experience.title}:${experience.organization}:${experience.startDate}:${experience.endDate ?? 'present'}`}
+              style={styles.experienceItem}
+            >
               <View style={[styles.expDot, { backgroundColor: palette.tint }]} />
               <Column flex style={styles.expContent}>
                 <ThemedText type="defaultSemiBold">{experience.title}</ThemedText>
@@ -93,9 +90,9 @@ export const CoachDetailAbout = function CoachDetailAbout({ coach }: CoachDetail
 
           {coach.badges && coach.badges.length > 0 ? (
             <Row style={styles.proofGrid}>
-              {coach.badges.map((badge, index) => (
+              {coach.badges.map((badge) => (
                 <Row
-                  key={`${badge}-${index}`}
+                  key={badge}
                   style={[styles.proofChip, { backgroundColor: withAlpha(palette.success, 0.1) }]}
                   align="center"
                   gap="xxs"
@@ -109,8 +106,11 @@ export const CoachDetailAbout = function CoachDetailAbout({ coach }: CoachDetail
             </Row>
           ) : null}
 
-          {coach.certifications?.map((certification, index) => (
-            <Row key={`${certification.name}-${index}`} style={styles.certItem}>
+          {coach.certifications?.map((certification) => (
+            <Row
+              key={`${certification.name}:${certification.issuer}:${certification.issueDate}:${certification.expiryDate ?? 'none'}`}
+              style={styles.certItem}
+            >
               <Ionicons name="ribbon-outline" size={20} color={palette.tint} />
               <Column flex>
                 <ThemedText type="defaultSemiBold">{certification.name}</ThemedText>
@@ -142,7 +142,11 @@ const styles = StyleSheet.create({
   expDot: { width: 8, height: 8, borderRadius: Radii.xs, marginTop: Spacing.xxs },
   expContent: { gap: Spacing.micro },
   expDates: { ...Typography.caption },
-  expDesc: { ...Typography.small, marginTop: Spacing.xxs, lineHeight: Typography.caption.lineHeight },
+  expDesc: {
+    ...Typography.small,
+    marginTop: Spacing.xxs,
+    lineHeight: Typography.caption.lineHeight,
+  },
   proofGrid: { flexWrap: 'wrap', gap: Spacing.xs },
   proofChip: {
     paddingHorizontal: Spacing.sm,

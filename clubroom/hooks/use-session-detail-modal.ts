@@ -3,6 +3,7 @@
  */
 import { useEffect, useMemo, useState, startTransition } from 'react';
 import { router } from 'expo-router';
+import { api } from '@/constants/config';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -39,6 +40,7 @@ import { resolveBookingTarget, resolveDefaultBookingTarget } from '@/utils/booki
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('useSessionDetailModal');
+const USE_MOCK = api.useMock;
 interface OwnershipAssigneeOption {
   id: string;
   label: string;
@@ -148,6 +150,7 @@ export function useSessionDetailModal(
   const [assigneeOptions, setAssigneeOptions] = useState<OwnershipAssigneeOption[]>([]);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
   const [canManageClubOwnership, setCanManageClubOwnership] = useState(false);
+  const [ownershipAuditTrail, setOwnershipAuditTrail] = useState<SessionOwnershipAuditEvent[]>([]);
   const [reassigningOwnership, setReassigningOwnership] = useState(false);
   const [draftOffPlatformParticipants, setDraftOffPlatformParticipants] = useState(0);
   const [savingOffPlatform, setSavingOffPlatform] = useState(false);
@@ -220,6 +223,9 @@ export function useSessionDetailModal(
       startTransition(() => {
         setCanManageClubOwnership(false);
       });
+      startTransition(() => {
+        setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
+      });
       return;
     }
     if (offering.actingAs !== 'club' || !offering.clubId) {
@@ -234,11 +240,15 @@ export function useSessionDetailModal(
       startTransition(() => {
         setCanManageClubOwnership(false);
       });
+      startTransition(() => {
+        setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
+      });
       return;
     }
     let cancelled = false;
     const loadOwnershipContext = async () => {
       try {
+        setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
         const staffingResult = await orgStaffingService.getConsoleData(
           offering.clubId as string,
           currentUser.id,
@@ -248,6 +258,7 @@ export function useSessionDetailModal(
           setCanManageClubOwnership(false);
           setClubNameById({});
           setAssigneeOptions((previous) => (previous.length === 0 ? previous : []));
+          setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
           return;
         }
         setClubNameById({
@@ -277,6 +288,27 @@ export function useSessionDetailModal(
           }
           return options[0]?.id ?? null;
         });
+
+        const assignmentId = getSessionOfferingGroupSessionId(offering);
+        if (!assignmentId) {
+          setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
+          return;
+        }
+        const historyResult = await orgStaffingService.getOwnershipHistory(
+          offering.clubId as string,
+          assignmentId,
+        );
+        if (cancelled) return;
+        if (!historyResult.success) {
+          logger.warn('Failed to load session ownership history', {
+            offeringId: offering.id,
+            assignmentId,
+            errorCode: historyResult.error.code,
+          });
+          setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
+          return;
+        }
+        setOwnershipAuditTrail(historyResult.data);
       } catch (error) {
         if (cancelled) return;
         logger.warn('Failed to load session ownership context', {
@@ -285,6 +317,7 @@ export function useSessionDetailModal(
         });
         setAssigneeOptions((previous) => (previous.length === 0 ? previous : []));
         setCanManageClubOwnership(false);
+        setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
       }
     };
     void loadOwnershipContext();
@@ -335,11 +368,6 @@ export function useSessionDetailModal(
     assigneeOptions.length > 0 &&
     canManageClubOwnership,
   );
-  const contextChildrenSignature = contextChildren
-    .map((child) =>
-      [child.id, child.name, child.fullName, child.referenceId, child.profileId ?? ''].join(':'),
-    )
-    .join('|');
   const children = useMemo(
     () =>
       contextChildren.map((child) => ({
@@ -349,7 +377,11 @@ export function useSessionDetailModal(
         referenceId: child.referenceId,
         profileId: child.profileId,
       })),
-    [contextChildrenSignature],
+    [contextChildren],
+  );
+  const ownershipAuditEvents = useMemo(
+    () => (USE_MOCK ? (offering?.ownershipAuditTrail ?? []) : ownershipAuditTrail),
+    [offering, ownershipAuditTrail],
   );
   const userNameMap = useMemo(() => {
     const nextMap: Record<string, string> = {};
@@ -373,7 +405,7 @@ export function useSessionDetailModal(
       for (const registration of offering.registrations) {
         addName(registration.userId, registration.userName);
       }
-      for (const event of offering.ownershipAuditTrail ?? []) {
+      for (const event of ownershipAuditEvents) {
         addName(event.actorUserId, event.actorName);
       }
     }
@@ -389,6 +421,7 @@ export function useSessionDetailModal(
     currentUser?.id,
     currentUser?.name,
     offering,
+    ownershipAuditEvents,
   ]);
   const ownerCoachId = offering?.assigneeCoachId || offering?.ownerCoachId || offering?.coachId;
   const ownerCoachName = ownerCoachId ? userNameMap[ownerCoachId] || ownerCoachId : 'Unassigned';
@@ -412,7 +445,7 @@ export function useSessionDetailModal(
       }
     }
     return ids;
-  }, [children, currentUser?.id]);
+  }, [children, currentUser]);
   useEffect(() => {
     if (!visible || !offering) return;
     logger.debug('Resolved actor identity scope for session modal', {
@@ -725,7 +758,7 @@ export function useSessionDetailModal(
   };
   const ownershipTimeline = (() => {
     if (!offering) return [];
-    const events = Array.from(offering.ownershipAuditTrail ?? []).toSorted(
+    const events = Array.from(ownershipAuditEvents).toSorted(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
     const formatAction = (event: SessionOwnershipAuditEvent): SessionOwnershipTimelineEntry => {
@@ -760,6 +793,7 @@ export function useSessionDetailModal(
     if (events.length > 0) {
       return events.map(formatAction);
     }
+    if (!USE_MOCK) return [];
     const fallback: SessionOwnershipTimelineEntry[] = [
       {
         id: `fallback_created_${offering.id}`,
@@ -870,7 +904,7 @@ export function useSessionDetailModal(
           registrationUserId: myRegistration.userId,
         });
         onClose();
-        router.push(Routes.bookingCancel(linkedBooking.id, 'parent'));
+        router.push(Routes.bookingCancel(linkedBooking.id));
         return;
       }
       logger.debug('No linked booking found; falling back to registration-level cancellation', {
@@ -878,11 +912,18 @@ export function useSessionDetailModal(
         registrationId: myRegistration.id,
         registrationUserId: myRegistration.userId,
       });
-    } catch {
-      logger.warn('Booking lookup failed during cancellation; using registration fallback', {
+    } catch (error) {
+      logger.warn('Booking lookup failed during cancellation', {
         offeringId: offering.id,
+        error,
       });
-      // Fall through to registration-level cancellation when booking lookup is unavailable.
+      if (!USE_MOCK) {
+        uiFeedback.showToast(
+          'Could not verify the booking before cancellation. Please try again.',
+          'error',
+        );
+        return;
+      }
     }
     uiFeedback.alert(
       'Cancel Booking',
@@ -980,6 +1021,15 @@ export function useSessionDetailModal(
         if (!result.success) {
           uiFeedback.showToast(result.error.message, 'error');
           return;
+        }
+        const historyResult = await orgStaffingService.getOwnershipHistory(
+          offering.clubId,
+          assignmentId,
+        );
+        if (historyResult.success) {
+          setOwnershipAuditTrail(historyResult.data);
+        } else {
+          setOwnershipAuditTrail((previous) => (previous.length === 0 ? previous : []));
         }
         uiFeedback.showToast(`Session reassigned to ${selectedAssigneeLabel}`, 'success');
         onUpdate?.();

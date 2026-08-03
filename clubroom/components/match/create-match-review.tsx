@@ -22,6 +22,8 @@ interface CreateMatchReviewProps {
   notes: string;
   selectedSquad: ClubSquad | null;
   squadMemberCount: number;
+  squadMembersLoading?: boolean;
+  squadMemberError?: string | null;
   autoInvite: boolean;
   colors: ThemeColors;
 }
@@ -38,10 +40,20 @@ export const CreateMatchReview = function CreateMatchReview({
   notes,
   selectedSquad,
   squadMemberCount,
+  squadMembersLoading = false,
+  squadMemberError = null,
   autoInvite,
   colors,
 }: CreateMatchReviewProps) {
   const typeColor = matchService.getMatchTypeColor(matchType, colors);
+  const squadLabel = selectedSquad?.name ?? 'Club-level fixture';
+  const squadDetail = selectedSquad
+    ? squadMemberError
+      ? `${selectedSquad.name} (member list unavailable)`
+      : squadMembersLoading
+        ? `${selectedSquad.name} (loading members)`
+        : `${selectedSquad.name} (${squadMemberCount} players)`
+    : 'Club-level fixture';
 
   return (
     <View style={styles.stepContent}>
@@ -69,7 +81,7 @@ export const CreateMatchReview = function CreateMatchReview({
         </Row>
 
         <ThemedText type="title" style={Typography.title}>
-          {selectedSquad?.name || 'Team'} vs {opponent}
+          {squadLabel} vs {opponent}
         </ThemedText>
 
         <View style={styles.details}>
@@ -80,7 +92,7 @@ export const CreateMatchReview = function CreateMatchReview({
               text: `Kickoff: ${kickoffTime || '--:--'}${meetTime ? ` (Meet: ${meetTime})` : ''}`,
             },
             { icon: 'location', text: venue },
-            { icon: 'people', text: `${selectedSquad?.name} (${squadMemberCount} players)` },
+            { icon: 'people', text: squadDetail },
             { icon: 'person', text: `Squad size: ${maxPlayers}` },
           ].map(({ icon, text }) => (
             <Row key={icon} gap="sm" align="center">

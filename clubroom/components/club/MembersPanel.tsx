@@ -80,19 +80,21 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
 
 export interface MembersPanelProps {
   members: ClubMember[];
-  canRemoveMembers: boolean;
+  canManageMember: (member: ClubMember) => boolean;
   onRemoveMember: (member: ClubMember) => void;
   clubId?: string;
 }
 
 export function MembersPanel({
   members,
-  canRemoveMembers,
+  canManageMember,
   onRemoveMember,
   clubId,
 }: MembersPanelProps) {
   const { colors: palette } = useTheme();
-  const managementHint = canRemoveMembers ? 'Tap to view, long press to manage' : 'Tap to view';
+  const managementHint = members.some(canManageMember)
+    ? 'Tap to view, long press to remove'
+    : 'Tap to view';
 
   return (
     <SurfaceCard style={styles.membersCard}>
@@ -107,7 +109,7 @@ export function MembersPanel({
           <MemberRow
             key={member.userId}
             member={member}
-            canRemove={canRemoveMembers && clubService.canBeRemoved(member.role)}
+            canRemove={canManageMember(member)}
             onRemove={() => onRemoveMember(member)}
             onPress={
               clubId

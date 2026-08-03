@@ -344,36 +344,6 @@ export interface UserProfile {
 }
 
 // ============================================================================
-// SCHOOL & INVITE SYSTEM
-// ============================================================================
-
-export interface School {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  photoUrl?: string;
-  description?: string;
-  activeCoachesCount: number;
-  createdAt: string;
-}
-
-export interface InviteCode {
-  id: string;
-  code: string;
-  schoolId: string;
-  schoolName: string;
-  createdBy: string; // admin user id
-  createdAt: string;
-  expiresAt: string;
-  maxUses: number;
-  currentUses: number;
-  status: 'active' | 'expired' | 'exhausted';
-}
-
-// ============================================================================
 // VERIFICATION & TRUST
 // ============================================================================
 

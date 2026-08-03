@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -14,7 +12,10 @@ import { Row } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
 export { DisabilitySelector, SpecialNeedEntrySection } from './medical-special-needs-form-sections';
-export type { DisabilitySelectorProps, SpecialNeedEntrySectionProps } from './medical-special-needs-form-sections';
+export type {
+  DisabilitySelectorProps,
+  SpecialNeedEntrySectionProps,
+} from './medical-special-needs-form-sections';
 
 interface SpecialNeedsFormProps {
   firstName: string;
@@ -51,13 +52,14 @@ interface SpecialNeedsFormProps {
   onCommPrefsChange: (value: string[]) => void;
   onTriggersChange: (value: string[]) => void;
   onCalmingStrategiesChange: (value: string[]) => void;
-  onSnCategoryChange: (v: SpecialNeed['category']) => void;
+  onSnCategoryChange: (v: SpecialNeed['category'] | null) => void;
   onSnNameChange: (v: string) => void;
   onSnDescriptionChange: (v: string) => void;
   onSnSeverityChange: (v: SpecialNeed['severity']) => void;
   onSnAccommodationsChange: (v: string[]) => void;
   onSnParentHintsChange: (v: string) => void;
   onAddSpecialNeed: () => void;
+  onCancelSpecialNeed: () => void;
   onRemoveSpecialNeed: (id: string) => void;
   palette: ThemeColors;
 }
@@ -101,26 +103,29 @@ export const SpecialNeedsForm = function SpecialNeedsForm({
   onSnAccommodationsChange,
   onSnParentHintsChange,
   onAddSpecialNeed,
+  onCancelSpecialNeed,
   onRemoveSpecialNeed,
   palette,
 }: SpecialNeedsFormProps) {
   return (
     <View style={styles.stepContent}>
-      <SurfaceCard style={styles.infoCard}>
-        <Ionicons name="heart-outline" size={24} color={palette.tint} />
-        <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          This information helps coaches provide the best experience for your child. It will be
-          shared with coaches who work with {firstName || 'your child'}.
-        </ThemedText>
-      </SurfaceCard>
+      <ThemedText style={[styles.context, { color: palette.muted }]}>
+        Coaches can see this only when assigned to {firstName || 'this player'}.
+      </ThemedText>
 
       <View style={styles.field}>
         <ThemedText style={styles.label}>
-          Does {firstName || 'your child'} have any disabilities or special needs? *
+          Does {firstName || 'this player'} need coaching adjustments? *
         </ThemedText>
         <Row style={styles.yesNoRow}>
           <Clickable
             onPress={() => onHasSpecialNeedsChange(true)}
+            accessibilityRole="radio"
+            accessibilityLabel="Yes, coaching adjustments are needed"
+            accessibilityState={{
+              selected: hasSpecialNeeds === true,
+              checked: hasSpecialNeeds === true,
+            }}
             style={[
               styles.yesNoButton,
               {
@@ -140,6 +145,12 @@ export const SpecialNeedsForm = function SpecialNeedsForm({
           </Clickable>
           <Clickable
             onPress={() => onHasSpecialNeedsChange(false)}
+            accessibilityRole="radio"
+            accessibilityLabel="No coaching adjustments are needed"
+            accessibilityState={{
+              selected: hasSpecialNeeds === false,
+              checked: hasSpecialNeeds === false,
+            }}
             style={[
               styles.yesNoButton,
               {
@@ -198,44 +209,45 @@ export const SpecialNeedsForm = function SpecialNeedsForm({
             onSnAccommodationsChange={onSnAccommodationsChange}
             onSnParentHintsChange={onSnParentHintsChange}
             onAddSpecialNeed={onAddSpecialNeed}
+            onCancelSpecialNeed={onCancelSpecialNeed}
             onRemoveSpecialNeed={onRemoveSpecialNeed}
             palette={palette}
           />
 
           <View style={styles.field}>
-            <ThemedText style={styles.label}>Communication Preferences</ThemedText>
+            <ThemedText style={styles.label}>Communication notes</ThemedText>
             <ThemedText style={[styles.hint, { color: palette.muted }]}>
-              How does {firstName || 'your child'} communicate best?
+              What helps {firstName || 'this player'} understand instructions?
             </ThemedText>
             <TextInput
               style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-              placeholder="e.g., Responds well to visual cues, prefers direct instructions..."
+              accessibilityLabel="Communication notes, optional"
+              placeholder="For example, visual cues or direct instructions"
               placeholderTextColor={palette.muted}
               value={communicationNotes}
               onChangeText={onCommunicationNotesChange}
               multiline
               numberOfLines={3}
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
 
           <View style={styles.field}>
-            <ThemedText style={styles.label}>Behavioral Considerations</ThemedText>
+            <ThemedText style={styles.label}>Behaviour notes</ThemedText>
             <ThemedText style={[styles.hint, { color: palette.muted }]}>
-              Anything coaches should know about behavior or triggers?
+              Note any triggers, breaks or routines a coach should know.
             </ThemedText>
             <TextInput
               style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-              placeholder="e.g., May need breaks, gets overwhelmed in large groups..."
+              accessibilityLabel="Behaviour notes, optional"
+              placeholder="Optional"
               placeholderTextColor={palette.muted}
               value={behavioralNotes}
               onChangeText={onBehavioralNotesChange}
               multiline
               numberOfLines={3}
-
-            maxLength={500}
-          />
+              maxLength={500}
+            />
           </View>
         </>
       )}
@@ -247,13 +259,7 @@ const styles = StyleSheet.create({
   stepContent: {
     gap: Spacing.md,
   },
-  infoCard: {
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  infoText: {
-    flex: 1,
+  context: {
     ...Typography.small,
     lineHeight: 18,
   },
@@ -268,7 +274,7 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   textArea: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
@@ -276,13 +282,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   yesNoRow: {
-    gap: Spacing.md,
+    gap: Spacing.xs,
   },
   yesNoButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
     alignItems: 'center',
   },
   yesNoText: {

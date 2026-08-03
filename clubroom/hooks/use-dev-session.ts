@@ -530,35 +530,33 @@ export function useDevSession({
 
   // ─── Position toggle handler (multi-position) ──────────────────────────────
   const handlePositionToggle = (toggledPosition: PositionRole) => {
-    setPositionsPlayed((prev) => {
-      const isActive = prev.includes(toggledPosition);
-      if (isActive && prev.length === 1) {
-        // Min 1 position — can't deselect the last one
-        return prev;
-      }
-      const next = isActive
-        ? prev.filter((p) => p !== toggledPosition)
-        : [...prev, toggledPosition];
+    const isActive = positionsPlayed.includes(toggledPosition);
+    if (isActive && positionsPlayed.length === 1) {
+      // Min 1 position — can't deselect the last one
+      return;
+    }
+    const next = isActive
+      ? positionsPlayed.filter((position) => position !== toggledPosition)
+      : [...positionsPlayed, toggledPosition];
 
-      // Remove sub-skill ratings for positions being deselected
-      if (isActive) {
-        const removedSkills = getPositionalSkills(toggledPosition);
-        const keptPositionalSkills = new Set(
-          next.flatMap((p) => (p !== toggledPosition ? getPositionalSkills(p) : [])),
-        );
-        const skillsToRemove = removedSkills.filter((s) => !keptPositionalSkills.has(s));
-        setSkillRatings((r) =>
-          r.filter((rating) => !skillsToRemove.includes(rating.skill as FootballSkill)),
-        );
-        setSubSkillRatings((r) =>
-          r.filter((rating) => !skillsToRemove.includes(rating.parentSkill)),
-        );
-        setSelectedSkills((s) =>
-          s.filter((skill) => !skillsToRemove.includes(skill as FootballSkill)),
-        );
-      }
-      return next;
-    });
+    // Remove sub-skill ratings for positions being deselected
+    if (isActive) {
+      const removedSkills = getPositionalSkills(toggledPosition);
+      const keptPositionalSkills = new Set(next.flatMap((position) => getPositionalSkills(position)));
+      const skillsToRemove = new Set(
+        removedSkills.filter((skill) => !keptPositionalSkills.has(skill)),
+      );
+      setSkillRatings((ratings) =>
+        ratings.filter((rating) => !skillsToRemove.has(rating.skill as FootballSkill)),
+      );
+      setSubSkillRatings((ratings) =>
+        ratings.filter((rating) => !skillsToRemove.has(rating.parentSkill)),
+      );
+      setSelectedSkills((skills) =>
+        skills.filter((skill) => !skillsToRemove.has(skill as FootballSkill)),
+      );
+    }
+    setPositionsPlayed(next);
   };
 
   // Legacy compat: single-position change (replaces all)

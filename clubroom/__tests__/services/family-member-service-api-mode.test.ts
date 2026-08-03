@@ -35,9 +35,221 @@ describe('familyMemberService API mode', () => {
         'let childrenCache: ChildProfile[] = USE_MOCK ? cloneChildProfiles(MOCK_CHILDREN) : []',
       ),
     );
-    assert.ok(
-      source.includes('childrenCache = USE_MOCK ? cloneChildProfiles(MOCK_CHILDREN) : []'),
+    assert.ok(source.includes('childrenCache = USE_MOCK ? cloneChildProfiles(MOCK_CHILDREN) : []'));
+  });
+
+  it('maps API athlete profiles with every unresolved consent denied', async () => {
+    const { mapApiFamilyAthleteToChildProfile } =
+      await import('@/services/family/family-api-support');
+
+    const child = mapApiFamilyAthleteToChildProfile(
+      {
+        id: 'ath_default_deny',
+        firstName: 'Default',
+        lastName: 'Deny',
+      },
+      'usr_parent_default_deny',
     );
+
+    assert.equal(child.photoConsent, false);
+    assert.equal(child.videoConsent, false);
+    assert.equal(child.socialMediaConsent, false);
+    assert.equal(child.emergencyTreatmentConsent, false);
+  });
+
+  it('creates the athlete and trust data through one backend write', async (t) => {
+    const [{ childService }, { authService }] = await Promise.all([
+      import('@/services/child-service'),
+      import('@/services/auth-service'),
+    ]);
+    const auth = authService as unknown as {
+      getCurrentUser: typeof authService.getCurrentUser;
+    };
+    const original = {
+      getCurrentUser: auth.getCurrentUser,
+      fetch: globalThis.fetch,
+    };
+    const writes: Array<{ method: string; path: string; body?: Record<string, unknown> }> = [];
+    const updatedAt = '2026-07-31T12:00:00.000Z';
+
+    auth.getCurrentUser = async () =>
+      ({
+        id: 'usr_parent_atomic_create',
+        email: 'atomic.create@example.test',
+        accountType: 'PARENT',
+        firstName: 'Atomic',
+        lastName: 'Parent',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: updatedAt,
+        updatedAt,
+      }) as Awaited<ReturnType<typeof authService.getCurrentUser>>;
+
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const method = init?.method ?? 'GET';
+      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
+      if (method !== 'GET') {
+        writes.push({ method, path: url.pathname, body });
+      }
+
+      if (url.pathname === '/v1/me') {
+        return new Response(
+          JSON.stringify({
+            linkedFamilies: [{ familyId: 'fam_atomic_create', role: 'owner' }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.pathname === '/v1/athletes' && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            id: 'ath_atomic_create',
+            athleteId: 'ath_atomic_create',
+            firstName: 'One',
+            lastName: 'Write',
+            gender: 'PREFER_NOT_TO_SAY',
+            relationship: 'WARD',
+            createdAt: updatedAt,
+            updatedAt,
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.pathname === '/v1/athletes/ath_atomic_create/medical') {
+        return new Response(
+          JSON.stringify({
+            athleteId: 'ath_atomic_create',
+            conditions: ['Asthma'],
+            allergies: ['Peanuts'],
+            medications: ['Inhaler'],
+            restrictions: [],
+            doctorName: null,
+            doctorPhone: null,
+            insuranceProvider: null,
+            insuranceNumber: null,
+            emergencyNotes: null,
+            senNotes: null,
+            updatedAt,
+            updatedByUserId: 'usr_parent_atomic_create',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.pathname === '/v1/athletes/ath_atomic_create/emergency-contacts') {
+        return new Response(
+          JSON.stringify({
+            athleteId: 'ath_atomic_create',
+            contacts: [
+              {
+                id: 'emc_atomic_create',
+                name: 'Atomic Parent',
+                relationship: 'Parent',
+                phone: '+447700900789',
+                isPrimary: true,
+                canPickup: true,
+              },
+            ],
+            updatedAt,
+            updatedByUserId: 'usr_parent_atomic_create',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.pathname === '/v1/athletes/ath_atomic_create/consents') {
+        return new Response(
+          JSON.stringify({
+            athleteId: 'ath_atomic_create',
+            consents: [
+              { type: 'PHOTO', granted: false, grantedBy: '' },
+              { type: 'VIDEO', granted: true, grantedBy: 'Parent/Guardian' },
+              { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
+              { type: 'EMERGENCY_TREATMENT', granted: true, grantedBy: 'Parent/Guardian' },
+            ],
+            updatedAt,
+            updatedByUserId: 'usr_parent_atomic_create',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(JSON.stringify({ message: `unexpected ${method} ${url.pathname}` }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    t.after(() => {
+      auth.getCurrentUser = original.getCurrentUser;
+      globalThis.fetch = original.fetch;
+    });
+
+    const child = await childService.createChild('usr_parent_atomic_create', {
+      firstName: 'One',
+      lastName: 'Write',
+      gender: 'PREFER_NOT_TO_SAY',
+      relationship: 'WARD',
+      allergies: ['Peanuts'],
+      medicalConditions: ['Asthma'],
+      medications: ['Inhaler'],
+      emergencyContactName: 'Atomic Parent',
+      emergencyContactPhone: '+447700900789',
+      emergencyContactRelation: 'Parent',
+      photoConsent: false,
+      videoConsent: true,
+      socialMediaConsent: false,
+      emergencyTreatmentConsent: true,
+    });
+
+    assert.equal(child.id, 'ath_atomic_create');
+    assert.deepEqual(
+      writes.map((call) => `${call.method} ${call.path}`),
+      ['POST /v1/athletes'],
+    );
+    const trustData = writes[0]?.body?.trustData as {
+      medical: Record<string, unknown>;
+      emergencyContacts: {
+        contacts: Array<Record<string, unknown>>;
+      };
+      consents: {
+        consents: Array<{
+          type: string;
+          granted: boolean;
+          grantedAt?: string;
+          grantedBy: string;
+        }>;
+      };
+    };
+    assert.deepEqual(trustData.medical, {
+      conditions: ['Asthma'],
+      allergies: ['Peanuts'],
+      medications: ['Inhaler'],
+      restrictions: [],
+      doctorName: null,
+      doctorPhone: null,
+      insuranceProvider: null,
+      insuranceNumber: null,
+      emergencyNotes: null,
+    });
+    const contact = trustData.emergencyContacts.contacts[0];
+    assert.match(String(contact?.id), /^emc_/);
+    assert.deepEqual(contact, {
+      id: contact?.id,
+      name: 'Atomic Parent',
+      phone: '+447700900789',
+      relationship: 'Parent',
+      isPrimary: true,
+      canPickup: true,
+    });
+    const consentByType = new Map(
+      trustData.consents.consents.map((consent) => [consent.type, consent]),
+    );
+    assert.equal(consentByType.get('PHOTO')?.granted, false);
+    assert.equal(consentByType.get('VIDEO')?.granted, true);
+    assert.match(consentByType.get('VIDEO')?.grantedAt ?? '', /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(consentByType.get('SOCIAL_MEDIA')?.granted, false);
+    assert.equal(consentByType.get('EMERGENCY_TREATMENT')?.granted, true);
+    assert.match(consentByType.get('EMERGENCY_TREATMENT')?.grantedAt ?? '', /^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('child profile API reads reject missing auth context instead of empty state', async () => {
@@ -215,7 +427,8 @@ describe('familyMemberService API mode', () => {
 
     try {
       await assert.rejects(
-        () => familyMemberService.updateFamilyMember('ath_family_update', { name: 'Updated Athlete' }),
+        () =>
+          familyMemberService.updateFamilyMember('ath_family_update', { name: 'Updated Athlete' }),
         /athlete update down/,
       );
       const result = await familyMemberService.update('ath_family_update', {
@@ -229,7 +442,7 @@ describe('familyMemberService API mode', () => {
     }
   });
 
-  it('keeps API-mode family calendar available when optional booking enrichment fails', async () => {
+  it('surfaces API-mode family booking authority failures', async () => {
     const [{ familyMemberService }, { childService }, { bookingAuthorityService }] =
       await Promise.all([
         import('@/services/family/family-member-service'),
@@ -238,35 +451,36 @@ describe('familyMemberService API mode', () => {
       ]);
 
     const originalGetChildren = childService.getChildren;
+    const originalGetChild = childService.getChild;
     const originalListBookings = bookingAuthorityService.listBookings;
+    const child: ChildProfile = {
+      id: 'ath_family_calendar',
+      parentId: 'usr_parent_calendar',
+      firstName: 'Calendar',
+      lastName: 'Athlete',
+      dateOfBirth: '2014-05-12',
+      gender: 'PREFER_NOT_TO_SAY',
+      relationship: 'OTHER',
+      primaryPosition: 'MID',
+      disabilities: [],
+      specialNeeds: [],
+      hasSpecialNeeds: false,
+      allergies: [],
+      medicalConditions: [],
+      medications: [],
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      emergencyContactRelation: '',
+      photoConsent: true,
+      videoConsent: true,
+      socialMediaConsent: false,
+      emergencyTreatmentConsent: true,
+      createdAt: '2026-07-01T09:00:00.000Z',
+      updatedAt: '2026-07-01T09:00:00.000Z',
+    };
 
-    childService.getChildren = async (): Promise<ChildProfile[]> => [
-      {
-        id: 'ath_family_calendar',
-        parentId: 'usr_parent_calendar',
-        firstName: 'Calendar',
-        lastName: 'Athlete',
-        dateOfBirth: '2014-05-12',
-        gender: 'PREFER_NOT_TO_SAY',
-        relationship: 'OTHER',
-        primaryPosition: 'MID',
-        disabilities: [],
-        specialNeeds: [],
-        hasSpecialNeeds: false,
-        allergies: [],
-        medicalConditions: [],
-        medications: [],
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        emergencyContactRelation: '',
-        photoConsent: true,
-        videoConsent: true,
-        socialMediaConsent: false,
-        emergencyTreatmentConsent: true,
-        createdAt: '2026-07-01T09:00:00.000Z',
-        updatedAt: '2026-07-01T09:00:00.000Z',
-      },
-    ];
+    childService.getChildren = async (): Promise<ChildProfile[]> => [child];
+    childService.getChild = async (): Promise<ChildProfile> => child;
     bookingAuthorityService.listBookings = async () =>
       ({
         success: false,
@@ -274,14 +488,29 @@ describe('familyMemberService API mode', () => {
       }) as Awaited<ReturnType<typeof bookingAuthorityService.listBookings>>;
 
     try {
-      const events = await familyMemberService.getFamilyCalendar('usr_parent_calendar', {
-        startDate: '2030-01-01T00:00:00.000Z',
-        endDate: '2030-01-31T23:59:59.999Z',
-      });
-
-      assert.deepEqual(events, []);
+      await assert.rejects(
+        () => familyMemberService.getFamilyBookings('usr_parent_calendar'),
+        /bookings api down/,
+      );
+      await assert.rejects(
+        () =>
+          familyMemberService.getFamilyCalendar('usr_parent_calendar', {
+            startDate: '2030-01-01T00:00:00.000Z',
+            endDate: '2030-01-31T23:59:59.999Z',
+          }),
+        /bookings api down/,
+      );
+      await assert.rejects(
+        () => familyMemberService.getUpcomingForFamily('usr_parent_calendar'),
+        /bookings api down/,
+      );
+      await assert.rejects(
+        () => familyMemberService.getChildBookings('ath_family_calendar'),
+        /bookings api down/,
+      );
     } finally {
       childService.getChildren = originalGetChildren;
+      childService.getChild = originalGetChild;
       bookingAuthorityService.listBookings = originalListBookings;
     }
   });
@@ -310,13 +539,17 @@ describe('familyMemberService API mode', () => {
   });
 
   it('surfaces backend child progress analytics failures instead of returning null', async () => {
-    const [{ familyMemberService }, { childService }, { analyticsQueryService }, { err, serviceError }] =
-      await Promise.all([
-        import('@/services/family/family-member-service'),
-        import('@/services/child-service'),
-        import('@/services/analytics/analytics-query-service'),
-        import('@/types/result'),
-      ]);
+    const [
+      { familyMemberService },
+      { childService },
+      { analyticsQueryService },
+      { err, serviceError },
+    ] = await Promise.all([
+      import('@/services/family/family-member-service'),
+      import('@/services/child-service'),
+      import('@/services/analytics/analytics-query-service'),
+      import('@/types/result'),
+    ]);
 
     const originalGetChild = childService.getChild;
     const originalGetAthleteAnalytics = analyticsQueryService.getAthleteAnalytics;

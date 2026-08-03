@@ -38,10 +38,13 @@ describe('childService', () => {
   describe('createChild + getChild', () => {
     test('creates a child with correct fields', async () => {
       const parentId = `p_${rid()}`;
-      const child = await childService.createChild(parentId, makeChildInput({
-        firstName: 'Alice',
-        lastName: 'Smith',
-      }));
+      const child = await childService.createChild(
+        parentId,
+        makeChildInput({
+          firstName: 'Alice',
+          lastName: 'Smith',
+        }),
+      );
 
       assert.ok(child.id);
       assert.equal(child.parentId, parentId);
@@ -49,11 +52,50 @@ describe('childService', () => {
       assert.equal(child.gender, 'MALE');
     });
 
+    test('defaults omitted consent to denied and keeps explicit grants', async () => {
+      const denied = await childService.createChild(`p_${rid()}`, makeChildInput());
+
+      assert.equal(denied.photoConsent, false);
+      assert.equal(denied.videoConsent, false);
+      assert.equal(denied.socialMediaConsent, false);
+      assert.equal(denied.emergencyTreatmentConsent, false);
+
+      const explicitlyGranted = await childService.createChild(
+        `p_${rid()}`,
+        makeChildInput({
+          videoConsent: true,
+          emergencyTreatmentConsent: true,
+        }),
+      );
+
+      assert.equal(explicitlyGranted.photoConsent, false);
+      assert.equal(explicitlyGranted.videoConsent, true);
+      assert.equal(explicitlyGranted.socialMediaConsent, false);
+      assert.equal(explicitlyGranted.emergencyTreatmentConsent, true);
+    });
+
     test('getChild returns created child', async () => {
       const child = await childService.createChild(`p_${rid()}`, makeChildInput());
       const found = await childService.getChild(child.id);
       assert.ok(found);
       assert.equal(found!.id, child.id);
+    });
+
+    test('can omit trust data from a child profile read', async () => {
+      const child = await childService.createChild(
+        `p_${rid()}`,
+        makeChildInput({
+          allergies: ['Peanuts'],
+          emergencyTreatmentConsent: true,
+        }),
+      );
+
+      const found = await childService.getChild(child.id, { includeTrustData: false });
+
+      assert.ok(found);
+      assert.deepEqual(found!.allergies, []);
+      assert.equal(found!.emergencyContactPhone, '');
+      assert.equal(found!.emergencyTreatmentConsent, false);
     });
 
     test('getChild returns null for unknown id', async () => {
@@ -222,12 +264,15 @@ describe('childService', () => {
   // ---------------------------------------------------------------------------
   describe('getCoachSummary', () => {
     test('returns summary with name and notes', async () => {
-      const child = await childService.createChild(`p_${rid()}`, makeChildInput({
-        firstName: 'Test',
-        lastName: 'Kid',
-        communicationNotes: 'Be gentle',
-        allergies: ['Peanuts'],
-      }));
+      const child = await childService.createChild(
+        `p_${rid()}`,
+        makeChildInput({
+          firstName: 'Test',
+          lastName: 'Kid',
+          communicationNotes: 'Be gentle',
+          allergies: ['Peanuts'],
+        }),
+      );
 
       const summary = childService.getCoachSummary(child);
       assert.equal(summary.name, 'Test Kid');

@@ -43,6 +43,8 @@ export function useAthleteDetail(athleteId: string) {
   const { currentUser } = useAuth();
   const { blockUser } = useBlockUserAction();
   const coachId = currentUser?.id ?? null;
+  const hasVerifiedCoachAccess =
+    Boolean(coachId) && currentUser?.role === 'COACH' && currentUser.isVerified;
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -63,8 +65,13 @@ export function useAthleteDetail(athleteId: string) {
     hasRequestedTruthfulFrame,
   } = useScreen<AthleteProfileData>({
     load: async (): Promise<Result<AthleteProfileData, ServiceError>> => {
-      if (!coachId) {
-        return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view athlete details.'));
+      if (!hasVerifiedCoachAccess || !coachId) {
+        return err(
+          serviceError(
+            'UNAUTHORIZED',
+            'A verified coach account is required to view athlete details.',
+          ),
+        );
       }
 
       try {
@@ -73,16 +80,19 @@ export function useAthleteDetail(athleteId: string) {
           return err({ code: 'NOT_FOUND', message: 'Athlete not found' });
         }
         const athleteName = getRosterAthleteName(entry);
-        const [emergencyResult, childData] = await Promise.all([
-          safetyService.getAthleteEmergency(athleteId, athleteName),
-          childService.getChild(athleteId),
-        ]);
+        const emergencyResult = await safetyService.getAthleteEmergency(
+          athleteId,
+          { requestorId: coachId, requestorRole: 'coach', isVerifiedCoach: true },
+          athleteName,
+        );
         if (!emergencyResult.success) {
-          logger.warn('Failed to load athlete emergency data', emergencyResult.error);
+          logger.error('Failed to load athlete emergency data', emergencyResult.error);
+          return err(emergencyResult.error);
         }
+        const childData = await childService.getChild(athleteId, { includeTrustData: false });
         return ok({
           entry,
-          emergencyData: emergencyResult.success ? emergencyResult.data : null,
+          emergencyData: emergencyResult.data,
           childData,
         });
       } catch (e) {
@@ -90,11 +100,14 @@ export function useAthleteDetail(athleteId: string) {
         return err(storageError('Failed to load athlete profile'));
       }
     },
-    deps: [coachId, athleteId],
+    deps: [coachId, currentUser?.role, currentUser?.isVerified, athleteId],
     events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.CONCERN_RAISED],
     isEmpty: (d) => !d.entry,
     loadingStrategy: 'section-skeleton',
-    dataKey: `athlete-detail:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
+    dataKey:
+      hasVerifiedCoachAccess && athleteId
+        ? `athlete-detail:${coachId}:verified:${athleteId}`
+        : 'athlete-detail:unavailable',
   });
 
   const requireCoachId = () => {

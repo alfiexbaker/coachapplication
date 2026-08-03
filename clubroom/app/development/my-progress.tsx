@@ -20,6 +20,7 @@ import {
   PositionPentagon,
   PositionToggle,
   PlayerCard,
+  PracticeLogCard,
   type LevelUpCeremonyRef,
   PastSessionsTimeline,
   ParentValueSummary,
@@ -77,6 +78,10 @@ export default function MyProgressScreen() {
     latestHomeworkProof,
     skillVelocityHighlight,
     attendanceDates,
+    todayPracticeMinutes,
+    weeklyPracticeMinutes,
+    logPracticeMinutes,
+    isLoggingPractice,
     coachFocus,
     familyHighlights,
     isParentContext,
@@ -84,6 +89,7 @@ export default function MyProgressScreen() {
     subjectOptions,
     selectedAthleteId,
     selectedAthleteName,
+    isSelfSubject,
     handleSelectNextChild,
     handleRefresh,
     generateTermlyReport,
@@ -133,7 +139,6 @@ export default function MyProgressScreen() {
       unsubs.forEach((unsub) => unsub());
     };
   }, [colors.info, colors.success, colors.tint, colors.warning, playerCard.tier]);
-  const isSelfSubject = Boolean(currentUser?.id && selectedAthleteId === currentUser.id);
   const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
   const stageGlow = PLAYER_CARD_TIER_CONFIG[playerCard.tier].accent;
@@ -387,6 +392,14 @@ export default function MyProgressScreen() {
       uiFeedback.showToast('Could not share the termly report right now.', 'error');
     }
   };
+  const handleLogPracticeMinutes = async (minutes: number) => {
+    const result = await logPracticeMinutes(minutes);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
+    uiFeedback.showToast(`${result.data.minutes} minutes logged today.`, 'success');
+  };
   if (loading) {
     return (
       <SafeAreaView
@@ -446,6 +459,16 @@ export default function MyProgressScreen() {
       >
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
+        {selectedAthleteId ? (
+          <View style={styles.emptyPracticeLog}>
+            <PracticeLogCard
+              todayMinutes={todayPracticeMinutes}
+              weeklyMinutes={weeklyPracticeMinutes}
+              onLogMinutes={(minutes) => void handleLogPracticeMinutes(minutes)}
+              disabled={isLoggingPractice}
+            />
+          </View>
+        ) : null}
         <EmptyState
           icon={isParentWithoutChildren ? 'people-outline' : 'analytics-outline'}
           title={emptyTitle}
@@ -564,6 +587,13 @@ export default function MyProgressScreen() {
             </Row>
           </Animated.View>
         ) : null}
+
+        <PracticeLogCard
+          todayMinutes={todayPracticeMinutes}
+          weeklyMinutes={weeklyPracticeMinutes}
+          onLogMinutes={(minutes) => void handleLogPracticeMinutes(minutes)}
+          disabled={isLoggingPractice}
+        />
 
         <Animated.View
           style={playerCardStyle}
@@ -714,6 +744,10 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.md,
     paddingBottom: Spacing['3xl'],
+  },
+  emptyPracticeLog: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
   },
   cardStage: {
     position: 'relative',

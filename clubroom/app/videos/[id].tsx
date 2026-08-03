@@ -8,7 +8,6 @@ import type { ReactNode } from 'react';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Row } from '@/components/primitives/row';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
 import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video-annotation';
 import { VideoInfoSection } from '@/components/video/video-info-section';
@@ -39,7 +38,6 @@ export default function VideoDetailScreen() {
     handleSeekToAnnotation,
     handleQuickAnnotation,
     handleSaveAnnotation,
-    handleShare,
     handleToggleVisibility,
     handleDelete,
     dismissAnnotationModal,
@@ -64,16 +62,11 @@ export default function VideoDetailScreen() {
       centerTitle
       containerStyle={styles.header}
       right={
-        <Row align="center" gap="md">
-          <Clickable accessibilityLabel="Share video" onPress={handleShare} hitSlop={8}>
-            <Ionicons name="share-outline" size={22} color={colors.text} />
+        isOwner ? (
+          <Clickable accessibilityLabel="Archive video" onPress={handleDelete} hitSlop={8}>
+            <Ionicons name="trash-outline" size={22} color={colors.error} />
           </Clickable>
-          {isOwner ? (
-            <Clickable accessibilityLabel="Archive video" onPress={handleDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={22} color={colors.error} />
-            </Clickable>
-          ) : null}
-        </Row>
+        ) : undefined
       }
     />
   );
@@ -182,7 +175,6 @@ export default function VideoDetailScreen() {
           <Animated.View entering={FadeInDown.delay(250).springify()}>
             <VideoDetailsCard
               colors={colors}
-              coachName="Coach"
               createdAt={video.createdAt}
               fileSize={video.fileSize}
               sessionId={video.sessionId}

@@ -41,6 +41,7 @@ export interface CreateCommentInput {
   authorAvatar?: string;
   content: string;
   parentId?: string; // For replies
+  idempotencyKey?: string; // Reused when the same submit intent is retried
 }
 
 /**

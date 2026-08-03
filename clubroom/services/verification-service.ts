@@ -6,8 +6,17 @@ import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { type Result, type ServiceError, ok, err, storageError, serviceError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  serviceError,
+  validationError,
+} from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
+import { waitForUploadScanCompletion } from '@/services/upload-authority-service';
 
 const logger = createLogger('VerificationService');
 
@@ -28,11 +37,6 @@ interface ApiUploadInitResponse {
   uploadHeaders?: Record<string, string>;
 }
 
-interface ApiUploadCompleteResponse {
-  mediaObjectId: string;
-  mediaStatus: 'AVAILABLE';
-}
-
 interface ApiVerificationDocumentSubmitResponse {
   type: string;
   verification: unknown;
@@ -49,6 +53,19 @@ export interface VerificationDocumentUploadInput {
   label?: string;
 }
 
+export const VERIFICATION_DOCUMENT_MAX_BYTES = 20 * 1024 * 1024;
+export const VERIFICATION_DOCUMENT_PICKER_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+];
+const VERIFICATION_DOCUMENT_CONTENT_TYPES = new Set(
+  VERIFICATION_DOCUMENT_PICKER_TYPES.filter((type) => type !== 'image/heif'),
+);
+
 type ApiVerificationType = 'identity' | 'credential' | 'insurance' | 'dbs';
 type ApiVerificationReviewStatus = 'APPROVED' | 'REJECTED' | 'EXPIRED';
 
@@ -60,13 +77,35 @@ function requireApiData<T>(result: Result<T, ServiceError>, fallbackMessage: str
 }
 
 function verificationContentType(input: VerificationDocumentUploadInput): string {
-  const explicit = input.contentType?.trim();
+  const explicit = input.contentType?.split(';', 1)[0]?.trim().toLowerCase();
+  if (explicit === 'image/heif') return 'image/heic';
+  if (explicit === 'image/jpg') return 'image/jpeg';
   if (explicit) return explicit;
   const normalized = input.fileName.toLowerCase().split('?')[0] ?? input.fileName.toLowerCase();
   if (normalized.endsWith('.png')) return 'image/png';
   if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg';
   if (normalized.endsWith('.webp')) return 'image/webp';
-  return 'application/pdf';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  if (normalized.endsWith('.pdf')) return 'application/pdf';
+  return '';
+}
+
+export function validateVerificationDocumentSelection(
+  input: VerificationDocumentUploadInput,
+): Result<VerificationDocumentUploadInput, ServiceError> {
+  const contentType = verificationContentType(input);
+  if (!VERIFICATION_DOCUMENT_CONTENT_TYPES.has(contentType)) {
+    return err(validationError('Choose a PDF, JPG, PNG, WebP or HEIC file.'));
+  }
+  if (input.sizeBytes != null) {
+    if (!Number.isSafeInteger(input.sizeBytes) || input.sizeBytes <= 0) {
+      return err(validationError('Choose a non-empty file.'));
+    }
+    if (input.sizeBytes > VERIFICATION_DOCUMENT_MAX_BYTES) {
+      return err(validationError('Verification documents must be 20 MB or smaller.'));
+    }
+  }
+  return ok({ ...input, contentType });
 }
 
 function verificationUploadKind(contentType: string): 'IMAGE' | 'DOCUMENT' {
@@ -89,7 +128,9 @@ function apiReviewTypeForField(
   }
 }
 
-function apiReviewStatusFromUpdate(update: Partial<VerificationItem>): ApiVerificationReviewStatus | null {
+function apiReviewStatusFromUpdate(
+  update: Partial<VerificationItem>,
+): ApiVerificationReviewStatus | null {
   switch (update.status) {
     case 'VERIFIED':
       return 'APPROVED';
@@ -103,11 +144,26 @@ function apiReviewStatusFromUpdate(update: Partial<VerificationItem>): ApiVerifi
 }
 
 async function verificationFileSize(input: VerificationDocumentUploadInput): Promise<number> {
-  if (typeof input.sizeBytes === 'number' && Number.isFinite(input.sizeBytes) && input.sizeBytes > 0) {
-    return Math.max(1, Math.round(input.sizeBytes));
+  if (Number.isSafeInteger(input.sizeBytes) && (input.sizeBytes ?? 0) > 0) {
+    return input.sizeBytes as number;
   }
-  const info = await FileSystem.getInfoAsync(input.uri);
-  return info.exists && typeof info.size === 'number' ? Math.max(1, info.size) : 1;
+  const size =
+    Platform.OS === 'web'
+      ? await (async () => {
+          const response = await fetch(input.uri);
+          if (!response.ok) {
+            throw new Error(`Unable to read verification file (${response.status})`);
+          }
+          return (await response.blob()).size;
+        })()
+      : await (async () => {
+          const info = await FileSystem.getInfoAsync(input.uri);
+          return info.exists ? info.size : undefined;
+        })();
+  if (!Number.isSafeInteger(size) || (size ?? 0) <= 0) {
+    throw new Error('Verification file size could not be determined');
+  }
+  return size as number;
 }
 
 async function uploadFileToSignedUrl(
@@ -117,6 +173,9 @@ async function uploadFileToSignedUrl(
 ): Promise<void> {
   if (Platform.OS === 'web') {
     const source = await fetch(fileUri);
+    if (!source.ok) {
+      throw new Error(`Unable to read verification file (${source.status})`);
+    }
     const blob = await source.blob();
     const response = await fetch(uploadUrl, {
       method: 'PUT',
@@ -143,33 +202,37 @@ async function uploadVerificationDocument(
   upload: VerificationDocumentUploadInput,
   type: ApiVerificationType,
 ): Promise<string> {
-  const contentType = verificationContentType(upload);
+  const sizeBytes = await verificationFileSize(upload);
+  const validated = validateVerificationDocumentSelection({ ...upload, sizeBytes });
+  if (!validated.success) {
+    throw new Error(validated.error.message);
+  }
+  const normalizedUpload = validated.data;
+  const contentType = normalizedUpload.contentType as string;
   const init = requireApiData(
     await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
       method: 'POST',
       body: JSON.stringify({
         kind: verificationUploadKind(contentType),
         contentType,
-        fileName: upload.fileName,
-        sizeBytes: await verificationFileSize(upload),
+        fileName: normalizedUpload.fileName,
+        sizeBytes,
         metadata: {
           source: 'coach-verification',
           verificationType: type,
-          label: upload.label ?? upload.fileName,
+          label: normalizedUpload.label ?? normalizedUpload.fileName,
         },
       }),
     }),
     'Failed to initialize verification document upload',
   );
 
-  await uploadFileToSignedUrl(upload.uri, init.uploadUrl, init.uploadHeaders);
+  await uploadFileToSignedUrl(normalizedUpload.uri, init.uploadUrl, init.uploadHeaders);
 
   requireApiData(
-    await apiFetch<ApiUploadCompleteResponse>(`/v1/uploads/${init.uploadSessionId}/complete`, {
-      method: 'POST',
-      body: JSON.stringify({
-        mediaObjectId: init.mediaObjectId,
-      }),
+    await waitForUploadScanCompletion({
+      uploadSessionId: init.uploadSessionId,
+      mediaObjectId: init.mediaObjectId,
     }),
     'Failed to finalize verification document upload',
   );
@@ -493,6 +556,24 @@ class VerificationService {
     });
   }
 
+  /**
+   * Submit an existing DBS certificate for review.
+   */
+  async submitBackgroundCheckVerification(
+    coachId: string,
+    document: VerificationDocumentUploadInput,
+  ): Promise<Result<VerificationStatus, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return this.submitVerificationDocument(coachId, 'dbs', document, document.label);
+    }
+
+    return this.updateVerificationItem(coachId, 'backgroundCheck', {
+      status: 'PENDING',
+      documentUrl: document.uri,
+      notes: document.label ?? 'DBS certificate submitted, awaiting review',
+    });
+  }
+
   private async submitVerificationDocument(
     coachId: string,
     type: ApiVerificationType,
@@ -536,7 +617,9 @@ class VerificationService {
    * Check all verifications for expiry and auto-mark expired ones.
    * Call on app foreground resume, throttled to once per 24h.
    */
-  async checkAndUpdateExpiredVerifications(): Promise<Result<{ expiredCount: number }, ServiceError>> {
+  async checkAndUpdateExpiredVerifications(): Promise<
+    Result<{ expiredCount: number }, ServiceError>
+  > {
     try {
       if (!apiClient.isMockMode) {
         logger.info('Skipping client-side verification expiry mutation in API mode');
@@ -567,7 +650,10 @@ class VerificationService {
           verification.backgroundCheck.status = 'EXPIRED';
           needsUpdate = true;
           expiredCount++;
-          logger.warn('DBS verification expired', { coachId, expiryDate: backgroundCheckExpiresAt });
+          logger.warn('DBS verification expired', {
+            coachId,
+            expiryDate: backgroundCheckExpiresAt,
+          });
           emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
             coachId,
             verificationType: 'dbs',
@@ -663,7 +749,11 @@ class VerificationService {
                 expiresAt: item.expiresAt,
                 daysRemaining: daysUntilExpiry,
               });
-              logger.warn('Verification expiring soon', { coachId, type, daysRemaining: daysUntilExpiry });
+              logger.warn('Verification expiring soon', {
+                coachId,
+                type,
+                daysRemaining: daysUntilExpiry,
+              });
               warningsSent++;
             }
           }

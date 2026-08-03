@@ -60,8 +60,8 @@ test('my progress attendance enrichment uses live booking authority outside mock
     'API mode must use booking authority service',
   );
   assert.ok(
-    helperSource.includes('return [];'),
-    'secondary attendance enrichment may disappear instead of falling back to local data',
+    helperSource.includes('throw new Error(result.error.message);'),
+    'API-mode attendance booking authority failures should surface instead of disappearing',
   );
   assert.ok(
     helperSource.includes('mapApiBookingToBooking'),

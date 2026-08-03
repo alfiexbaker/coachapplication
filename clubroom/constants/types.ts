@@ -49,8 +49,6 @@ export type {
   SimplifiedCoach,
   CoachSearchParams,
   UserProfile,
-  School,
-  InviteCode,
   VerificationItem,
   VerificationStatus,
   CoachFeedback,
@@ -120,6 +118,7 @@ export type {
 // ============================================================================
 export type {
   OrganizationCommercialMode,
+  OrganizationJoinPolicy,
   ClubRole,
   Club,
   ClubMembership,

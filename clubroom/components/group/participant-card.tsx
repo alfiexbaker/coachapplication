@@ -8,12 +8,16 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { GroupRegistration, SessionRsvp } from '@/constants/types';
 import { Row } from '@/components/primitives';
-import {
-  getGroupRegistrationAthleteName,
-  getGroupRegistrationParentName,
-} from '@/utils/group-display';
+import { getGroupRegistrationAthleteName } from '@/utils/group-display';
 
-const RSVP_CONFIG: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; colorKey: 'success' | 'warning' | 'error' | 'muted' }> = {
+const RSVP_CONFIG: Record<
+  string,
+  {
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    colorKey: 'success' | 'warning' | 'error' | 'muted';
+  }
+> = {
   going: { label: 'Going', icon: 'checkmark-circle', colorKey: 'success' },
   maybe: { label: 'Maybe', icon: 'help-circle', colorKey: 'warning' },
   not_going: { label: "Can't Go", icon: 'close-circle', colorKey: 'error' },
@@ -39,7 +43,7 @@ export function ParticipantCard({
 }: ParticipantCardProps) {
   const { colors: palette } = useTheme();
   const athleteName = getGroupRegistrationAthleteName(registration);
-  const parentName = getGroupRegistrationParentName(registration);
+  const parentName = registration.parentName?.trim();
 
   const statusColors: Record<GroupRegistration['status'], { bg: string; text: string }> = {
     REGISTERED: { bg: withAlpha(palette.success, 0.09), text: palette.success },
@@ -70,9 +74,11 @@ export function ParticipantCard({
 
         <View style={styles.info}>
           <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
-          <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-            Parent: {parentName}
-          </ThemedText>
+          {parentName ? (
+            <ThemedText style={[styles.parentName, { color: palette.muted }]}>
+              Parent: {parentName}
+            </ThemedText>
+          ) : null}
           <Row gap="xs" style={{ marginTop: Spacing.xxs }}>
             <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
               <ThemedText style={[styles.statusText, { color: colors.text }]}>
@@ -118,6 +124,8 @@ export function ParticipantCard({
                 borderColor: isAttended ? palette.success : palette.border,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel={`Mark ${athleteName} as ${isAttended ? 'not attended' : 'attended'}`}
           >
             <Ionicons
               name={isAttended ? 'checkmark-circle' : 'checkmark-circle-outline'}
@@ -145,7 +153,10 @@ export function ParticipantCard({
             onPress={onRecognise}
             style={[
               styles.actionButton,
-              { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.2) },
+              {
+                backgroundColor: withAlpha(palette.warning, 0.09),
+                borderColor: withAlpha(palette.warning, 0.2),
+              },
             ]}
             accessibilityLabel={`Recognise ${athleteName}`}
           >
@@ -155,7 +166,8 @@ export function ParticipantCard({
 
         {onCancel && (
           <Clickable
-            accessibilityLabel="Close"
+            accessibilityRole="button"
+            accessibilityLabel={`Cancel registration for ${athleteName}`}
             onPress={onCancel}
             style={[
               styles.actionButton,

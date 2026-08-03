@@ -13,6 +13,7 @@ import {
 } from '@/services/api-auth-context';
 import { consentService } from '@/services/consent-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { waitForUploadScanCompletion } from '@/services/upload-authority-service';
 import { err, ok, unsupportedError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { PhotoAsset, SessionMedia, VideoAsset } from '@/types/progress-types';
@@ -26,11 +27,6 @@ type ApiUploadInitResponse = {
   mediaObjectId: string;
   uploadUrl: string;
   uploadHeaders?: Record<string, string>;
-};
-
-type ApiUploadCompleteResponse = {
-  mediaObjectId: string;
-  mediaStatus: 'AVAILABLE';
 };
 
 type ApiSessionMediaResponse = {
@@ -139,8 +135,23 @@ function uploadFileName(uri: string, kind: 'photo' | 'video'): string {
 }
 
 async function fileSizeBytes(uri: string): Promise<number> {
-  const info = await FileSystem.getInfoAsync(uri);
-  return info.exists && typeof info.size === 'number' ? Math.max(1, info.size) : 1;
+  const size =
+    Platform.OS === 'web'
+      ? await (async () => {
+          const response = await fetch(uri);
+          if (!response.ok) {
+            throw new Error(`Unable to read upload file (${response.status})`);
+          }
+          return (await response.blob()).size;
+        })()
+      : await (async () => {
+          const info = await FileSystem.getInfoAsync(uri);
+          return info.exists ? info.size : undefined;
+        })();
+  if (!Number.isSafeInteger(size) || (size ?? 0) <= 0) {
+    throw new Error('Upload file size could not be determined');
+  }
+  return size as number;
 }
 
 async function uploadFileToSignedUrl(
@@ -150,6 +161,9 @@ async function uploadFileToSignedUrl(
 ): Promise<void> {
   if (Platform.OS === 'web') {
     const source = await fetch(fileUri);
+    if (!source.ok) {
+      throw new Error(`Unable to read upload file (${source.status})`);
+    }
     const blob = await source.blob();
     const response = await fetch(uploadUrl, {
       method: 'PUT',
@@ -204,15 +218,10 @@ async function uploadSessionMediaObject(params: {
   await uploadFileToSignedUrl(params.uri, uploadInit.uploadUrl, uploadInit.uploadHeaders);
 
   requireApiData(
-    await apiFetch<ApiUploadCompleteResponse>(
-      `/v1/uploads/${uploadInit.uploadSessionId}/complete`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          mediaObjectId: uploadInit.mediaObjectId,
-        }),
-      },
-    ),
+    await waitForUploadScanCompletion({
+      uploadSessionId: uploadInit.uploadSessionId,
+      mediaObjectId: uploadInit.mediaObjectId,
+    }),
     'Failed to finalize media upload',
   );
 

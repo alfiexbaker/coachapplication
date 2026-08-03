@@ -63,7 +63,10 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'AWAITING_COMPLETION'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'DECLINED'
+  | 'WITHDRAWN'
+  | 'EXPIRED';
 
 export interface Booking {
   id: string;
@@ -93,6 +96,7 @@ export interface Booking {
   currentParticipants?: number;
   participants?: {
     id: string;
+    guardianUserId?: string;
     status: 'confirmed' | 'pending' | 'cancelled';
   }[];
   version?: number;
@@ -118,6 +122,9 @@ export interface Booking {
   // Bilateral confirmation fields
   confirmationMode?: 'auto' | 'manual'; // coach preference
   confirmedAt?: string; // when coach confirmed (manual mode)
+  requestExpiresAt?: string;
+  requestResolvedAt?: string;
+  requestResolutionReason?: string;
   declinedReason?: string; // if coach declines booking request
   cancelledBy?: string; // userId who cancelled
   cancelledAt?: string; // when cancelled
@@ -138,6 +145,7 @@ export interface Session {
   bookingId: string;
   coachId: string;
   athleteId: string;
+  athleteName?: string;
   completedAt: string;
   attendance: AttendanceStatus;
   notes: string; // Coach's session notes

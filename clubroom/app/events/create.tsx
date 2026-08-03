@@ -22,14 +22,20 @@ function CreateEventStep({
   step,
   form,
   squads,
+  squadContextLoading,
+  squadContextError,
   clubId,
   setField,
+  retrySquadContext,
 }: {
   step: CreateEventState['step'];
   form: CreateEventState['form'];
   squads: CreateEventState['squads'];
+  squadContextLoading: CreateEventState['squadContextLoading'];
+  squadContextError: CreateEventState['squadContextError'];
   clubId: CreateEventState['clubId'];
   setField: CreateEventState['setField'];
+  retrySquadContext: CreateEventState['retrySquadContext'];
 }) {
   switch (step) {
     case 'type':
@@ -69,6 +75,9 @@ function CreateEventStep({
           selectedSquadIds={form.selectedSquadIds}
           selectedAthleteIds={form.selectedAthleteIds}
           squads={squads}
+          squadLoading={squadContextLoading}
+          squadError={squadContextError}
+          onRetrySquads={retrySquadContext}
           maxAttendees={form.maxAttendees}
           price={form.price}
           rsvpRequired={form.rsvpRequired}
@@ -111,6 +120,8 @@ export default function CreateEventScreen() {
     step,
     loading,
     squads,
+    squadContextLoading,
+    squadContextError,
     clubId,
     clubContextLoading,
     clubContextError,
@@ -121,6 +132,7 @@ export default function CreateEventScreen() {
     goNext,
     goBack,
     handleCreate,
+    retrySquadContext,
   } = useCreateEvent();
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -199,8 +211,11 @@ export default function CreateEventScreen() {
           step={step}
           form={form}
           squads={squads}
+          squadContextLoading={squadContextLoading}
+          squadContextError={squadContextError}
           clubId={clubId}
           setField={setField}
+          retrySquadContext={retrySquadContext}
         />
       </ScrollView>
 

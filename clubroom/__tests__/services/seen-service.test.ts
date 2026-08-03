@@ -10,17 +10,17 @@ describe('seenService', () => {
     await apiClient.remove(STORAGE_KEYS.SEEN_STATUSES);
   });
 
-  it('marks walkthrough seen status and retrieves it (happy path)', async () => {
+  it('marks local UI status and retrieves it (happy path)', async () => {
     const markResult = await seenService.markSeen(
-      'demo_walkthrough',
-      'user-1:coach_delivery',
+      'daily_challenge_animation_seen',
+      'challenge-1',
       'user-1',
     );
     assert.equal(markResult.success, true);
 
     const statusResult = await seenService.getSeenStatus(
-      'demo_walkthrough',
-      'user-1:coach_delivery',
+      'daily_challenge_animation_seen',
+      'challenge-1',
     );
     assert.equal(statusResult.success, true);
     if (!statusResult.success) return;
@@ -30,9 +30,9 @@ describe('seenService', () => {
   });
 
   it('returns empty list when no statuses are present (empty path)', async () => {
-    const statusesResult = await seenService.getSeenStatuses('demo_walkthrough', [
-      'user-1:coach_delivery',
-      'user-1:family_ops',
+    const statusesResult = await seenService.getSeenStatuses('daily_challenge_animation_seen', [
+      'challenge-1',
+      'challenge-2',
     ]);
     assert.equal(statusesResult.success, true);
     if (!statusesResult.success) return;
@@ -51,8 +51,8 @@ describe('seenService', () => {
 
     try {
       const result = await seenService.markSeen(
-        'demo_walkthrough',
-        'user-err:coach_delivery',
+        'daily_challenge_animation_seen',
+        'challenge-error',
         'user-err',
       );
       assert.equal(result.success, false);
@@ -60,6 +60,39 @@ describe('seenService', () => {
 
       assert.equal(result.error.code, 'STORAGE');
     } finally {
+      apiClientInternals.get = originalGet;
+    }
+  });
+
+  it('rejects product read-receipt entity types in API mode before local storage access', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const apiClientInternals = apiClient as unknown as {
+      get: typeof apiClient.get;
+    };
+    const originalGet = apiClientInternals.get;
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    apiClientInternals.get = async () => {
+      throw new Error('seen service should not read local storage for product read receipts');
+    };
+
+    try {
+      const result = await seenService.markSeen(
+        'message_read_receipt',
+        'message-1',
+        'user-1',
+      );
+      assert.equal(result.success, false);
+      if (result.success) return;
+
+      assert.equal(result.error.code, 'UNSUPPORTED');
+      assert.match(result.error.message, /read receipts/i);
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
       apiClientInternals.get = originalGet;
     }
   });

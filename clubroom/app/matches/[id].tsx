@@ -31,11 +31,11 @@ export default function MatchDetailScreen() {
     retry,
     showLineupSelector,
     isSubmitting,
-    isCoach,
+    canManageMatch,
     currentPlayerInfo,
     isUpcoming,
-    isComplete,
-    isCancelled,
+    canRecordResult,
+    canCancelMatch,
     setShowLineupSelector,
     handleSetLineup,
     handlePlayerResponse,
@@ -88,7 +88,7 @@ export default function MatchDetailScreen() {
     );
   }
 
-  if (showLineupSelector && isCoach) {
+  if (showLineupSelector && canManageMatch) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
@@ -133,7 +133,7 @@ export default function MatchDetailScreen() {
         >
           <MatchHeaderCard match={match} isUpcoming={!!isUpcoming} />
 
-          {!isCoach && currentPlayerInfo && isUpcoming && (
+          {currentPlayerInfo && isUpcoming && (
             <View style={styles.section}>
               <AvailabilityResponse
                 match={match}
@@ -144,7 +144,7 @@ export default function MatchDetailScreen() {
             </View>
           )}
 
-          {isCoach && isUpcoming && (
+          {canManageMatch && isUpcoming && (
             <View style={styles.section}>
               <MatchAvailabilityStats
                 match={match}
@@ -159,13 +159,11 @@ export default function MatchDetailScreen() {
             </View>
           )}
 
-          {isCoach && (
+          {canManageMatch && (
             <View style={styles.section}>
               <MatchCoachActions
-                isComplete={!!isComplete}
-                isUpcoming={!!isUpcoming}
-                isCancelled={!!isCancelled}
-                hasResult={!!match.result}
+                canRecordResult={canRecordResult}
+                canCancelMatch={canCancelMatch}
                 onRecordResult={handleRecordResult}
                 onCancelMatch={handleCancelMatch}
               />

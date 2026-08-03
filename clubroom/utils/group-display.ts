@@ -14,9 +14,9 @@ export function getGroupSessionCoachName(session: GroupSession): string {
 }
 
 export function getGroupRegistrationAthleteName(registration: GroupRegistration): string {
-  return safeDisplayLabel(registration.athleteId, 'Athlete');
+  return safeDisplayLabel(registration.athleteName, 'Name unavailable');
 }
 
 export function getGroupRegistrationParentName(registration: GroupRegistration): string {
-  return safeDisplayLabel(registration.parentId, 'Parent');
+  return safeDisplayLabel(registration.parentName, 'Guardian unavailable');
 }

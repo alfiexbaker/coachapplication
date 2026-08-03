@@ -1,205 +1,230 @@
-/**
- * Edit Child SEN Modal
- *
- * Post-creation editing of disabilities, special needs, and notes.
- * Accessible from the parent's child profile / edit-children section.
- */
-
 import { useRef } from 'react';
-import { ScrollView, View, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 
-import { ThemedText } from '@/components/themed-text';
+import {
+  DisabilitySelector,
+  SpecialNeedEntrySection,
+} from '@/components/family/medical-special-needs-form-sections';
 import { Button } from '@/components/primitives/button';
-import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Row } from '@/components/primitives/row';
-import { Column } from '@/components/primitives/column';
-import { DisabilitySelector, SpecialNeedEntrySection } from '@/components/family/medical-special-needs-form-sections';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
-import { Radii, Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
+import { ThemedText } from '@/components/themed-text';
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useEditChildSen } from '@/hooks/use-edit-child-sen';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function EditChildSenScreen() {
-  const { colors: palette } = useTheme();
-  const c = useEditChildSen();
+  const { colors } = useTheme();
+  const editor = useEditChildSen();
   const modalRef = useRef<View>(null);
-  useFocusTrap(modalRef, 'Edit child special needs modal');
+  useFocusTrap(modalRef, 'Player support modal');
 
-  const renderStateShell = (content: ReactNode) => (
+  const renderShell = (content: ReactNode) => (
     <SafeAreaView
       ref={modalRef}
-      accessible
       accessibilityViewIsModal
-      accessibilityRole="none"
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title="Edit SEN" showBack centerTitle />
+      <PageHeader title="Player support" showBack centerTitle />
       {content}
     </SafeAreaView>
   );
 
-  if (c.loading) {
-    return renderStateShell(<LoadingState variant="detail" />);
+  if (editor.loading) {
+    return renderShell(
+      <LoadingState variant="form" accessibilityLabel="Loading player support editor" />,
+    );
   }
 
-  if (c.status === 'error' || !c.child) {
-    return renderStateShell(
+  if (editor.status === 'error') {
+    return renderShell(
       <ErrorState
-        message={c.error?.message ?? 'Failed to load child profile.'}
-        onRetry={c.retry}
+        title="Could not load player support"
+        message={editor.error?.message ?? 'Could not load this player support profile.'}
+        onRetry={editor.retry}
       />,
     );
   }
 
+  if (editor.access === 'denied') {
+    return renderShell(
+      <View style={styles.stateContainer}>
+        <EmptyState
+          context="error"
+          title="Support editing unavailable"
+          message="You do not have permission to edit this player’s support information."
+        />
+      </View>,
+    );
+  }
+
+  if (editor.access === 'not_found' || !editor.child) {
+    return renderShell(
+      <View style={styles.stateContainer}>
+        <EmptyState
+          icon="person-outline"
+          title="Player not found"
+          message="This player support profile is no longer available."
+        />
+      </View>,
+    );
+  }
+
+  const textAreaStyle = [
+    styles.textArea,
+    { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface },
+  ];
+
   return (
     <SafeAreaView
       ref={modalRef}
-      accessible
       accessibilityViewIsModal
-      accessibilityRole="none"
-      style={[styles.container, { backgroundColor: palette.background }]}
+      style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <PageHeader title={`${c.child.firstName}'s SEN`} showBack centerTitle />
+      <PageHeader title="Player support" showBack centerTitle />
+
+      {editor.saving ? (
+        <SubmitProgressState label="Saving player support" style={styles.submitState} />
+      ) : null}
+
+      {editor.formError ? (
+        <Row
+          style={[
+            styles.errorBanner,
+            {
+              backgroundColor: withAlpha(colors.error, 0.08),
+              borderColor: withAlpha(colors.error, 0.24),
+            },
+          ]}
+          accessibilityRole="alert"
+        >
+          <Ionicons name="alert-circle-outline" size={18} color={colors.error} />
+          <ThemedText style={[styles.errorText, { color: colors.error }]}>
+            {editor.formError}
+          </ThemedText>
+        </Row>
+      ) : null}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.container}
       >
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Existing disabilities */}
-          {c.child.disabilities.length > 0 && (
-            <SurfaceCard style={styles.card}>
-              <ThemedText type="heading">Current Disabilities</ThemedText>
-              {c.child.disabilities.map((d) => (
-                <Row
-                  key={d.id}
-                  align="center"
-                  justify="space-between"
-                  style={[styles.itemRow, { borderColor: palette.border }]}
-                >
-                  <Column flex>
-                    <ThemedText style={Typography.bodySemiBold}>{d.type}</ThemedText>
-                    {d.description && (
-                      <ThemedText style={[Typography.small, { color: palette.muted }]}>
-                        {d.description}
-                      </ThemedText>
-                    )}
-                  </Column>
-                  <Clickable
-                    onPress={() => c.removeDisability(d.id)}
-                    accessibilityLabel={`Remove ${d.type}`}
-                    hitSlop={8}
-                  >
-                    <Ionicons name="close-circle" size={22} color={palette.error} />
-                  </Clickable>
-                </Row>
-              ))}
-            </SurfaceCard>
-          )}
+          <ThemedText style={[styles.intro, { color: colors.muted }]}>
+            Add only what coaches need to support this player.
+          </ThemedText>
 
-          {/* Add disability */}
-          <SurfaceCard style={styles.card}>
-            <ThemedText type="heading">Add Disability</ThemedText>
+          <View style={styles.section}>
             <DisabilitySelector
-              disabilities={c.child.disabilities}
-              selectedDisabilityType={c.selectedDisabilityType}
-              disabilityDescription={c.disabilityDescription}
-              diagnosisDate={c.diagnosisDate}
-              supportRequired={c.supportRequired}
-              commPrefs={c.commPrefs}
-              triggers={c.triggers}
-              calmingStrategies={c.calmingStrategies}
-              onDisabilitiesChange={() => {/* removal handled above */}}
-              onSelectedDisabilityTypeChange={c.onSelectedDisabilityTypeChange}
-              onDisabilityDescriptionChange={c.onDisabilityDescriptionChange}
-              onDiagnosisDateChange={c.onDiagnosisDateChange}
-              onSupportRequiredChange={c.onSupportRequiredChange}
-              onCommPrefsChange={c.onCommPrefsChange}
-              onTriggersChange={c.onTriggersChange}
-              onCalmingStrategiesChange={c.onCalmingStrategiesChange}
-              onAddDisability={c.addDisability}
-              palette={palette}
+              disabilities={editor.disabilities}
+              selectedDisabilityType={editor.selectedDisabilityType}
+              disabilityDescription={editor.disabilityDescription}
+              diagnosisDate={editor.diagnosisDate}
+              supportRequired={editor.supportRequired}
+              commPrefs={editor.commPrefs}
+              triggers={editor.triggers}
+              calmingStrategies={editor.calmingStrategies}
+              onDisabilitiesChange={editor.onDisabilitiesChange}
+              onSelectedDisabilityTypeChange={editor.onSelectedDisabilityTypeChange}
+              onDisabilityDescriptionChange={editor.onDisabilityDescriptionChange}
+              onDiagnosisDateChange={editor.onDiagnosisDateChange}
+              onSupportRequiredChange={editor.onSupportRequiredChange}
+              onCommPrefsChange={editor.onCommPrefsChange}
+              onTriggersChange={editor.onTriggersChange}
+              onCalmingStrategiesChange={editor.onCalmingStrategiesChange}
+              onAddDisability={editor.addDisability}
+              palette={colors}
             />
-          </SurfaceCard>
+          </View>
 
-          {/* Special needs */}
-          <SurfaceCard style={styles.card}>
+          <View style={[styles.section, styles.dividedSection, { borderTopColor: colors.border }]}>
             <SpecialNeedEntrySection
-              specialNeeds={c.child.specialNeeds}
-              snCategory={c.snCategory}
-              snName={c.snName}
-              snDescription={c.snDescription}
-              snSeverity={c.snSeverity}
-              snAccommodations={c.snAccommodations}
-              snParentHints={c.snParentHints}
-              onSnCategoryChange={c.onSnCategoryChange}
-              onSnNameChange={c.onSnNameChange}
-              onSnDescriptionChange={c.onSnDescriptionChange}
-              onSnSeverityChange={c.onSnSeverityChange}
-              onSnAccommodationsChange={c.onSnAccommodationsChange}
-              onSnParentHintsChange={c.onSnParentHintsChange}
-              onAddSpecialNeed={c.addSpecialNeed}
-              onRemoveSpecialNeed={c.removeSpecialNeed}
-              palette={palette}
+              specialNeeds={editor.specialNeeds}
+              snCategory={editor.snCategory}
+              snName={editor.snName}
+              snDescription={editor.snDescription}
+              snSeverity={editor.snSeverity}
+              snAccommodations={editor.snAccommodations}
+              snParentHints={editor.snParentHints}
+              onSnCategoryChange={editor.onSnCategoryChange}
+              onSnNameChange={editor.onSnNameChange}
+              onSnDescriptionChange={editor.onSnDescriptionChange}
+              onSnSeverityChange={editor.onSnSeverityChange}
+              onSnAccommodationsChange={editor.onSnAccommodationsChange}
+              onSnParentHintsChange={editor.onSnParentHintsChange}
+              onAddSpecialNeed={editor.addSpecialNeed}
+              onCancelSpecialNeed={editor.cancelSpecialNeed}
+              onRemoveSpecialNeed={editor.removeSpecialNeed}
+              palette={colors}
             />
-          </SurfaceCard>
+          </View>
 
-          {/* Notes */}
-          <SurfaceCard style={styles.card}>
-            <ThemedText type="heading">Notes for Coaches</ThemedText>
+          <View style={[styles.section, styles.dividedSection, { borderTopColor: colors.border }]}>
+            <ThemedText type="subtitle">Coach guidance</ThemedText>
 
             <View style={styles.field}>
-              <ThemedText style={styles.label}>Communication Preferences</ThemedText>
+              <ThemedText style={styles.label}>Communication</ThemedText>
               <TextInput
-                style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-                placeholder="How does your child communicate best?"
-                placeholderTextColor={palette.muted}
-                value={c.communicationNotes}
-                onChangeText={c.onCommunicationNotesChange}
+                style={textAreaStyle}
+                accessibilityLabel="Communication guidance, optional"
+                placeholder="How should coaches communicate?"
+                placeholderTextColor={colors.muted}
+                value={editor.communicationNotes}
+                onChangeText={editor.onCommunicationNotesChange}
                 multiline
                 numberOfLines={3}
-
-            maxLength={500}
-          />
+                maxLength={500}
+              />
             </View>
 
             <View style={styles.field}>
-              <ThemedText style={styles.label}>Behavioral Considerations</ThemedText>
+              <ThemedText style={styles.label}>Behaviour and regulation</ThemedText>
               <TextInput
-                style={[styles.textArea, { borderColor: palette.border, color: palette.text }]}
-                placeholder="Anything coaches should know?"
-                placeholderTextColor={palette.muted}
-                value={c.behavioralNotes}
-                onChangeText={c.onBehavioralNotesChange}
+                style={textAreaStyle}
+                accessibilityLabel="Behaviour and regulation guidance, optional"
+                placeholder="Triggers, routines or responses that help"
+                placeholderTextColor={colors.muted}
+                value={editor.behavioralNotes}
+                onChangeText={editor.onBehavioralNotesChange}
                 multiline
                 numberOfLines={3}
-
-            maxLength={500}
-          />
+                maxLength={500}
+              />
             </View>
-          </SurfaceCard>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Save footer */}
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <Button
-          onPress={c.saveNotes}
-          disabled={c.saving}
-          style={{ flex: 1 }}
-          label={c.saving ? 'Saving...' : 'Save Changes'}
+          onPress={editor.saveSupport}
+          disabled={!editor.canSave}
+          accessibilityLabel={editor.saving ? 'Saving player support' : 'Save support changes'}
+          label={editor.saving ? 'Saving…' : 'Save changes'}
         />
       </View>
     </SafeAreaView>
@@ -208,18 +233,43 @@ export default function EditChildSenScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing['2xl'] },
-  card: { gap: Spacing.sm },
-  itemRow: { paddingVertical: Spacing.xs, borderBottomWidth: 1 },
+  stateContainer: { flex: 1 },
+  submitState: { marginHorizontal: Spacing.lg, marginTop: Spacing.sm },
+  errorBanner: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radii.md,
+  },
+  errorText: { flex: 1, ...Typography.small },
+  content: {
+    gap: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing['2xl'],
+  },
+  intro: { ...Typography.small },
+  section: { gap: Spacing.md },
+  dividedSection: {
+    paddingTop: Spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   field: { gap: Spacing.xs },
-  label: { ...Typography.bodySmall, fontWeight: '500' },
+  label: { ...Typography.bodySmallSemiBold },
   textArea: {
-    borderWidth: 1.5,
+    minHeight: 88,
+    borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
-    minHeight: 80,
     textAlignVertical: 'top',
   },
-  footer: { padding: Spacing.lg, borderTopWidth: 1 },
+  footer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

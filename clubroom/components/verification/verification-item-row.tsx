@@ -33,6 +33,21 @@ function getStatusIcon(status: string, colors: ThemeColors) {
   }
 }
 
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'VERIFIED':
+      return 'Verified';
+    case 'PENDING':
+      return 'Under review';
+    case 'FAILED':
+      return 'Rejected';
+    case 'EXPIRED':
+      return 'Expired';
+    default:
+      return 'Not submitted';
+  }
+}
+
 export const VerificationItemRow = function VerificationItemRow({
   colors,
   icon,
@@ -42,28 +57,35 @@ export const VerificationItemRow = function VerificationItemRow({
   onPress,
 }: VerificationItemRowProps) {
   const statusIcon = getStatusIcon(item.status, colors);
+  const row = (
+    <Row gap="sm" align="center" style={styles.row}>
+      <View style={[styles.iconContainer, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.tint} />
+      </View>
+      <View style={styles.content}>
+        <ThemedText type="defaultSemiBold">{title}</ThemedText>
+        <ThemedText style={[styles.description, { color: colors.muted }]}>{description}</ThemedText>
+      </View>
+      <Row gap="xs" align="center">
+        <Ionicons
+          name={statusIcon.name as keyof typeof Ionicons.glyphMap}
+          size={22}
+          color={statusIcon.color}
+        />
+        {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
+      </Row>
+    </Row>
+  );
+
+  if (!onPress) return row;
 
   return (
-    <Clickable onPress={onPress} disabled={!onPress}>
-      <Row gap="sm" align="center" style={styles.row}>
-        <View style={[styles.iconContainer, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
-          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.tint} />
-        </View>
-        <View style={styles.content}>
-          <ThemedText type="defaultSemiBold">{title}</ThemedText>
-          <ThemedText style={[styles.description, { color: colors.muted }]}>
-            {description}
-          </ThemedText>
-        </View>
-        <Row gap="xs" align="center">
-          <Ionicons
-            name={statusIcon.name as keyof typeof Ionicons.glyphMap}
-            size={22}
-            color={statusIcon.color}
-          />
-          {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
-        </Row>
-      </Row>
+    <Clickable
+      onPress={onPress}
+      accessibilityLabel={`${title}. ${getStatusLabel(item.status)}. ${description}`}
+      accessibilityHint={`Opens ${title.toLowerCase()}`}
+    >
+      {row}
     </Clickable>
   );
 };

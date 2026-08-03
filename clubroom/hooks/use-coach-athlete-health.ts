@@ -15,13 +15,52 @@ interface CoachAthleteHealthData {
   injuries: Injury[];
 }
 
+const serviceErrorCodes = new Set<ServiceError['code']>([
+  'NOT_FOUND',
+  'VALIDATION',
+  'NETWORK',
+  'STORAGE',
+  'UNAUTHORIZED',
+  'CONFLICT',
+  'RATE_LIMITED',
+  'UNSUPPORTED',
+  'UNKNOWN',
+]);
+
+function toHealthLoadError(error: unknown): ServiceError {
+  if (error && typeof error === 'object') {
+    const candidate = error as {
+      code?: unknown;
+      message?: unknown;
+      serviceErrorCode?: unknown;
+    };
+    const message =
+      typeof candidate.message === 'string' ? candidate.message : 'Failed to load athlete health.';
+    if (
+      typeof candidate.code === 'string' &&
+      serviceErrorCodes.has(candidate.code as ServiceError['code'])
+    ) {
+      return serviceError(candidate.code as ServiceError['code'], message, error);
+    }
+    if (
+      typeof candidate.serviceErrorCode === 'string' &&
+      serviceErrorCodes.has(candidate.serviceErrorCode as ServiceError['code'])
+    ) {
+      return serviceError(candidate.serviceErrorCode as ServiceError['code'], message, error);
+    }
+  }
+  return serviceError('UNKNOWN', 'Failed to load athlete health.', error);
+}
+
 export function useCoachAthleteHealth(athleteId: string) {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
+  const hasCoachHealthAccess =
+    Boolean(coachId) && currentUser?.role === 'COACH' && currentUser.isVerified;
 
   const load = async () => {
-    if (!coachId || !athleteId) {
-      return err(serviceError('UNAUTHORIZED', 'Missing coach or athlete context.'));
+    if (!hasCoachHealthAccess || !athleteId) {
+      return err(serviceError('UNAUTHORIZED', 'A verified coach account is required to review athlete health.'));
     }
 
     try {
@@ -30,24 +69,27 @@ export function useCoachAthleteHealth(athleteId: string) {
         return err(serviceError('NOT_FOUND', 'Athlete is not available in your roster.'));
       }
 
-      const injuries = await injuryService.getUserInjuriesForActor(coachId, athleteId, true);
+      const injuries = await injuryService.getAthleteInjuries(athleteId);
       return ok<CoachAthleteHealthData>({
         athleteName: getRosterAthleteName(rosterEntry),
         parentName: rosterEntry.parentName ?? null,
         injuries,
       });
     } catch (error) {
-      return err(serviceError('UNKNOWN', 'Failed to load athlete health.', error));
+      return err(toHealthLoadError(error));
     }
   };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen({
     load,
-    deps: [coachId, athleteId],
+    deps: [coachId, currentUser?.role, currentUser?.isVerified, athleteId],
     isEmpty: (value) => !value.athleteName,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: coachId && athleteId ? `coach-athlete-health:${coachId}:${athleteId}` : 'coach-athlete-health:missing',
+    dataKey:
+      hasCoachHealthAccess && athleteId
+        ? `coach-athlete-health:${coachId}:verified:${athleteId}`
+        : 'coach-athlete-health:unavailable',
   });
 
   const injuries = data?.injuries ?? [];

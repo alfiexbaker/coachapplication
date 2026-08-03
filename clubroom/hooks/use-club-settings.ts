@@ -36,6 +36,7 @@ import { err, ok, serviceError, type Result, type ServiceError } from '@/types/r
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ClubSettings');
+const USE_MOCK = api.useMock;
 
 export type SettingsSection =
   | 'details'
@@ -84,12 +85,12 @@ export const SETTINGS_SECTIONS: { key: SettingsSection; icon: string; label: str
 
 function buildInviteCodes(
   club: Club | null,
-  invites: Array<{
+  invites: {
     code: string;
     role: ClubRole;
     remainingUses: number;
     expiresAt: string;
-  }>,
+  }[],
 ): InviteCodeItem[] {
   if (!club) return [];
 
@@ -114,10 +115,10 @@ export function useClubSettings() {
   const { showToast } = useToast();
 
   const userClubs =
-    api.useMock && currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
+    USE_MOCK && currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
 
   const knownClubs = (() => {
-    if (!api.useMock) {
+    if (!USE_MOCK) {
       return [];
     }
     const deduped = new Map<string, Club>();
@@ -148,47 +149,60 @@ export function useClubSettings() {
   const [isSavingCommercialMode, setIsSavingCommercialMode] = useState(false);
 
   const loadData = async (): Promise<Result<ClubSettingsData, ServiceError>> => {
-    if (!clubId) {
-      return ok(EMPTY_CLUB_SETTINGS_DATA);
-    }
     if (!currentUser?.id) {
       return ok(EMPTY_CLUB_SETTINGS_DATA);
     }
 
     try {
+      const requestedClubId = clubId;
       let clubData: Club | null = null;
       let membership: ClubMembership | null = null;
-      if (api.useMock) {
+      if (USE_MOCK) {
+        if (!requestedClubId) {
+          return ok(EMPTY_CLUB_SETTINGS_DATA);
+        }
         clubData =
-          (await socialFeedService.getClub(clubId)) ??
-          knownClubs.find((candidate) => candidate.id === clubId) ??
+          (await socialFeedService.getClub(requestedClubId)) ??
+          knownClubs.find((candidate) => candidate.id === requestedClubId) ??
           null;
-        membership = socialFeedService.getMembership(currentUser.id, clubId) ?? null;
+        membership = socialFeedService.getMembership(currentUser.id, requestedClubId) ?? null;
       } else {
         const authorityClubs = await clubAuthorityService.listClubs();
         if (!authorityClubs.success) {
           return err(authorityClubs.error);
         }
-        clubData =
-          authorityClubs.data.clubs.find((candidate) => candidate.id === clubId) ?? null;
-        membership =
-          authorityClubs.data.memberships.find(
-            (candidate) =>
-              candidate.clubId === clubId && candidate.userId === currentUser.id,
-          ) ?? null;
+        clubData = requestedClubId
+          ? authorityClubs.data.clubs.find((candidate) => candidate.id === requestedClubId) ?? null
+          : (authorityClubs.data.clubs[0] ?? null);
+        const resolvedAuthorityClubId = clubData?.id;
+        membership = resolvedAuthorityClubId
+          ? authorityClubs.data.memberships.find(
+              (candidate) =>
+                candidate.clubId === resolvedAuthorityClubId &&
+                candidate.userId === currentUser.id,
+            ) ?? null
+          : null;
       }
 
+      const resolvedClubId = clubData?.id;
+      if (!resolvedClubId) {
+        return ok(EMPTY_CLUB_SETTINGS_DATA);
+      }
+
+      const canLoadManagerData = canManageClubMembers(membership?.role);
       const [squadData, memberData, brandingData, inviteData] = await Promise.all([
-        squadService.getSquads(clubId),
-        clubService.getMembers(clubId),
-        clubService.getBranding(clubId),
-        clubAuthorityService.listInviteCodes(clubId),
+        canLoadManagerData ? squadService.getSquads(resolvedClubId) : Promise.resolve([]),
+        canLoadManagerData ? clubService.getMembers(resolvedClubId) : Promise.resolve([]),
+        clubService.getBranding(resolvedClubId),
+        canLoadManagerData
+          ? clubAuthorityService.listInviteCodes(resolvedClubId)
+          : Promise.resolve(ok([])),
       ]);
       if (!inviteData.success) {
         return err(inviteData.error);
       }
 
-      logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
+      logger.debug('ClubSettingsLoaded', { clubId: resolvedClubId, memberCount: memberData.length });
       return ok({
         club: clubData,
         membership,
@@ -205,15 +219,16 @@ export function useClubSettings() {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubSettingsData>({
     load: loadData,
-    deps: [clubId],
+    deps: [clubId, currentUser?.id],
     events: [ServiceEvents.CLUB_MEMBER_LEFT],
     isEmpty: () => false,
     loadingStrategy: 'section-skeleton',
-    dataKey: `club-settings:${clubId ?? 'none'}`,
+    dataKey: `club-settings:${currentUser?.id ?? 'guest'}:${clubId ?? 'default'}`,
   });
 
   const settingsData = data ?? EMPTY_CLUB_SETTINGS_DATA;
   const { club, membership, squads, members, inviteCodes } = settingsData;
+  const activeClubId = club?.id ?? clubId;
   const canManageClub = canManageClubMembers(membership?.role);
   const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
   const requestedSection = selectedSection ?? routeSection ?? 'details';
@@ -240,7 +255,7 @@ export function useClubSettings() {
   const handleCopyCode = async (code: string) => {
     await Clipboard.setStringAsync(code);
     showToast('Code copied!', 'success');
-    logger.action('CopyInviteCode', { code });
+    logger.action('CopyInviteCode', { clubId: activeClubId });
   };
 
   const handleShareCode = async (code: string, role: string) => {
@@ -249,7 +264,7 @@ export function useClubSettings() {
       await Share.share({
         message: `Join ${club?.name} on Clubroom.\n${link}\n\nInvite code: ${code}`,
       });
-      logger.action('ShareInviteCode', { code, role });
+      logger.action('ShareInviteCode', { clubId: activeClubId, role });
     } catch (error) {
       logger.error('ShareFailed', error);
     }
@@ -260,9 +275,9 @@ export function useClubSettings() {
       showToast('Only club leaders can generate invite codes', 'error');
       return;
     }
-    if (!clubId || !currentUser?.id) return;
+    if (!activeClubId || !currentUser?.id) return;
 
-    const result = await clubAuthorityService.createInviteCode(clubId, role);
+    const result = await clubAuthorityService.createInviteCode(activeClubId, role);
     if (!result.success) {
       showToast(result.error.message, 'error');
       return;
@@ -270,7 +285,7 @@ export function useClubSettings() {
 
     onRefresh();
     showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
-    logger.action('GenerateInviteCode', { role, code: result.data.code });
+    logger.action('GenerateInviteCode', { clubId: activeClubId, role });
   };
 
   const handleSaveDetails = async () => {
@@ -347,7 +362,7 @@ export function useClubSettings() {
   };
 
   const handleSaveBranding = async () => {
-    if (!clubId || !brandingDraft || isSavingBranding) return;
+    if (!activeClubId || !brandingDraft || isSavingBranding) return;
     if (!canManageClub) {
       showToast('Only club admins can edit branding', 'error');
       return;
@@ -357,7 +372,7 @@ export function useClubSettings() {
 
     return await runAsyncTryCatchFinally(
       async () => {
-        const result = await clubService.updateBranding(clubId, brandingDraft);
+        const result = await clubService.updateBranding(activeClubId, brandingDraft);
         if (!result.success) {
           logger.error('SaveBrandingFailed', result.error);
           showToast('Failed to save branding', 'error');
@@ -365,7 +380,7 @@ export function useClubSettings() {
         }
         setBrandingDraft(result.data);
         showToast('Branding saved', 'success');
-        logger.action('SaveBranding', { clubId });
+        logger.action('SaveBranding', { clubId: activeClubId });
       },
       async (error) => {
         logger.error('SaveBrandingFailed', error);
@@ -382,7 +397,7 @@ export function useClubSettings() {
       showToast('Only club admins can create squads', 'error');
       return;
     }
-    if (clubId) router.push(Routes.clubSquadCreate(clubId));
+    if (activeClubId) router.push(Routes.clubSquadCreate(activeClubId));
   };
 
   const handleDeleteClub = () => {
@@ -410,15 +425,15 @@ export function useClubSettings() {
                   text: 'Archive Club',
                   style: 'destructive',
                   onPress: async () => {
-                    if (!clubId) return;
-                    const result = await clubAuthorityService.deleteClub(clubId);
+                    if (!activeClubId) return;
+                    const result = await clubAuthorityService.deleteClub(activeClubId);
                     if (!result.success) {
                       showToast(result.error.message, 'error');
                       return;
                     }
-                    logger.action('ArchiveClub', { clubId });
+                    logger.action('ArchiveClub', { clubId: activeClubId });
                     showToast('Club archived', 'success');
-                    router.replace(Routes.CLUB_HUB);
+                    router.replace(USE_MOCK ? Routes.CLUB_HUB : Routes.MY_CLUBS);
                   },
                 },
               ],
@@ -431,29 +446,29 @@ export function useClubSettings() {
 
   const handleDeleteCode = (code: string) => {
     if (!canManageClub) {
-      showToast('Only club admins can delete invite codes', 'error');
+      showToast('Only club admins can revoke invite codes', 'error');
       return;
     }
 
     const target = inviteCodes.find((invite) => invite.code === code);
     if (!target) return;
 
-    uiFeedback.alert('Delete invite code?', `${code} will stop working immediately.`, [
+    uiFeedback.alert('Revoke invite code?', `${code} will stop working immediately.`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Revoke',
         style: 'destructive',
         onPress: async () => {
-          if (!clubId) return;
-          const result = await clubAuthorityService.deleteInviteCode(clubId, code);
+          if (!activeClubId) return;
+          const result = await clubAuthorityService.deleteInviteCode(activeClubId, code);
           if (!result.success) {
             showToast(result.error.message, 'error');
             return;
           }
 
           onRefresh();
-          showToast('Invite code deleted', 'success');
-          logger.action('DeleteInviteCode', { code });
+          showToast('Invite code revoked', 'success');
+          logger.action('RevokeInviteCode', { clubId: activeClubId });
         },
       },
     ]);
@@ -464,7 +479,7 @@ export function useClubSettings() {
 
   return {
     club,
-    clubId,
+    clubId: activeClubId,
     squads,
     members,
     inviteCodes,

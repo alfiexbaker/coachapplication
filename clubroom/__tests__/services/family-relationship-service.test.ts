@@ -35,6 +35,17 @@ describe('familyRelationshipService', () => {
     });
   });
 
+  describe('findFamilyAccount', () => {
+    test('does not create an account for an unrelated read-only viewer', async () => {
+      const account = await familyRelationshipService.findFamilyAccount(
+        'read_only_non_family_viewer',
+        'Read Only Viewer',
+      );
+
+      assert.equal(account, null);
+    });
+  });
+
   describe('getGuardians', () => {
     test('returns array of guardians', async () => {
       const account = await familyRelationshipService.getFamilyAccount('guard_user_1', 'Guardian User');

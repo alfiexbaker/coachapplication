@@ -12,10 +12,10 @@
  * - PATCH /v1/injuries/:injuryId - Update injury, recovery note, or healed state
  */
 
-import { apiClient } from './api-client';
-import { apiFetch } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { buildApiAuthHeaders, deriveApiActingRole, toApiAthleteId } from './api-auth-context';
 import { authService } from './auth-service';
+import { rosterService } from './roster-service';
 import { createLogger } from '@/utils/logger';
 import type {
   Injury,
@@ -30,6 +30,7 @@ import type {
 } from '@/constants/types';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { ServiceError } from '@/types/result';
 
 const logger = createLogger('InjuryService');
 
@@ -47,6 +48,7 @@ type ApiInjuryRecord = {
   expectedRecoveryDate: string | null;
   resolvedAt: string | null;
   notes: string | null;
+  sharedWithCoach: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -171,7 +173,7 @@ function toUiInjury(apiInjury: ApiInjuryRecord): Injury {
     status,
     notes: [],
     recoveryPercent,
-    sharedWithCoach: true,
+    sharedWithCoach: apiInjury.sharedWithCoach,
     createdAt: apiInjury.createdAt,
     updatedAt: apiInjury.updatedAt,
     healedAt: apiInjury.resolvedAt ?? undefined,
@@ -180,9 +182,13 @@ function toUiInjury(apiInjury: ApiInjuryRecord): Injury {
 
 const latestApiInjuriesById = new Map<string, Injury>();
 
-function throwApiInjuryError(action: string, error: { message: string }): never {
+type InjuryApiError = Error & { serviceErrorCode?: ServiceError['code'] };
+
+function throwApiInjuryError(action: string, error: ServiceError): never {
   logger.error(action, { error });
-  throw new Error(error.message || 'Injury API request failed');
+  const apiError = new Error(error.message || 'Injury API request failed') as InjuryApiError;
+  apiError.serviceErrorCode = error.code;
+  throw apiError;
 }
 
 // Mock data for demonstration
@@ -205,6 +211,7 @@ const MOCK_INJURIES: Injury[] = [
         note: 'Started RICE protocol. Swelling has reduced significantly.',
         createdAt: '2026-01-06T10:00:00Z',
         createdBy: 'user1',
+        createdByName: 'Alfie Barton',
         recoveryPercent: 25,
       },
       {
@@ -213,6 +220,7 @@ const MOCK_INJURIES: Injury[] = [
         note: 'Began light stretching exercises. Can walk without limp now.',
         createdAt: '2026-01-09T15:00:00Z',
         createdBy: 'user1',
+        createdByName: 'Alfie Barton',
         recoveryPercent: 50,
       },
       {
@@ -221,6 +229,7 @@ const MOCK_INJURIES: Injury[] = [
         note: 'Light jogging today, feeling much better. Still some stiffness.',
         createdAt: '2026-01-11T09:00:00Z',
         createdBy: 'user1',
+        createdByName: 'Alfie Barton',
         recoveryPercent: 65,
       },
     ],
@@ -551,6 +560,7 @@ async function logInjury(
           reportedAt: params.occurredAt,
           expectedRecoveryDate: params.expectedRecovery ?? undefined,
           notes: params.description,
+          sharedWithCoach: params.sharedWithCoach ?? false,
         }),
       });
 
@@ -581,7 +591,7 @@ async function logInjury(
     status: 'ACTIVE',
     notes: [],
     recoveryPercent: 0,
-    sharedWithCoach: params.sharedWithCoach ?? true,
+    sharedWithCoach: params.sharedWithCoach ?? false,
     createdAt: now,
     updatedAt: now,
   };
@@ -690,6 +700,22 @@ async function canActorAccessSubject(actorUserId: string, subjectUserId: string)
   return childIds.has(subjectUserId);
 }
 
+async function hasVerifiedCoachRosterAccess(
+  actorUserId: string,
+  subjectUserId: string,
+): Promise<boolean> {
+  const currentUser = await authService.getCurrentUser().catch(() => null);
+  if (
+    currentUser?.id !== actorUserId ||
+    deriveApiActingRole(currentUser) !== 'coach' ||
+    !currentUser.isVerified
+  ) {
+    return false;
+  }
+
+  return Boolean(await rosterService.getRosterEntry(actorUserId, subjectUserId));
+}
+
 async function getUserInjuriesForActor(
   actorUserId: string,
   subjectUserId: string,
@@ -739,8 +765,9 @@ async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<I
     return null;
   }
 
-  const canAccess = await canActorAccessSubject(actorUserId, injury.userId);
-  if (!canAccess) {
+  const hasCoachRosterAccess = await hasVerifiedCoachRosterAccess(actorUserId, injury.userId);
+  const canAccess = hasCoachRosterAccess || (await canActorAccessSubject(actorUserId, injury.userId));
+  if (!canAccess || (hasCoachRosterAccess && !injury.sharedWithCoach)) {
     logger.warn('injury_access_denied_detail', {
       actorUserId,
       injuryId: id,
@@ -781,6 +808,7 @@ async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Inj
           expectedRecoveryDate:
             updates.expectedRecovery !== undefined ? updates.expectedRecovery : undefined,
           notes: updates.description !== undefined ? updates.description : undefined,
+          sharedWithCoach: updates.sharedWithCoach,
         }),
       });
 
@@ -866,7 +894,7 @@ async function updateInjuryForActor(
  * @param injuryId - The injury ID
  * @param note - The note content
  * @param createdBy - User ID of the note creator
- * @param _createdByName - Reserved for compatibility with existing call sites
+ * @param createdByName - Display name for the note author when available
  * @param recoveryPercent - Optional recovery percentage update
  * @returns The updated injury or null if not found
  */
@@ -874,7 +902,7 @@ async function addRecoveryNote(
   injuryId: string,
   note: string,
   createdBy: string,
-  _createdByName?: string,
+  createdByName?: string,
   recoveryPercent?: number,
 ): Promise<Injury | null> {
   if (!apiClient.isMockMode) {
@@ -918,6 +946,7 @@ async function addRecoveryNote(
     note,
     createdAt: now,
     createdBy,
+    createdByName,
     recoveryPercent: recoveryPercent ?? injury.recoveryPercent,
   };
 

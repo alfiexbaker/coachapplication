@@ -13,20 +13,102 @@ const apiSeed = {
   clubId: 'clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1',
   squadId: 'sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2',
   athleteId: 'ath_7df7ec13-e136-7525-985f-dec069fc983f',
+  familyId: 'fam_81784aed-ccd2-75f1-bf87-0c820aefcc89',
+  familySecondAthleteId: 'ath_d0cc3175-cbe3-7971-9cd1-5ce9d52cda7a',
+  postId: 'pst_5163fa19-773d-7a2c-9c52-954f178706ec',
+  bookingId: 'bok_af55c625-92ff-4063-b135-41a9f309d326',
+  completedBookingId: 'bok_48cc7cd5-098c-7e0d-833d-26cddbdf3abe',
 };
 const preflightProofPathByRole = {
   coach: '/schedule',
   parent: '/family',
+  guardian: '/family',
   athlete: '/development/my-progress',
   admin: `/club/${apiSeed.clubId}/dashboard`,
 };
+const credentialsFile =
+  process.env.UI_FLOW_CREDENTIALS_FILE ||
+  path.join(process.cwd(), 'docs/backend-api/test-data/TEST_ACCOUNTS.staging.local.txt');
+const loginIdentityPlaceholder = /(?:e\.g\. coach|enter your account email)/i;
+let creds = null;
 
-const creds = {
-  coach: { username: 'amelia.shaw@clubroom.demo', password: 'coach' },
-  parent: { username: 'olivia.barton@clubroom.demo', password: 'user' },
-  athlete: { username: 'alex.barton@clubroom.demo', password: 'user' },
-  admin: { username: 'clara.finch@clubroom.demo', password: 'admin' },
-};
+async function loadFlowCredentials() {
+  let stat;
+  let content;
+  try {
+    [stat, content] = await Promise.all([
+      fs.stat(credentialsFile),
+      fs.readFile(credentialsFile, 'utf8'),
+    ]);
+  } catch (error) {
+    throw new Error(
+      `UI flow credentials are unavailable at ${credentialsFile}. Run the staging test-account reset first. ${String(error)}`,
+    );
+  }
+
+  if ((stat.mode & 0o077) !== 0) {
+    throw new Error(`UI flow credentials must be owner-only (0600): ${credentialsFile}`);
+  }
+
+  const accounts = content
+    .split(/\n\s*\n/)
+    .map((block) => ({
+      email: /^Email:\s*(.+)$/m.exec(block)?.[1]?.trim(),
+      password: /^Password:\s*(.+)$/m.exec(block)?.[1],
+      roles: /^Roles:\s*(.+)$/m
+        .exec(block)?.[1]
+        ?.split(',')
+        .map((role) => role.trim()),
+      attached: /^Attached:\s*(.+)$/m.exec(block)?.[1] ?? '',
+    }))
+    .filter((account) => account.email && account.password);
+
+  const requireAccount = (label, predicate) => {
+    const account = accounts.find(predicate);
+    if (!account) {
+      throw new Error(`Missing ${label} account relationship in ${credentialsFile}`);
+    }
+    return { username: account.email, password: account.password };
+  };
+
+  return {
+    coach: requireAccount(
+      'coach',
+      (account) =>
+        account.roles?.includes('coach') &&
+        account.attached.includes('coachProfile=yes') &&
+        account.attached.includes(`clubs=${apiSeed.clubId}:coach`),
+    ),
+    parent: requireAccount(
+      'family administrator',
+      (account) =>
+        account.roles?.includes('parent') &&
+        account.attached.includes(`families=${apiSeed.familyId}`) &&
+        account.attached.includes(apiSeed.athleteId) &&
+        account.attached.includes(apiSeed.familySecondAthleteId),
+    ),
+    guardian: requireAccount(
+      'assigned guardian',
+      (account) =>
+        account.roles?.includes('parent') &&
+        account.attached.includes(`families=${apiSeed.familyId}`) &&
+        account.attached.includes(apiSeed.athleteId) &&
+        !account.attached.includes(apiSeed.familySecondAthleteId),
+    ),
+    athlete: requireAccount(
+      'athlete',
+      (account) =>
+        account.roles?.includes('athlete') &&
+        account.attached.includes(`athlete=${apiSeed.athleteId}`),
+    ),
+    admin: requireAccount(
+      'club admin',
+      (account) =>
+        account.roles?.includes('club_admin') &&
+        account.attached.includes(`clubs=${apiSeed.clubId}:club_admin`),
+    ),
+  };
+}
 
 async function ensurePlaywrightLoaded() {
   if (chromium && devices) {
@@ -49,6 +131,2246 @@ async function ensurePlaywrightLoaded() {
  * - We never hard-fail on optional actions.
  * - We gather route-level UI diagnostics and screenshots for every flow.
  */
+const verificationFlowRoutes = [
+  { id: 'hub', path: '/verification', title: 'verification status' },
+  { id: 'identity', path: '/verification/id', title: 'identity verification' },
+  { id: 'background', path: '/verification/background', title: 'background verification' },
+  { id: 'insurance', path: '/verification/insurance', title: 'insurance verification' },
+  { id: 'credentials', path: '/verification/credentials', title: 'credential verification' },
+];
+const verificationCoachActions = {
+  hub: [
+    { type: 'assertTextVisible', text: 'Profile status', required: true },
+    { type: 'assertTextVisible', text: 'Documents', required: true },
+  ],
+  identity: [
+    { type: 'clickText', text: 'Passport', required: true },
+    { type: 'assertButtonVisible', name: 'Choose document', required: true },
+    {
+      type: 'assertVerticalGap',
+      above: { role: 'button', name: 'Choose document' },
+      below: { text: 'Requirements' },
+      minimumGap: 16,
+      required: true,
+    },
+  ],
+  background: [{ type: 'assertTextVisible', text: 'DBS verified', required: true }],
+  insurance: [
+    { type: 'assertButtonVisible', name: 'Choose document', required: true },
+    { type: 'assertButtonVisible', name: 'Submit for review', required: true },
+  ],
+  credentials: [
+    { type: 'clickButton', name: 'Add credential', required: true },
+    { type: 'assertTextVisible', text: 'Credential type', required: true },
+    { type: 'clickText', text: 'Other qualification', required: true },
+    { type: 'assertTextVisible', text: 'Qualification name', required: true },
+    { type: 'assertButtonVisible', name: 'Choose document', required: true },
+  ],
+};
+const verificationCoachFlows = verificationFlowRoutes.map((route) => ({
+  id: `coach_verification_${route.id}`,
+  role: 'coach',
+  title: `Coach opens ${route.title}`,
+  path: route.path,
+  expectPath: route.path,
+  actions: verificationCoachActions[route.id] ?? [],
+}));
+const verificationDeniedFlows = ['parent', 'athlete', 'admin'].flatMap((role) =>
+  verificationFlowRoutes.map((route) => ({
+    id: `${role}_verification_${route.id}_denied`,
+    role,
+    title: `${role} is denied ${route.title}`,
+    path: route.path,
+    expectPathNot: '/verification',
+  })),
+);
+
+const addChildDetailsActions = [
+  { type: 'wait', ms: 1200, required: true },
+  { type: 'fillInput', name: 'First name', value: 'Alex', required: true },
+  { type: 'fillInput', name: 'Last name', value: 'Morgan', required: true },
+  { type: 'clickControl', role: 'radio', name: 'Male', required: true },
+  { type: 'clickControl', role: 'radio', name: 'Son', required: true },
+];
+
+const addChildSupportActions = [
+  ...addChildDetailsActions,
+  { type: 'clickButton', name: 'Continue', required: true },
+  { type: 'assertTextVisible', text: 'Support needs', required: true },
+];
+
+const addChildSafetyActions = [
+  ...addChildSupportActions,
+  {
+    type: 'clickControl',
+    role: 'radio',
+    name: 'No coaching adjustments are needed',
+    required: true,
+  },
+  { type: 'clickButton', name: 'Continue', required: true },
+  { type: 'assertTextVisible', text: 'Safety', required: true },
+];
+
+const settingsRouteFlows = [
+  {
+    id: 'account',
+    path: '/settings/account',
+    title: 'account settings',
+    heading: 'Account',
+    content: 'Contact',
+    visible: [
+      'Email',
+      'Phone',
+      'Security',
+      'Send password reset link',
+      'Support',
+      'Support ref',
+      'Account access',
+      'Request account pause',
+      'Request account closure',
+    ],
+    absent: [
+      'Email Address',
+      'Phone Number',
+      'Change Password',
+      'Contact details vs verification',
+      'Account Information',
+      'Account Type',
+      'Member since',
+      'Danger Zone',
+    ],
+  },
+  {
+    id: 'blocked_users',
+    path: '/settings/blocked-users',
+    title: 'blocked users',
+    heading: 'Blocked Users',
+    content: 'No blocked accounts',
+    visible: ['People you block cannot message you or appear in search.'],
+  },
+  {
+    id: 'calendar_sync',
+    path: '/settings/calendar-sync',
+    title: 'calendar export',
+    heading: 'Calendar Export',
+    content: 'Calendar File',
+    absent: [
+      'Sync Settings',
+      'Enable Calendar Sync',
+      'Auto-Sync New Bookings',
+      'Calendar Provider',
+    ],
+  },
+  {
+    id: 'coaching',
+    path: '/settings/coaching',
+    title: 'coaching settings',
+    heading: 'Coaching Settings',
+    content: 'BOOKING RULES',
+    visible: [
+      'Session buffer',
+      'Minimum notice',
+      'Booking window',
+      'Same-day bookings',
+      'MANAGE',
+      'Cancellation policy',
+      'Travel radius',
+      'Blocked dates',
+    ],
+    absent: [
+      'Buffer between sessions',
+      'Time between back-to-back sessions',
+      'How far in advance parents must book',
+      'Max advance booking',
+      'How far ahead parents can book',
+      'Allow same-day bookings',
+      'Let parents book sessions today',
+      'CANCELLATION POLICY',
+      'TRAVEL & LOCATION',
+    ],
+  },
+  {
+    id: 'help',
+    path: '/settings/help',
+    title: 'help',
+    heading: 'Help & Support',
+    content: 'Email support',
+    visible: ['Send feedback', 'Common questions', 'How do I book a session?'],
+    absent: [
+      'Report a Problem',
+      'Share Clubroom',
+      'Still need help?',
+      'Support is handled by email in this build.',
+      'App Version: 1.0.0',
+    ],
+    actions: [
+      { type: 'clickButton', name: 'Send feedback', required: true },
+      { type: 'assertTextVisible', text: 'Choose what you want to send.', required: true },
+      { type: 'clickButton', name: 'Cancel', exact: true, required: true },
+      { type: 'assertTextAbsent', text: 'Choose what you want to send.', required: true },
+      { type: 'clickButton', name: 'How do I book a session?', required: true },
+      {
+        type: 'assertTextVisible',
+        text: 'Parents and athletes can open Bookings, choose Discover, then select a coach or open session.',
+        required: true,
+      },
+      { type: 'clickButton', name: 'How do I book a session?', required: true },
+      {
+        type: 'assertTextAbsent',
+        text: 'Parents and athletes can open Bookings, choose Discover, then select a coach or open session.',
+        required: true,
+      },
+      { type: 'clickButton', name: 'How do I book a session?', required: true },
+      {
+        type: 'assertTextVisible',
+        text: 'Parents and athletes can open Bookings, choose Discover, then select a coach or open session.',
+        required: true,
+      },
+    ],
+  },
+  {
+    id: 'notifications',
+    path: '/settings/notifications',
+    title: 'notification settings',
+    heading: 'Notifications',
+    content: 'NOTIFICATION CHANNELS',
+  },
+  {
+    id: 'notification_preferences',
+    path: '/settings/notifications/preferences',
+    title: 'notification preferences',
+    heading: 'Notifications',
+    content: 'NOTIFICATION CHANNELS',
+  },
+  {
+    id: 'privacy_policy',
+    path: '/settings/privacy-policy',
+    title: 'privacy policy',
+    heading: 'Privacy Policy',
+    content: '1. Introduction',
+  },
+  {
+    id: 'privacy',
+    path: '/settings/privacy',
+    title: 'privacy settings',
+    heading: 'Privacy',
+    content: 'Profile Visibility',
+    absent: [
+      'Online Status',
+      'Activity Status',
+      'Show Earnings',
+      'Show Client Count',
+      'Share Analytics',
+      'Personalized Ads',
+      'Share with Partners',
+      'Cookie & Tracking',
+    ],
+  },
+  {
+    id: 'terms',
+    path: '/settings/terms',
+    title: 'terms',
+    heading: 'Terms',
+    content: '1. Acceptance of Terms',
+  },
+  {
+    id: 'travel_radius',
+    path: '/settings/travel-radius',
+    title: 'travel radius',
+    heading: 'Travel Radius',
+    content: 'Base postcode',
+    visible: ['Search radius', 'Session formats', 'In-person sessions', 'Remote sessions'],
+    absent: [
+      'Your Location',
+      'Suggested range',
+      'local grassroots coverage',
+      'Accept travel sessions',
+      'Accept remote sessions',
+    ],
+  },
+].map((route) => ({
+  id: `coach_settings_${route.id}`,
+  role: 'coach',
+  title: `Coach opens ${route.title}`,
+  path: route.path,
+  expectPath: route.path,
+  actions: [
+    ...[route.heading, route.content, ...(route.visible ?? [])].map((text) => ({
+      type: 'assertTextVisible',
+      text,
+      required: true,
+    })),
+    {
+      type: 'assertTargetInViewport',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    {
+      type: 'assertTargetInViewport',
+      text: route.heading,
+      required: true,
+    },
+    ...(route.absent ?? []).map((text) => ({
+      type: 'assertTextAbsent',
+      text,
+      required: true,
+    })),
+    { type: 'assertScrollTop', required: true },
+    ...(route.actions ?? []),
+    ...((route.actions?.length ?? 0) > 0
+      ? [
+          { type: 'scrollToTop', required: true },
+          { type: 'assertScrollTop', required: true },
+        ]
+      : []),
+  ],
+}));
+
+const travelRadiusSaveFailureFlow = {
+  id: 'coach_settings_travel_radius_save_failure',
+  role: 'coach',
+  title: 'Coach sees a failed travel radius save roll back',
+  path: '/settings/travel-radius',
+  expectPath: '/settings/travel-radius',
+  expectedErrors: [
+    'response:503:PATCH:http://localhost:4000/v1/coaches/me/travel-settings',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: '10 mi', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/coaches/me/travel-settings',
+      method: 'PATCH',
+      status: 503,
+      message: 'Travel settings were not saved.',
+      required: true,
+    },
+    {
+      type: 'clickControl',
+      role: 'button',
+      name: 'Increase in-person radius',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Travel settings were not saved.', required: true },
+    { type: 'assertTextVisible', text: '10 mi', required: true },
+    { type: 'assertTextAbsent', text: '11 mi', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const coachingSettingsSaveFailureFlow = {
+  id: 'coach_settings_coaching_save_failure',
+  role: 'coach',
+  title: 'Coach sees failed booking-rule changes roll back',
+  path: '/settings/coaching',
+  expectPath: '/settings/coaching',
+  expectedErrors: [
+    'response:503:PATCH:http://localhost:4000/v1/coaches/me/scheduling-rules',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: '15 min', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/coaches/me/scheduling-rules',
+      method: 'PATCH',
+      status: 503,
+      message: 'Service unavailable.',
+      required: true,
+    },
+    {
+      type: 'clickControl',
+      role: 'button',
+      name: 'Increase Session buffer',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Not saved. Previous settings restored.', required: true },
+    { type: 'assertTextVisible', text: '15 min', required: true },
+    { type: 'assertTextAbsent', text: '20 min', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const accountSettingsInteractionsFlow = {
+  id: 'coach_settings_account_interactions',
+  role: 'coach',
+  title: 'Coach exercises truthful account controls',
+  path: '/settings/account',
+  expectPath: '/settings/account',
+  expectedErrors: [
+    'response:503:PATCH:http://localhost:4000/v1/auth/me',
+    'response:503:POST:http://localhost:4000/v1/me/data-deletion-requests',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: 'Contact', required: true },
+    { type: 'assertTextAbsent', text: 'Contact details vs verification', required: true },
+    { type: 'clickControl', role: 'button', name: 'Phone', required: true },
+    { type: 'fillInput', name: 'Phone number', value: '+44 7700 900123', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/auth/me',
+      method: 'PATCH',
+      status: 503,
+      message: 'Phone number was not saved.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Save phone number', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Phone number was not saved.', required: true },
+    { type: 'assertButtonVisible', name: 'Save phone number', required: true },
+    { type: 'clickButton', name: 'Cancel phone edit', exact: true, required: true },
+    {
+      type: 'mockApiResponse',
+      path: '/v1/auth/forgot-password',
+      method: 'POST',
+      status: 204,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Send password reset link', required: true },
+    { type: 'assertTextVisible', text: 'Password reset link sent.', required: true },
+    { type: 'clickButton', name: 'Request account pause', required: true },
+    { type: 'assertTextVisible', text: 'Request Account Pause', required: true },
+    { type: 'clickButton', name: 'Cancel', exact: true, required: true },
+    { type: 'assertTextAbsent', text: 'Request Account Pause', required: true },
+    { type: 'clickButton', name: 'Request account closure', required: true },
+    { type: 'assertTextVisible', text: 'Request Account Closure', required: true },
+    { type: 'clickButton', name: 'Cancel', exact: true, required: true },
+    { type: 'assertTextAbsent', text: 'Request Account Closure', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/me/data-deletion-requests',
+      method: 'POST',
+      status: 503,
+      message: 'Account closure request was not created.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Request account closure', required: true },
+    { type: 'clickButton', name: 'Create request', exact: true, required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'Account closure request was not created.',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Status unavailable. Try again.', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const blockedUsersListFixture = {
+  blocks: [],
+  blockedUserIds: ['usr_blocked_ui_fixture'],
+  blockedUsers: [
+    {
+      id: 'usr_blocked_ui_fixture',
+      name: 'Jordan Reed',
+      blockedAt: '2026-07-30T10:00:00.000Z',
+    },
+  ],
+  total: 1,
+  status: null,
+  seedVersion: null,
+  requestId: 'req_blocked_ui_fixture',
+};
+
+const blockedUsersReadyFlow = {
+  id: 'coach_settings_blocked_users_ready',
+  role: 'coach',
+  title: 'Coach reviews a blocked account',
+  path: '/settings/blocked-users',
+  expectPath: '/settings/blocked-users',
+  setupActions: [
+    {
+      type: 'mockApiResponse',
+      path: '/v1/blocks',
+      method: 'GET',
+      status: 200,
+      body: blockedUsersListFixture,
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: 'Jordan Reed', required: true },
+    { type: 'assertTextVisible', text: 'Blocked 30 Jul 2026', required: true },
+    { type: 'assertTextAbsent', text: 'usr_blocked_ui_fixture', required: true },
+    { type: 'assertButtonVisible', name: 'Unblock Jordan Reed', required: true },
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+  ],
+};
+
+const blockedUsersInteractionsFlow = {
+  id: 'coach_settings_blocked_users_interactions',
+  role: 'coach',
+  title: 'Coach reviews and unblocks an account safely',
+  path: '/settings/blocked-users',
+  expectPath: '/settings/blocked-users',
+  expectedErrors: [
+    'response:503:DELETE:http://localhost:4000/v1/blocks?…',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  setupActions: [
+    {
+      type: 'mockApiResponse',
+      path: '/v1/blocks',
+      method: 'GET',
+      status: 200,
+      body: blockedUsersListFixture,
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: 'Jordan Reed', required: true },
+    { type: 'assertTextVisible', text: 'Blocked 30 Jul 2026', required: true },
+    { type: 'assertTextAbsent', text: 'usr_blocked_ui_fixture', required: true },
+    { type: 'clickButton', name: 'Unblock Jordan Reed', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Unblock account?', required: true },
+    { type: 'clickButton', name: 'Keep blocked', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Jordan Reed', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/blocks?*',
+      method: 'DELETE',
+      status: 503,
+      message: 'Account was not unblocked.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Unblock Jordan Reed', exact: true, required: true },
+    { type: 'clickButton', name: 'Unblock', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Account was not unblocked.', required: true },
+    { type: 'assertButtonVisible', name: 'Unblock Jordan Reed', required: true },
+    {
+      type: 'mockApiResponse',
+      path: '/v1/blocks',
+      method: 'GET',
+      status: 200,
+      body: {
+        blocks: [],
+        blockedUserIds: [],
+        blockedUsers: [],
+        total: 0,
+        status: null,
+        seedVersion: null,
+        requestId: 'req_unblocked_ui_fixture',
+      },
+      required: true,
+    },
+    {
+      type: 'mockApiResponse',
+      path: '/v1/blocks?*',
+      method: 'DELETE',
+      status: 200,
+      body: {
+        status: {
+          relationship: 'none',
+          blocked: false,
+          blockerId: null,
+          blockedId: null,
+        },
+        requestId: 'req_unblock_success_ui_fixture',
+      },
+      required: true,
+    },
+    { type: 'clickButton', name: 'Unblock Jordan Reed', exact: true, required: true },
+    { type: 'clickButton', name: 'Unblock', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Account unblocked.', required: true },
+    { type: 'assertTextVisible', text: 'No blocked accounts', required: true },
+    { type: 'assertTextAbsent', text: 'Jordan Reed', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const clubPostReadyFlow = {
+  id: 'coach_create_club_post_ready',
+  role: 'coach',
+  title: 'Coach sees the clean club update composer',
+  path: `/create-club-post?clubId=${apiSeed.clubId}`,
+  expectPath: '/create-club-post',
+  actions: [
+    { type: 'assertTextVisible', text: 'New club update', required: true },
+    { type: 'assertTextVisible', text: 'All members', required: true },
+    { type: 'assertTextVisible', text: 'Author', required: true },
+    { type: 'assertTextVisible', text: 'Type', required: true },
+    { type: 'assertTextAbsent', text: 'Distribution', required: true },
+    { type: 'assertTextAbsent', text: 'Personal Feed', required: true },
+    { type: 'assertTextAbsent', text: 'Specific Group', required: true },
+    { type: 'assertTextAbsent', text: 'Photo', required: true },
+    { type: 'assertTextAbsent', text: 'Video', required: true },
+    { type: 'assertTextAbsent', text: 'Event', required: true },
+    { type: 'assertButtonVisible', name: 'Close club update', required: true },
+    { type: 'assertButtonVisible', name: 'Publish update', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const clubPostComposerFlow = {
+  id: 'coach_create_club_post_interactions',
+  role: 'coach',
+  title: 'Coach composes a truthful club-wide update',
+  path: `/create-club-post?clubId=${apiSeed.clubId}`,
+  expectPath: '/create-club-post',
+  expectedErrors: [
+    'response:503:POST:http://localhost:4000/v1/posts',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'assertTextVisible', text: 'New club update', required: true },
+    { type: 'assertTextVisible', text: 'All members', required: true },
+    { type: 'assertTextVisible', text: 'Author', required: true },
+    { type: 'assertTextVisible', text: 'Type', required: true },
+    { type: 'assertTextAbsent', text: 'Distribution', required: true },
+    { type: 'assertTextAbsent', text: 'Personal Feed', required: true },
+    { type: 'assertTextAbsent', text: 'Specific Group', required: true },
+    { type: 'assertTextAbsent', text: 'Photo', required: true },
+    { type: 'assertTextAbsent', text: 'Video', required: true },
+    { type: 'assertTextAbsent', text: 'Event', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Post as you', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Announcement post', required: true },
+    { type: 'fillInput', name: 'Headline', value: 'Saturday fixtures', required: true },
+    {
+      type: 'fillInput',
+      name: 'Update text',
+      value: 'Meet at the clubhouse at 09:00.',
+      required: true,
+    },
+    { type: 'assertButtonVisible', name: 'Publish update', required: true },
+    {
+      type: 'mockApiError',
+      path: '/v1/posts',
+      method: 'POST',
+      status: 503,
+      message: 'Club update was not saved.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Publish update', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Club update was not saved.', required: true },
+    { type: 'assertButtonVisible', name: 'Publish update', required: true },
+  ],
+};
+
+const clubPostDeniedFlows = ['parent', 'athlete'].map((role) => ({
+  id: `${role}_create_club_post_denied`,
+  role,
+  title: `${role} is denied the club update composer`,
+  path: `/create-club-post?clubId=${apiSeed.clubId}`,
+  expectPath: '/create-club-post',
+  actions: [
+    { type: 'assertTextVisible', text: 'Club update unavailable', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'You do not have permission to publish updates for this club.',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Write an update', required: true },
+  ],
+}));
+
+const postDetailReadyFlows = ['coach', 'parent', 'guardian', 'admin'].map((role) => ({
+  id: `${role}_post_detail_ready`,
+  role,
+  title: `${role} opens an accessible club update`,
+  path: `/post-detail?postId=${apiSeed.postId}`,
+  expectPath: '/post-detail',
+  actions: [
+    { type: 'assertTextVisible', text: 'Update', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'Weekly training highlights and reminders for families.',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Comments', required: true },
+    { type: 'assertTextVisible', text: 'Olivia Barton', required: true },
+    { type: 'assertTextVisible', text: 'James Barton', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    {
+      type: 'assertButtonVisible',
+      name: role === 'coach' ? 'Unlike post' : 'Like post',
+      required: true,
+    },
+    { type: 'assertButtonVisible', name: 'Like comment', required: true },
+    { type: 'assertButtonVisible', name: 'Reply to comment', required: true },
+    { type: 'assertButtonVisible', name: 'Send comment', required: true },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: role === 'coach' ? 'Unlike post' : 'Like post',
+      required: true,
+    },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Like comment',
+      required: true,
+    },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Reply to comment',
+      required: true,
+    },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Send comment',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: '0/2000', required: true },
+    { type: 'assertTextAbsent', text: 'Comments (2)', required: true },
+    { type: 'assertTextAbsent', text: 'Be the first to comment on this post.', required: true },
+    ...(role === 'parent'
+      ? [{ type: 'assertButtonVisible', name: 'Delete comment by Olivia Barton', required: true }]
+      : role === 'guardian'
+        ? [{ type: 'assertButtonVisible', name: 'Delete comment by James Barton', required: true }]
+        : [{ type: 'assertTextAbsent', text: 'Delete', required: true }]),
+    { type: 'scrollToTop', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+  ],
+}));
+
+const postDetailDeniedFlow = {
+  id: 'athlete_post_detail_denied',
+  role: 'athlete',
+  title: 'Athlete without club membership is denied the club update',
+  path: `/post-detail?postId=${apiSeed.postId}`,
+  expectPath: '/post-detail',
+  expectedErrors: [
+    `response:404:GET:http://localhost:4000/v1/posts/${apiSeed.postId}`,
+    'console:Failed to load resource: the server responded with a status of 404 (Not Found)',
+  ],
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: `/v1/posts/${apiSeed.postId}/comments`,
+      method: 'GET',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Update unavailable', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'This update was removed or you do not have access.',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Comments', required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/posts/${apiSeed.postId}/comments`,
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const postDetailInteractionFlow = {
+  id: 'coach_post_detail_interactions',
+  role: 'coach',
+  title: 'Coach recovers from post and comment mutation failures',
+  path: `/post-detail?postId=${apiSeed.postId}`,
+  expectPath: '/post-detail',
+  expectedErrors: [
+    `response:503:POST:http://localhost:4000/v1/posts/${apiSeed.postId}/reactions/toggle`,
+    `response:503:POST:http://localhost:4000/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3/reactions/toggle`,
+    `response:503:POST:http://localhost:4000/v1/posts/${apiSeed.postId}/comments`,
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+    'console:[ERROR] [',
+    'console:Error data:',
+  ],
+  actions: [
+    {
+      type: 'trackApiRequest',
+      path: `/v1/posts/${apiSeed.postId}/reactions/toggle`,
+      method: 'POST',
+      required: true,
+    },
+    {
+      type: 'mockApiError',
+      path: `/v1/posts/${apiSeed.postId}/reactions/toggle`,
+      method: 'POST',
+      status: 503,
+      message: 'Post reaction was not saved.',
+      delayMs: 450,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Unlike post', exact: true, waitMs: 50, required: true },
+    { type: 'assertButtonDisabled', name: 'Like post', exact: true, required: true },
+    { type: 'wait', ms: 550, required: true },
+    { type: 'assertTextVisible', text: 'Post reaction was not saved.', required: true },
+    { type: 'assertButtonEnabled', name: 'Unlike post', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/posts/${apiSeed.postId}/reactions/toggle`,
+      method: 'POST',
+      count: 1,
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3/reactions/toggle',
+      method: 'POST',
+      required: true,
+    },
+    {
+      type: 'mockApiError',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3/reactions/toggle',
+      method: 'POST',
+      status: 503,
+      message: 'Comment reaction was not saved.',
+      delayMs: 450,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Like comment', waitMs: 50, required: true },
+    { type: 'assertButtonDisabled', name: 'Like comment', required: true },
+    { type: 'wait', ms: 550, required: true },
+    { type: 'assertTextVisible', text: 'Comment reaction was not saved.', required: true },
+    { type: 'assertButtonEnabled', name: 'Like comment', required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3/reactions/toggle',
+      method: 'POST',
+      count: 1,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Reply to comment', waitMs: 50, required: true },
+    { type: 'assertTextVisible', text: 'Replying to Olivia Barton', required: true },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Cancel reply',
+      required: true,
+    },
+    {
+      type: 'fillInput',
+      name: 'Reply to Olivia Barton',
+      value: 'Training times noted.',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: `/v1/posts/${apiSeed.postId}/comments`,
+      method: 'POST',
+      required: true,
+    },
+    {
+      type: 'mockApiError',
+      path: `/v1/posts/${apiSeed.postId}/comments`,
+      method: 'POST',
+      status: 503,
+      message: 'Comment was not sent.',
+      delayMs: 450,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Send comment', exact: true, waitMs: 50, required: true },
+    { type: 'assertButtonDisabled', name: 'Send comment', exact: true, required: true },
+    { type: 'wait', ms: 550, required: true },
+    { type: 'assertTextVisible', text: 'Comment was not sent.', required: true },
+    { type: 'assertButtonEnabled', name: 'Send comment', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/posts/${apiSeed.postId}/comments`,
+      method: 'POST',
+      count: 1,
+      required: true,
+    },
+  ],
+};
+
+const postDetailDeleteFlow = {
+  id: 'parent_post_detail_delete_failure',
+  role: 'parent',
+  title: 'Parent sees and safely confirms their own comment deletion',
+  path: `/post-detail?postId=${apiSeed.postId}`,
+  expectPath: '/post-detail',
+  expectedErrors: [
+    'response:503:DELETE:http://localhost:4000/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3',
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+    'console:[ERROR] [',
+    'console:Error data:',
+  ],
+  actions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3',
+      method: 'DELETE',
+      required: true,
+    },
+    {
+      type: 'mockApiError',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3',
+      method: 'DELETE',
+      status: 503,
+      message: 'Comment was not deleted.',
+      delayMs: 450,
+      required: true,
+    },
+    {
+      type: 'clickButton',
+      name: 'Delete comment by Olivia Barton',
+      exact: true,
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Delete comment?', required: true },
+    { type: 'assertTextVisible', text: 'This cannot be undone.', required: true },
+    { type: 'clickButton', name: 'Delete', exact: true, waitMs: 50, required: true },
+    {
+      type: 'assertButtonDisabled',
+      name: 'Delete comment by Olivia Barton',
+      exact: true,
+      required: true,
+    },
+    { type: 'wait', ms: 550, required: true },
+    { type: 'assertTextVisible', text: 'Comment was not deleted.', required: true },
+    {
+      type: 'assertButtonEnabled',
+      name: 'Delete comment by Olivia Barton',
+      exact: true,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/comments/cmt_0f055f57-69a1-7136-b238-3cad9c42d7d3',
+      method: 'DELETE',
+      count: 1,
+      required: true,
+    },
+  ],
+};
+
+const squadCreateReadyFlow = {
+  id: 'admin_squad_create_ready',
+  role: 'admin',
+  title: 'Club admin sees the lean squad creator',
+  path: `/club/squad/create?clubId=${apiSeed.clubId}`,
+  expectPath: '/club/squad/create',
+  actions: [
+    { type: 'assertTextVisible', text: 'New squad', required: true },
+    { type: 'assertTextVisible', text: 'Name', required: true },
+    { type: 'assertTextVisible', text: 'Age group', required: true },
+    { type: 'assertTextVisible', text: 'Level', required: true },
+    { type: 'assertTextAbsent', text: 'Meeting Location', required: true },
+    { type: 'assertTextAbsent', text: 'Focus Areas', required: true },
+    { type: 'assertTextAbsent', text: 'Preview', required: true },
+    { type: 'assertButtonVisible', name: 'Close squad creator', required: true },
+    { type: 'assertButtonVisible', name: 'Create squad', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const squadCreateInteractionsFlow = {
+  id: 'admin_squad_create_interactions',
+  role: 'admin',
+  title: 'Club admin completes squad fields and recovers from a failed create',
+  path: `/club/squad/create?clubId=${apiSeed.clubId}`,
+  expectPath: '/club/squad/create',
+  expectedErrors: [
+    `response:503:POST:http://localhost:4000/v1/clubs/${apiSeed.clubId}/squads`,
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+    'console:[ERROR] [',
+    'console:Error data: {code: UNKNOWN, message: Squad was not created., details: undefined}',
+  ],
+  actions: [
+    { type: 'fillInput', name: 'Squad name', value: 'U14 Girls', required: true },
+    { type: 'clickControl', role: 'radio', name: 'U14 age group', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Performance level', required: true },
+    { type: 'assertButtonVisible', name: 'Create squad', required: true },
+    {
+      type: 'mockApiError',
+      path: `/v1/clubs/${apiSeed.clubId}/squads`,
+      method: 'POST',
+      status: 503,
+      message: 'Squad was not created.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Create squad', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Squad was not created.', required: true },
+    { type: 'assertButtonVisible', name: 'Create squad', required: true },
+  ],
+};
+
+const squadCreateDeniedFlows = ['coach', 'parent', 'guardian', 'athlete'].map((role) => ({
+  id: `${role}_squad_create_denied`,
+  role,
+  title: `${role} is denied the squad creator`,
+  path: `/club/squad/create?clubId=${apiSeed.clubId}`,
+  expectPath: '/club/squad/create',
+  actions: [
+    { type: 'assertTextVisible', text: 'Squad creation unavailable', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'You do not have permission to create squads for this club.',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'U14 Girls', required: true },
+    { type: 'assertTextAbsent', text: 'Age group', required: true },
+  ],
+}));
+
+const childProfileReadyFlow = {
+  id: 'parent_edit_child_profile_ready',
+  role: 'parent',
+  title: 'Family administrator sees the focused player profile editor',
+  path: `/edit-child-profile?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-profile',
+  actions: [
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertTextVisible', text: 'Player details', required: true },
+    { type: 'assertTextVisible', text: 'Preferred position', required: true },
+    { type: 'assertTextAbsent', text: 'Health & Safety', required: true },
+    { type: 'assertTextAbsent', text: 'Notes for Coaches', required: true },
+    { type: 'assertTextAbsent', text: 'Manage Medical Information', required: true },
+    { type: 'assertTextAbsent', text: 'Manage Emergency Contacts', required: true },
+    { type: 'assertButtonVisible', name: 'Date of birth, optional', required: true },
+    { type: 'assertButtonVisible', name: 'Save profile changes', required: true },
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+  ],
+  postActions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Player details', required: true },
+  ],
+};
+
+const childProfileInteractionFlow = {
+  id: 'parent_edit_child_profile_interactions',
+  role: 'parent',
+  title: 'Family administrator edits profile fields and recovers from a failed save',
+  path: `/edit-child-profile?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-profile',
+  expectedErrors: [
+    `response:503:PATCH:http://localhost:4000/v1/athletes/${apiSeed.athleteId}`,
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'fillInput', name: 'First name', value: '', required: true },
+    { type: 'clickButton', name: 'Save profile changes', exact: true, required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'Enter the player’s first and last name.',
+      required: true,
+    },
+    { type: 'fillInput', name: 'First name', value: 'Alfie Test', required: true },
+    { type: 'fillInput', name: 'Last name', value: 'Barton Test', required: true },
+    { type: 'fillInput', name: 'Nickname, optional', value: 'Matchday', required: true },
+    { type: 'clickButton', name: 'Date of birth, optional', exact: true, required: true },
+    { type: 'clickControl', role: 'radio', name: 'Female', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Daughter', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Defender', required: true },
+    {
+      type: 'mockApiError',
+      path: `/v1/athletes/${apiSeed.athleteId}`,
+      method: 'PATCH',
+      status: 503,
+      message: 'Player profile changes were not saved.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Save profile changes', exact: true, required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'Player profile changes were not saved.',
+      required: true,
+    },
+    { type: 'assertButtonVisible', name: 'Save profile changes', required: true },
+  ],
+  postActions: [
+    {
+      type: 'assertTextVisible',
+      text: 'Player profile changes were not saved.',
+      required: true,
+    },
+    { type: 'assertButtonVisible', name: 'Save profile changes', required: true },
+  ],
+};
+
+const childProfileDeniedFlows = ['guardian', 'coach', 'athlete', 'admin'].map((role) => ({
+  id: `${role}_edit_child_profile_denied`,
+  role,
+  title: `${role} is denied the player profile editor`,
+  path: `/edit-child-profile?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-profile',
+  actions: [
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Profile editing unavailable', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'You do not have permission to edit this player.',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Player details', required: true },
+    { type: 'assertTextAbsent', text: 'Save changes', required: true },
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Profile editing unavailable', required: true },
+  ],
+  postActions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Edit player', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Profile editing unavailable', required: true },
+  ],
+}));
+
+const childSupportReadyFlow = {
+  id: 'parent_edit_child_support_ready',
+  role: 'parent',
+  title: 'Family administrator sees the focused player support editor',
+  path: `/edit-child-sen?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-sen',
+  actions: [
+    { type: 'assertTextVisible', text: 'Player support', required: true },
+    { type: 'assertTextVisible', text: 'Conditions and access needs', required: true },
+    { type: 'assertTextVisible', text: 'Session adjustments', required: true },
+    { type: 'assertTextVisible', text: 'Coach guidance', required: true },
+    { type: 'assertTextAbsent', text: 'Current Disabilities', required: true },
+    { type: 'assertTextAbsent', text: 'Notes for Coaches', required: true },
+    { type: 'assertTextAbsent', text: 'Edit SEN', required: true },
+    { type: 'assertButtonVisible', name: 'Save support changes', required: true },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Save support changes',
+      minWidth: 44,
+      minHeight: 44,
+      required: true,
+    },
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Player support', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+  ],
+  postActions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertScrollTop', required: true },
+    { type: 'assertTextVisible', text: 'Player support', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    {
+      type: 'assertTargetInViewport',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetInViewport',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Go back',
+      minWidth: 44,
+      minHeight: 44,
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Conditions and access needs', required: true },
+  ],
+};
+
+const childSupportInteractionFlow = {
+  id: 'parent_edit_child_support_interactions',
+  role: 'parent',
+  title: 'Family administrator drafts support and recovers from one failed atomic save',
+  path: `/edit-child-sen?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-sen',
+  expectedErrors: [
+    `response:503:PATCH:http://localhost:4000/v1/athletes/${apiSeed.athleteId}`,
+    'console:Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  ],
+  actions: [
+    { type: 'clickButton', name: 'Add condition', exact: true, required: true },
+    { type: 'clickControl', role: 'radio', name: 'Dyslexia', required: true },
+    {
+      type: 'fillInput',
+      name: 'Dyslexia notes, optional',
+      value: 'Needs written steps',
+      required: true,
+    },
+    {
+      type: 'fillInput',
+      name: 'Support required, optional',
+      value: 'Pair spoken instructions with a visual example',
+      required: true,
+    },
+    {
+      type: 'fillInput',
+      name: 'communication preference',
+      value: 'Visual cue',
+      required: true,
+    },
+    {
+      type: 'clickButton',
+      name: 'Add communication preference',
+      exact: true,
+      required: true,
+    },
+    { type: 'clickButton', name: 'Add condition', exact: true, required: true },
+    { type: 'clickButton', name: 'Add adjustment', exact: true, required: true },
+    { type: 'clickControl', role: 'radio', name: 'Learning', required: true },
+    {
+      type: 'fillInput',
+      name: 'Adjustment name',
+      value: 'Extra processing time',
+      required: true,
+    },
+    { type: 'clickControl', role: 'radio', name: 'Mild', required: true },
+    { type: 'clickButton', name: 'Add adjustment', exact: true, required: true },
+    {
+      type: 'fillInput',
+      name: 'Communication guidance, optional',
+      value: 'Give one instruction at a time',
+      required: true,
+    },
+    {
+      type: 'fillInput',
+      name: 'Behaviour and regulation guidance, optional',
+      value: 'A quiet reset helps after a noisy drill',
+      required: true,
+    },
+    {
+      type: 'mockApiError',
+      path: `/v1/athletes/${apiSeed.athleteId}`,
+      method: 'PATCH',
+      status: 503,
+      message: 'Support changes were not saved.',
+      required: true,
+    },
+    { type: 'clickButton', name: 'Save support changes', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Support changes were not saved.', required: true },
+    { type: 'assertButtonVisible', name: 'Save support changes', required: true },
+  ],
+  postActions: [
+    { type: 'assertTextVisible', text: 'Support changes were not saved.', required: true },
+    { type: 'assertButtonVisible', name: 'Save support changes', required: true },
+    {
+      type: 'assertTargetInViewport',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetInViewport',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Dyslexia', required: true },
+    { type: 'assertButtonVisible', name: 'Remove Extra processing time', required: true },
+    {
+      type: 'assertTargetMinSize',
+      role: 'button',
+      name: 'Remove Extra processing time',
+      minWidth: 44,
+      minHeight: 44,
+      required: true,
+    },
+  ],
+};
+
+const childSupportDeniedFlows = ['guardian', 'coach', 'athlete', 'admin'].map((role) => ({
+  id: `${role}_edit_child_support_denied`,
+  role,
+  title: `${role} is denied the player support editor`,
+  path: `/edit-child-sen?childId=${apiSeed.athleteId}`,
+  expectPath: '/edit-child-sen',
+  actions: [
+    { type: 'assertTextVisible', text: 'Player support', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: 'Support editing unavailable', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'You do not have permission to edit this player’s support information.',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Conditions and access needs', required: true },
+    { type: 'assertTextAbsent', text: 'Save changes', required: true },
+  ],
+  postActions: [
+    { type: 'assertTextVisible', text: 'Player support', required: true },
+    { type: 'assertButtonVisible', name: 'Go back', required: true },
+    {
+      type: 'assertTargetInViewport',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      text: 'Player support',
+      required: true,
+    },
+    {
+      type: 'assertTargetInViewport',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    {
+      type: 'assertTargetUnobscured',
+      role: 'button',
+      name: 'Go back',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Support editing unavailable', required: true },
+  ],
+}));
+
+const inviteCodeSettingsReadyFlow = {
+  id: 'admin_invite_code_settings_ready',
+  role: 'admin',
+  title: 'Club admin sees the canonical club invite controls',
+  path: `/club/settings?clubId=${apiSeed.clubId}&section=invites`,
+  expectPath: '/club/settings',
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Club Settings', required: true },
+    { type: 'assertTextVisible', text: 'Invite codes', required: true },
+    { type: 'assertTextVisible', text: 'Create and share club access codes.', required: true },
+    { type: 'assertTextVisible', text: 'Create member code', required: true },
+    { type: 'assertTextAbsent', text: 'School Invite Code', required: true },
+    { type: 'assertTextAbsent', text: 'Use invite code', required: true },
+  ],
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'Invite codes', required: true },
+    { type: 'assertTargetUnobscured', text: 'Invite codes', required: true },
+  ],
+};
+
+const inviteCodeSettingsDeniedFlows = ['coach', 'parent', 'guardian', 'athlete'].map((role) => ({
+  id: `${role}_invite_code_settings_denied`,
+  role,
+  title: `${role} does not receive club invite-management controls`,
+  path: `/club/settings?clubId=${apiSeed.clubId}&section=invites`,
+  expectPath: '/club/settings',
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextAbsent', text: 'Invite codes', required: true },
+    { type: 'assertTextAbsent', text: 'Create member code', required: true },
+    { type: 'assertTextAbsent', text: 'Create coach code', required: true },
+    { type: 'assertTextAbsent', text: 'Create admin code', required: true },
+    { type: 'assertTextAbsent', text: 'School Invite Code', required: true },
+  ],
+}));
+
+const availabilityScheduleActions = [
+  { type: 'wait', ms: 2500, required: true },
+  { type: 'assertTextVisible', text: 'Availability', required: true },
+  { type: 'assertTextVisible', text: 'Manage your availability', required: true },
+  { type: 'assertTextVisible', text: 'This Week', required: true },
+  { type: 'assertTextVisible', text: 'Take Time Off', required: true },
+  { type: 'assertTextVisible', text: 'Booking Rules', required: true },
+  { type: 'assertTargetMinSize', role: 'button', name: 'Take time off', required: true },
+  { type: 'assertTargetMinSize', role: 'button', name: 'Booking rules', required: true },
+];
+
+const availabilityScheduleReadyFlow = {
+  id: 'coach_availability_schedule_ready',
+  role: 'coach',
+  title: 'Coach opens canonical Schedule availability',
+  path: '/schedule?segment=availability',
+  expectPath: '/schedule',
+  actions: availabilityScheduleActions,
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'Availability', required: true },
+    { type: 'assertTargetUnobscured', text: 'Availability', required: true },
+  ],
+};
+
+const availabilityLegacyRedirectFlow = {
+  id: 'coach_availability_legacy_redirect',
+  role: 'coach',
+  title: 'Legacy availability link lands on the canonical Schedule segment',
+  path: '/availability',
+  expectPath: '/schedule',
+  actions: availabilityScheduleActions,
+};
+
+const availabilityScheduleDeniedFlows = ['parent', 'guardian', 'athlete', 'admin'].map((role) => ({
+  id: `${role}_availability_schedule_denied`,
+  role,
+  title: `${role} is denied coach availability management`,
+  path: '/schedule?segment=availability',
+  expectPathNot: '/schedule',
+}));
+
+const bookingDetailSharedActions = [
+  { type: 'wait', ms: 2500, required: true },
+  { type: 'assertTextVisible', text: '1-on-1 session', required: true },
+  { type: 'assertTextVisible', text: 'Confirmed', required: true },
+  { type: 'assertTextVisible', text: 'Amelia Indoor Dome', required: true },
+  { type: 'assertTextVisible', text: 'Directions', required: true },
+  { type: 'assertTextAbsent', text: 'Weather', required: true },
+  { type: 'assertTextAbsent', text: 'Ownership & Audit', required: true },
+  { type: 'assertTextAbsent', text: 'Trust and support', required: true },
+  { type: 'assertTextAbsent', text: 'Follow-ups parents will see', required: true },
+  { type: 'assertTextAbsent', text: 'Billing Issue', required: true },
+  { type: 'assertTargetMinSize', role: 'button', name: 'Go back', required: true },
+  {
+    type: 'assertTargetMinSize',
+    role: 'button',
+    name: 'Directions to Amelia Indoor Dome',
+    required: true,
+  },
+];
+
+const bookingDetailAllowedFlows = ['coach', 'parent', 'guardian', 'athlete'].map((role) => ({
+  id: `${role}_booking_detail_ready`,
+  role,
+  title: `${role} opens an assigned booking`,
+  path: `/bookings/${apiSeed.bookingId}`,
+  expectPath: `/bookings/${apiSeed.bookingId}`,
+  actions: [
+    ...bookingDetailSharedActions,
+    {
+      type: 'assertTextVisible',
+      text: role === 'coach' ? 'Complete session' : 'Message coach',
+      required: true,
+    },
+    ...(role === 'coach'
+      ? [
+          { type: 'assertTextVisible', text: 'Message contact', required: true },
+          { type: 'assertTextAbsent', text: 'Message family', required: true },
+        ]
+      : []),
+  ],
+  postActions: [
+    { type: 'assertTargetInViewport', text: '1-on-1 session', required: true },
+    { type: 'assertTargetUnobscured', text: '1-on-1 session', required: true },
+  ],
+}));
+
+const bookingDetailDeniedFlow = {
+  id: 'admin_booking_detail_denied',
+  role: 'admin',
+  title: 'Unrelated club admin is denied booking detail',
+  path: `/bookings/${apiSeed.bookingId}`,
+  expectPath: `/bookings/${apiSeed.bookingId}`,
+  expectedErrors: [
+    'response:403:GET:http://localhost:4000/v1/bookings/',
+    'console:Failed to load resource: the server responded with a status of 403',
+  ],
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Booking unavailable', required: true },
+    { type: 'assertButtonVisible', name: 'Back to bookings', required: true },
+    { type: 'assertTextAbsent', text: 'Try again', required: true },
+    { type: 'assertTextAbsent', text: 'Amelia Indoor Dome', required: true },
+  ],
+};
+
+const bookingProblemPath = `/bookings/report-problem?bookingId=${encodeURIComponent(apiSeed.bookingId)}`;
+
+const bookingProblemReadyActions = [
+  { type: 'wait', ms: 2500, required: true },
+  { type: 'assertTextVisible', text: 'Report problem', required: true },
+  { type: 'assertTextVisible', text: 'Sent to', required: true },
+  { type: 'assertTextVisible', text: 'What happened?', required: true },
+  { type: 'assertTextVisible', text: 'Details', required: true },
+  { type: 'assertButtonVisible', name: 'Send report', required: true },
+  { type: 'assertButtonDisabled', name: 'Send report', exact: true, required: true },
+  { type: 'assertTextAbsent', text: 'Help us improve', required: true },
+  { type: 'assertTextAbsent', text: 'Reports are reviewed within 24 hours.', required: true },
+  { type: 'assertTargetMinSize', role: 'radio', name: 'Safety concern', required: true },
+];
+
+const bookingProblemReadyFlows = ['parent', 'guardian', 'athlete'].map((role) => ({
+  id: `${role}_booking_problem_ready`,
+  role,
+  title: `${role} opens booking problem reporting`,
+  path: bookingProblemPath,
+  expectPath: '/bookings/report-problem',
+  actions: bookingProblemReadyActions,
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'What happened?', required: true },
+    { type: 'assertTargetUnobscured', text: 'What happened?', required: true },
+  ],
+}));
+
+const bookingProblemDeniedFlows = ['coach', 'admin'].map((role) => ({
+  id: `${role}_booking_problem_denied`,
+  role,
+  title: `${role} is denied the family booking problem form`,
+  path: bookingProblemPath,
+  expectPath: '/bookings/report-problem',
+  actions: [
+    { type: 'wait', ms: 1500, required: true },
+    { type: 'assertTextVisible', text: 'Booking unavailable', required: true },
+    { type: 'assertButtonVisible', name: 'Back to bookings', required: true },
+    { type: 'assertTextAbsent', text: 'What happened?', required: true },
+    { type: 'assertTextAbsent', text: 'Send report', required: true },
+  ],
+}));
+
+const bookingProblemMissingContextFlow = {
+  id: 'parent_booking_problem_missing_context',
+  role: 'parent',
+  title: 'Booking problem reporting rejects a missing booking id',
+  path: '/bookings/report-problem',
+  expectPath: '/bookings/report-problem',
+  actions: [
+    { type: 'wait', ms: 700, required: true },
+    { type: 'assertTextVisible', text: 'Booking unavailable', required: true },
+    { type: 'assertButtonVisible', name: 'Back to bookings', required: true },
+    { type: 'assertTextAbsent', text: 'What happened?', required: true },
+  ],
+};
+
+const bookingProblemSubmitFlow = {
+  id: 'parent_booking_problem_submit',
+  role: 'parent',
+  title: 'Parent completes the booking problem form once',
+  path: bookingProblemPath,
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    {
+      type: 'mockApiResponse',
+      method: 'POST',
+      path: '/v1/safeguarding/incidents',
+      status: 201,
+      body: { id: 'safe_ui_booking_problem_audit' },
+      required: true,
+    },
+    { type: 'clickControl', role: 'radio', name: 'Safety concern', required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'If anyone is in immediate danger, contact emergency services.',
+      required: true,
+    },
+    {
+      type: 'fillInput',
+      name: 'Issue details',
+      value: 'Route audit report. No staging mutation from this UI flow.',
+      required: true,
+    },
+    { type: 'assertButtonEnabled', name: 'Send report', exact: true, required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Send report', required: true },
+    { type: 'clickButton', name: 'Send report', exact: true, waitMs: 1000, required: true },
+    {
+      type: 'assertApiRequestCount',
+      method: 'POST',
+      path: '/v1/safeguarding/incidents',
+      count: 1,
+      required: true,
+    },
+  ],
+};
+
+const sessionFeedbackCompletionFlow = {
+  id: 'coach_booking_completion_entry',
+  role: 'coach',
+  title: 'Coach enters explicit booking completion without a feedback redirect',
+  path: `/bookings/${apiSeed.bookingId}`,
+  expectPath: `/session/${apiSeed.bookingId}/complete`,
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Confirmed', required: true },
+    { type: 'assertButtonVisible', name: 'Complete session', required: true },
+    { type: 'assertTextAbsent', text: 'Add session feedback', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Complete session', required: true },
+    { type: 'clickButton', name: 'Complete session', waitMs: 1500, required: true },
+    { type: 'assertTextVisible', text: 'Complete Session', required: true },
+  ],
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'Complete Session', required: true },
+    { type: 'assertTargetUnobscured', text: 'Complete Session', required: true },
+  ],
+};
+
+const sessionFeedbackCoachNotesFlow = {
+  id: 'coach_completed_booking_notes_entry',
+  role: 'coach',
+  title: 'Coach opens the single notes control from a completed booking',
+  path: `/bookings/${apiSeed.completedBookingId}`,
+  expectPath: `/session-notes/${apiSeed.completedBookingId}`,
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Completed', required: true },
+    { type: 'assertTextVisible', text: 'Session notes & development', required: true },
+    { type: 'assertButtonVisible', name: 'Add coach notes', required: true },
+    { type: 'assertTextAbsent', text: 'Add session feedback', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Add coach notes', required: true },
+    { type: 'clickButton', name: 'Add coach notes', exact: true, waitMs: 1500, required: true },
+    { type: 'assertTextVisible', text: 'Session notes', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Go back', required: true },
+    { type: 'assertTextVisible', text: '0/3 selected', required: true },
+    { type: 'assertTextAbsent', text: 'Select at least one focus area', required: true },
+    { type: 'assertTextAbsent', text: 'Rate athlete effort', required: true },
+  ],
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'Session notes', required: true },
+    { type: 'assertTargetUnobscured', text: 'Session notes', required: true },
+  ],
+};
+
+const sessionFeedbackReadOnlyFlows = ['parent', 'athlete'].map((role) => ({
+  id: `${role}_completed_booking_feedback_read_only`,
+  role,
+  title: `${role} sees completed booking feedback as read-only`,
+  path: `/bookings/${apiSeed.completedBookingId}`,
+  expectPath: `/bookings/${apiSeed.completedBookingId}`,
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Completed', required: true },
+    { type: 'assertTextVisible', text: 'Coach feedback', required: true },
+    { type: 'assertTextVisible', text: 'No coach feedback yet.', required: true },
+    { type: 'assertTextAbsent', text: 'Add coach notes', required: true },
+    { type: 'assertTextAbsent', text: 'Add session feedback', required: true },
+    { type: 'scrollIntoView', text: 'Coach feedback', required: true },
+  ],
+  postActions: [
+    { type: 'assertTargetInViewport', text: 'Coach feedback', required: true },
+    { type: 'assertTargetUnobscured', text: 'Coach feedback', required: true },
+  ],
+}));
+
+const sessionFeedbackDeniedFlows = ['guardian', 'admin'].map((role) => ({
+  id: `${role}_completed_booking_feedback_denied`,
+  role,
+  title: `${role} is denied completed booking feedback`,
+  path: `/bookings/${apiSeed.completedBookingId}`,
+  expectPath: `/bookings/${apiSeed.completedBookingId}`,
+  expectedErrors: [
+    'response:403:GET:http://localhost:4000/v1/bookings/',
+    'console:Failed to load resource: the server responded with a status of 403',
+  ],
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Booking unavailable', required: true },
+    { type: 'assertButtonVisible', name: 'Back to bookings', required: true },
+    { type: 'assertTextAbsent', text: 'Coach feedback', required: true },
+    { type: 'assertTextAbsent', text: 'Add coach notes', required: true },
+    { type: 'assertTextAbsent', text: 'Add session feedback', required: true },
+  ],
+  postActions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertTargetInViewport', text: 'Booking unavailable', required: true },
+    { type: 'assertTargetUnobscured', text: 'Booking unavailable', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Back to bookings', required: true },
+  ],
+}));
+
+const coachProfileCanonicalFlow = {
+  id: 'coach_profile_editor_redirect',
+  role: 'coach',
+  title: 'Coach profile compatibility link opens the canonical editor',
+  path: '/coach-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+    { type: 'trackApiRequest', path: '/v1/posts*', method: 'GET', required: true },
+    { type: 'trackApiRequest', path: '/v1/follows*', method: 'GET', required: true },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'assertTextVisible', text: 'Edit Profile', required: true },
+    { type: 'assertTextVisible', text: 'Name', required: true },
+    { type: 'assertButtonVisible', name: 'Save profile', required: true },
+    { type: 'assertButtonDisabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      count: 1,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/posts*',
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/follows*',
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Profile Offline', required: true },
+    { type: 'assertTextAbsent', text: 'Profile completion', required: true },
+    { type: 'assertTextAbsent', text: 'Quick Access', required: true },
+    { type: 'assertTextAbsent', text: 'Cover Photo', required: true },
+    { type: 'assertTextAbsent', text: 'Profile Photo', required: true },
+    { type: 'assertTextAbsent', text: 'Photos', required: true },
+    { type: 'assertTextAbsent', text: 'Reviews', required: true },
+    { type: 'assertTextAbsent', text: 'Sign Out', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Save profile', required: true },
+    { type: 'scrollToTop', required: true },
+  ],
+};
+
+const coachProfileBioEditFlow = {
+  id: 'coach_profile_bio_edit',
+  role: 'coach',
+  title: 'Coach edits a full-length profile bio without an implicit write',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'assertButtonDisabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'fillInput',
+      name: 'Bio',
+      value: 'UEFA-qualified coach focused on clear sessions and player development.',
+      required: true,
+    },
+    {
+      type: 'assertInputValue',
+      name: 'Bio',
+      value: 'UEFA-qualified coach focused on clear sessions and player development.',
+      required: true,
+    },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileFocusPricingFlow = {
+  id: 'coach_profile_focus_pricing',
+  role: 'coach',
+  title: 'Coach changes football focus and validates pricing without saving',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'scrollIntoView', text: 'Coaching focus', required: true },
+    { type: 'assertTargetMinSize', role: 'checkbox', name: 'Passing', required: true },
+    { type: 'clickControl', role: 'checkbox', name: 'Passing', required: true },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    { type: 'scrollIntoView', text: 'Pricing', required: true },
+    { type: 'assertTargetMinSize', role: 'textbox', name: 'Minimum price', required: true },
+    { type: 'assertTargetMinSize', role: 'textbox', name: 'Maximum price', required: true },
+    { type: 'fillInput', name: 'Minimum price', value: '200', required: true },
+    { type: 'fillInput', name: 'Maximum price', value: '50', required: true },
+    { type: 'assertTextVisible', text: 'Minimum must be lower than maximum', required: true },
+    { type: 'assertButtonDisabled', name: 'Save profile', exact: true, required: true },
+    { type: 'fillInput', name: 'Maximum price', value: '200', required: true },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      count: 1,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileLinksContactFlow = {
+  id: 'coach_profile_links_contact',
+  role: 'coach',
+  title: 'Coach validates social links and edits contact fields without saving',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'scrollIntoView', text: 'Social links', required: true },
+    {
+      type: 'fillInput',
+      name: 'Instagram',
+      value: 'https://evilinstagram.com/coach',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Use an Instagram URL', required: true },
+    { type: 'assertButtonDisabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'fillInput',
+      name: 'Instagram',
+      value: 'https://instagram.com/clubroomcoach',
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Use an Instagram URL', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Clear Instagram', required: true },
+    { type: 'clickButton', name: 'Clear Instagram', exact: true, required: true },
+    { type: 'assertInputValue', name: 'Instagram', value: '', required: true },
+    { type: 'scrollIntoView', text: 'Contact', required: true },
+    { type: 'assertTargetMinSize', role: 'textbox', name: 'Email address', required: true },
+    { type: 'assertTargetMinSize', role: 'textbox', name: 'Phone number', required: true },
+    { type: 'assertTargetMinSize', role: 'textbox', name: 'Website URL', required: true },
+    {
+      type: 'fillInput',
+      name: 'Website URL',
+      value: 'javascript:alert(1)',
+      required: true,
+    },
+    { type: 'assertTextVisible', text: 'Enter a valid URL', required: true },
+    { type: 'assertButtonDisabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'fillInput',
+      name: 'Website URL',
+      value: 'https://clubroom.example',
+      required: true,
+    },
+    {
+      type: 'scrollIntoView',
+      role: 'textbox',
+      name: 'Website URL',
+      position: 'center',
+      required: true,
+    },
+    { type: 'assertTargetInViewport', role: 'textbox', name: 'Website URL', required: true },
+    { type: 'assertTargetUnobscured', role: 'textbox', name: 'Website URL', required: true },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      count: 1,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileExperienceFlow = {
+  id: 'coach_profile_experience_validation',
+  role: 'coach',
+  title: 'Coach inspects experience fields and receives inline validation',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'scrollIntoView', role: 'button', name: 'Add experience', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Add experience', required: true },
+    { type: 'clickButton', name: 'Add experience', exact: true, required: true },
+    { type: 'assertTargetInViewport', role: 'button', name: 'Close', required: true },
+    { type: 'assertTargetUnobscured', role: 'button', name: 'Close', required: true },
+    { type: 'assertTextVisible', text: 'Role', required: true },
+    { type: 'assertTextVisible', text: 'Club or organisation', required: true },
+    { type: 'assertTextVisible', text: 'Start date', required: true },
+    { type: 'assertTextVisible', text: 'End date (optional)', required: true },
+    { type: 'assertTextVisible', text: 'Description', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Start date', required: true },
+    { type: 'assertTargetMinSize', role: 'checkbox', name: 'Current role', required: true },
+    { type: 'clickControl', role: 'checkbox', name: 'Current role', required: true },
+    { type: 'assertTextAbsent', text: 'End date (optional)', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Save experience', required: true },
+    { type: 'clickButton', name: 'Save experience', exact: true, required: true },
+    {
+      type: 'assertTextVisible',
+      text: 'Role, club or organisation, and start date are required.',
+      required: true,
+    },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Close', required: true },
+    { type: 'assertTargetInViewport', role: 'button', name: 'Save experience', required: true },
+    { type: 'assertTargetUnobscured', role: 'button', name: 'Save experience', required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileLanguageFlow = {
+  id: 'coach_profile_language_edit',
+  role: 'coach',
+  title: 'Coach validates and adds a language locally',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'scrollIntoView', role: 'button', name: 'Add language', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Add language', required: true },
+    { type: 'clickButton', name: 'Add language', exact: true, required: true },
+    { type: 'clickButton', name: 'Save language', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Language is required.', required: true },
+    { type: 'fillInput', name: 'Language name', value: 'Welsh', required: true },
+    { type: 'assertTargetMinSize', role: 'radio', name: 'Fluent', required: true },
+    { type: 'clickControl', role: 'radio', name: 'Fluent', required: true },
+    { type: 'clickButton', name: 'Save language', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Welsh', required: true },
+    { type: 'assertTextAbsent', text: 'Quick add', required: true },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileQualificationFlow = {
+  id: 'coach_profile_qualification_edit',
+  role: 'coach',
+  title: 'Coach validates and adds a qualification label locally',
+  path: '/edit-profile',
+  expectPath: '/edit-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'scrollIntoView', role: 'button', name: 'Add qualification', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Add qualification', required: true },
+    { type: 'clickButton', name: 'Add qualification', exact: true, required: true },
+    { type: 'assertTextAbsent', text: 'Issue Date', required: true },
+    { type: 'assertTextAbsent', text: 'Expiry Date', required: true },
+    { type: 'assertTextAbsent', text: 'Credential URL', required: true },
+    { type: 'clickButton', name: 'Save qualification', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Qualification name is required.', required: true },
+    {
+      type: 'fillInput',
+      name: 'Qualification name',
+      value: 'Youth Goalkeeping Award',
+      required: true,
+    },
+    { type: 'fillInput', name: 'Qualification issuer', value: 'The FA', required: true },
+    { type: 'clickButton', name: 'Save qualification', exact: true, required: true },
+    { type: 'assertTextVisible', text: 'Youth Goalkeeping Award', required: true },
+    {
+      type: 'scrollIntoView',
+      text: 'Youth Goalkeeping Award',
+      position: 'center',
+      required: true,
+    },
+    { type: 'assertTargetInViewport', text: 'Youth Goalkeeping Award', required: true },
+    { type: 'assertTargetUnobscured', text: 'Youth Goalkeeping Award', required: true },
+    { type: 'assertTextAbsent', text: 'Valid', required: true },
+    { type: 'assertTextAbsent', text: 'Expired', required: true },
+    { type: 'assertButtonEnabled', name: 'Save profile', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'PATCH',
+      count: 0,
+      required: true,
+    },
+  ],
+};
+
+const coachProfileDeniedFlows = ['parent', 'guardian', 'athlete', 'admin'].map((role) => ({
+  id: `${role}_coach_profile_denied`,
+  role,
+  title: `${role} cannot mount the coach self-profile route`,
+  path: '/coach-profile',
+  expectPathNot: '/coach-profile',
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1200, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/coaches/me/profile',
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+    { type: 'assertTextAbsent', text: 'Edit Profile', required: true },
+    { type: 'assertTextAbsent', text: 'Profile Offline', required: true },
+    { type: 'assertTextAbsent', text: 'Profile completion', required: true },
+  ],
+}));
+
+const clubHubCanonicalRedirectFlows = ['coach', 'parent', 'guardian', 'athlete', 'admin'].map(
+  (role) => ({
+    id: `${role}_club_hub_my_clubs_redirect`,
+    role,
+    title: `${role} legacy Club Hub entry opens My Clubs directly`,
+    path: '/club-hub',
+    expectPath: '/club/my-clubs',
+    actions: [
+      { type: 'wait', ms: 1800, required: true },
+      { type: 'assertTextVisible', text: 'My Clubs', required: true },
+      { type: 'assertTextVisible', text: 'Join a club', required: true },
+      { type: 'assertTextAbsent', text: 'Club Hub', required: true },
+      { type: 'assertButtonDisabled', name: 'Join club', exact: true, required: true },
+      { type: 'assertTargetMinSize', role: 'button', name: 'Close', required: true },
+      { type: 'assertTargetMinSize', role: 'button', name: 'Join club', required: true },
+    ],
+  }),
+);
+
+const clubHubInviteConfirmationFlow = {
+  id: 'coach_club_hub_invite_confirmation',
+  role: 'coach',
+  title: 'Coach invite link requires an explicit Join action',
+  path: '/club-hub?inviteCode=CLUB-READ-ONLY-AUDIT',
+  expectPath: '/club/my-clubs',
+  setupActions: [
+    { type: 'trackApiRequest', path: '/v1/clubs/join', method: 'POST', required: true },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'assertTextVisible', text: 'My Clubs', required: true },
+    {
+      type: 'assertInputValue',
+      name: 'Invite code or link',
+      value: 'CLUB-READ-ONLY-AUDIT',
+      required: true,
+    },
+    { type: 'assertButtonEnabled', name: 'Join club', exact: true, required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: '/v1/clubs/join',
+      method: 'POST',
+      count: 0,
+      required: true,
+    },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Join club', required: true },
+  ],
+};
+
+const clubHubAuthorizedDetailFlows = ['coach', 'parent', 'guardian', 'admin'].map((role) => ({
+  id: `${role}_club_hub_club_detail_redirect`,
+  role,
+  title: `${role} Club Hub link opens canonical club detail`,
+  path: `/club-hub?clubId=${apiSeed.clubId}`,
+  expectPath: `/club/${apiSeed.clubId}`,
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: `/v1/clubs/${apiSeed.clubId}/members`,
+      method: 'GET',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextVisible', text: 'Updates', required: true },
+    { type: 'assertTextAbsent', text: 'Invites', required: true },
+    { type: 'assertButtonAbsent', name: 'Add club photo', required: true },
+    { type: 'assertButtonAbsent', name: 'Change club photo', required: true },
+    { type: 'assertButtonAbsent', name: 'Add cover photo', required: true },
+    { type: 'assertButtonAbsent', name: 'Change cover photo', required: true },
+    ...(role === 'parent' || role === 'guardian'
+      ? [
+          { type: 'assertButtonAbsent', name: 'New Post', required: true },
+          { type: 'assertButtonAbsent', name: 'Create Event', required: true },
+          { type: 'assertButtonAbsent', name: 'Show club members', required: true },
+        ]
+      : []),
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/clubs/${apiSeed.clubId}/members`,
+      method: 'GET',
+      count: role === 'admin' ? 1 : 0,
+      required: true,
+    },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Go back', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Club options', required: true },
+  ],
+}));
+
+const clubHubDeniedDetailFlows = ['athlete'].map((role) => ({
+  id: `${role}_club_hub_club_detail_denied`,
+  role,
+  title: `${role} cannot probe an unrelated club through Club Hub`,
+  path: `/club-hub?clubId=${apiSeed.clubId}`,
+  expectPath: `/club/${apiSeed.clubId}`,
+  setupActions: [
+    {
+      type: 'trackApiRequest',
+      path: `/v1/posts?clubId=${apiSeed.clubId}`,
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: `/v1/clubs/${apiSeed.clubId}/members`,
+      method: 'GET',
+      required: true,
+    },
+    {
+      type: 'trackApiRequest',
+      path: `/v1/clubs/${apiSeed.clubId}/schedule`,
+      method: 'GET',
+      required: true,
+    },
+  ],
+  actions: [
+    { type: 'wait', ms: 1800, required: true },
+    { type: 'assertTextVisible', text: 'Club not found', required: true },
+    { type: 'assertButtonVisible', name: 'Go Back', required: true },
+    { type: 'assertTextAbsent', text: 'Updates', required: true },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/posts?clubId=${apiSeed.clubId}`,
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/clubs/${apiSeed.clubId}/members`,
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+    {
+      type: 'assertApiRequestCount',
+      path: `/v1/clubs/${apiSeed.clubId}/schedule`,
+      method: 'GET',
+      count: 0,
+      required: true,
+    },
+  ],
+  postActions: [
+    { type: 'scrollToTop', required: true },
+    { type: 'assertTargetInViewport', text: 'Club not found', required: true },
+    { type: 'assertTargetUnobscured', text: 'Club not found', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Go Back', required: true },
+  ],
+}));
+
+const clubHubDashboardSettingsFlow = {
+  id: 'admin_club_dashboard_settings_entry',
+  role: 'admin',
+  title: 'Club admin opens settings without looping through Club Hub',
+  path: `/club/${apiSeed.clubId}/dashboard`,
+  expectPath: '/club/settings',
+  actions: [
+    { type: 'wait', ms: 2500, required: true },
+    { type: 'assertTextAbsent', text: 'Club Hub & Admin', required: true },
+    { type: 'scrollIntoView', role: 'button', name: 'Club settings', required: true },
+    { type: 'assertTargetMinSize', role: 'button', name: 'Club settings', required: true },
+    { type: 'clickButton', name: 'Club settings', exact: true, waitMs: 1800, required: true },
+    { type: 'assertTextVisible', text: 'Club Settings', required: true },
+  ],
+};
+
 const flows = [
   // Coach flows
   { id: 'coach_home', role: 'coach', title: 'Coach opens dashboard', path: '/' },
@@ -64,6 +2386,28 @@ const flows = [
     expectPath: '/bookings',
   },
   { id: 'coach_settings', role: 'coach', title: 'Coach opens settings', path: '/settings' },
+  ...settingsRouteFlows,
+  travelRadiusSaveFailureFlow,
+  coachingSettingsSaveFailureFlow,
+  accountSettingsInteractionsFlow,
+  blockedUsersReadyFlow,
+  blockedUsersInteractionsFlow,
+  clubPostReadyFlow,
+  clubPostComposerFlow,
+  ...clubPostDeniedFlows,
+  ...postDetailReadyFlows,
+  postDetailDeniedFlow,
+  postDetailInteractionFlow,
+  postDetailDeleteFlow,
+  squadCreateReadyFlow,
+  squadCreateInteractionsFlow,
+  ...squadCreateDeniedFlows,
+  childProfileReadyFlow,
+  childProfileInteractionFlow,
+  ...childProfileDeniedFlows,
+  childSupportReadyFlow,
+  childSupportInteractionFlow,
+  ...childSupportDeniedFlows,
   {
     id: 'coach_progress',
     role: 'coach',
@@ -143,12 +2487,6 @@ const flows = [
     role: 'coach',
     title: 'Coach opens create club',
     path: '/club/create',
-  },
-  {
-    id: 'coach_squad_create',
-    role: 'coach',
-    title: 'Coach opens create squad',
-    path: '/club/squad/create',
   },
   {
     id: 'coach_squad_detail',
@@ -246,9 +2584,9 @@ const flows = [
   },
   {
     id: 'owner_head_coach',
-    role: 'coach',
+    role: 'admin',
     title: 'Owner opens head coach oversight',
-    path: '/manage/head-coach',
+    path: `/manage/head-coach?clubId=${apiSeed.clubId}`,
     expectPath: '/manage/head-coach',
   },
   {
@@ -372,6 +2710,72 @@ const flows = [
     path: `/child/${apiSeed.athleteId}/emergency`,
     expectPath: `/child/${apiSeed.athleteId}/emergency`,
   },
+  {
+    id: 'parent_add_child',
+    role: 'parent',
+    title: 'Family administrator opens add-child flow',
+    path: '/add-child',
+    expectPath: '/add-child',
+    actions: [
+      { type: 'wait', ms: 2500, required: true },
+      { type: 'assertTextVisible', text: 'Player details', required: true },
+    ],
+  },
+  {
+    id: 'parent_add_child_support',
+    role: 'parent',
+    title: 'Family administrator checks add-child support step',
+    path: '/add-child',
+    expectPath: '/add-child',
+    actions: addChildSupportActions,
+  },
+  {
+    id: 'parent_add_child_support_details',
+    role: 'parent',
+    title: 'Family administrator expands add-child support details',
+    path: '/add-child',
+    expectPath: '/add-child',
+    actions: [
+      ...addChildSupportActions,
+      {
+        type: 'clickControl',
+        role: 'radio',
+        name: 'Yes, coaching adjustments are needed',
+        required: true,
+      },
+      { type: 'assertTextVisible', text: 'Conditions and access needs', required: true },
+      { type: 'assertButtonVisible', name: 'Add condition', required: true },
+      { type: 'assertButtonVisible', name: 'Add adjustment', required: true },
+    ],
+  },
+  {
+    id: 'parent_add_child_safety',
+    role: 'parent',
+    title: 'Family administrator checks add-child safety step',
+    path: '/add-child',
+    expectPath: '/add-child',
+    actions: [
+      ...addChildSafetyActions,
+      { type: 'assertTextVisible', text: 'Emergency contact', required: true },
+    ],
+  },
+  {
+    id: 'parent_add_child_medical_details',
+    role: 'parent',
+    title: 'Family administrator expands add-child medical details',
+    path: '/add-child',
+    expectPath: '/add-child',
+    actions: [
+      ...addChildSafetyActions,
+      {
+        type: 'clickControl',
+        role: 'radio',
+        name: 'Yes, a coach needs medical details',
+        required: true,
+      },
+      { type: 'assertTextVisible', text: 'Allergies', required: true },
+    ],
+  },
 
   // Athlete flows
   { id: 'athlete_home', role: 'athlete', title: 'Athlete opens dashboard', path: '/' },
@@ -426,8 +2830,46 @@ const flows = [
     id: 'athlete_chat_list',
     role: 'athlete',
     title: 'Athlete opens chat list',
-    path: '/chat/index',
+    path: '/chat',
+    expectPath: '/messages',
   },
+  ...['guardian', 'coach', 'athlete', 'admin'].map((role) => ({
+    id: `${role}_add_child_denied`,
+    role,
+    title: `${role} is denied the add-child flow`,
+    path: '/add-child',
+    expectPathNot: '/add-child',
+  })),
+  ...verificationCoachFlows,
+  ...verificationDeniedFlows,
+  inviteCodeSettingsReadyFlow,
+  ...inviteCodeSettingsDeniedFlows,
+  availabilityScheduleReadyFlow,
+  availabilityLegacyRedirectFlow,
+  ...availabilityScheduleDeniedFlows,
+  ...bookingDetailAllowedFlows,
+  bookingDetailDeniedFlow,
+  ...bookingProblemReadyFlows,
+  ...bookingProblemDeniedFlows,
+  bookingProblemMissingContextFlow,
+  bookingProblemSubmitFlow,
+  sessionFeedbackCompletionFlow,
+  sessionFeedbackCoachNotesFlow,
+  ...sessionFeedbackReadOnlyFlows,
+  ...sessionFeedbackDeniedFlows,
+  coachProfileCanonicalFlow,
+  coachProfileBioEditFlow,
+  coachProfileFocusPricingFlow,
+  coachProfileLinksContactFlow,
+  coachProfileExperienceFlow,
+  coachProfileLanguageFlow,
+  coachProfileQualificationFlow,
+  ...coachProfileDeniedFlows,
+  ...clubHubCanonicalRedirectFlows,
+  clubHubInviteConfirmationFlow,
+  ...clubHubAuthorizedDetailFlows,
+  ...clubHubDeniedDetailFlows,
+  clubHubDashboardSettingsFlow,
 ];
 
 const flowProfiles = {
@@ -474,6 +2916,91 @@ const flowProfiles = {
     'athlete_health',
     'athlete_health_injuries',
   ],
+  'settings-routes': settingsRouteFlows.map((flow) => flow.id),
+  'account-settings-interactions': [accountSettingsInteractionsFlow.id],
+  'blocked-users-ready': [blockedUsersReadyFlow.id],
+  'blocked-users-interactions': [blockedUsersInteractionsFlow.id],
+  'club-post-audit': [clubPostReadyFlow, clubPostComposerFlow, ...clubPostDeniedFlows].map(
+    (flow) => flow.id,
+  ),
+  'post-detail-audit': [
+    ...postDetailReadyFlows,
+    postDetailDeniedFlow,
+    postDetailInteractionFlow,
+    postDetailDeleteFlow,
+  ].map((flow) => flow.id),
+  'create-squad-audit': [
+    squadCreateReadyFlow,
+    squadCreateInteractionsFlow,
+    ...squadCreateDeniedFlows,
+  ].map((flow) => flow.id),
+  'edit-child-profile-audit': [
+    childProfileReadyFlow,
+    childProfileInteractionFlow,
+    ...childProfileDeniedFlows,
+  ].map((flow) => flow.id),
+  'edit-child-support-audit': [
+    childSupportReadyFlow,
+    childSupportInteractionFlow,
+    ...childSupportDeniedFlows,
+  ].map((flow) => flow.id),
+  'invite-code-settings-audit': [inviteCodeSettingsReadyFlow, ...inviteCodeSettingsDeniedFlows].map(
+    (flow) => flow.id,
+  ),
+  'availability-route-audit': [
+    availabilityScheduleReadyFlow,
+    availabilityLegacyRedirectFlow,
+    ...availabilityScheduleDeniedFlows,
+  ].map((flow) => flow.id),
+  'booking-detail-audit': [...bookingDetailAllowedFlows, bookingDetailDeniedFlow].map(
+    (flow) => flow.id,
+  ),
+  'booking-problem-audit': [
+    ...bookingProblemReadyFlows,
+    ...bookingProblemDeniedFlows,
+    bookingProblemMissingContextFlow,
+    bookingProblemSubmitFlow,
+  ].map((flow) => flow.id),
+  'session-feedback-retirement': [
+    sessionFeedbackCompletionFlow,
+    sessionFeedbackCoachNotesFlow,
+    ...sessionFeedbackReadOnlyFlows,
+    ...sessionFeedbackDeniedFlows,
+  ].map((flow) => flow.id),
+  'coach-profile-canonical': [
+    coachProfileCanonicalFlow,
+    coachProfileBioEditFlow,
+    coachProfileFocusPricingFlow,
+    coachProfileLinksContactFlow,
+    coachProfileExperienceFlow,
+    coachProfileLanguageFlow,
+    coachProfileQualificationFlow,
+    ...coachProfileDeniedFlows,
+  ].map((flow) => flow.id),
+  'club-hub-canonical': [
+    ...clubHubCanonicalRedirectFlows,
+    clubHubInviteConfirmationFlow,
+    ...clubHubAuthorizedDetailFlows,
+    ...clubHubDeniedDetailFlows,
+    clubHubDashboardSettingsFlow,
+  ].map((flow) => flow.id),
+  'travel-radius-save-failure': [travelRadiusSaveFailureFlow.id],
+  'coaching-settings-save-failure': [coachingSettingsSaveFailureFlow.id],
+  verification: [...verificationCoachFlows, ...verificationDeniedFlows].map((flow) => flow.id),
+  'add-child-authority': [
+    'parent_add_child',
+    'guardian_add_child_denied',
+    'coach_add_child_denied',
+    'athlete_add_child_denied',
+    'admin_add_child_denied',
+  ],
+  'add-child-redesign': [
+    'parent_add_child',
+    'parent_add_child_support',
+    'parent_add_child_support_details',
+    'parent_add_child_safety',
+    'parent_add_child_medical_details',
+  ],
   'pre-api-core': [
     'coach_home',
     'coach_schedule',
@@ -519,7 +3046,7 @@ function flowFile(flow) {
   return `${flow.role}__${flow.id}.png`;
 }
 
-const allowedRoles = Object.keys(creds);
+const allowedRoles = ['coach', 'parent', 'guardian', 'athlete', 'admin'];
 
 function parseList(value) {
   return value
@@ -760,6 +3287,7 @@ function usageText() {
     'Environment overrides:',
     '  UI_BASE_URL                Base URL (default: http://localhost:8083)',
     '  UI_FLOW_OUT_DIR            Output directory',
+    '  UI_FLOW_CREDENTIALS_FILE   Owner-only staging credential file',
     '  UI_FLOW_ROLES              Comma-separated roles',
     '  UI_FLOW_PROFILES           Comma-separated named profiles',
     '  UI_FLOW_PROFILE            Single named profile',
@@ -921,11 +3449,14 @@ async function writePartialReport(allResults, options) {
 }
 
 async function login(page, role) {
+  if (!creds) {
+    throw new Error('UI flow credentials were not loaded');
+  }
   const { username, password } = creds[role];
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForTimeout(1000);
 
-  const usernameInput = page.getByPlaceholder('e.g. coach');
+  const usernameInput = page.getByPlaceholder(loginIdentityPlaceholder).first();
   const passwordInput = page.getByPlaceholder('••••••••');
 
   const loginVisible = await usernameInput
@@ -943,26 +3474,16 @@ async function login(page, role) {
 
   await passwordInput.press('Enter');
 
-  await page.waitForFunction(
-    () => {
-      try {
-        const loginFieldPresent = Array.from(document.querySelectorAll('input')).some((input) =>
-          input.getAttribute('placeholder')?.toLowerCase().includes('coach'),
-        );
-        return !loginFieldPresent;
-      } catch {
-        return false;
-      }
-    },
-    undefined,
-    { timeout: 45000 },
-  );
+  if (!(await waitForLoginFormHidden(page, 45000))) {
+    throw new Error(`Login form remained visible for ${role}`);
+  }
   await page.waitForTimeout(1200);
 }
 
 async function isLoginFormVisible(page) {
   return page
-    .getByPlaceholder('e.g. coach')
+    .getByPlaceholder(loginIdentityPlaceholder)
+    .first()
     .isVisible()
     .catch(() => false);
 }
@@ -1094,20 +3615,141 @@ async function loginWithRetry(page, role, retries) {
   throw lastError;
 }
 
+async function firstVisible(locator, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+
+  do {
+    const count = await locator.count().catch(() => 0);
+    for (let index = 0; index < count; index += 1) {
+      const candidate = locator.nth(index);
+      if (await candidate.isVisible().catch(() => false)) {
+        return candidate;
+      }
+    }
+
+    if (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  } while (Date.now() < deadline);
+
+  return null;
+}
+
+function requestCounterKey(action) {
+  return `${action.method}:${action.path}`;
+}
+
+function countTrackedRequest(page, action) {
+  page.__uiAuditRequestCounts ??= new Map();
+  const key = requestCounterKey(action);
+  page.__uiAuditRequestCounts.set(key, (page.__uiAuditRequestCounts.get(key) ?? 0) + 1);
+}
+
+function actionTargetLocator(page, target) {
+  if (target.role) {
+    return page.getByRole(target.role, { name: target.name });
+  }
+  return page.getByText(target.text, { exact: true });
+}
+
 async function runAction(page, action, actionErrors) {
   try {
+    if (action.type === 'trackApiRequest') {
+      page.__uiAuditRequestCounts ??= new Map();
+      page.__uiAuditRequestCounts.set(requestCounterKey(action), 0);
+      await page.route(`**${action.path}`, async (route) => {
+        if (route.request().method() === action.method) {
+          countTrackedRequest(page, action);
+        }
+        await route.fallback();
+      });
+      return;
+    }
+
+    if (action.type === 'mockApiResponse') {
+      await page.route(`**${action.path}`, async (route) => {
+        if (route.request().method() !== action.method) {
+          await route.continue();
+          return;
+        }
+        countTrackedRequest(page, action);
+        if (action.delayMs) {
+          await new Promise((resolve) => setTimeout(resolve, action.delayMs));
+        }
+        if (action.status === 204) {
+          await route.fulfill({ status: action.status });
+          return;
+        }
+        await route.fulfill({
+          status: action.status,
+          contentType: 'application/json',
+          body: JSON.stringify(action.body ?? {}),
+        });
+      });
+      return;
+    }
+
+    if (action.type === 'mockApiError') {
+      await page.route(`**${action.path}`, async (route) => {
+        if (route.request().method() !== action.method) {
+          await route.continue();
+          return;
+        }
+        countTrackedRequest(page, action);
+        if (action.delayMs) {
+          await new Promise((resolve) => setTimeout(resolve, action.delayMs));
+        }
+        await route.fulfill({
+          status: action.status,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: action.message }),
+        });
+      });
+      return;
+    }
+
+    if (action.type === 'fillInput') {
+      const target = await firstVisible(page.getByLabel(action.name));
+      if (!target) throw new Error(`Input not visible: ${action.name}`);
+      await target.fill(action.value);
+      await page.waitForTimeout(250);
+      return;
+    }
+
+    if (action.type === 'assertInputValue') {
+      const target = await firstVisible(page.getByLabel(action.name));
+      if (!target) throw new Error(`Input not visible: ${action.name}`);
+      const actual = await target.inputValue();
+      if (actual !== action.value) {
+        throw new Error(`Input ${action.name} was "${actual}"; expected "${action.value}"`);
+      }
+      return;
+    }
+
+    if (action.type === 'clickControl') {
+      const target = await firstVisible(page.getByRole(action.role, { name: action.name }));
+      if (!target) throw new Error(`${action.role} not visible: ${action.name}`);
+      await target.click();
+      await page.waitForTimeout(500);
+      return;
+    }
+
     if (action.type === 'clickButton') {
-      await page.getByRole('button', { name: action.name }).first().click();
-      await page.waitForTimeout(700);
+      const target = await firstVisible(
+        page.getByRole('button', { name: action.name, exact: action.exact ?? false }),
+      );
+      if (!target) throw new Error(`Button not visible: ${action.name}`);
+      await target.click();
+      await page.waitForTimeout(action.waitMs ?? 700);
       return;
     }
 
     if (action.type === 'clickAnyButton') {
       const names = Array.isArray(action.names) ? action.names : [];
       for (const name of names) {
-        const locator = page.getByRole('button', { name }).first();
-        if (await locator.isVisible().catch(() => false)) {
-          await locator.click();
+        const target = await firstVisible(page.getByRole('button', { name }));
+        if (target) {
+          await target.click();
           await page.waitForTimeout(700);
           return;
         }
@@ -1115,31 +3757,61 @@ async function runAction(page, action, actionErrors) {
       throw new Error(`No matching visible button found: ${names.join(' | ')}`);
     }
 
+    if (action.type === 'assertButtonDisabled' || action.type === 'assertButtonEnabled') {
+      const target = await firstVisible(
+        page.getByRole('button', { name: action.name, exact: action.exact ?? false }),
+      );
+      if (!target) throw new Error(`Button not visible: ${action.name}`);
+      const disabled = await target.isDisabled();
+      const expectedDisabled = action.type === 'assertButtonDisabled';
+      if (disabled !== expectedDisabled) {
+        throw new Error(
+          `Button ${action.name} should be ${expectedDisabled ? 'disabled' : 'enabled'}`,
+        );
+      }
+      return;
+    }
+
+    if (action.type === 'assertApiRequestCount') {
+      const actual = page.__uiAuditRequestCounts?.get(requestCounterKey(action)) ?? 0;
+      if (actual !== action.count) {
+        throw new Error(
+          `Request count ${requestCounterKey(action)} was ${actual}; expected ${action.count}`,
+        );
+      }
+      return;
+    }
+
     if (action.type === 'clickText') {
-      await page.getByText(action.text).first().click();
+      const target = await firstVisible(page.getByText(action.text));
+      if (!target) throw new Error(`Text not visible: ${action.text}`);
+      await target.click();
       await page.waitForTimeout(700);
       return;
     }
 
     if (action.type === 'assertButtonVisible') {
-      const isVisible = await page
-        .getByRole('button', { name: action.name })
-        .first()
-        .isVisible()
-        .catch(() => false);
-      if (!isVisible) {
+      const target = await firstVisible(page.getByRole('button', { name: action.name }));
+      if (!target) {
         throw new Error(`Button not visible: ${action.name}`);
       }
       return;
     }
 
+    if (action.type === 'assertButtonAbsent') {
+      const count = await page
+        .getByRole('button', { name: action.name, exact: action.exact ?? true })
+        .count()
+        .catch(() => 0);
+      if (count > 0) {
+        throw new Error(`Button should be absent: ${action.name}`);
+      }
+      return;
+    }
+
     if (action.type === 'assertTextVisible') {
-      const isVisible = await page
-        .getByText(action.text)
-        .first()
-        .isVisible()
-        .catch(() => false);
-      if (!isVisible) {
+      const target = await firstVisible(page.getByText(action.text));
+      if (!target) {
         throw new Error(`Text not visible: ${action.text}`);
       }
       return;
@@ -1153,6 +3825,183 @@ async function runAction(page, action, actionErrors) {
       if (count < 1) {
         throw new Error(`Text not present: ${action.text}`);
       }
+      return;
+    }
+
+    if (action.type === 'assertTextAbsent') {
+      const count = await page
+        .getByText(action.text, { exact: true })
+        .count()
+        .catch(() => 0);
+      if (count > 0) {
+        throw new Error(`Text should be absent: ${action.text}`);
+      }
+      return;
+    }
+
+    if (action.type === 'assertTargetInViewport') {
+      const target = await firstVisible(actionTargetLocator(page, action));
+      if (!target) {
+        throw new Error(`Viewport target not visible: ${action.name ?? action.text}`);
+      }
+
+      const [box, viewport] = await Promise.all([
+        target.boundingBox(),
+        page.evaluate(() => ({
+          width: window.visualViewport?.width ?? window.innerWidth,
+          height: window.visualViewport?.height ?? window.innerHeight,
+        })),
+      ]);
+      if (!box) {
+        throw new Error(`Viewport target bounds unavailable: ${action.name ?? action.text}`);
+      }
+
+      const outside =
+        box.x < 0 ||
+        box.y < 0 ||
+        box.x + box.width > viewport.width ||
+        box.y + box.height > viewport.height;
+      if (outside) {
+        throw new Error(
+          `Target outside viewport: ${action.name ?? action.text} at ${box.x.toFixed(1)},${box.y.toFixed(1)} ${box.width.toFixed(1)}x${box.height.toFixed(1)} within ${viewport.width}x${viewport.height}`,
+        );
+      }
+      return;
+    }
+
+    if (action.type === 'assertTargetUnobscured') {
+      const target = await firstVisible(actionTargetLocator(page, action));
+      if (!target) {
+        throw new Error(`Unobscured target not visible: ${action.name ?? action.text}`);
+      }
+      const result = await target.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        const insetX = Math.min(3, rect.width / 4);
+        const insetY = Math.min(3, rect.height / 4);
+        const points = [
+          [rect.left + rect.width / 2, rect.top + rect.height / 2],
+          [rect.left + insetX, rect.top + insetY],
+          [rect.right - insetX, rect.top + insetY],
+          [rect.left + insetX, rect.bottom - insetY],
+          [rect.right - insetX, rect.bottom - insetY],
+        ];
+        const checks = points.map(([rawX, rawY]) => {
+          const x = Math.min(window.innerWidth - 1, Math.max(0, rawX));
+          const y = Math.min(window.innerHeight - 1, Math.max(0, rawY));
+          const hits = document.elementsFromPoint(x, y);
+          return {
+            unobscured: hits.some(
+              (hit) => hit === element || element.contains(hit) || hit.contains(element),
+            ),
+            topTag: hits[0]?.tagName ?? null,
+          };
+        });
+        return {
+          unobscured: checks.every((check) => check.unobscured),
+          opacity: style.opacity,
+          visibility: style.visibility,
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+          topTags: checks.map((check) => check.topTag),
+        };
+      });
+      if (!result.unobscured || result.visibility !== 'visible' || Number(result.opacity) <= 0.01) {
+        throw new Error(
+          `Target obscured: ${action.name ?? action.text} at ${result.rect.x.toFixed(1)},${result.rect.y.toFixed(1)} ${result.rect.width.toFixed(1)}x${result.rect.height.toFixed(1)}; top=${result.topTags.join(',')}; visibility=${result.visibility}; opacity=${result.opacity}`,
+        );
+      }
+      return;
+    }
+
+    if (action.type === 'assertTargetMinSize') {
+      const target = await firstVisible(actionTargetLocator(page, action));
+      if (!target) {
+        throw new Error(`Minimum-size target not visible: ${action.name ?? action.text}`);
+      }
+      const box = await target.boundingBox();
+      if (!box) {
+        throw new Error(`Minimum-size target has no bounds: ${action.name ?? action.text}`);
+      }
+      const minWidth = action.minWidth ?? 44;
+      const minHeight = action.minHeight ?? 44;
+      if (box.width < minWidth || box.height < minHeight) {
+        throw new Error(
+          `Target too small: ${action.name ?? action.text} is ${box.width.toFixed(1)}x${box.height.toFixed(1)}; expected at least ${minWidth}x${minHeight}`,
+        );
+      }
+      return;
+    }
+
+    if (action.type === 'assertVerticalGap') {
+      const above = await firstVisible(actionTargetLocator(page, action.above));
+      const below = await firstVisible(actionTargetLocator(page, action.below));
+      if (!above || !below) {
+        throw new Error('Vertical gap targets are not both visible');
+      }
+      const [aboveBox, belowBox] = await Promise.all([above.boundingBox(), below.boundingBox()]);
+      if (!aboveBox || !belowBox) {
+        throw new Error('Vertical gap target bounds are unavailable');
+      }
+      const gap = belowBox.y - (aboveBox.y + aboveBox.height);
+      if (gap < action.minimumGap) {
+        throw new Error(`Vertical gap ${gap.toFixed(1)}px is below ${action.minimumGap}px`);
+      }
+      return;
+    }
+
+    if (action.type === 'assertScrollTop') {
+      const offsets = await page.evaluate(() => {
+        const results = [];
+        if (window.scrollY > 1) results.push(`window:${window.scrollY}`);
+        for (const element of document.querySelectorAll('*')) {
+          if (!(element instanceof HTMLElement) || element.scrollTop <= 1) continue;
+          const rect = element.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) continue;
+          const label =
+            element.getAttribute('aria-label') ||
+            element.getAttribute('role') ||
+            element.tagName.toLowerCase();
+          results.push(`${label}:${element.scrollTop}`);
+        }
+        return results;
+      });
+      if (offsets.length > 0) {
+        throw new Error(`Route did not open at the top: ${offsets.join(', ')}`);
+      }
+      return;
+    }
+
+    if (action.type === 'scrollIntoView') {
+      const target = await firstVisible(actionTargetLocator(page, action));
+      if (!target) {
+        throw new Error(`Scroll target not visible: ${action.name ?? action.text}`);
+      }
+      if (action.position === 'center') {
+        await target.evaluate((element) =>
+          element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }),
+        );
+      } else {
+        await target.scrollIntoViewIfNeeded();
+      }
+      await page.waitForTimeout(100);
+      return;
+    }
+
+    if (action.type === 'scrollToTop') {
+      await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        for (const element of document.querySelectorAll('*')) {
+          if (element instanceof HTMLElement && element.scrollTop > 0) {
+            element.scrollTop = 0;
+          }
+        }
+      });
+      await page.waitForTimeout(100);
       return;
     }
 
@@ -1201,10 +4050,23 @@ async function collectMetrics(page) {
       productTextIssues.push('state:coach_unavailable_visible');
     }
     if (
-      /\b(?:seeded|mock|sample|synthetic|fake)\b/i.test(copyScanText) ||
+      /\b(?:seeded|mock|sample|synthetic)\b/i.test(copyScanText) ||
       /\bdemo\s+(?:account|copy|data|mode|notification|walkthrough)\b/i.test(copyScanText)
     ) {
       productTextIssues.push('copy:demo_or_mock_copy_visible');
+    }
+    if (
+      /\b(?:Codex(?: staging)? smoke|staging[- ]smoke|Clubroom staging)\b/i.test(visibleText) ||
+      /\bapps\/api\/scripts\/staging-smoke\.ts\b/i.test(visibleText) ||
+      /@[a-z0-9.-]+\.test\b/i.test(visibleText)
+    ) {
+      productTextIssues.push('copy:test_fixture_visible');
+    }
+    if (/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/.test(visibleText)) {
+      productTextIssues.push('copy:raw_timestamp_visible');
+    }
+    if (/\bRelationship:\s*(?:OTHER|PARENT|GUARDIAN|CARER)\b/.test(visibleText)) {
+      productTextIssues.push('copy:raw_enum_label_visible');
     }
     if (/\bcoming soon\b/i.test(visibleText)) {
       productTextIssues.push('copy:coming_soon_visible');
@@ -1217,6 +4079,9 @@ async function collectMetrics(page) {
       /\bPage could not be found\b/i.test(visibleText)
     ) {
       productTextIssues.push('route:unmatched_route_visible');
+    }
+    if (/\bSomething went wrong\b/i.test(visibleText)) {
+      productTextIssues.push('state:unexpected_error_visible');
     }
 
     return {
@@ -1247,6 +4112,10 @@ function classify(flowErrors, actionErrors, metrics) {
   }
 
   if (issues.some((issue) => issue === 'route:unmatched_route_visible')) {
+    severity = 'high';
+  }
+
+  if (issues.some((issue) => issue === 'state:unexpected_error_visible')) {
     severity = 'high';
   }
 
@@ -1325,22 +4194,40 @@ async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
     const actionErrors = [];
 
     try {
+      await page.unrouteAll();
+      for (const action of flow.setupActions ?? []) {
+        await runAction(page, action, actionErrors);
+      }
       await page.goto(`${baseUrl}${flow.path}`, {
         waitUntil: 'domcontentloaded',
         timeout: 60000,
       });
       await page.waitForTimeout(options.pauseMs);
 
-      for (const action of flow.actions ?? []) {
-        await runAction(page, action, actionErrors);
+      if (!(await waitForLoginFormHidden(page))) {
+        currentFlowErrors.push(`auth:login_form_visible_after_navigation:${flow.path}`);
+      } else {
+        for (const action of flow.actions ?? []) {
+          await runAction(page, action, actionErrors);
+        }
       }
 
       await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
 
+      for (const action of flow.postActions ?? []) {
+        await runAction(page, action, actionErrors);
+      }
+
+      const finalPath = await page.evaluate(() => window.location.pathname);
+
       if (flow.expectPath) {
-        const currentPath = await page.evaluate(() => window.location.pathname);
-        if (!currentPath.startsWith(flow.expectPath)) {
-          currentFlowErrors.push(`assert:path_expected:${flow.expectPath}:actual:${currentPath}`);
+        if (!finalPath.startsWith(flow.expectPath)) {
+          currentFlowErrors.push(`assert:path_expected:${flow.expectPath}:actual:${finalPath}`);
+        }
+      }
+      if (flow.expectPathNot) {
+        if (finalPath.startsWith(flow.expectPathNot)) {
+          currentFlowErrors.push(`assert:path_forbidden:${flow.expectPathNot}:actual:${finalPath}`);
         }
       }
 
@@ -1348,21 +4235,39 @@ async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
         currentFlowErrors.push(`auth:login_form_visible_after_navigation:${flow.path}`);
       }
 
+      const expectedErrors = flow.expectedErrors ?? [];
+      const observedExpectedErrors = expectedErrors.filter((expected) =>
+        currentFlowErrors.some((error) => error.includes(expected)),
+      );
+      for (const expected of expectedErrors) {
+        if (!observedExpectedErrors.includes(expected)) {
+          actionErrors.push(`expected_error_missing:${expected}`);
+        }
+      }
+      const unexpectedFlowErrors = currentFlowErrors.filter(
+        (error) => !expectedErrors.some((expected) => error.includes(expected)),
+      );
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      );
+      await page.waitForTimeout(100);
       const metrics = await collectMetrics(page);
       const screenshotPath = path.join(options.outDir, flowFile(flow));
       await page.screenshot({ path: screenshotPath, fullPage: false });
-      const { severity, issues } = classify(currentFlowErrors, actionErrors, metrics);
+      const { severity, issues } = classify(unexpectedFlowErrors, actionErrors, metrics);
 
       return {
         id: flow.id,
         role: flow.role,
         title: flow.title,
         path: flow.path,
+        finalPath,
         screenshot: screenshotPath,
         status: severity === 'high' ? 'failed' : 'ok',
         severity,
         issues,
         metrics,
+        expectedErrors: observedExpectedErrors,
         attempts: attempt,
         durationMs: Date.now() - start,
       };
@@ -1442,6 +4347,7 @@ async function main() {
     );
   }
 
+  creds = await loadFlowCredentials();
   await ensurePlaywrightLoaded();
   const browser = await chromium.launch({ headless: options.headless });
   const allResults = [];
@@ -1574,6 +4480,13 @@ async function main() {
             allResults.push(failed);
           }
         } else {
+          // Login briefly renders role home data before the requested audit route.
+          // Let those requests settle so their cancellation is not attributed to
+          // the first audited flow.
+          await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
+          await page.waitForTimeout(options.pauseMs);
+          currentFlowErrors.length = 0;
+
           for (const flow of chunkFlows) {
             console.log(
               JSON.stringify(

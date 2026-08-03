@@ -1,0 +1,47 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-08-01T14:11:05.777Z",
+  "meta": {
+    "roles": [
+      "guardian"
+    ],
+    "profiles": [
+      "post-detail-audit"
+    ],
+    "role": "guardian",
+    "chunkSize": 10,
+    "chunkIndex": null,
+    "retries": 0,
+    "pauseMs": 900
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 0,
+    "none": 1
+  },
+  "results": [
+    {
+      "id": "guardian_post_detail_ready",
+      "role": "guardian",
+      "title": "guardian opens an accessible club update",
+      "path": "/post-detail?postId=pst_5163fa19-773d-7a2c-9c52-954f178706ec",
+      "finalPath": "/post-detail",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/post-detail-audit-final/guardian__guardian_post_detail_ready.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 2512
+    }
+  ]
+}

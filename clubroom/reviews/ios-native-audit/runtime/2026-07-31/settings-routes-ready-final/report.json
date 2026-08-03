@@ -1,0 +1,252 @@
+{
+  "baseUrl": "http://localhost:8083",
+  "generatedAt": "2026-07-31T21:15:29.547Z",
+  "meta": {
+    "roles": [
+      "coach"
+    ],
+    "profiles": [
+      "settings-routes"
+    ],
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 1200,
+    "failOn": "medium",
+    "outDir": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final"
+  },
+  "totals": {
+    "total": 11,
+    "ok": 7,
+    "failed": 4,
+    "high": 4,
+    "medium": 0,
+    "none": 7
+  },
+  "results": [
+    {
+      "id": "coach_settings_account",
+      "role": "coach",
+      "title": "Coach opens account settings",
+      "path": "/settings/account",
+      "finalPath": "/settings/account",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_account.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4840
+    },
+    {
+      "id": "coach_settings_blocked_users",
+      "role": "coach",
+      "title": "Coach opens blocked users",
+      "path": "/settings/blocked-users",
+      "finalPath": "/settings/blocked-users",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_blocked_users.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3398
+    },
+    {
+      "id": "coach_settings_calendar_sync",
+      "role": "coach",
+      "title": "Coach opens calendar export",
+      "path": "/settings/calendar-sync",
+      "finalPath": "/settings/calendar-sync",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_calendar_sync.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3594
+    },
+    {
+      "id": "coach_settings_coaching",
+      "role": "coach",
+      "title": "Coach opens coaching settings",
+      "path": "/settings/coaching",
+      "finalPath": "/settings/coaching",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_coaching.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3741
+    },
+    {
+      "id": "coach_settings_help",
+      "role": "coach",
+      "title": "Coach opens help",
+      "path": "/settings/help",
+      "finalPath": "/settings/help",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_help.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3979
+    },
+    {
+      "id": "coach_settings_notifications",
+      "role": "coach",
+      "title": "Coach opens notification settings",
+      "path": "/settings/notifications",
+      "finalPath": "/settings/notifications",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_notifications.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 4484
+    },
+    {
+      "id": "coach_settings_notification_preferences",
+      "role": "coach",
+      "title": "Coach opens notification preferences",
+      "path": "/settings/notifications/preferences",
+      "finalPath": "/settings/notifications/preferences",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_notification_preferences.png",
+      "status": "ok",
+      "severity": "none",
+      "issues": [],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 3964
+    },
+    {
+      "id": "coach_settings_privacy_policy",
+      "role": "coach",
+      "title": "Coach opens privacy policy",
+      "path": "/settings/privacy-policy",
+      "finalPath": "/settings/privacy-policy",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_privacy_policy.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "requestfailed:GET:http://localhost:4000/v1/auth/me:net::ERR_CONNECTION_REFUSED",
+        "console:Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "requestfailed:POST:http://localhost:4000/v1/auth/logout:net::ERR_CONNECTION_REFUSED",
+        "console:Failed to load resource: net::ERR_CONNECTION_REFUSED",
+        "auth:login_form_visible_after_navigation:/settings/privacy-policy",
+        "auth:login_form_visible_after_navigation:/settings/privacy-policy"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 34646
+    },
+    {
+      "id": "coach_settings_privacy",
+      "role": "coach",
+      "title": "Coach opens privacy settings",
+      "path": "/settings/privacy",
+      "finalPath": "/settings/privacy",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_privacy.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "auth:login_form_visible_after_navigation:/settings/privacy",
+        "auth:login_form_visible_after_navigation:/settings/privacy"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 35095
+    },
+    {
+      "id": "coach_settings_terms",
+      "role": "coach",
+      "title": "Coach opens terms",
+      "path": "/settings/terms",
+      "finalPath": "/settings/terms",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_terms.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "auth:login_form_visible_after_navigation:/settings/terms",
+        "auth:login_form_visible_after_navigation:/settings/terms"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 33616
+    },
+    {
+      "id": "coach_settings_travel_radius",
+      "role": "coach",
+      "title": "Coach opens travel radius",
+      "path": "/settings/travel-radius",
+      "finalPath": "/settings/travel-radius",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-07-31/settings-routes-ready-final/coach__coach_settings_travel_radius.png",
+      "status": "failed",
+      "severity": "high",
+      "issues": [
+        "auth:login_form_visible_after_navigation:/settings/travel-radius",
+        "auth:login_form_visible_after_navigation:/settings/travel-radius"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "attempts": 1,
+      "durationMs": 33928
+    }
+  ]
+}

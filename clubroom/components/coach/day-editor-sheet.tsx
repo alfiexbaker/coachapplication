@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -137,9 +138,11 @@ export function DayEditorSheet({
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={{ flex: 1 }}
           >
-            <View {...ed.panResponder.panHandlers} style={styles.handleArea}>
-              <View style={[styles.handle, { backgroundColor: palette.border }]} />
-            </View>
+            <GestureDetector gesture={ed.dismissGesture}>
+              <View style={styles.handleArea}>
+                <View style={[styles.handle, { backgroundColor: palette.border }]} />
+              </View>
+            </GestureDetector>
 
             <View style={styles.body}>
               <ScrollView

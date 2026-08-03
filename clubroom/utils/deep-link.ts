@@ -14,7 +14,7 @@ const LEGACY_REWRITES: { pattern: RegExp; replace: string }[] = [
 
 const ROUTE_ALIASES: Record<string, string> = {
   '/sessions/view': '/group-sessions',
-  '/availability': Routes.AVAILABILITY as string,
+  '/availability': Routes.SCHEDULE_AVAILABILITY as string,
 };
 
 function normalizeUrl(raw: string): string {

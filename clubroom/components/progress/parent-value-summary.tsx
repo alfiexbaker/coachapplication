@@ -225,8 +225,8 @@ function CoachQuotes({ quotes }: { quotes: string[] }) {
     <>
       <View style={[styles.divider, { backgroundColor: withAlpha(colors.border, 0.9) }]} />
       <Column gap="xs">
-        {quotes.map((quote, index) => (
-          <Row key={`${quote}-${index}`} gap="xs" align="start">
+        {quotes.map((quote) => (
+          <Row key={quote} gap="xs" align="start">
             <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.tint} />
             <ThemedText style={[styles.quoteText, { color: colors.text }]}>
               {`"${quote}"`}

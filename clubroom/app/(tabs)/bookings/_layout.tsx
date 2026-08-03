@@ -28,20 +28,13 @@ export default function BookingsLayout() {
         <Stack.Screen
           name="[id]"
           options={{
-            title: 'Session Details',
+            headerShown: false,
           }}
         />
         <Stack.Screen
           name="report-problem"
           options={{
-            title: 'Report Problem',
-            presentation: 'modal',
-          }}
-        />
-        <Stack.Screen
-          name="session-feedback"
-          options={{
-            title: 'Session Feedback',
+            title: 'Report problem',
             presentation: 'modal',
           }}
         />

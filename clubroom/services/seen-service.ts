@@ -2,11 +2,11 @@
  * Seen Service — Tracks local UI dismissal state.
  *
  * API-mode product read receipts and notifications are server-owned. This
- * service is currently limited to device-local walkthrough visibility state.
+ * service is limited to device-local UI dismissal state.
  *
  * Usage:
  *   import { seenService } from './seen-service';
- *   await seenService.markSeen('demo_walkthrough', walkthroughId, userId);
+ *   await seenService.markSeen('availability_tutorial', coachId, coachId);
  */
 
 import { apiClient } from "./api-client";
@@ -18,14 +18,41 @@ import {
   ok,
   err,
   storageError,
+  unsupportedError,
 } from "@/types/result";
 const logger = createLogger("SeenService");
+
+const API_MODE_UI_SEEN_ENTITY_TYPES = new Set([
+  "availability_tutorial",
+  "coach_onboarding_checklist_dismissed",
+  "daily_challenge_animation_seen",
+]);
+
 interface SeenEntry {
   entityType: string;
   entityId: string;
   seenBy: string;
   seenAt: string;
 }
+
+function assertUiSeenEntityType(
+  entityType: string,
+): Result<void, ServiceError> {
+  if (
+    apiClient.isMockMode ||
+    API_MODE_UI_SEEN_ENTITY_TYPES.has(entityType)
+  ) {
+    return ok(undefined);
+  }
+
+  return err(
+    unsupportedError(
+      "Seen state is device-local UI dismissal state only. Product read receipts must use their owning /v1 route.",
+      { entityType },
+    ),
+  );
+}
+
 export const seenService = {
   /**
    * Mark a local UI entity as seen by a user.
@@ -36,6 +63,11 @@ export const seenService = {
     userId: string,
   ): Promise<Result<void, ServiceError>> {
     try {
+      const entityTypeResult = assertUiSeenEntityType(entityType);
+      if (!entityTypeResult.success) {
+        return entityTypeResult;
+      }
+
       const entries = await apiClient.get<SeenEntry[]>(
         STORAGE_KEYS.SEEN_STATUSES,
         [],
@@ -85,6 +117,11 @@ export const seenService = {
     >
   > {
     try {
+      const entityTypeResult = assertUiSeenEntityType(entityType);
+      if (!entityTypeResult.success) {
+        return entityTypeResult;
+      }
+
       const entries = await apiClient.get<SeenEntry[]>(
         STORAGE_KEYS.SEEN_STATUSES,
         [],
@@ -123,6 +160,11 @@ export const seenService = {
     >
   > {
     try {
+      const entityTypeResult = assertUiSeenEntityType(entityType);
+      if (!entityTypeResult.success) {
+        return entityTypeResult;
+      }
+
       const entries = await apiClient.get<SeenEntry[]>(
         STORAGE_KEYS.SEEN_STATUSES,
         [],

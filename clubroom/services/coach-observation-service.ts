@@ -174,7 +174,14 @@ export const coachObservationService = {
         },
       );
       if (!result.success) {
-        logger.error('create_observation_api_failed', { input, error: result.error });
+        logger.error('create_observation_api_failed', {
+          athleteId: input.athleteId,
+          coachId: input.coachId,
+          category: input.category,
+          isPrivate: input.isPrivate ?? false,
+          textLength: input.text.trim().length,
+          error: result.error,
+        });
         return err(result.error);
       }
 
@@ -251,7 +258,10 @@ export const coachObservationService = {
       if (!result.success) {
         logger.error('update_observation_api_failed', {
           observationId,
-          updates,
+          changedFields: Object.keys(updates),
+          category: updates.category,
+          isPrivate: updates.isPrivate,
+          textLength: updates.text?.trim().length,
           error: result.error,
         });
         return err(result.error);

@@ -50,13 +50,11 @@ export default function InvitesScreen() {
       respondingTo={inv.respondingTo}
       onAccept={inv.showSlotPicker}
       onDecline={inv.handleDeclineInvite}
-      onRsvp={inv.handleRsvp}
     />
   );
 
   const tabs: { key: TabFilter; label: string; count?: number }[] = [
     { key: 'pending', label: 'Pending', count: inv.pendingCount },
-    { key: 'maybe', label: 'Maybe', count: inv.maybeCount },
     { key: 'responded', label: 'History' },
   ];
 
@@ -130,13 +128,7 @@ export default function InvitesScreen() {
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons
-                name={
-                  inv.tabFilter === 'pending'
-                    ? 'mail-outline'
-                    : inv.tabFilter === 'maybe'
-                      ? 'help-circle-outline'
-                      : 'time-outline'
-                }
+                name={inv.tabFilter === 'pending' ? 'mail-outline' : 'time-outline'}
                 size={40}
                 color={palette.muted}
               />
@@ -144,16 +136,12 @@ export default function InvitesScreen() {
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
               {inv.tabFilter === 'pending'
                 ? 'No pending invites'
-                : inv.tabFilter === 'maybe'
-                  ? 'No maybe invites'
-                  : 'No invite history'}
+                : 'No invite history'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
               {inv.tabFilter === 'pending'
                 ? 'When coaches invite you to sessions, they will appear here'
-                : inv.tabFilter === 'maybe'
-                  ? 'Invites you marked as "maybe" will appear here'
-                  : 'Your responded invites will show here'}
+                : 'Your responded and expired invites appear here'}
             </ThemedText>
           </View>
         }

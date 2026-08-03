@@ -154,7 +154,7 @@ describe('coach payment instruction routes', () => {
     assert.equal(auditText.includes(paymentInstructionsPayload.bankTransferDetails), false);
   });
 
-  it('uses the db fixture store for the same payment instruction contract', async () => {
+  it('fails closed for payment instructions in db mode when Prisma is unavailable', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
 
@@ -162,29 +162,24 @@ describe('coach payment instruction routes', () => {
       const tables = getDbFixtureStore().tables as SeedTables;
       const { coachUserId } = findActors(tables);
 
+      const read = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/me/payment-instructions',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(read.statusCode, 503);
+      assert.match(read.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(read.body.includes(coachUserId), false);
+
       const saved = await app.inject({
         method: 'PATCH',
         url: '/v1/coaches/me/payment-instructions',
         headers: authHeaders(tables, coachUserId, 'coach'),
         payload: paymentInstructionsPayload,
       });
-      assert.equal(saved.statusCode, 200);
-      assert.equal(
-        (saved.json() as { instructions: { payeeName: string } }).instructions.payeeName,
-        paymentInstructionsPayload.payeeName,
-      );
-
-      const read = await app.inject({
-        method: 'GET',
-        url: '/v1/coaches/me/payment-instructions',
-        headers: authHeaders(tables, coachUserId, 'coach'),
-      });
-      assert.equal(read.statusCode, 200);
-      assert.equal(
-        (read.json() as { instructions: { bankTransferDetails: string } }).instructions
-          .bankTransferDetails,
-        paymentInstructionsPayload.bankTransferDetails,
-      );
+      assert.equal(saved.statusCode, 503);
+      assert.match(saved.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(saved.body.includes(paymentInstructionsPayload.bankTransferDetails), false);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
     }

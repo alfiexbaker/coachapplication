@@ -11,6 +11,24 @@ interface ChildContextUserLike {
   children?: ChildReference[] | null;
 }
 
+export function scopeChildrenToCurrentUser<T>({
+  children,
+  ownerUserId,
+  currentUserId,
+  isParentUser,
+}: {
+  children: T[];
+  ownerUserId: string | null;
+  currentUserId: string | undefined;
+  isParentUser: boolean;
+}): T[] {
+  if (!isParentUser || !currentUserId || ownerUserId !== currentUserId) {
+    return [];
+  }
+
+  return children;
+}
+
 export function shouldLoadFamilyChildren(user: ChildContextUserLike | null | undefined): boolean {
   if (!user) {
     return false;

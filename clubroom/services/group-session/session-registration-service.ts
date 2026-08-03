@@ -25,7 +25,10 @@ import { childService } from '../child-service';
 import { userService } from '../user-service';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
 import { loadSessions, saveSessions } from './session-crud-service';
-import { groupSessionAuthorityService } from './group-session-authority-service';
+import {
+  groupSessionAuthorityService,
+  type GroupSessionCompletionRoster,
+} from './group-session-authority-service';
 const logger = createLogger('SessionRegistrationService');
 
 function isMockMode(): boolean {
@@ -530,6 +533,10 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
 // ============================================================================
 
 export async function loadRegistrations(): Promise<GroupRegistration[]> {
+  if (!isMockMode()) {
+    return [];
+  }
+
   try {
     const stored = await apiClient.get<GroupRegistration[] | null>(
       STORAGE_KEYS.GROUP_REGISTRATIONS,
@@ -542,6 +549,10 @@ export async function loadRegistrations(): Promise<GroupRegistration[]> {
   return isMockMode() ? [...MOCK_REGISTRATIONS] : [];
 }
 export async function saveRegistrations(registrations: GroupRegistration[]): Promise<void> {
+  if (!isMockMode()) {
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.GROUP_REGISTRATIONS, registrations);
     registrationsCache = registrations;
@@ -864,23 +875,60 @@ export const sessionRegistrationService = {
     }
     return result.data;
   },
+  async getCompletionRoster(sessionId: string): Promise<GroupSessionCompletionRoster> {
+    if (isMockMode()) {
+      const [sessions, registrations] = await Promise.all([loadSessions(), loadRegistrations()]);
+      const session = sessions.find((entry) => entry.id === sessionId);
+      const cancelled = new Set(session?.cancelledInstances ?? []);
+      const occurrenceDate =
+        session?.schedule
+          .filter((entry) => !cancelled.has(entry.date))
+          .filter((entry) => {
+            const endsAt = new Date(`${entry.date}T${entry.endTime}:00.000Z`);
+            return !Number.isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now();
+          })
+          .toSorted((left, right) => left.date.localeCompare(right.date))[0]?.date ?? null;
+      return {
+        occurrenceDate,
+        registrations: occurrenceDate
+          ? registrations.filter(
+              (entry) => entry.sessionId === sessionId && entry.status !== 'CANCELLED',
+            )
+          : [],
+      };
+    }
+    const result = await groupSessionAuthorityService.listCompletionRoster(sessionId);
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  },
   /**
    * Mark attendance
    */
   async markAttendance(
     registrationId: string,
     date: string,
-    attended: boolean,
+    attendance: boolean | 'ATTENDED' | 'NO_SHOW',
   ): Promise<Result<GroupRegistration, ServiceError>> {
+    const status =
+      typeof attendance === 'boolean'
+        ? attendance
+          ? 'ATTENDED'
+          : null
+        : attendance;
     if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       const registration = registrationsCache.find((r) => r.id === registrationId);
       if (!registration) return err(notFound('Registration', registrationId));
-      if (attended) {
+      if (status === 'ATTENDED') {
         if (!registration.attendedDates.includes(date)) {
           registration.attendedDates.push(date);
         }
         registration.status = 'ATTENDED';
+      } else if (status === 'NO_SHOW') {
+        registration.attendedDates = registration.attendedDates.filter((d) => d !== date);
+        registration.status = 'NO_SHOW';
       } else {
         registration.attendedDates = registration.attendedDates.filter((d) => d !== date);
         if (registration.attendedDates.length === 0) {
@@ -893,7 +941,7 @@ export const sessionRegistrationService = {
     const result = await groupSessionAuthorityService.markAttendance({
       registrationId,
       date,
-      attended,
+      status,
     });
     if (!result.success) {
       return err(result.error);

@@ -13,7 +13,7 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 interface SharingPendingInvitesProps {
   invites: NonNullable<FamilyAccount['pendingInvites']>;
-  onCancel: (inviteId: string, email: string) => void;
+  onCancel?: (inviteId: string, email: string) => void;
 }
 
 export const SharingPendingInvites = function SharingPendingInvites({
@@ -23,6 +23,9 @@ export const SharingPendingInvites = function SharingPendingInvites({
   const { colors } = useTheme();
 
   const handleCancel = (inviteId: string, email: string) => {
+    const cancelInvite = onCancel;
+    if (!cancelInvite) return;
+
     uiFeedback.alert(
       'Cancel Invite',
       `Cancel the pending invite to ${email}? They will no longer be able to accept.`,
@@ -31,7 +34,7 @@ export const SharingPendingInvites = function SharingPendingInvites({
         {
           text: 'Cancel Invite',
           style: 'destructive',
-          onPress: () => onCancel(inviteId, email),
+          onPress: () => cancelInvite(inviteId, email),
         },
       ],
     );
@@ -58,16 +61,18 @@ export const SharingPendingInvites = function SharingPendingInvites({
               {invite.relationship} • Expires {new Date(invite.expiresAt).toLocaleDateString()}
             </ThemedText>
           </Column>
-          <Clickable
-            style={[styles.cancelBtn, { borderColor: colors.error }]}
-            onPress={() => handleCancel(invite.id, invite.inviteeEmail)}
-            accessibilityLabel={`Cancel invite for ${invite.inviteeEmail}`}
-            accessibilityRole="button"
-          >
-            <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>
-              Cancel
-            </ThemedText>
-          </Clickable>
+          {onCancel ? (
+            <Clickable
+              style={[styles.cancelBtn, { borderColor: colors.error }]}
+              onPress={() => handleCancel(invite.id, invite.inviteeEmail)}
+              accessibilityLabel={`Cancel invite for ${invite.inviteeEmail}`}
+              accessibilityRole="button"
+            >
+              <ThemedText style={[Typography.smallSemiBold, { color: colors.error }]}>
+                Cancel
+              </ThemedText>
+            </Clickable>
+          ) : null}
         </Row>
       ))}
     </SurfaceCard>

@@ -70,7 +70,7 @@ const ROLE_ENTRY_DEFINITIONS: RoleEntryDefinition[] = [
     description: 'Enter as a parent with children, bookings, and family operations already seeded.',
     usernames: ['parent1'],
     roleLabel: 'PARENT',
-    initialRoute: Routes.HOME_INDEX,
+    initialRoute: Routes.HOME,
     match: (user) =>
       user.role === 'USER' &&
       (Boolean(user.hasChildren) || (user.children?.length ?? 0) > 0),
@@ -97,7 +97,7 @@ const ROLE_ENTRY_DEFINITIONS: RoleEntryDefinition[] = [
     description: 'Use the internal admin surface for seeded operational and moderation workflows.',
     usernames: ['admin1', 'admin'],
     roleLabel: 'ADMIN',
-    initialRoute: Routes.ADMIN_INVITE_CODES,
+    initialRoute: Routes.HOME,
     match: (user) => user.role === 'ADMIN' || Boolean(user.isSystemAdmin),
   },
 ];

@@ -109,6 +109,7 @@ export abstract class BaseService<T extends BaseEntity> {
       return await apiClient.get<T[]>(this.storageKey, []);
     } catch (error) {
       logger.error(`Failed to load ${this.entityName}`, error);
+      if (!apiClient.isMockMode) throw error;
       return [];
     }
   }

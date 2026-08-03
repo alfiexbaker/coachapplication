@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, startTransition } from 'react';
+import { useEffect, useState, type ReactNode, startTransition } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -30,6 +30,7 @@ import {
   getMessageThreadPreview,
   primeMessageThreadPreview,
 } from '@/utils/message-thread-preview-cache';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 
 type ChatScreenData = {
   thread: ChatThreadSummary | null;
@@ -45,7 +46,7 @@ export default function ChatScreen() {
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
   const [postingAs, setPostingAs] = useState<string | undefined>();
   const [typingUsers, setTypingUsers] = useState<Record<string, string>>({});
-  const clearedThreadsRef = useRef<Set<string>>(new Set());
+  const clearedThreadsRef = useLazyRef(() => new Set<string>());
   const previewThread = getMessageThreadPreview(threadId);
 
   const loadChat = async () => {
@@ -161,7 +162,7 @@ export default function ChatScreen() {
     if (clearedThreadsRef.current.has(threadId)) return;
     clearedThreadsRef.current.add(threadId);
     void messagingService.markThreadRead(threadId);
-  }, [threadId, currentActorId]);
+  }, [threadId, currentActorId, clearedThreadsRef]);
 
   useEffect(() => {
     if (!threadId) return;

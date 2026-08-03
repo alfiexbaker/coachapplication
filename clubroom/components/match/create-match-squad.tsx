@@ -15,6 +15,8 @@ interface CreateMatchSquadProps {
   squads: ClubSquad[];
   selectedSquadId: string | null;
   squadMemberCount: number;
+  squadMembersLoading?: boolean;
+  squadMemberError?: string | null;
   autoInvite: boolean;
   colors: ThemeColors;
   allowNoSquad?: boolean;
@@ -28,6 +30,8 @@ export const CreateMatchSquad = function CreateMatchSquad({
   squads,
   selectedSquadId,
   squadMemberCount,
+  squadMembersLoading = false,
+  squadMemberError = null,
   autoInvite,
   colors,
   allowNoSquad = false,
@@ -48,6 +52,7 @@ export const CreateMatchSquad = function CreateMatchSquad({
       <View style={styles.squadList}>
         {squads.map((squad) => {
           const isSelected = selectedSquadId === squad.id;
+          const ageGroup = squadService.getAgeGroupLabel(squad);
           return (
             <Clickable
               key={squad.id}
@@ -65,13 +70,17 @@ export const CreateMatchSquad = function CreateMatchSquad({
                 <View style={styles.squadInfo}>
                   <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                   <Row gap="sm" align="center">
-                    <View
-                      style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
-                    >
-                      <ThemedText style={[Typography.caption, { color: colors.tint }]}>
-                        {squadService.getAgeGroupLabel(squad)}
-                      </ThemedText>
-                    </View>
+                    {ageGroup && (
+                      <View
+                        style={[styles.ageChip, { backgroundColor: withAlpha(colors.tint, 0.06) }]}
+                      >
+                        <ThemedText
+                          style={[Typography.caption, { color: colors.tint }]}
+                        >
+                          {ageGroup}
+                        </ThemedText>
+                      </View>
+                    )}
                     <ThemedText style={[Typography.small, { color: colors.muted }]}>
                       {squad.memberCount} players
                     </ThemedText>
@@ -117,16 +126,33 @@ export const CreateMatchSquad = function CreateMatchSquad({
           <Column flex>
             <ThemedText type="defaultSemiBold">Auto-invite Squad</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
-              Send availability requests to all {squadMemberCount} squad members
+              {squadMemberError
+                ? 'Member list unavailable for invites'
+                : squadMembersLoading
+                  ? 'Loading squad member list'
+                  : `Send availability requests to all ${squadMemberCount} squad members`}
             </ThemedText>
           </Column>
           <Switch
             value={autoInvite}
             onValueChange={onAutoInviteChange}
+            disabled={squadMembersLoading || Boolean(squadMemberError)}
             trackColor={{ false: colors.border, true: colors.tint }}
           />
         </Row>
       )}
+      {selectedSquadId && squadMemberError ? (
+        <Row
+          gap="sm"
+          align="center"
+          style={[styles.squadError, { backgroundColor: withAlpha(colors.error, 0.08) }]}
+        >
+          <Ionicons name="alert-circle" size={18} color={colors.error} />
+          <ThemedText style={[Typography.small, { color: colors.error }]}>
+            {squadMemberError}
+          </ThemedText>
+        </Row>
+      ) : null}
     </View>
   );
 };
@@ -161,4 +187,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   autoInviteRow: { paddingTop: Spacing.md, marginTop: Spacing.md, borderTopWidth: 1 },
+  squadError: { padding: Spacing.sm, borderRadius: Radii.sm },
 });

@@ -10,13 +10,12 @@ import { socialFeedService } from '@/services/social-feed-service';
 import type { Club, ClubActivity, ClubMembership, ClubSquad } from '@/constants/types';
 import { ok, type ServiceError } from '@/types/result';
 import {
-  type ClubScheduleDayGroup,
   type ClubScheduleFilter,
   filterClubScheduleActivities,
   groupClubScheduleActivitiesByDay,
 } from '@/utils/club-schedule-display';
 
-export const CLUB_SCHEDULE_FILTERS: Array<{ key: ClubScheduleFilter; label: string; icon: string }> = [
+export const CLUB_SCHEDULE_FILTERS: { key: ClubScheduleFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'albums-outline' },
   { key: 'upcoming', label: 'Upcoming', icon: 'time-outline' },
   { key: 'completed', label: 'Completed', icon: 'checkmark-done-outline' },
@@ -37,14 +36,6 @@ interface ScheduleLoadData {
 interface UseClubScheduleOptions {
   clubId?: string;
   squadId?: string;
-}
-
-function isMembershipForUser(membership: ClubMembership, userId: string | undefined): boolean {
-  if (!userId) {
-    return false;
-  }
-  const normalizedUserId = userId.replace(/^usr_/, '');
-  return membership.userId === userId || membership.userId === normalizedUserId;
 }
 
 async function loadClubContext(
@@ -69,10 +60,7 @@ async function loadClubContext(
 
   return {
     club: result.data.clubs.find((club) => club.id === clubId) ?? null,
-    membership:
-      result.data.memberships.find(
-        (candidate) => candidate.clubId === clubId && isMembershipForUser(candidate, userId),
-      ) ?? null,
+    membership: result.data.memberships.find((candidate) => candidate.clubId === clubId) ?? null,
   };
 }
 
@@ -107,6 +95,7 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ScheduleLoadData>({
     load: loadSchedule,
     deps: [clubId, squadId, currentUser?.id],
+    dataKey: `club-schedule:${currentUser?.id ?? 'anonymous'}:${clubId ?? 'missing'}:${squadId ?? 'none'}`,
     refetchOnFocus: true,
   });
 

@@ -1,4 +1,9 @@
 import type { ChildInfo } from '@/types/child-context';
+import {
+  resolveSelfAthleteId,
+  resolveSelfAthleteName,
+  type LinkedAthleteUser,
+} from '@/utils/athlete-identity';
 
 export interface ProfileSubjectOption {
   id: string;
@@ -13,7 +18,7 @@ export function buildProfileSubjectOptions({
   children,
   includeSelf = true,
 }: {
-  currentUser?: { id?: string | null; name?: string | null; fullName?: string | null } | null;
+  currentUser?: LinkedAthleteUser | null;
   children: ChildInfo[];
   includeSelf?: boolean;
 }): ProfileSubjectOption[] {
@@ -25,14 +30,15 @@ export function buildProfileSubjectOptions({
     kind: 'child',
   }));
 
-  if (!includeSelf || !currentUser?.id) {
+  const selfAthleteId = resolveSelfAthleteId(currentUser);
+  if (!includeSelf || !selfAthleteId) {
     return childOptions;
   }
 
   return [
     {
-      id: currentUser.id,
-      name: currentUser.fullName || currentUser.name || 'Me',
+      id: selfAthleteId,
+      name: resolveSelfAthleteName(currentUser) || 'Me',
       initials: 'ME',
       kind: 'self',
     },
@@ -92,7 +98,10 @@ export function getNextProfileSubject(
   return subjectOptions[(currentIndex + 1) % subjectOptions.length] ?? null;
 }
 
-export function buildProfileScopePayload(option: ProfileSubjectOption): { mode: 'self' | 'child'; childId?: string } {
+export function buildProfileScopePayload(option: ProfileSubjectOption): {
+  mode: 'self' | 'child';
+  childId?: string;
+} {
   if (option.kind === 'self') {
     return { mode: 'self' };
   }

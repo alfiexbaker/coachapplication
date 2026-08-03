@@ -181,10 +181,10 @@ export function RootNavigation() {
           <AppAlertProvider>
             <AppActionSheetProvider>
               <AppPromptProvider>
-                <BookingFlowProvider>
+                <BookingFlowProvider key={currentUserId}>
                   <NotificationToastProvider>
-                    <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }} />
                     <OfflineBanner />
+                    <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }} />
                     <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                   </NotificationToastProvider>
                 </BookingFlowProvider>

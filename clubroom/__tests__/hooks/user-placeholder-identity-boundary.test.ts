@@ -11,7 +11,6 @@ const USER_OWNED_RUNTIME_FILES = [
   'app/community/[groupId].tsx',
   'app/favourites/index.tsx',
   'hooks/use-calendar-sync.ts',
-  'hooks/use-coach-profile.ts',
   'hooks/use-notification-prefs.ts',
   'hooks/use-squad-detail.ts',
   'hooks/use-subscribe.ts',

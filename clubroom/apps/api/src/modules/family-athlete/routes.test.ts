@@ -99,7 +99,7 @@ describe('family-athlete routes', () => {
     await app.close();
   });
 
-  it('creates and updates athletes for an authenticated family member', async () => {
+  it('creates and updates athletes for a family administrator', async () => {
     const tables = loadTables();
     const familyMembership = asRows(tables.familyMemberships)[0];
     assert.ok(familyMembership, 'expected seeded family membership');
@@ -123,6 +123,37 @@ describe('family-athlete routes', () => {
         relationship: 'SON',
         gender: 'MALE',
         communicationNotes: 'Needs short instructions',
+        trustData: {
+          medical: {
+            allergies: ['Peanuts'],
+            conditions: ['Asthma'],
+            medications: ['Inhaler'],
+            restrictions: [],
+          },
+          emergencyContacts: {
+            contacts: [
+              {
+                name: 'Pat Guardian',
+                relationship: 'Parent',
+                phone: '+447700900123',
+                isPrimary: true,
+                canPickup: true,
+              },
+            ],
+          },
+          consents: {
+            consents: [
+              { type: 'PHOTO', granted: false, grantedBy: 'Parent/Guardian' },
+              { type: 'VIDEO', granted: true, grantedBy: 'Parent/Guardian' },
+              { type: 'SOCIAL_MEDIA', granted: false, grantedBy: 'Parent/Guardian' },
+              {
+                type: 'EMERGENCY_TREATMENT',
+                granted: true,
+                grantedBy: 'Parent/Guardian',
+              },
+            ],
+          },
+        },
       },
     });
     assert.equal(create.statusCode, 201);
@@ -134,6 +165,67 @@ describe('family-athlete routes', () => {
     assert.match(created.athleteId, /^ath_/);
     assert.equal(created.firstName, 'New');
     assert.equal(created.communicationNotes, 'Needs short instructions');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'athlete.create',
+        resourceId: created.athleteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    const runtimeTables = getMarketplaceSeedStore().tables as SeedTables;
+    const medicalRows = asRows(runtimeTables.childMedicalRecords).filter(
+      (row) => asString(row.athleteId) === created.athleteId,
+    );
+    assert.equal(medicalRows.length, 1);
+    assert.deepEqual(medicalRows[0]?.allergies, ['Peanuts']);
+    const emergencyRows = asRows(runtimeTables.childEmergencyContacts).filter(
+      (row) => asString(row.athleteId) === created.athleteId,
+    );
+    assert.equal(emergencyRows.length, 1);
+    assert.equal(emergencyRows[0]?.isPrimary, true);
+    const consentRows = asRows(runtimeTables.childConsents).filter(
+      (row) => asString(row.athleteId) === created.athleteId,
+    );
+    assert.equal(consentRows.length, 4);
+    assert.deepEqual(
+      consentRows.map((row) => [row.consentType, row.granted]),
+      [
+        ['PHOTO', false],
+        ['VIDEO', true],
+        ['SOCIAL_MEDIA', false],
+        ['EMERGENCY_TREATMENT', true],
+      ],
+    );
+    assert.equal(
+      auditEventsFor(runtimeTables, {
+        action: 'medical.update',
+        resourceId: created.athleteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(runtimeTables, {
+        action: 'emergency_contacts.update',
+        resourceId: created.athleteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.deepEqual(
+      auditEventsFor(runtimeTables, {
+        action: 'consents.update',
+        resourceId: created.athleteId,
+        result: 'SUCCESS',
+      })[0]?.metadataJson,
+      {
+        source: 'athlete.create',
+        count: 4,
+        grantedTypes: ['VIDEO', 'EMERGENCY_TREATMENT'],
+        deniedTypes: ['PHOTO', 'SOCIAL_MEDIA'],
+      },
+    );
 
     const update = await app.inject({
       method: 'PATCH',
@@ -141,6 +233,24 @@ describe('family-athlete routes', () => {
       headers,
       payload: {
         nickname: 'NP',
+        disabilities: [
+          {
+            id: 'dis_support_update',
+            type: 'ADHD',
+            supportRequired: 'Short instructions',
+            communicationPreferences: ['Visual cues'],
+          },
+        ],
+        specialNeeds: [
+          {
+            id: 'sn_support_update',
+            category: 'SENSORY',
+            name: 'Noise adjustment',
+            severity: 'MILD',
+            accommodationsNeeded: ['Quiet arrival'],
+          },
+        ],
+        communicationNotes: 'Use one instruction at a time',
         behavioralNotes: 'Settles better with early warmups',
       },
     });
@@ -148,11 +258,108 @@ describe('family-athlete routes', () => {
     const updated = update.json() as {
       athleteId: string;
       nickname: string | null;
+      disabilities: { type: string }[];
+      specialNeeds: { name: string }[];
+      communicationNotes: string | null;
       behavioralNotes: string | null;
     };
     assert.equal(updated.athleteId, created.athleteId);
     assert.equal(updated.nickname, 'NP');
+    assert.equal(updated.disabilities[0]?.type, 'ADHD');
+    assert.equal(updated.specialNeeds[0]?.name, 'Noise adjustment');
+    assert.equal(updated.communicationNotes, 'Use one instruction at a time');
     assert.equal(updated.behavioralNotes, 'Settles better with early warmups');
+    assert.deepEqual(
+      auditEventsFor(runtimeTables, {
+        action: 'athlete.update',
+        resourceId: created.athleteId,
+        result: 'SUCCESS',
+      })[0]?.metadataJson,
+      {
+        familyId,
+        fields: [
+          'behavioralNotes',
+          'communicationNotes',
+          'disabilities',
+          'nickname',
+          'specialNeeds',
+        ],
+      },
+    );
+
+    const athleteBeforeRejectedPatch = asRows(runtimeTables.athletes).find(
+      (row) => asString(row.id) === created.athleteId,
+    );
+    const versionBeforeRejectedPatch = athleteBeforeRejectedPatch?.version;
+    const rejectedPatch = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${created.athleteId}`,
+      headers,
+      payload: {
+        dateOfBirth: 'not-a-date',
+        privateOverride: 'must-not-be-stored-or-audited',
+      },
+    });
+    assert.equal(rejectedPatch.statusCode, 400);
+    const athleteAfterRejectedPatch = asRows(runtimeTables.athletes).find(
+      (row) => asString(row.id) === created.athleteId,
+    );
+    assert.equal(athleteAfterRejectedPatch?.version, versionBeforeRejectedPatch);
+    const rejectedPatchAudits = auditEventsFor(runtimeTables, {
+      action: 'athlete.update',
+      resourceId: created.athleteId,
+      result: 'DENY',
+    });
+    assert.equal(rejectedPatchAudits.length, 1);
+    assert.deepEqual(rejectedPatchAudits[0]?.metadataJson, {
+      familyId,
+      errorCode: 'VALIDATION_FAILED',
+      requestedFields: ['dateOfBirth', 'privateOverride'],
+    });
+    assert.equal(
+      JSON.stringify(rejectedPatchAudits[0]?.metadataJson).includes(
+        'must-not-be-stored-or-audited',
+      ),
+      false,
+    );
+
+    const rejectedSupportPatch = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${created.athleteId}`,
+      headers,
+      payload: {
+        disabilities: [
+          {
+            id: 'dis_rejected',
+            type: 'ADHD',
+            communicationPreferences: Array.from({ length: 11 }, (_, index) => `cue-${index}`),
+            privateSupportOverride: 'must-not-be-stored-or-audited',
+          },
+        ],
+      },
+    });
+    assert.equal(rejectedSupportPatch.statusCode, 400);
+    const athleteAfterRejectedSupportPatch = asRows(runtimeTables.athletes).find(
+      (row) => asString(row.id) === created.athleteId,
+    );
+    assert.equal(athleteAfterRejectedSupportPatch?.version, versionBeforeRejectedPatch);
+    const rejectedSupportPatchAudits = auditEventsFor(runtimeTables, {
+      action: 'athlete.update',
+      resourceId: created.athleteId,
+      result: 'DENY',
+    });
+    assert.equal(rejectedSupportPatchAudits.length, 2);
+    assert.deepEqual(rejectedSupportPatchAudits[1]?.metadataJson, {
+      familyId,
+      errorCode: 'VALIDATION_FAILED',
+      requestedFields: ['disabilities'],
+    });
+    assert.equal(
+      JSON.stringify(rejectedSupportPatchAudits[1]?.metadataJson).includes(
+        'must-not-be-stored-or-audited',
+      ),
+      false,
+    );
 
     const detail = await app.inject({
       method: 'GET',
@@ -201,6 +408,489 @@ describe('family-athlete routes', () => {
       }).length,
       0,
     );
+  });
+
+  it('rolls back athlete creation when trust-data initialization fails', async () => {
+    const fixtureTables = loadTables();
+    const familyMembership = asRows(fixtureTables.familyMemberships)[0];
+    assert.ok(familyMembership, 'expected seeded family membership');
+
+    const familyId = asString(familyMembership.familyId) as string;
+    const parentUserId = asString(familyMembership.userId) as string;
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const medicalRows = asRows(tables.childMedicalRecords);
+    const originalMedicalPush = medicalRows.push;
+    const countsBefore = {
+      athletes: asRows(tables.athletes).length,
+      guardianLinks: asRows(tables.guardianChildLinks).length,
+      senTags: asRows(tables.childSenTags).length,
+      medical: medicalRows.length,
+      contacts: asRows(tables.childEmergencyContacts).length,
+      consents: asRows(tables.childConsents).length,
+    };
+
+    medicalRows.push = (() => {
+      throw new Error('injected medical initialization failure');
+    }) as typeof medicalRows.push;
+
+    let response;
+    try {
+      response = await app.inject({
+        method: 'POST',
+        url: '/v1/athletes',
+        headers: authHeaders(fixtureTables, parentUserId, 'parent'),
+        payload: {
+          familyId,
+          firstName: 'Atomic',
+          lastName: 'Rollback',
+          relationship: 'WARD',
+          gender: 'PREFER_NOT_TO_SAY',
+          specialNeeds: [
+            {
+              category: 'OTHER',
+              name: 'Rollback proof',
+            },
+          ],
+          trustData: {
+            medical: {
+              allergies: ['Injected failure'],
+            },
+            emergencyContacts: {
+              contacts: [
+                {
+                  name: 'Rollback Guardian',
+                  relationship: 'Guardian',
+                  phone: '+447700900456',
+                },
+              ],
+            },
+            consents: {
+              consents: [{ type: 'PHOTO', granted: false, grantedBy: 'Parent/Guardian' }],
+            },
+          },
+        },
+      });
+    } finally {
+      medicalRows.push = originalMedicalPush;
+    }
+
+    assert.equal(response?.statusCode, 500);
+    assert.deepEqual(
+      {
+        athletes: asRows(tables.athletes).length,
+        guardianLinks: asRows(tables.guardianChildLinks).length,
+        senTags: asRows(tables.childSenTags).length,
+        medical: medicalRows.length,
+        contacts: asRows(tables.childEmergencyContacts).length,
+        consents: asRows(tables.childConsents).length,
+      },
+      countsBefore,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.create',
+        resourceId: familyId,
+        result: 'ERROR',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies athlete creation outside family admin scope without creating records', async () => {
+    const tables = getMarketplaceSeedStore().tables;
+    const membership = asRows(tables.familyMemberships).find((row) => {
+      const familyId = asString(row.familyId);
+      const userId = asString(row.userId);
+      const role = asString(row.role)?.toLowerCase();
+      const permissions = Array.isArray(row.permissions)
+        ? row.permissions.map((permission) => String(permission).toLowerCase())
+        : [];
+      const assignedIds = Array.isArray(row.childAccessAthleteIds)
+        ? row.childAccessAthleteIds.map(String)
+        : [];
+      const family = asRows(tables.families).find(
+        (candidate) => asString(candidate.id) === familyId && !asString(candidate.deletedAt),
+      );
+      return Boolean(
+        familyId &&
+        userId &&
+        family &&
+        role !== 'owner' &&
+        role !== 'admin' &&
+        asString(family.primaryGuardianUserId) !== userId &&
+        !permissions.includes('admin') &&
+        assignedIds.length > 0 &&
+        !asString(row.deletedAt),
+      );
+    });
+    assert.ok(membership, 'expected an assigned non-admin guardian');
+
+    const familyId = asString(membership.familyId) as string;
+    const guardianUserId = asString(membership.userId) as string;
+    const familyMemberIds = new Set(
+      asRows(tables.familyMemberships)
+        .filter((row) => asString(row.familyId) === familyId && !asString(row.deletedAt))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const unrelatedUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((userId): userId is string => Boolean(userId && !familyMemberIds.has(userId)));
+    assert.ok(unrelatedUserId, 'expected an unrelated authenticated user');
+
+    const athleteCountBefore = asRows(tables.athletes).length;
+    const guardianLinkCountBefore = asRows(tables.guardianChildLinks).length;
+    for (const [userId, firstName] of [
+      [guardianUserId, 'Assigned'],
+      [unrelatedUserId, 'Unrelated'],
+    ] as const) {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/athletes',
+        headers: authHeaders(tables, userId, 'parent'),
+        payload: {
+          familyId,
+          firstName,
+          lastName: 'Denied',
+          relationship: 'WARD',
+          gender: 'PREFER_NOT_TO_SAY',
+        },
+      });
+      assert.equal(response.statusCode, 403);
+    }
+    assert.equal(asRows(tables.athletes).length, athleteCountBefore);
+    assert.equal(asRows(tables.guardianChildLinks).length, guardianLinkCountBefore);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.create',
+        resourceId: familyId,
+        result: 'DENY',
+      }).length,
+      2,
+    );
+
+    membership.permissions = [
+      ...new Set([
+        ...(Array.isArray(membership.permissions) ? membership.permissions.map(String) : []),
+        'admin',
+      ]),
+    ];
+    const delegatedAdminCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/athletes',
+      headers: authHeaders(tables, guardianUserId, 'parent'),
+      payload: {
+        familyId,
+        firstName: 'Delegated',
+        lastName: 'Admin',
+        relationship: 'WARD',
+        gender: 'PREFER_NOT_TO_SAY',
+      },
+    });
+    assert.equal(delegatedAdminCreate.statusCode, 201);
+    const delegatedAdminAthleteId = (delegatedAdminCreate.json() as { athleteId: string })
+      .athleteId;
+    assert.equal(asRows(tables.athletes).length, athleteCountBefore + 1);
+    assert.equal(asRows(tables.guardianChildLinks).length, guardianLinkCountBefore + 1);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.create',
+        resourceId: delegatedAdminAthleteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('limits non-owner family reads to explicitly assigned children', async () => {
+    const tables = getMarketplaceSeedStore().tables;
+    const membership = asRows(tables.familyMemberships).find((row) => {
+      const familyId = asString(row.familyId);
+      const userId = asString(row.userId);
+      const assignedIds = Array.isArray(row.childAccessAthleteIds)
+        ? row.childAccessAthleteIds.map(String)
+        : [];
+      if (
+        !familyId ||
+        !userId ||
+        asString(row.role)?.toLowerCase() === 'owner' ||
+        assignedIds.length === 0 ||
+        asString(row.deletedAt)
+      ) {
+        return false;
+      }
+      const familyAthleteIds = new Set(
+        asRows(tables.guardianChildLinks)
+          .filter((link) => asString(link.familyId) === familyId && !asString(link.deletedAt))
+          .map((link) => asString(link.athleteId))
+          .filter((athleteId): athleteId is string => Boolean(athleteId)),
+      );
+      return [...familyAthleteIds].some((athleteId) => !assignedIds.includes(athleteId));
+    });
+    assert.ok(membership, 'expected a family member with restricted child access');
+
+    const familyId = asString(membership.familyId) as string;
+    const memberUserId = asString(membership.userId) as string;
+    const assignedIds = (membership.childAccessAthleteIds as unknown[]).map(String);
+    const familyAthleteIds = [
+      ...new Set(
+        asRows(tables.guardianChildLinks)
+          .filter((link) => asString(link.familyId) === familyId && !asString(link.deletedAt))
+          .map((link) => asString(link.athleteId))
+          .filter((athleteId): athleteId is string => Boolean(athleteId)),
+      ),
+    ];
+    const hiddenAthleteId = familyAthleteIds.find((athleteId) => !assignedIds.includes(athleteId));
+    assert.ok(hiddenAthleteId, 'expected an unassigned family athlete');
+    ensureRows(tables, 'familyGuardianInvites').push({
+      id: 'ginv_hidden_child_scope',
+      familyId,
+      inviteeEmail: 'hidden-child-invite@clubroom.demo',
+      role: 'GUARDIAN',
+      permissions: ['VIEW_SCHEDULE'],
+      relationshipLabel: 'Guardian',
+      childAccessAthleteIds: [hiddenAthleteId],
+      status: 'PENDING',
+      invitedByUserId: memberUserId,
+      createdAt: new Date().toISOString(),
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      deletedAt: null,
+    });
+
+    const headers = authHeaders(tables, memberUserId, 'parent');
+    const family = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}`,
+      headers,
+    });
+    assert.equal(family.statusCode, 200);
+    const familyPayload = family.json() as {
+      athletes: Array<{ id: string }>;
+      memberships: Array<{ childAccessAthleteIds: string[] }>;
+      guardianInvites: unknown[];
+    };
+    const visibleAthleteIds = familyPayload.athletes.map((athlete) => athlete.id);
+    assert.deepEqual(new Set(visibleAthleteIds), new Set(assignedIds));
+    assert.equal(
+      familyPayload.memberships.every((familyMembership) =>
+        familyMembership.childAccessAthleteIds.every((athleteId) =>
+          visibleAthleteIds.includes(athleteId),
+        ),
+      ),
+      true,
+    );
+    assert.deepEqual(familyPayload.guardianInvites, []);
+    assert.equal(JSON.stringify(familyPayload).includes(hiddenAthleteId), false);
+
+    const assignedDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${assignedIds[0]}`,
+      headers,
+    });
+    assert.equal(assignedDetail.statusCode, 200);
+
+    const hiddenDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${hiddenAthleteId}`,
+      headers,
+    });
+    assert.equal(hiddenDetail.statusCode, 403);
+
+    const deniedAssignedUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${assignedIds[0]}`,
+      headers,
+      payload: {
+        nickname: 'Blocked',
+      },
+    });
+    assert.equal(deniedAssignedUpdate.statusCode, 403);
+
+    const deniedAssignedRemove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/athletes/${assignedIds[0]}`,
+      headers,
+    });
+    assert.equal(deniedAssignedRemove.statusCode, 403);
+
+    membership.permissions = [...new Set([...(membership.permissions as string[]), 'medical'])];
+    const allowedAssignedUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${assignedIds[0]}`,
+      headers,
+      payload: {
+        nickname: 'Allowed',
+      },
+    });
+    assert.equal(allowedAssignedUpdate.statusCode, 200);
+
+    const deniedAssignedRemoveWithProfilePermission = await app.inject({
+      method: 'DELETE',
+      url: `/v1/athletes/${assignedIds[0]}`,
+      headers,
+    });
+    assert.equal(deniedAssignedRemoveWithProfilePermission.statusCode, 403);
+
+    const deniedHiddenUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${hiddenAthleteId}`,
+      headers,
+      payload: {
+        nickname: 'Still blocked',
+      },
+    });
+    assert.equal(deniedHiddenUpdate.statusCode, 403);
+
+    const deniedHiddenRemove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/athletes/${hiddenAthleteId}`,
+      headers,
+    });
+    assert.equal(deniedHiddenRemove.statusCode, 403);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.update',
+        result: 'DENY',
+      }).length,
+      2,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.update',
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'athlete.remove',
+        result: 'DENY',
+      }).length,
+      3,
+    );
+
+    membership.permissions = ['admin'];
+    const delegatedAdminFamily = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}`,
+      headers,
+    });
+    assert.equal(delegatedAdminFamily.statusCode, 200);
+    const delegatedAdminPayload = delegatedAdminFamily.json() as {
+      athletes: Array<{ id: string }>;
+      guardianInvites: Array<{ id: string }>;
+    };
+    assert.deepEqual(
+      new Set(delegatedAdminPayload.athletes.map((athlete) => athlete.id)),
+      new Set(familyAthleteIds),
+    );
+    assert.equal(
+      delegatedAdminPayload.guardianInvites.some(
+        (invite) => invite.id === 'ginv_hidden_child_scope',
+      ),
+      true,
+    );
+
+    const delegatedAdminUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${hiddenAthleteId}`,
+      headers,
+      payload: {
+        nickname: 'Admin allowed',
+      },
+    });
+    assert.equal(delegatedAdminUpdate.statusCode, 200);
+  });
+
+  it('projects legacy SEN tags when detailed support JSON is absent', async () => {
+    const tables = getMarketplaceSeedStore().tables;
+    const tag = asRows(tables.childSenTags).find(
+      (row) =>
+        !asString(row.deletedAt) && Boolean(asString(row.athleteId)) && Boolean(asString(row.tag)),
+    );
+    assert.ok(tag, 'expected a current legacy SEN tag');
+
+    const athleteId = asString(tag.athleteId) as string;
+    const athlete = asRows(tables.athletes).find((row) => asString(row.id) === athleteId);
+    assert.ok(athlete, 'expected the tagged athlete');
+    assert.equal(
+      Array.isArray(athlete.specialNeedsJson) && athlete.specialNeedsJson.length > 0,
+      false,
+    );
+
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+    );
+    assert.ok(guardianLink, 'expected a current guardian link');
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}`,
+      headers: authHeaders(tables, asString(guardianLink.guardianUserId) as string, 'parent'),
+    });
+    assert.equal(response.statusCode, 200);
+    const payload = response.json() as {
+      specialNeeds: { id?: string; category: string; name: string; severity?: string }[];
+    };
+    assert.equal(
+      payload.specialNeeds.some(
+        (need) =>
+          need.id === asString(tag.id) &&
+          need.category === 'OTHER' &&
+          need.name === asString(tag.tag) &&
+          need.severity === (tag.isCritical === true ? 'SEVERE' : undefined),
+      ),
+      true,
+    );
+  });
+
+  it('denies direct athlete access when the linked family is archived', async () => {
+    const tables = getMarketplaceSeedStore().tables;
+    const family = asRows(tables.families).find(
+      (row) => asString(row.id) && asString(row.primaryGuardianUserId) && !asString(row.deletedAt),
+    );
+    assert.ok(family, 'expected active seeded family');
+    const familyId = asString(family.id) as string;
+    const guardianUserId = asString(family.primaryGuardianUserId) as string;
+    const link = asRows(tables.guardianChildLinks).find(
+      (row) =>
+        asString(row.familyId) === familyId && asString(row.athleteId) && !asString(row.deletedAt),
+    );
+    assert.ok(link, 'expected family athlete link');
+    const athleteId = asString(link.athleteId) as string;
+    family.deletedAt = new Date().toISOString();
+    const headers = authHeaders(tables, guardianUserId, 'parent');
+
+    const aggregate = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}`,
+      headers,
+    });
+    assert.equal(aggregate.statusCode, 404);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}`,
+      headers,
+    });
+    assert.equal(detail.statusCode, 404);
+
+    const update = await app.inject({
+      method: 'PATCH',
+      url: `/v1/athletes/${athleteId}`,
+      headers,
+      payload: {
+        nickname: 'Blocked archived family update',
+      },
+    });
+    assert.equal(update.statusCode, 404);
+
+    const remove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/athletes/${athleteId}`,
+      headers,
+    });
+    assert.equal(remove.statusCode, 404);
   });
 
   it('denies athlete create for users outside the family', async () => {
@@ -362,17 +1052,36 @@ describe('family-athlete routes', () => {
 
   it('records and clears family no-show proof with audit events', async () => {
     const tables = getMarketplaceSeedStore().tables as SeedTables;
-    const link = asRows(tables.guardianChildLinks).find(
-      (row) => asString(row.familyId) && asString(row.athleteId) && !asString(row.deletedAt),
-    );
-    assert.ok(link, 'expected seeded family athlete link');
-    const familyId = asString(link.familyId) as string;
-    const athleteId = asString(link.athleteId) as string;
     const familyMembership = asRows(tables.familyMemberships).find(
-      (row) => asString(row.familyId) === familyId && !asString(row.deletedAt),
+      (row) =>
+        asString(row.familyId) &&
+        asString(row.userId) &&
+        asString(row.role)?.toLowerCase() !== 'owner' &&
+        Array.isArray(row.childAccessAthleteIds) &&
+        row.childAccessAthleteIds.length > 0 &&
+        !asString(row.deletedAt),
     );
-    assert.ok(familyMembership, 'expected seeded family membership');
+    assert.ok(familyMembership, 'expected seeded restricted guardian membership');
+    const familyId = asString(familyMembership.familyId) as string;
     const parentUserId = asString(familyMembership.userId) as string;
+    const assignedAthleteIds = (familyMembership.childAccessAthleteIds as unknown[]).map(String);
+    const athleteId = assignedAthleteIds.find((candidateAthleteId) =>
+      asRows(tables.guardianChildLinks).some(
+        (row) =>
+          asString(row.familyId) === familyId &&
+          asString(row.athleteId) === candidateAthleteId &&
+          asString(row.guardianUserId) === parentUserId &&
+          !asString(row.deletedAt),
+      ),
+    );
+    assert.ok(athleteId, 'expected assigned athlete link');
+    const hiddenAthleteId = asRows(tables.guardianChildLinks)
+      .filter((row) => asString(row.familyId) === familyId && !asString(row.deletedAt))
+      .map((row) => asString(row.athleteId))
+      .find((candidateAthleteId): candidateAthleteId is string =>
+        Boolean(candidateAthleteId && !assignedAthleteIds.includes(candidateAthleteId)),
+      );
+    assert.ok(hiddenAthleteId, 'expected an unassigned family athlete');
     const coachUserId = asString(
       asRows(tables.userRoleMemberships).find((row) => asString(row.role) === 'coach')?.userId,
     ) as string;
@@ -417,6 +1126,25 @@ describe('family-athlete routes', () => {
       updatedAt: now,
       deletedAt: null,
     });
+    const baseline = await app.inject({
+      method: 'GET',
+      url: `/v1/families/${familyId}/no-shows`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+    });
+    assert.equal(baseline.statusCode, 200);
+    const baselinePayload = baseline.json() as { count: number };
+    ensureRows(tables, 'attendanceRecords').push({
+      id: 'att_hidden_family_no_show',
+      athleteId: hiddenAthleteId,
+      bookingId: 'bok_hidden_family_no_show',
+      groupSessionId: null,
+      status: 'NO_SHOW',
+      notes: 'Must not appear in restricted guardian counts',
+      recordedByUserId: coachUserId,
+      recordedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const before = await app.inject({
       method: 'GET',
@@ -425,6 +1153,22 @@ describe('family-athlete routes', () => {
     });
     assert.equal(before.statusCode, 200);
     const beforePayload = before.json() as { count: number };
+    assert.equal(beforePayload.count, baselinePayload.count);
+
+    familyMembership.permissions = ['messages'];
+    const deniedReadOnlyRecord = await app.inject({
+      method: 'PATCH',
+      url: `/v1/families/${familyId}/no-shows`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        action: 'record',
+        athleteId,
+        groupSessionRegistrationId: registrationId,
+        date: '2026-07-03',
+      },
+    });
+    assert.equal(deniedReadOnlyRecord.statusCode, 403);
+    familyMembership.permissions = ['book'];
 
     const recorded = await app.inject({
       method: 'PATCH',
@@ -461,6 +1205,29 @@ describe('family-athlete routes', () => {
     );
     assert.ok(attendance, 'expected no-show attendance proof');
 
+    const parentLink = asRows(tables.guardianChildLinks).find(
+      (row) =>
+        asString(row.familyId) === familyId &&
+        asString(row.athleteId) === athleteId &&
+        asString(row.guardianUserId) === parentUserId &&
+        !asString(row.deletedAt),
+    );
+    assert.ok(parentLink, 'expected current parent-athlete link');
+    parentLink.deletedAt = new Date().toISOString();
+    const deniedRevokedGuardianClear = await app.inject({
+      method: 'PATCH',
+      url: `/v1/families/${familyId}/no-shows`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        action: 'clear',
+        athleteId,
+        groupSessionRegistrationId: registrationId,
+        date: '2026-07-03',
+      },
+    });
+    assert.equal(deniedRevokedGuardianClear.statusCode, 403);
+    parentLink.deletedAt = null;
+
     const cleared = await app.inject({
       method: 'PATCH',
       url: `/v1/families/${familyId}/no-shows`,
@@ -493,6 +1260,22 @@ describe('family-athlete routes', () => {
         action: 'family_no_shows.clear',
         resourceId: familyId,
         result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'family_no_shows.record',
+        resourceId: familyId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'family_no_shows.clear',
+        resourceId: familyId,
+        result: 'DENY',
       }).length,
       1,
     );
@@ -542,14 +1325,48 @@ describe('family-athlete routes', () => {
     );
   });
 
-  it('lists athlete squad memberships only for a linked guardian', async () => {
+  it('lists athlete squad memberships for family-authorized users and denies outsiders', async () => {
     const tables = loadTables();
     const squadMembership = asRows(tables.squadMemberships).find((row) => {
       const athleteId = asString(row.athleteId);
       const squadId = asString(row.squadId);
+      const familyId = asString(
+        asRows(tables.guardianChildLinks).find(
+          (link) => asString(link.athleteId) === athleteId && !asString(link.deletedAt),
+        )?.familyId,
+      );
+      const family = asRows(tables.families).find(
+        (candidate) => asString(candidate.id) === familyId && !asString(candidate.deletedAt),
+      );
+      const hasFamilyAuthorityWithoutDirectLink = asRows(tables.familyMemberships).some(
+        (membership) => {
+          const userId = asString(membership.userId);
+          const role = asString(membership.role)?.toLowerCase();
+          const permissions = Array.isArray(membership.permissions)
+            ? membership.permissions.map((permission) => String(permission).toLowerCase())
+            : [];
+          return Boolean(
+            userId &&
+            asString(membership.familyId) === familyId &&
+            !asString(membership.deletedAt) &&
+            (role === 'owner' ||
+              role === 'admin' ||
+              asString(family?.primaryGuardianUserId) === userId ||
+              permissions.includes('admin')) &&
+            !asRows(tables.guardianChildLinks).some(
+              (link) =>
+                asString(link.athleteId) === athleteId &&
+                asString(link.guardianUserId) === userId &&
+                !asString(link.deletedAt),
+            ),
+          );
+        },
+      );
       return (
         athleteId &&
         squadId &&
+        familyId &&
+        hasFamilyAuthorityWithoutDirectLink &&
         !asString(row.deletedAt) &&
         asString(row.status)?.toLowerCase() !== 'inactive' &&
         asRows(tables.guardianChildLinks).some(
@@ -573,7 +1390,13 @@ describe('family-athlete routes', () => {
     const athleteUserId = asString(
       asRows(tables.athletes).find((row) => asString(row.id) === athleteId)?.userId,
     );
+    const familyId = asString(
+      asRows(tables.guardianChildLinks).find(
+        (link) => asString(link.athleteId) === athleteId && !asString(link.deletedAt),
+      )?.familyId,
+    ) as string;
     assert.ok(guardianUserId, 'expected linked guardian');
+    assert.ok(familyId, 'expected athlete family');
     assert.ok(squad, 'expected linked squad');
 
     const allowed = await app.inject({
@@ -604,6 +1427,51 @@ describe('family-athlete routes', () => {
       true,
     );
 
+    const family = asRows(tables.families).find(
+      (row) => asString(row.id) === familyId && !asString(row.deletedAt),
+    );
+    const familyAuthorizedMembership = asRows(tables.familyMemberships).find((membership) => {
+      const userId = asString(membership.userId);
+      const role = asString(membership.role)?.toLowerCase();
+      const permissions = Array.isArray(membership.permissions)
+        ? membership.permissions.map((permission) => String(permission).toLowerCase())
+        : [];
+      return Boolean(
+        userId &&
+        asString(membership.familyId) === familyId &&
+        !asString(membership.deletedAt) &&
+        (role === 'owner' ||
+          role === 'admin' ||
+          asString(family?.primaryGuardianUserId) === userId ||
+          permissions.includes('admin')) &&
+        !asRows(tables.guardianChildLinks).some(
+          (link) =>
+            asString(link.athleteId) === athleteId &&
+            asString(link.guardianUserId) === userId &&
+            !asString(link.deletedAt),
+        ),
+      );
+    });
+    assert.ok(
+      familyAuthorizedMembership,
+      'expected family authority without a direct guardian link',
+    );
+
+    const familyAuthorized = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/squad-memberships`,
+      headers: authHeaders(tables, asString(familyAuthorizedMembership.userId) as string, 'parent'),
+    });
+    assert.equal(familyAuthorized.statusCode, 200);
+    assert.equal(
+      (
+        familyAuthorized.json() as {
+          memberships: Array<{ squadId: string }>;
+        }
+      ).memberships.some((membership) => membership.squadId === squadId),
+      true,
+    );
+
     const outsider = asRows(tables.users).find((row) => {
       const userId = asString(row.id);
       if (!userId || userId === guardianUserId || userId === athleteUserId) {
@@ -613,6 +1481,12 @@ describe('family-athlete routes', () => {
       return (
         !roles.includes('club_admin') &&
         !roles.includes('security_admin') &&
+        !asRows(tables.familyMemberships).some(
+          (membership) =>
+            asString(membership.familyId) === familyId &&
+            asString(membership.userId) === userId &&
+            !asString(membership.deletedAt),
+        ) &&
         !asRows(tables.guardianChildLinks).some(
           (link) =>
             asString(link.athleteId) === athleteId &&
@@ -639,17 +1513,29 @@ describe('family-athlete routes', () => {
     );
   });
 
-  it('persists athlete profile writes through the db fixture backend', async () => {
+  it('fails closed for athlete profile routes in db mode when Prisma is unavailable', async () => {
     const tables = loadTables();
     const familyMembership = asRows(tables.familyMemberships)[0];
     assert.ok(familyMembership, 'expected seeded family membership');
 
     const familyId = asString(familyMembership.familyId) as string;
     const parentUserId = asString(familyMembership.userId) as string;
+    const athleteId = asRows(tables.guardianChildLinks)
+      .filter(
+        (row) =>
+          asString(row.familyId) === familyId &&
+          asString(row.guardianUserId) === parentUserId &&
+          !asString(row.deletedAt),
+      )
+      .map((row) => asString(row.athleteId))
+      .find((id): id is string => Boolean(id));
+    assert.ok(athleteId, 'expected seeded athlete link');
+
     const headers = {
       'x-auth-user-id': parentUserId,
       'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
       'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      'x-guardian-athlete-ids': athleteId,
     };
 
     const originalBackend = env.API_DATA_BACKEND;
@@ -674,35 +1560,22 @@ describe('family-athlete routes', () => {
           ],
         },
       });
-      assert.equal(create.statusCode, 201);
-      const created = create.json() as { athleteId: string };
+      assert.equal(create.statusCode, 503);
+      assert.match(create.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(create.body.includes('Db'), false);
 
       const detail = await app.inject({
         method: 'GET',
-        url: `/v1/athletes/${created.athleteId}`,
+        url: `/v1/athletes/${athleteId}`,
         headers,
       });
-      assert.equal(detail.statusCode, 200);
-      const payload = detail.json() as {
-        athleteId: string;
-        firstName: string;
-        relationship: string;
-        specialNeeds: Array<{ name: string }>;
-      };
-      assert.equal(payload.athleteId, created.athleteId);
-      assert.equal(payload.firstName, 'Db');
-      assert.equal(payload.relationship, 'DAUGHTER');
-      assert.equal(payload.specialNeeds[0]?.name, 'Needs visual prompts');
-
-      const originalSenRows = asRows(getDbFixtureStore().tables.childSenTags).filter(
-        (row) => asString(row.athleteId) === created.athleteId,
-      );
-      assert.equal(originalSenRows.length, 1);
-      const originalSenId = asString(originalSenRows[0]?.id) as string;
+      assert.equal(detail.statusCode, 503);
+      assert.match(detail.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(detail.body.includes(athleteId), false);
 
       const update = await app.inject({
         method: 'PATCH',
-        url: `/v1/athletes/${created.athleteId}`,
+        url: `/v1/athletes/${athleteId}`,
         headers,
         payload: {
           specialNeeds: [
@@ -714,21 +1587,21 @@ describe('family-athlete routes', () => {
           ],
         },
       });
-      assert.equal(update.statusCode, 200);
+      assert.equal(update.statusCode, 503);
+      assert.match(update.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(update.body.includes('Needs quiet instructions'), false);
 
-      const senRows = asRows(getDbFixtureStore().tables.childSenTags).filter(
-        (row) => asString(row.athleteId) === created.athleteId,
-      );
-      assert.equal(senRows.length, 2);
-      const archivedSen = senRows.find((row) => asString(row.id) === originalSenId);
-      assert.equal(Boolean(asString(archivedSen?.deletedAt)), true);
-      assert.equal(asString(archivedSen?.deletedByUserId), parentUserId);
-      const activeSen = senRows.filter((row) => !asString(row.deletedAt));
-      assert.equal(activeSen.length, 1);
-      assert.equal(asString(activeSen[0]?.tag), 'Needs quiet instructions');
+      const remove = await app.inject({
+        method: 'DELETE',
+        url: `/v1/athletes/${athleteId}`,
+        headers,
+      });
+      assert.equal(remove.statusCode, 503);
+      assert.match(remove.body, /DATABASE_URL is not configured for db backend/);
     } finally {
       env.API_DATA_BACKEND = originalBackend;
       resetDbFixtureStoreForTests();
+      resetMarketplaceSeedStoreForTests();
     }
   });
 
@@ -1016,7 +1889,10 @@ describe('family-athlete routes', () => {
       assert.deepEqual(updated.childAccess, [targetAthleteId]);
       assert.deepEqual(targetMembership.permissions, ['schedule', 'payments']);
       assert.deepEqual(targetMembership.childAccessAthleteIds, [targetAthleteId]);
-      assert.equal(asString(oldActiveLink.deletedAt) !== undefined, oldAthleteId !== targetAthleteId);
+      assert.equal(
+        asString(oldActiveLink.deletedAt) !== undefined,
+        oldAthleteId !== targetAthleteId,
+      );
       assert.equal(
         guardianLinks.some(
           (link) =>
@@ -1457,6 +2333,47 @@ describe('family-athlete routes', () => {
       'x-auth-roles': 'athlete',
       'x-acting-role': 'athlete',
     };
+    const auditTables = getMarketplaceSeedStore().tables as SeedTables;
+    const injuryRows = ensureRows(auditTables, 'athleteInjuries');
+    const injuryCountBeforeInvalidCreates = injuryRows.length;
+    const invalidCreates = await Promise.all([
+      app.inject({
+        method: 'POST',
+        url: `/v1/athletes/${athleteId}/injuries`,
+        headers: athleteHeaders,
+        payload: {
+          title: 'Hamstring strain',
+          type: 'muscle',
+          severity: 'medium',
+          createdByUserId: 'usr_forged',
+        },
+      }),
+      app.inject({
+        method: 'POST',
+        url: `/v1/athletes/${athleteId}/injuries`,
+        headers: athleteHeaders,
+        payload: {
+          title: 'Hamstring strain',
+          type: 'muscle',
+          severity: 'medium',
+          reportedAt: '2026-08-02T10:00:00.000Z',
+          expectedRecoveryDate: '2026-08-01T10:00:00.000Z',
+        },
+      }),
+    ]);
+    assert.deepEqual(
+      invalidCreates.map((response) => response.statusCode),
+      [400, 400],
+    );
+    assert.equal(injuryRows.length, injuryCountBeforeInvalidCreates);
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.create',
+        resourceId: athleteId,
+        result: 'DENY',
+      }).length,
+      2,
+    );
 
     const create = await app.inject({
       method: 'POST',
@@ -1467,13 +2384,20 @@ describe('family-athlete routes', () => {
         type: 'muscle',
         severity: 'medium',
         notes: 'Pulled during sprint drill',
+        sharedWithCoach: true,
       },
     });
     assert.equal(create.statusCode, 201);
-    const created = create.json() as { id: string; status: string; athleteId: string };
+    const created = create.json() as {
+      id: string;
+      status: string;
+      athleteId: string;
+      sharedWithCoach: boolean;
+    };
     assert.match(created.id, /^inj_/);
     assert.equal(created.status, 'active');
     assert.equal(created.athleteId, athleteId);
+    assert.equal(created.sharedWithCoach, true);
 
     const list = await app.inject({
       method: 'GET',
@@ -1514,7 +2438,6 @@ describe('family-athlete routes', () => {
       headers: athleteHeaders,
       payload: {
         status: 'resolved',
-        notes: 'Cleared to play',
       },
     });
     assert.equal(patch.statusCode, 200);
@@ -1525,7 +2448,146 @@ describe('family-athlete routes', () => {
     };
     assert.equal(updated.status, 'resolved');
     assert.equal(typeof updated.resolvedAt, 'string');
-    assert.equal(updated.notes, 'Cleared to play');
+    assert.equal(updated.notes, 'Pulled during sprint drill');
+
+    const rowBeforeInvalidUpdates = injuryRows.find((row) => asString(row.id) === created.id);
+    assert.ok(rowBeforeInvalidUpdates);
+    const invalidUpdateSnapshot = JSON.stringify(rowBeforeInvalidUpdates);
+    const invalidUpdates = await Promise.all([
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/injuries/${created.id}`,
+        headers: athleteHeaders,
+        payload: {},
+      }),
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/injuries/${created.id}`,
+        headers: athleteHeaders,
+        payload: {
+          resolvedAt: '2026-08-01T10:00:00.000Z',
+        },
+      }),
+    ]);
+    assert.deepEqual(
+      invalidUpdates.map((response) => response.statusCode),
+      [400, 400],
+    );
+    assert.equal(JSON.stringify(rowBeforeInvalidUpdates), invalidUpdateSnapshot);
+
+    const reopen = await app.inject({
+      method: 'PATCH',
+      url: `/v1/injuries/${created.id}`,
+      headers: athleteHeaders,
+      payload: {
+        status: 'active',
+      },
+    });
+    assert.equal(reopen.statusCode, 200);
+    const reopened = reopen.json() as {
+      status: string;
+      resolvedAt: string | null;
+      notes: string | null;
+    };
+    assert.equal(reopened.status, 'active');
+    assert.equal(reopened.resolvedAt, null);
+    assert.equal(reopened.notes, 'Pulled during sprint drill');
+
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.read',
+        resourceId: created.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.read',
+        resourceId: created.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.update',
+        resourceId: created.id,
+        result: 'SUCCESS',
+      }).length,
+      2,
+    );
+    const deniedUpdates = auditEventsFor(auditTables, {
+      action: 'athlete_injury.update',
+      resourceId: created.id,
+      result: 'DENY',
+    });
+    assert.equal(deniedUpdates.length, 2);
+    assert.equal(
+      deniedUpdates.every(
+        (event) =>
+          (event.metadataJson as { errorCode?: string } | undefined)?.errorCode ===
+          'VALIDATION_FAILED',
+      ),
+      true,
+    );
+  });
+
+  it('allows a linked parent and denies an unrelated parent when reading an injury', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (link) => asString(link.athleteId) && asString(link.guardianUserId),
+    );
+    assert.ok(guardianLink, 'expected an active guardian-child link');
+    const athleteId = asString(guardianLink.athleteId);
+    const guardianUserId = asString(guardianLink.guardianUserId);
+    assert.ok(athleteId);
+    assert.ok(guardianUserId);
+
+    const unrelatedParent = asRows(tables.userRoleMemberships).find((membership) => {
+      const userId = asString(membership.userId);
+      return (
+        asString(membership.role) === 'parent' &&
+        Boolean(userId) &&
+        userId !== guardianUserId &&
+        !asRows(tables.guardianChildLinks).some(
+          (link) =>
+            asString(link.guardianUserId) === userId &&
+            asString(link.athleteId) === athleteId &&
+            !asString(link.deletedAt),
+        )
+      );
+    });
+    const unrelatedParentUserId = asString(unrelatedParent?.userId);
+    assert.ok(unrelatedParentUserId, 'expected an unrelated parent');
+
+    const create = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/injuries`,
+      headers: authHeaders(tables, guardianUserId, 'parent'),
+      payload: {
+        title: 'Ankle knock',
+        type: 'impact',
+        severity: 'low',
+      },
+    });
+    assert.equal(create.statusCode, 201);
+    const created = create.json() as { id: string; athleteId: string };
+    assert.equal(created.athleteId, athleteId);
+
+    const linkedParentDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/injuries/${created.id}`,
+      headers: authHeaders(tables, guardianUserId, 'parent'),
+    });
+    assert.equal(linkedParentDetail.statusCode, 200);
+
+    const unrelatedParentDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/injuries/${created.id}`,
+      headers: authHeaders(tables, unrelatedParentUserId, 'parent'),
+    });
+    assert.equal(unrelatedParentDetail.statusCode, 403);
 
     const auditTables = getMarketplaceSeedStore().tables as SeedTables;
     assert.equal(
@@ -1554,6 +2616,105 @@ describe('family-athlete routes', () => {
       'x-acting-role': 'parent',
       'x-guardian-athlete-ids': athleteId,
     };
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const consentRows = ensureRows(tables, 'childConsents');
+    for (let index = consentRows.length - 1; index >= 0; index -= 1) {
+      if (asString(consentRows[index]?.athleteId) === athleteId) {
+        consentRows.splice(index, 1);
+      }
+    }
+
+    const rowsBeforeInvalidWrites = {
+      medical: asRows(tables.childMedicalRecords).length,
+      emergency: asRows(tables.childEmergencyContacts).length,
+      consents: consentRows.length,
+    };
+    const invalidWrites = await Promise.all([
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/athletes/${athleteId}/medical`,
+        headers: guardianHeaders,
+        payload: {},
+      }),
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/athletes/${athleteId}/medical`,
+        headers: guardianHeaders,
+        payload: {
+          conditions: ['asthma'],
+          updatedByUserId: 'usr_forged',
+        },
+      }),
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/athletes/${athleteId}/emergency-contacts`,
+        headers: guardianHeaders,
+        payload: {
+          contacts: [
+            {
+              name: 'Parent One',
+              relationship: 'parent',
+              phone: '+447700900100',
+              createdByUserId: 'usr_forged',
+            },
+          ],
+        },
+      }),
+      app.inject({
+        method: 'PUT',
+        url: `/v1/athletes/${athleteId}/consents`,
+        headers: guardianHeaders,
+        payload: {
+          consents: [
+            { type: 'PHOTO', granted: true, grantedBy: 'Parent One' },
+            { type: 'PHOTO', granted: false, grantedBy: 'Parent One' },
+          ],
+        },
+      }),
+    ]);
+    assert.deepEqual(
+      invalidWrites.map((response) => response.statusCode),
+      [400, 400, 400, 400],
+    );
+    assert.deepEqual(
+      {
+        medical: asRows(tables.childMedicalRecords).length,
+        emergency: asRows(tables.childEmergencyContacts).length,
+        consents: consentRows.length,
+      },
+      rowsBeforeInvalidWrites,
+    );
+    const deniedValidationAudits = asRows(tables.auditEvents).filter((row) => {
+      const metadata = row.metadataJson as { errorCode?: string } | undefined;
+      return (
+        asString(row.resourceId) === athleteId &&
+        asString(row.result) === 'DENY' &&
+        metadata?.errorCode === 'VALIDATION_FAILED'
+      );
+    });
+    assert.deepEqual(
+      deniedValidationAudits.map((row) => asString(row.action)).sort(),
+      ['consents.update', 'emergency_contacts.update', 'medical.update', 'medical.update'],
+    );
+
+    const initialConsents = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/consents`,
+      headers: guardianHeaders,
+    });
+    assert.equal(initialConsents.statusCode, 200);
+    const initialConsentPayload = initialConsents.json() as {
+      consents: Array<{ type: string; granted: boolean }>;
+    };
+    assert.deepEqual(
+      initialConsentPayload.consents.map((consent) => [consent.type, consent.granted]),
+      [
+        ['PHOTO', false],
+        ['VIDEO', false],
+        ['SOCIAL_MEDIA', false],
+        ['EMERGENCY_TREATMENT', false],
+      ],
+    );
 
     const medical = await app.inject({
       method: 'PATCH',
@@ -1605,7 +2766,6 @@ describe('family-athlete routes', () => {
             name: 'Parent One',
             relationship: 'parent',
             phone: '+447700900100',
-            email: 'parent.one@example.com',
             isPrimary: true,
             canPickup: true,
           },
@@ -1623,6 +2783,7 @@ describe('family-athlete routes', () => {
     assert.equal(emergencyPayload.contacts[0].name, 'Parent One');
     assert.equal(emergencyPayload.contacts[0].isPrimary, true);
     assert.equal(emergencyPayload.contacts[0].canPickup, true);
+    assert.equal('email' in emergencyPayload.contacts[0], false);
 
     const getEmergency = await app.inject({
       method: 'GET',
@@ -1677,12 +2838,7 @@ describe('family-athlete routes', () => {
       consentPayload.consents.find((consent) => consent.type === 'PHOTO')?.granted,
       true,
     );
-    const exposedConsentTypes = new Set([
-      'PHOTO',
-      'VIDEO',
-      'SOCIAL_MEDIA',
-      'EMERGENCY_TREATMENT',
-    ]);
+    const exposedConsentTypes = new Set(['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT']);
     const firstCurrentConsentRows = asRows(getMarketplaceSeedStore().tables.childConsents).filter(
       (row) =>
         asString(row.athleteId) === athleteId &&
@@ -1691,7 +2847,9 @@ describe('family-athlete routes', () => {
     );
     assert.equal(firstCurrentConsentRows.length, 4);
     const firstCurrentConsentIds = new Set(
-      firstCurrentConsentRows.map((row) => asString(row.id)).filter((id): id is string => Boolean(id)),
+      firstCurrentConsentRows
+        .map((row) => asString(row.id))
+        .filter((id): id is string => Boolean(id)),
     );
 
     const updatedConsents = await app.inject({
@@ -1748,7 +2906,10 @@ describe('family-athlete routes', () => {
       firstCurrentConsentIds.has(asString(row.id) ?? ''),
     );
     assert.equal(supersededFirstRows.length, 4);
-    assert.equal(supersededFirstRows.every((row) => Boolean(asString(row.supersededById))), true);
+    assert.equal(
+      supersededFirstRows.every((row) => Boolean(asString(row.supersededById))),
+      true,
+    );
     const latestConsentRows = allConsentRows.filter((row) => !asString(row.supersededById));
     assert.equal(latestConsentRows.length, 4);
 
@@ -1780,10 +2941,85 @@ describe('family-athlete routes', () => {
       persistedConsents.consents.find((consent) => consent.type === 'EMERGENCY_TREATMENT')?.granted,
       true,
     );
+
+    const consentUpdateAudits = auditEventsFor(tables, {
+      action: 'consents.update',
+      resourceId: athleteId,
+      result: 'SUCCESS',
+    });
+    assert.equal(consentUpdateAudits.length, 2);
+    assert.deepEqual(consentUpdateAudits[0]?.metadataJson, {
+      count: 4,
+      grantedTypes: ['PHOTO', 'EMERGENCY_TREATMENT'],
+      deniedTypes: ['VIDEO', 'SOCIAL_MEDIA'],
+    });
+    assert.deepEqual(consentUpdateAudits[1]?.metadataJson, {
+      count: 4,
+      grantedTypes: ['VIDEO', 'EMERGENCY_TREATMENT'],
+      deniedTypes: ['PHOTO', 'SOCIAL_MEDIA'],
+    });
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'consents.read',
+        resourceId: athleteId,
+        result: 'SUCCESS',
+      }).length,
+      2,
+    );
+  });
+
+  it('fails closed for athlete medical records in db mode when Prisma is unavailable', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const athleteId = 'ath_user2';
+      const guardianHeaders = {
+        'x-auth-user-id': 'usr_parent1',
+        'x-auth-roles': 'parent',
+        'x-acting-role': 'parent',
+        'x-guardian-athlete-ids': athleteId,
+      };
+
+      const read = await app.inject({
+        method: 'GET',
+        url: `/v1/athletes/${athleteId}/medical`,
+        headers: guardianHeaders,
+      });
+      assert.equal(read.statusCode, 503);
+      assert.match(read.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(read.body.includes(athleteId), false);
+
+      const write = await app.inject({
+        method: 'PATCH',
+        url: `/v1/athletes/${athleteId}/medical`,
+        headers: guardianHeaders,
+        payload: {
+          conditions: ['asthma'],
+          allergies: ['peanuts'],
+          medications: ['inhaler'],
+          restrictions: ['Warm up before sprinting'],
+        },
+      });
+      assert.equal(write.statusCode, 503);
+      assert.match(write.body, /DATABASE_URL is not configured for db backend/);
+      assert.equal(write.body.includes('peanuts'), false);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+      resetMarketplaceSeedStoreForTests();
+    }
   });
 
   it('denies medical reads for unverified coaches and denies non-guardian writes', async () => {
     const athleteId = 'ath_user2';
+    const verifiedCoachHeaders = {
+      'x-auth-user-id': 'usr_coach1',
+      'x-auth-roles': 'coach',
+      'x-acting-role': 'coach',
+      'x-coach-athlete-ids': athleteId,
+      'x-coach-verified': '1',
+    };
 
     const coachUnverified = await app.inject({
       method: 'GET',
@@ -1800,15 +3036,46 @@ describe('family-athlete routes', () => {
     const coachVerified = await app.inject({
       method: 'GET',
       url: `/v1/athletes/${athleteId}/medical`,
-      headers: {
-        'x-auth-user-id': 'usr_coach1',
-        'x-auth-roles': 'coach',
-        'x-acting-role': 'coach',
-        'x-coach-athlete-ids': athleteId,
-        'x-coach-verified': '1',
-      },
+      headers: verifiedCoachHeaders,
     });
     assert.equal(coachVerified.statusCode, 200);
+
+    const coachConsentRead = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/consents`,
+      headers: verifiedCoachHeaders,
+    });
+    assert.equal(coachConsentRead.statusCode, 200);
+
+    const coachConsentWrite = await app.inject({
+      method: 'PUT',
+      url: `/v1/athletes/${athleteId}/consents`,
+      headers: verifiedCoachHeaders,
+      payload: {
+        consents: [{ type: 'PHOTO', granted: true, grantedBy: 'Coach' }],
+      },
+    });
+    assert.equal(coachConsentWrite.statusCode, 403);
+
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'consents.read',
+        resourceId: athleteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      asRows(tables.securityEvents).filter((row) => {
+        const metadata = row.metadataJson as { action?: string } | undefined;
+        return (
+          asString(row.eventType) === 'authz.request_denied' &&
+          metadata?.action === 'put:/v1/athletes/:athleteId/consents'
+        );
+      }).length,
+      1,
+    );
 
     const nonGuardianPatch = await app.inject({
       method: 'PATCH',

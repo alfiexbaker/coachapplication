@@ -46,9 +46,10 @@ test('buildDemoRoleEntries returns stable seeded stories for owner, coach, paren
   });
   assert.equal(entries[1]?.username, 'coach1');
   assert.equal(entries[2]?.username, 'parent1');
-  assert.equal(entries[2]?.initialRoute, '/(tabs)/index');
+  assert.equal(entries[2]?.initialRoute, '/(tabs)');
   assert.equal(entries[3]?.username, 'user1');
   assert.equal(entries[4]?.username, 'admin');
+  assert.equal(entries[4]?.initialRoute, '/(tabs)');
 });
 
 test('buildDemoRoleEntries falls back to semantic matching when preferred usernames are unavailable', () => {

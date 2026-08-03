@@ -13,6 +13,7 @@ import { ChildSelector } from '@/components/bookings/child-selector';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useCanCreateChild } from '@/hooks/use-add-child';
 import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
@@ -36,6 +37,7 @@ export default function DetailsScreen() {
   const { colors: palette } = useTheme();
   const { children, isMultiChild } = useChildContext();
   const { currentUser } = useAuth();
+  const { canCreateChild } = useCanCreateChild();
   const [allowBookSelf, setAllowBookSelf] = useState(false);
   const hasPresetLocation = Boolean(draft.locationText?.trim());
   const isCoachPresetLocation =
@@ -433,7 +435,7 @@ export default function DetailsScreen() {
             </Clickable>
           </View>
         )}
-        {currentUser && !isTargetLocked && (
+        {canCreateChild && !isTargetLocked && (
           <Clickable
             onPress={() => router.push(Routes.MODAL_ADD_CHILD)}
             style={[

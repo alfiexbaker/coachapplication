@@ -24,8 +24,6 @@ const BROKEN_FILES = [
   'club/group-chat-sections.tsx',
   'club/welcome-flow-sections.tsx',
   'coach/coach-card-services-sections.tsx',
-  'coach/profile-header-sections.tsx',
-  'coach/profile-quick-actions-sections.tsx',
   'consent/ConsentCard.tsx',
   'development/dev-special-needs-card.tsx',
   'development/progress-timeline-sections.tsx',

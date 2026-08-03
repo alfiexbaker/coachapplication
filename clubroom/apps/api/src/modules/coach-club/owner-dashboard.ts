@@ -1,10 +1,16 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import {
+  ownerDashboardResponseSchema,
+  parseOrganizationRole,
+  type OwnerDashboardFinanceSummary,
+  type OwnerDashboardSupportIssue,
+} from '@clubroom/shared-contracts';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { ApiProblemError, forbidden } from '../../lib/http-errors.js';
+import { ApiProblemError, forbidden, isZodValidationError, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { resolveHeadCoachOversight } from './head-coach-oversight.js';
@@ -13,34 +19,7 @@ import { resolveStaffingConsole } from './staffing-console.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 
-interface OwnerDashboardFinanceSummary {
-  openTotal: number;
-  orgCreditOpen: number;
-  coachCollectedOpen: number;
-  collectedTotal: number;
-  writtenOffTotal: number;
-  overdueCount: number;
-  owedCount: number;
-  note: string;
-}
-
-interface OwnerDashboardSupportIssue {
-  id: string;
-  bookingId: string;
-  status: 'pending' | 'reviewed' | 'resolved';
-  category: string;
-  description: string;
-  createdAt: string;
-  scheduledAt?: string;
-  sessionTitle: string;
-  athleteLabel: string;
-  supportLabel: string;
-  deliveredByLabel: string;
-}
-
-const paramsSchema = z.object({
-  clubId: z.string().min(1),
-});
+const paramsSchema = z.object({ clubId: z.string().min(1) }).strict();
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -57,9 +36,16 @@ function requireAuthUserId(authUserId: string | undefined): string {
   return authUserId;
 }
 
+function parseOwnerDashboardResponse(payload: unknown) {
+  const parsed = ownerDashboardResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ApiProblemError(500, 'INTERNAL_ERROR', 'Owner dashboard response invalid');
+  }
+  return parsed.data;
+}
+
 function readAuditResult(error: unknown): 'DENY' | 'ERROR' {
-  return error instanceof z.ZodError ||
-    (error instanceof ApiProblemError && error.status < 500)
+  return isZodValidationError(error) || (error instanceof ApiProblemError && error.status < 500)
     ? 'DENY'
     : 'ERROR';
 }
@@ -125,12 +111,17 @@ function addInvoiceToFinance(
 }
 
 function buildSeedFinanceSummary(tables: SeedTables, clubId: string): OwnerDashboardFinanceSummary {
-  const clubBookingIds = new Set(
-    asRows(tables.bookings)
-      .filter((row) => asString(row.clubId) === clubId && !asString(row.deletedAt))
-      .map((row) => asString(row.id))
-      .filter((id): id is string => Boolean(id)),
-  );
+  const clubBookingIds = new Set<string>();
+  for (const booking of asRows(tables.bookings)) {
+    const bookingId = asString(booking.id);
+    if (
+      bookingId &&
+      asString(booking.clubId) === clubId &&
+      !asString(booking.deletedAt)
+    ) {
+      clubBookingIds.add(bookingId);
+    }
+  }
   const summary = emptyFinanceSummary();
   for (const invoice of asRows(tables.invoices)) {
     const bookingId = asString(invoice.bookingId);
@@ -411,11 +402,63 @@ function assertOwnerDashboardRole(role: string, isPrivilegedAdmin: boolean, club
   }
 }
 
+async function assertOwnerDashboardAccess(params: {
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<void> {
+  if (params.isPrivilegedAdmin) {
+    return;
+  }
+
+  let role: string | undefined;
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const club = await prisma.club.findFirst({
+      where: { id: params.clubId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const membership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId: params.clubId,
+          userId: params.authUserId,
+        },
+      },
+      select: { active: true, deletedAt: true, role: true },
+    });
+    role = membership?.active && !membership.deletedAt ? membership.role : undefined;
+  } else {
+    const store = getApiDataBackend() === 'db' ? getDbFixtureStore() : getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const club = asRows(tables.clubs).find(
+      (candidate) => asString(candidate.id) === params.clubId && !asString(candidate.deletedAt),
+    );
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const membership = asRows(tables.clubMemberships).find(
+      (candidate) =>
+        asString(candidate.clubId) === params.clubId &&
+        asString(candidate.userId) === params.authUserId &&
+        candidate.active !== false &&
+        !asString(candidate.deletedAt),
+    );
+    role = asString(membership?.role);
+  }
+
+  assertOwnerDashboardRole(parseOrganizationRole(role) ?? '', false, params.clubId);
+}
+
 async function resolveOwnerDashboard(params: {
   clubId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
 }) {
+  await assertOwnerDashboardAccess(params);
   const [staffing, oversight, finance] = await Promise.all([
     resolveStaffingConsole({
       clubId: params.clubId,
@@ -429,11 +472,6 @@ async function resolveOwnerDashboard(params: {
     }),
     buildFinanceSummary(params.clubId),
   ]);
-  assertOwnerDashboardRole(
-    String(oversight.viewerMembership.role),
-    params.isPrivilegedAdmin,
-    params.clubId,
-  );
   const supportIssues = await buildSupportIssues(params.clubId, staffing.club.name);
   const liveBookingCount = [...staffing.assignedWork, ...staffing.unassignedWork].reduce(
     (sum, item) => sum + item.linkedBookingCount,
@@ -442,6 +480,7 @@ async function resolveOwnerDashboard(params: {
   return {
     club: staffing.club,
     viewerMembership: staffing.viewerMembership,
+    privilegedAdminAccess: staffing.privilegedAdminAccess,
     summary: {
       activeStaffCount: staffing.staff.length,
       activeOrgSessions: staffing.summary.activeOrgSessions,
@@ -463,33 +502,35 @@ async function resolveOwnerDashboard(params: {
 
 export function registerClubOwnerDashboardRoutes(app: FastifyInstance): void {
   app.get('/clubs/:clubId/owner-dashboard', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = paramsSchema.parse(request.params ?? {});
+    const rawClubId = asString((request.params as { clubId?: unknown } | undefined)?.clubId) ?? '';
     try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const params = paramsSchema.parse(request.params ?? {});
       const data = await resolveOwnerDashboard({
         clubId: params.clubId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      const payload = parseOwnerDashboardResponse({
+        ...data,
+        clubId: params.clubId,
+        requestId: request.requestId,
       });
       await recordOwnerDashboardAudit({
         request,
         clubId: params.clubId,
         result: 'SUCCESS',
         metadata: {
-          activeStaffCount: data.summary.activeStaffCount,
-          awaitingCompletionCount: data.summary.awaitingCompletionCount,
-          openFinanceTotal: data.finance.openTotal,
+          activeStaffCount: payload.summary.activeStaffCount,
+          awaitingCompletionCount: payload.summary.awaitingCompletionCount,
+          openFinanceTotal: payload.finance.openTotal,
         },
       });
-      return reply.send({
-        ...data,
-        clubId: params.clubId,
-        requestId: request.requestId,
-      });
+      return reply.send(payload);
     } catch (error) {
       await recordOwnerDashboardAudit({
         request,
-        clubId: params.clubId,
+        clubId: rawClubId,
         result: readAuditResult(error),
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',

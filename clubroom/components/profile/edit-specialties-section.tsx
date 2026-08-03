@@ -9,7 +9,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing } from '@/constants/theme';
 import type { FootballObjective } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 
@@ -28,8 +28,7 @@ export const EditSpecialtiesSection = function EditSpecialtiesSection({
 }: EditSpecialtiesSectionProps) {
   return (
     <SurfaceCard style={styles.section}>
-      <ThemedText type="subtitle">Coaching Specialties</ThemedText>
-      <ThemedText style={styles.subtitle}>Select the areas you specialize in</ThemedText>
+      <ThemedText type="subtitle">Coaching focus</ThemedText>
 
       <Row wrap gap="xs">
         {objectives.map((focus) => {
@@ -45,8 +44,9 @@ export const EditSpecialtiesSection = function EditSpecialtiesSection({
                   borderColor: isSelected ? colors.tint : colors.border,
                 },
               ]}
-              accessibilityLabel={`${focus} ${isSelected ? 'selected' : 'not selected'}`}
-              accessibilityRole="button"
+              accessibilityLabel={focus}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isSelected }}
             >
               <ThemedText style={[styles.focusText, isSelected && { color: colors.onPrimary }]}>
                 {focus}
@@ -61,12 +61,13 @@ export const EditSpecialtiesSection = function EditSpecialtiesSection({
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },
-  subtitle: { opacity: 0.6, ...Typography.bodySmall },
   focusChip: {
+    minHeight: 44,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
+    justifyContent: 'center',
   },
   focusText: { fontWeight: '600' },
 });

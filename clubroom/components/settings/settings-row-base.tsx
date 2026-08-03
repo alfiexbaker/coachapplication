@@ -45,8 +45,8 @@ export function SettingsRow({
   return (
     <Clickable
       onPress={onPress}
-      disabled={disabled || !onPress}
-      accessibilityLabel={accessibilityLabel ?? title}
+      disabled={disabled}
+      accessibilityLabel={accessibilityLabel ?? (value ? `${title}, ${value}` : title)}
       accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [styles.settingRow, { opacity: pressed ? 0.7 : disabled ? 0.5 : 1 }]}
     >
@@ -64,7 +64,13 @@ export function SettingsRow({
         )}
       </View>
       {value && (
-        <ThemedText style={[styles.valueText, { color: palette.muted }]}>{value}</ThemedText>
+        <ThemedText
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          style={[styles.valueText, { color: palette.muted }]}
+        >
+          {value}
+        </ThemedText>
       )}
       {rightElement}
       {!rightElement && showChevron && onPress && (
@@ -91,9 +97,16 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
+    minWidth: 0,
     gap: Spacing.micro,
   },
   settingTitle: { ...Typography.subheading },
   settingSubtitle: { ...Typography.small, lineHeight: Typography.caption.lineHeight },
-  valueText: { ...Typography.body, marginRight: Spacing.xs },
+  valueText: {
+    ...Typography.body,
+    flexShrink: 1,
+    maxWidth: '55%',
+    marginRight: Spacing.xs,
+    textAlign: 'right',
+  },
 });

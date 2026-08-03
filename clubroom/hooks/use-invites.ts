@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
-import { inviteService as sessionInviteService, inviteRsvpService } from '@/services/invite';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
@@ -19,7 +19,7 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InvitesScreen');
 
-export type TabFilter = 'pending' | 'maybe' | 'responded';
+export type TabFilter = 'pending' | 'responded';
 
 interface InvitesLoadData {
   invites: SessionInvite[];
@@ -73,15 +73,12 @@ export function useInvites() {
   const filteredInvites = invites.filter((invite) => {
     if (tabFilter === 'pending')
       return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
-    if (tabFilter === 'maybe') return invite.status === 'MAYBE';
-    return invite.status !== 'PENDING' && invite.status !== 'MAYBE';
+    return invite.status !== 'PENDING' || new Date(invite.expiresAt) <= new Date();
   });
 
   const pendingCount = invites.filter(
     (i) => i.status === 'PENDING' && new Date(i.expiresAt) > new Date(),
   ).length;
-  const maybeCount = invites.filter((i) => i.status === 'MAYBE').length;
-
   const handleAcceptInvite = async (invite: SessionInvite, selectedSlot: TimeSlot) => {
     setRespondingTo(invite.id);
 
@@ -99,8 +96,7 @@ export function useInvites() {
         });
         return;
       }
-      const coachName = getSessionInviteCoachName(invite);
-      uiFeedback.showToast(`Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`, 'success');
+      uiFeedback.showToast('Booking confirmed.', 'success');
       onRefresh();
     }, async error => {
       uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
@@ -123,10 +119,14 @@ export function useInvites() {
             setRespondingTo(invite.id);
 
             await runAsyncTryCatchFinally(async () => {
-              await sessionInviteService.respondToInvite({
+              const result = await sessionInviteService.respondToInvite({
                 inviteId: invite.id,
                 response: 'DECLINED',
               });
+              if (!result.success) {
+                uiFeedback.showToast(result.error?.message ?? 'Could not decline invite.', 'error');
+                return;
+              }
               onRefresh();
             }, async error => {
               uiFeedback.showToast('Failed to decline invite.', 'error');
@@ -163,28 +163,6 @@ export function useInvites() {
     })();
   };
 
-  const handleRsvp = async (inviteId: string, rsvpStatus: 'going' | 'maybe' | 'cant_go') => {
-    if (!currentUser) return;
-    try {
-      const result = await inviteRsvpService.respondToInvite(
-        inviteId,
-        currentUser.id,
-        currentUser.fullName || currentUser.username || 'User',
-        rsvpStatus,
-        undefined,
-        undefined,
-        currentUser.avatar,
-      );
-      if (!result.success) {
-        uiFeedback.showToast(result.error.message, 'error');
-        return;
-      }
-      onRefresh();
-    } catch {
-      uiFeedback.showToast('Failed to respond. Please try again.', 'error');
-    }
-  };
-
   return {
     invites,
     filteredInvites,
@@ -196,12 +174,10 @@ export function useInvites() {
     setTabFilter,
     respondingTo,
     pendingCount,
-    maybeCount,
     handleRefresh: onRefresh,
     handleAcceptInvite,
     handleDeclineInvite,
     showSlotPicker,
-    handleRsvp,
     retry,
   };
 }

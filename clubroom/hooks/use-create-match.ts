@@ -18,7 +18,9 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CreateMatchScreen');
+const USE_MOCK = api.useMock;
 const NO_CLUB_CONTEXT_MESSAGE = 'Create a match from a club you manage.';
+const SQUAD_MEMBER_CONTEXT_MESSAGE = 'Failed to load squad members for match invites.';
 
 export type CreateMatchStep = 'details' | 'schedule' | 'squad' | 'review';
 
@@ -109,15 +111,21 @@ export function useCreateMatch() {
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [squads, setSquads] = useState<ClubSquad[] | undefined>(undefined);
   const [squadMemberCount, setSquadMemberCount] = useState(0);
+  const [squadMembersLoading, setSquadMembersLoading] = useState(false);
+  const [squadMemberError, setSquadMemberError] = useState<string | null>(null);
   const [autoInvite, setAutoInvite] = useState(true);
   const selectedSquad = squads?.find((squad) => squad.id === selectedSquadId) ?? null;
-  const canCreateWithoutSquad = !api.useMock;
+  const canCreateWithoutSquad = !USE_MOCK;
   const canCreateSquad = Boolean(activeClubId);
 
   const updateSelectedSquadId = (squadId: string | null) => {
+    if (squadId !== selectedSquadId) {
+      setSquadMemberError(null);
+    }
     setSelectedSquadId(squadId);
     if (!squadId) {
       setSquadMemberCount(0);
+      setSquadMembersLoading(false);
     }
   };
 
@@ -129,7 +137,7 @@ export function useCreateMatch() {
       setClubContextError(null);
 
       try {
-        if (!currentUser?.id && !api.useMock) {
+        if (!currentUser?.id && !USE_MOCK) {
           setActiveClubId('');
           setActiveClubName('');
           setSquads([]);
@@ -157,7 +165,7 @@ export function useCreateMatch() {
           currentUser?.id,
           requestedClubId,
           requestedClubName,
-          api.useMock,
+          USE_MOCK,
         );
 
         if (!club) {
@@ -182,8 +190,11 @@ export function useCreateMatch() {
             ? liveSquads.find((squad) => squad.id === routeSquadId)
             : null;
           if (routeSquadId) {
-            updateSelectedSquadId(routeSquad?.id ?? null);
+            setSelectedSquadId(routeSquad?.id ?? null);
+            setSquadMemberError(null);
             if (!routeSquad) {
+              setSquadMemberCount(0);
+              setSquadMembersLoading(false);
               logger.warn('Route squad is not available for match club context', {
                 clubId: club.id,
                 routeSquadId,
@@ -216,17 +227,39 @@ export function useCreateMatch() {
   }, [clubContextVersion, currentUser?.id, requestedClubId, requestedClubName, routeSquadId]);
 
   useEffect(() => {
-    if (!selectedSquadId) return;
+    if (!selectedSquadId) {
+      setSquadMemberCount(0);
+      setSquadMembersLoading(false);
+      setSquadMemberError(null);
+      return;
+    }
+    let active = true;
     const loadSquadInfo = async () => {
+      setSquadMembersLoading(true);
+      setSquadMemberError(null);
       try {
         const members = await squadService.getSquadMembers(selectedSquadId);
-        setSquadMemberCount(members.length);
+        if (active) {
+          setSquadMemberCount(members.length);
+        }
       } catch (error) {
         logger.error('Failed to load squad info:', error);
+        if (active) {
+          setSquadMemberCount(0);
+          setSquadMemberError(SQUAD_MEMBER_CONTEXT_MESSAGE);
+          setAutoInvite(false);
+        }
+      } finally {
+        if (active) {
+          setSquadMembersLoading(false);
+        }
       }
     };
     // react-doctor-disable-next-line react-doctor/no-derived-state -- member count must come from the selected squad service record.
     loadSquadInfo();
+    return () => {
+      active = false;
+    };
   }, [selectedSquadId]);
 
   const currentStepIndex = STEPS.indexOf(step);
@@ -263,6 +296,14 @@ export function useCreateMatch() {
           uiFeedback.showToast('Select a squad from this club.', 'error');
           return false;
         }
+        if (autoInvite && squadMembersLoading) {
+          uiFeedback.showToast('Wait for the squad member list to load.', 'error');
+          return false;
+        }
+        if (autoInvite && squadMemberError) {
+          uiFeedback.showToast(squadMemberError, 'error');
+          return false;
+        }
         if (canCreateWithoutSquad && (squads?.length ?? 0) === 0) {
           return true;
         }
@@ -297,6 +338,23 @@ export function useCreateMatch() {
 
     if (!activeClubId) {
       uiFeedback.showToast('Join or create a club before creating a match.', 'error');
+      return;
+    }
+    if (selectedSquadId && !selectedSquad) {
+      uiFeedback.showToast('Select a squad from this club.', 'error');
+      return;
+    }
+    if (autoInvite && squadMembersLoading) {
+      uiFeedback.showToast('Wait for the squad member list to load.', 'error');
+      return;
+    }
+    if (autoInvite && squadMemberError) {
+      uiFeedback.showToast(squadMemberError, 'error');
+      return;
+    }
+    const parsedMaxPlayers = Number(maxPlayers);
+    if (!Number.isInteger(parsedMaxPlayers) || parsedMaxPlayers < 1 || parsedMaxPlayers > 30) {
+      uiFeedback.showToast('Enter a squad size from 1 to 30.', 'error');
       return;
     }
     const coachName = (
@@ -354,7 +412,7 @@ export function useCreateMatch() {
             meetTime: meetTime || undefined,
             venue,
             address: address || undefined,
-            maxPlayers: parseInt(maxPlayers, 10) || 14,
+            maxPlayers: parsedMaxPlayers,
             notes: notes || undefined,
           });
           uiFeedback.showToast(`${title} has been created.`, 'success');
@@ -363,7 +421,10 @@ export function useCreateMatch() {
       },
       async (error) => {
         logger.error('Failed to create match:', error);
-        uiFeedback.showToast('Failed to create match. Please try again.', 'error');
+        uiFeedback.showToast(
+          error instanceof Error && error.message ? error.message : 'Could not create match.',
+          'error',
+        );
       },
       () => {
         setIsSubmitting(false);
@@ -402,6 +463,8 @@ export function useCreateMatch() {
     activeClubId,
     squads: squads ?? [],
     squadMemberCount,
+    squadMembersLoading,
+    squadMemberError,
     autoInvite,
     setAutoInvite,
     clubContextLoading,

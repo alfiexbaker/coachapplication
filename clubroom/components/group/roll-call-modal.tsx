@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -14,6 +14,7 @@ import type { AttendanceStatus } from '@/hooks/use-group-roster';
 import { RollCallParticipantList } from '@/components/group/roll-call-participant-list';
 
 import { runAsyncFinally } from '@/utils/async-control';
+import { useLazyRef } from '@/hooks/use-lazy-ref';
 
 export interface RollCallModalProps {
   visible: boolean;
@@ -27,7 +28,7 @@ export interface RollCallModalProps {
   onMarkAllPresent: () => void;
   onReset: () => void;
   onSave: () => void;
-  onReportInjury: (registration: GroupRegistration) => void;
+  onReportInjury?: (registration: GroupRegistration) => void;
 }
 
 export const RollCallModal = function RollCallModal({
@@ -44,7 +45,7 @@ export const RollCallModal = function RollCallModal({
   onSave,
   onReportInjury,
 }: RollCallModalProps) {
-  const processingParticipantIdsRef = useRef<Set<string>>(new Set());
+  const processingParticipantIdsRef = useLazyRef(() => new Set<string>());
 
   const handleMarkStatus = async (participantId: string, status: AttendanceStatus) => {
     if (processingParticipantIdsRef.current.has(participantId)) return;

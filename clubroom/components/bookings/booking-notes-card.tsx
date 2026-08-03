@@ -1,7 +1,5 @@
 /**
- * BookingNotesCard + BookingFollowUpsCard — Session notes and follow-up checklist.
- *
- * Displays coach notes with loading/error/empty states and a follow-up actions checklist.
+ * BookingNotesCard — Session notes with loading, error, and empty states.
  */
 
 import React from 'react';
@@ -53,15 +51,13 @@ export const BookingNotesCard = function BookingNotesCard({
         <ThemedText type="defaultSemiBold">
           {isCoach ? 'Session notes & development' : 'Coach feedback'}
         </ThemedText>
-        {isCoach ? (
+        {isCoach && sessionNote ? (
           <Clickable
             style={[styles.linkPill, { backgroundColor: palette.background }]}
             onPress={handleNavigateToNotes}
-            accessibilityLabel={sessionNote ? 'View and edit session notes' : 'Add session notes'}
+            accessibilityLabel="View and edit session notes"
           >
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-              {sessionNote ? 'View & edit' : 'Add notes'}
-            </ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Edit</ThemedText>
           </Clickable>
         ) : null}
       </Row>
@@ -96,7 +92,7 @@ export const BookingNotesCard = function BookingNotesCard({
         isCoach ? (
           <Column gap="xs">
             <ThemedText style={{ color: palette.muted }}>
-              Capture what was covered, effort and homework so parents can track the session.
+              Record the session and next steps for the athlete.
             </ThemedText>
             <Clickable
               onPress={handleNavigateToNotes}
@@ -117,77 +113,13 @@ export const BookingNotesCard = function BookingNotesCard({
           </Column>
         ) : (
           <Column gap="xs">
-            <ThemedText style={{ color: palette.muted }}>
-              Your coach&apos;s notes will appear here after the session is completed.
-            </ThemedText>
+            <ThemedText style={{ color: palette.muted }}>No coach feedback yet.</ThemedText>
           </Column>
         )
       ) : null}
     </SurfaceCard>
   );
 };
-
-// ============================================================================
-// FOLLOW-UPS CARD
-// ============================================================================
-
-interface BookingFollowUpsCardProps {
-  sessionNote: SessionNoteRecord | null;
-  loading: boolean;
-  onRefresh: () => Promise<void>;
-}
-
-export const BookingFollowUpsCard = function BookingFollowUpsCard({
-  sessionNote,
-  loading,
-  onRefresh,
-}: BookingFollowUpsCardProps) {
-  const { colors: palette } = useTheme();
-
-  const followUps = [
-    { label: 'Share homework reminder', completed: Boolean(sessionNote?.homework) },
-    { label: 'Confirm attendance', completed: Boolean(sessionNote?.attendance) },
-    {
-      label: 'Log effort & focus',
-      completed: Boolean(sessionNote?.effort && sessionNote?.focus?.length),
-    },
-  ];
-
-  return (
-    <SurfaceCard style={styles.card}>
-      <Row gap="md" align="center" justify="between">
-        <ThemedText type="defaultSemiBold">Follow-ups parents will see</ThemedText>
-        <Clickable
-          style={[styles.linkPill, { backgroundColor: palette.background }]}
-          onPress={onRefresh}
-          accessibilityLabel={loading ? 'Refreshing notes' : 'Sync notes now'}
-        >
-          <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-            {loading ? 'Refreshing...' : 'Sync now'}
-          </ThemedText>
-        </Clickable>
-      </Row>
-      <Column gap="sm">
-        {followUps.map((action) => (
-          <Row key={action.label} gap="sm" align="center">
-            <Ionicons
-              name={action.completed ? 'checkmark-circle' : 'ellipse-outline'}
-              size={20}
-              color={action.completed ? palette.success : palette.border}
-            />
-            <ThemedText style={{ color: action.completed ? palette.text : palette.muted }}>
-              {action.label}
-            </ThemedText>
-          </Row>
-        ))}
-      </Column>
-    </SurfaceCard>
-  );
-};
-
-// ============================================================================
-// STYLES
-// ============================================================================
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },

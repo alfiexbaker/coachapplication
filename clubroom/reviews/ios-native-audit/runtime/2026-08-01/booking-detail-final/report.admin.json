@@ -1,0 +1,58 @@
+{
+  "baseUrl": "http://127.0.0.1:8083",
+  "generatedAt": "2026-08-01T16:18:55.314Z",
+  "meta": {
+    "roles": [
+      "admin"
+    ],
+    "profiles": [
+      "booking-detail-audit"
+    ],
+    "role": "admin",
+    "chunkSize": 1,
+    "chunkIndex": null,
+    "retries": 1,
+    "pauseMs": 700
+  },
+  "totals": {
+    "total": 1,
+    "ok": 1,
+    "failed": 0,
+    "high": 0,
+    "medium": 1,
+    "none": 0
+  },
+  "results": [
+    {
+      "id": "admin_booking_detail_denied",
+      "role": "admin",
+      "title": "Unrelated club admin is denied booking detail",
+      "path": "/bookings/bok_af55c625-92ff-4063-b135-41a9f309d326",
+      "finalPath": "/bookings/bok_af55c625-92ff-4063-b135-41a9f309d326",
+      "screenshot": "reviews/ios-native-audit/runtime/2026-08-01/booking-detail-final/admin__admin_booking_detail_denied.png",
+      "status": "ok",
+      "severity": "medium",
+      "issues": [
+        "response:403:GET:http://localhost:4000/v1/bookings/bok_af55c625-92ff-4063-b135-41a9f309d326",
+        "console:Failed to load resource: the server responded with a status of 403 (Forbidden)",
+        "console:[ERROR] [16:18:52.605] [BookingAuthorityService] Failed to get booking via API",
+        "console:Error data: {bookingId: bok_af55c625-92ff-4063-b135-41a9f309d326, error: Object}",
+        "console:[ERROR] [16:18:52.605] [BookingCrudService] Failed to get booking",
+        "console:Stack: Error: Booking does not belong to authenticated user\n    at BookingCrudService.getBooking (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381359:33)\n    at async Object.loadBooking (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:436819:25)\n    at async http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415039:33\n    at async runAsyncTryCatchFinally (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405795:14)\n    at async Object.t17 [as current] (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415038:16)",
+        "console:Message: Booking does not belong to authenticated user",
+        "console:[ERROR] [16:18:52.605] [useBookingDetail] Failed to load booking",
+        "console:Stack: Error: Booking does not belong to authenticated user\n    at BookingCrudService.getBooking (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:381359:33)\n    at async Object.loadBooking (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:436819:25)\n    at async http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415039:33\n    at async runAsyncTryCatchFinally (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:405795:14)\n    at async Object.t17 [as current] (http://127.0.0.1:8083/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&transform.reactCompiler=true&unstable_transformProfile=hermes-stable:415038:16)",
+        "console:Message: Booking does not belong to authenticated user"
+      ],
+      "metrics": {
+        "viewportWidth": 390,
+        "horizontalOverflow": 0,
+        "nestedButtons": 0,
+        "productTextIssues": []
+      },
+      "expectedErrors": [],
+      "attempts": 1,
+      "durationMs": 4465
+    }
+  ]
+}

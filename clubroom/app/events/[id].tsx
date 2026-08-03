@@ -53,7 +53,6 @@ export default function EventDetailScreen() {
     refreshing,
     onRefresh,
     retry,
-    isCoach,
     actorRole,
     actorUserId,
     actorName,
@@ -65,7 +64,6 @@ export default function EventDetailScreen() {
     attendance,
     attendanceStats,
     currentAttendance,
-    isCreator,
     isOrganizer,
     isEventToday,
     checkInAvailable,
@@ -74,6 +72,7 @@ export default function EventDetailScreen() {
     canShareRecap,
     handleRSVP,
     handlePublish,
+    handleSendInvites,
     handleCancel,
     handleSendReminder,
     handleCheckIn,
@@ -306,7 +305,7 @@ export default function EventDetailScreen() {
             />
           </Row>
 
-          {rsvps.length > 0 ? (
+          {isOrganizer && rsvps.length > 0 ? (
             <View style={styles.attendeeListWrap}>
               <AttendeeList
                 rsvps={rsvps}
@@ -319,7 +318,7 @@ export default function EventDetailScreen() {
             </View>
           ) : (
             <ThemedText style={[styles.emptyCopy, { color: palette.muted }]}>
-              No responses yet.
+              {isOrganizer ? 'No responses yet.' : 'Response totals are available to club members.'}
             </ThemedText>
           )}
 
@@ -355,11 +354,11 @@ export default function EventDetailScreen() {
               userRole={actorRole}
               currentAttendance={currentAttendance}
               onCheckIn={handleCheckIn}
-              onUndoCheckIn={handleUndoCheckIn}
-              disabled={!currentRSVP && !isCoach}
+              onUndoCheckIn={isOrganizer ? handleUndoCheckIn : undefined}
+              disabled={!currentRSVP && !isOrganizer}
             />
 
-            {!currentRSVP && !isCoach ? (
+            {!currentRSVP && !isOrganizer ? (
               <ThemedText style={[styles.helperText, { color: palette.muted }]}>
                 Respond to the event before checking in.
               </ThemedText>
@@ -373,10 +372,13 @@ export default function EventDetailScreen() {
               Organizer actions
             </ThemedText>
             <View style={styles.actionStack}>
-              {isCreator && event.status === 'DRAFT' ? (
+              {isOrganizer && event.status === 'DRAFT' ? (
                 <Button onPress={handlePublish} label="Publish event" />
               ) : null}
-              {isCreator && event.status === 'PUBLISHED' ? (
+              {isOrganizer && event.status === 'PUBLISHED' ? (
+                <Button variant="outline" onPress={handleSendInvites} label="Send invitations" />
+              ) : null}
+              {isOrganizer && event.status === 'PUBLISHED' ? (
                 <Button variant="outline" onPress={handleCancel} label="Cancel event" />
               ) : null}
               {canShareRecap ? (

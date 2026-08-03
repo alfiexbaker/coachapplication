@@ -5,8 +5,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,7 +51,9 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     slideAnim.set(withTiming(-100, { duration: NotificationDesign.motion.fast }));
     opacityAnim.set(
       withTiming(0, { duration: NotificationDesign.motion.fast }, (finished) => {
-        if (finished) runOnJS(setToast)({ notification: null, visible: false });
+        if (finished) {
+          scheduleOnRN(setToast, { notification: null, visible: false });
+        }
       }),
     );
   };

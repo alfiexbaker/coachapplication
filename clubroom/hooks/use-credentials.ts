@@ -10,7 +10,13 @@ import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
+import {
+  VERIFICATION_DOCUMENT_PICKER_TYPES,
+  validateVerificationDocumentSelection,
+  verificationService,
+  type VerificationDocumentUploadInput,
+} from '@/services/verification-service';
+import { uiFeedback } from '@/services/ui-feedback';
 import type { VerificationStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -20,12 +26,17 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('useCredentials');
 
 export const CREDENTIAL_TYPES = [
-  { id: 'fa-level1', label: 'FA Level 1', category: 'Coaching Badge' },
-  { id: 'fa-level2', label: 'FA Level 2', category: 'Coaching Badge' },
-  { id: 'fa-level3', label: 'FA Level 3 (UEFA B)', category: 'Coaching Badge' },
-  { id: 'first-aid', label: 'Emergency First Aid', category: 'First Aid' },
-  { id: 'safeguarding', label: 'Safeguarding Certificate', category: 'Child Safety' },
-  { id: 'other', label: 'Other Qualification', category: 'Other' },
+  {
+    id: 'introduction-to-coaching-football',
+    label: 'Introduction to Coaching Football',
+    category: 'England Football',
+  },
+  { id: 'uefa-c', label: 'UEFA C Licence', category: 'Coaching licence' },
+  { id: 'uefa-b', label: 'UEFA B Licence', category: 'Coaching licence' },
+  { id: 'uefa-a', label: 'UEFA A Licence', category: 'Coaching licence' },
+  { id: 'first-aid', label: 'Emergency First Aid', category: 'First aid' },
+  { id: 'safeguarding', label: 'Safeguarding certificate', category: 'Safeguarding' },
+  { id: 'other', label: 'Other qualification', category: 'Other' },
 ] as const;
 
 export interface UseCredentialsResult {
@@ -59,7 +70,9 @@ export function useCredentials() {
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [customName, setCustomName] = useState('');
-  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(
+    null,
+  );
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -95,7 +108,7 @@ export function useCredentials() {
   const handleUpload = async () => {
     if (!selectedType) return;
     const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/*'],
+      type: VERIFICATION_DOCUMENT_PICKER_TYPES,
       copyToCacheDirectory: true,
       multiple: false,
     });
@@ -105,13 +118,18 @@ export function useCredentials() {
       selectedType === 'other'
         ? customName || 'Other Qualification'
         : CREDENTIAL_TYPES.find((t) => t.id === selectedType)?.label || 'Credential';
-    setSelectedDocument({
+    const selection = validateVerificationDocumentSelection({
       uri: asset.uri,
       fileName: asset.name || `credential-${selectedType}`,
       contentType: asset.mimeType,
       sizeBytes: asset.size,
       label: credentialLabel,
     });
+    if (!selection.success) {
+      uiFeedback.showToast(selection.error.message, 'error');
+      return;
+    }
+    setSelectedDocument(selection.data);
   };
 
   const handleSubmit = async () => {
@@ -124,26 +142,33 @@ export function useCredentials() {
 
     setSubmitting(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const result = await verificationService.submitCredential(
-        coachId,
-        selectedDocument,
-        credentialLabel,
-      );
-      if (result.success) {
-        onRefresh();
-        setShowForm(false);
-        setSelectedType(null);
-        setCustomName('');
-        setSelectedDocument(null);
-      } else {
-        logger.error('Failed to submit credential:', result.error);
-      }
-    }, async error => {
-      logger.error('Failed to submit credential:', error);
-    }, () => {
-      setSubmitting(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await verificationService.submitCredential(
+          coachId,
+          selectedDocument,
+          credentialLabel,
+        );
+        if (result.success) {
+          uiFeedback.showToast('Credential submitted for review.', 'success');
+          onRefresh();
+          setShowForm(false);
+          setSelectedType(null);
+          setCustomName('');
+          setSelectedDocument(null);
+        } else {
+          logger.error('Failed to submit credential:', result.error);
+          uiFeedback.showToast(result.error.message, 'error');
+        }
+      },
+      async (error) => {
+        logger.error('Failed to submit credential:', error);
+        uiFeedback.showToast('Failed to submit credential.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   const resetForm = () => {

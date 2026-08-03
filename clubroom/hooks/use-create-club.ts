@@ -14,14 +14,6 @@ const logger = createLogger('CreateClub');
 
 export type FirstStaffRoleOption = Exclude<ClubRole, 'OWNER' | 'MEMBER'> | 'NONE';
 
-export const CLUB_FEATURES = [
-  { icon: 'people-outline', text: 'Invite athletes and parents with a code' },
-  { icon: 'layers-outline', text: 'Create squads and age groups' },
-  { icon: 'megaphone-outline', text: 'Post updates and announcements' },
-  { icon: 'calendar-outline', text: 'Schedule training and events' },
-  { icon: 'ribbon-outline', text: 'Award badges and track progress' },
-] as const;
-
 export function useCreateClub() {
   const { currentUser } = useAuth();
 
@@ -35,13 +27,16 @@ export function useCreateClub() {
   const [firstStaffRole, setFirstStaffRole] = useState<FirstStaffRoleOption>('COACH');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
+  const [cityTouched, setCityTouched] = useState(false);
 
   const trimmedName = name.trim();
   const nameError =
     nameTouched && trimmedName.length < 3
       ? 'Club name cannot be empty or spaces only'
       : null;
-  const isValid = trimmedName.length >= 3 && city.trim().length >= 2 && !nameError;
+  const cityError =
+    cityTouched && city.trim().length < 2 ? 'Enter the city where the club is based' : null;
+  const isValid = trimmedName.length >= 3 && city.trim().length >= 2 && !nameError && !cityError;
   const isDirty =
     trimmedName.length > 0 ||
     tagline.trim().length > 0 ||
@@ -59,6 +54,7 @@ export function useCreateClub() {
     setNameTouched(true);
     setNameState((prev) => prev.trim());
   };
+  const handleCityBlur = () => setCityTouched(true);
 
   const handleBadgeChange = (t: string) => {
     setBadge(t.toUpperCase().slice(0, 4));
@@ -66,11 +62,16 @@ export function useCreateClub() {
 
   const handleCreate = async () => {
     if (isSubmitting) return;
-    setIsSubmitting(true);
-    if (!isValid || !currentUser) {
-      setIsSubmitting(false);
+    if (!isValid) {
+      setNameTouched(true);
+      setCityTouched(true);
       return;
     }
+    if (!currentUser) {
+      uiFeedback.showToast('Sign in before creating a club.', 'error');
+      return;
+    }
+    setIsSubmitting(true);
     logger.action('CreateClub', { name, city });
 
     return await runAsyncTryCatchFinally(async () => {
@@ -79,7 +80,7 @@ export function useCreateClub() {
         name: trimmedName,
         tagline: tagline.trim() || undefined,
         city: city.trim(),
-        country: country.trim(),
+        country: country.trim() || 'UK',
         badge: badge.trim() || trimmedName.slice(0, 3).toUpperCase(),
         commercialMode,
         firstStaffRole: firstStaffRole === 'NONE' ? null : firstStaffRole,
@@ -110,10 +111,6 @@ export function useCreateClub() {
     });
   };
 
-  const previewBadge = badge || name.slice(0, 3).toUpperCase() || 'ABC';
-  const previewName = name || 'Your Club Name';
-  const previewLocation = `${city || 'City'}, ${country || 'UK'}`;
-
   return {
     name,
     setName,
@@ -123,6 +120,8 @@ export function useCreateClub() {
     setTagline,
     city,
     setCity,
+    handleCityBlur,
+    cityError,
     country,
     setCountry,
     badge,
@@ -134,8 +133,5 @@ export function useCreateClub() {
     isSubmitting,
     isValid,
     handleCreate,
-    previewBadge,
-    previewName,
-    previewLocation,
   };
 }

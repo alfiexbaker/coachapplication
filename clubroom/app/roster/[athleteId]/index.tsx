@@ -87,7 +87,18 @@ export default function AthleteProfileScreen() {
   }
 
   if (status === 'error') {
-    return renderShell(<ErrorState message={error?.message || 'Failed to load'} onRetry={retry} />);
+    const terminalAccessError = error?.code === 'NOT_FOUND' || error?.code === 'UNAUTHORIZED';
+    return renderShell(
+      <ErrorState
+        title={terminalAccessError ? 'Athlete unavailable' : undefined}
+        message={
+          terminalAccessError
+            ? (error?.message ?? 'This player is not available from your roster.')
+            : error?.message || 'Failed to load athlete details.'
+        }
+        onRetry={terminalAccessError ? undefined : retry}
+      />,
+    );
   }
 
   if (status === 'empty' || !data) {
@@ -138,11 +149,7 @@ export default function AthleteProfileScreen() {
           {showPendingPaneSkeleton ? (
             <SectionSkeleton
               variant={
-                activeTab === 'sessions'
-                  ? 'list'
-                  : activeTab === 'progress'
-                    ? 'card'
-                    : 'tab-pane'
+                activeTab === 'sessions' ? 'list' : activeTab === 'progress' ? 'card' : 'tab-pane'
               }
               titleWidth="34%"
             />

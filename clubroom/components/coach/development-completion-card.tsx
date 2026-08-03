@@ -19,7 +19,7 @@ function cleanAthleteLabel(label: string): string | null {
   if (!trimmed) {
     return null;
   }
-  if (/^(user[_-]?\d+|athlete[_-]?\d+|parent[_-]?\d+)$/i.test(trimmed)) {
+  if (/^(?:athlete|player|user|parent)(?:[_\s-]?\d+)?$/i.test(trimmed)) {
     return null;
   }
   return trimmed;
@@ -31,12 +31,7 @@ function getCompletionRoute(booking: Booking): Href {
     return Routes.sessionComplete(linkedGroupSessionId);
   }
 
-  return Routes.sessionFeedback({
-    bookingId: booking.id,
-    athleteId: booking.athleteId || booking.athleteIds?.[0],
-    athleteName: getBookingAthleteName(booking),
-    athleteObjectives: JSON.stringify(booking.objectives || []),
-  });
+  return Routes.sessionComplete(booking.id);
 }
 
 export function CompletionCard({ bookings }: { bookings: Booking[] }) {
@@ -74,6 +69,7 @@ export function CompletionCard({ bookings }: { bookings: Booking[] }) {
               month: 'short',
             })} ${timeStr}`;
         const athleteName = cleanAthleteLabel(getBookingAthleteName(booking));
+        const serviceLabel = booking.service || 'Session';
         return (
           <Clickable
             key={booking.id}
@@ -86,10 +82,10 @@ export function CompletionCard({ bookings }: { bookings: Booking[] }) {
                 style={styles.completionRowTitle}
                 numberOfLines={1}
               >
-                {booking.service || 'Session'} {athleteName ? `with ${athleteName}` : ''}
+                {athleteName || serviceLabel}
               </ThemedText>
               <ThemedText style={[styles.completionRowMeta, { color: palette.muted }]}>
-                {dateStr}
+                {athleteName ? `${serviceLabel} · ${dateStr}` : dateStr}
               </ThemedText>
             </View>
             <View

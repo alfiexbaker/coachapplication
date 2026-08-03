@@ -19,6 +19,59 @@ afterEach(() => {
 });
 
 describe('invoiceService API mode', () => {
+  it('rejects synthetic invoice upsert instead of silently no-oping', async () => {
+    const [{ invoiceService }, { apiClient }] = await Promise.all([
+      import('@/services/invoice-service'),
+      import('@/services/api-client'),
+    ]);
+    const originalGet = apiClient.get;
+    const originalSet = apiClient.set;
+    const localInvoiceStorageCalls: string[] = [];
+
+    apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
+      if (key === 'clubroom.invoices') {
+        localInvoiceStorageCalls.push(`get:${key}`);
+        throw new Error('local invoice storage read should not run in API mode');
+      }
+      return (await originalGet.call(apiClient, key, fallback)) as T;
+    };
+    apiClient.set = async <T>(key: string, data: T): Promise<void> => {
+      if (key === 'clubroom.invoices') {
+        localInvoiceStorageCalls.push(`set:${key}`);
+        throw new Error('local invoice storage write should not run in API mode');
+      }
+      return originalSet.call(apiClient, key, data);
+    };
+
+    try {
+      await assert.rejects(
+        () =>
+          invoiceService.upsertInvoice({
+            id: 'inv_synthetic_api',
+            invoiceNumber: 'INV-SYN-API',
+            userId: 'parent_api',
+            bookingId: 'booking_api',
+            coachId: 'coach_api',
+            sessionDate: '2026-07-15T10:00:00.000Z',
+            sessionType: 'Session',
+            amount: 50,
+            tax: 0,
+            taxRate: 0,
+            total: 50,
+            currency: 'GBP',
+            status: 'SENT',
+            createdAt: '2026-07-15T10:00:00.000Z',
+          }),
+        /Synthetic invoice upsert is mock-only; API mode must use \/v1\/invoices\/generate/,
+      );
+    } finally {
+      apiClient.get = originalGet;
+      apiClient.set = originalSet;
+    }
+
+    assert.deepEqual(localInvoiceStorageCalls, []);
+  });
+
   it('does not locally mutate invoice payment state when transition APIs fail', async () => {
     const [{ invoiceService }, { apiClient }] = await Promise.all([
       import('@/services/invoice-service'),

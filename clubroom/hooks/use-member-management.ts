@@ -19,6 +19,7 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('MemberManagement');
+const USE_MOCK = api.useMock;
 
 interface MemberManagementData {
   member: ClubMember | null;
@@ -75,7 +76,7 @@ export function useMemberManagement(): UseMemberManagementResult {
     try {
       let clubData: Club | null = null;
       let currentUserRole: ClubRole | null = null;
-      if (api.useMock) {
+      if (USE_MOCK) {
         clubData =
           socialFeedService
             .getUserClubs(currentUser.id)
@@ -88,10 +89,10 @@ export function useMemberManagement(): UseMemberManagementResult {
         }
         clubData =
           authorityResult.data.clubs.find((candidate) => candidate.id === clubId) ?? null;
+        // listClubs returns only the signed-in user's memberships.
         currentUserRole =
-          authorityResult.data.memberships.find(
-            (membership) => membership.clubId === clubId && membership.userId === currentUser.id,
-          )?.role ?? null;
+          authorityResult.data.memberships.find((membership) => membership.clubId === clubId)?.role ??
+          null;
       }
       const memberData = await clubService.getMember(clubId, memberId);
       const squads = await squadService.getSquads(clubId);
@@ -121,6 +122,7 @@ export function useMemberManagement(): UseMemberManagementResult {
     ],
     isEmpty: (value) => value.member === null || value.club === null,
     refetchOnFocus: true,
+    dataKey: `member-management:${currentUser?.id ?? 'anonymous'}:${clubId ?? 'missing'}:${memberId ?? 'missing'}`,
   });
 
   const member = data?.member ?? null;
@@ -128,7 +130,7 @@ export function useMemberManagement(): UseMemberManagementResult {
   const squads = data?.squads ?? [];
   const currentUserRole =
     data?.currentUserRole
-    ?? (api.useMock && currentUser?.id && clubId
+    ?? (USE_MOCK && currentUser?.id && clubId
       ? socialFeedService.getMembership(currentUser.id, clubId)?.role ?? null
       : null);
   const loading = status === 'loading';

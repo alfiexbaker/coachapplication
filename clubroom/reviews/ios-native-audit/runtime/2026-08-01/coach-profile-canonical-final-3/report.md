@@ -1,0 +1,15 @@
+# UI Flow Check Report (50+)
+
+- Base URL: http://localhost:8083
+- Generated: 2026-08-01T19:59:25.276Z
+- Total flows: 5
+- Failed: 0
+- High: 0
+- Medium: 0
+- Roles: coach, parent, guardian, athlete, admin
+- Profiles: coach-profile-canonical
+- Retries: 1
+
+## High / Medium Findings
+
+- None

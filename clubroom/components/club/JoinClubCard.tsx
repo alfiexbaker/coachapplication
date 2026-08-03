@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-import { Column } from '@/components/primitives/column';
 import { parseClubInviteInput } from '@/services/club-invite-link-service';
 
 export interface JoinClubCardProps {
   isCoach: boolean;
+  initialCode?: string;
   onJoin: (input: { code: string; role?: string }) => void;
-  onCreate?: (name: string) => void;
 }
 
-export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
+function handleCreateClub() {
+  router.push(Routes.CLUB_CREATE);
+}
+
+export function JoinClubCard({ isCoach, initialCode = '', onJoin }: JoinClubCardProps) {
   const { colors: palette } = useTheme();
-  const [joinCode, setJoinCode] = useState('');
-  const normalizedCode = joinCode.trim().toUpperCase();
+  const [joinCode, setJoinCode] = useState(initialCode);
   const parsedInput = parseClubInviteInput(joinCode);
   const codeError =
     joinCode.trim().length === 0
@@ -35,10 +35,6 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
         : null;
   const canJoin = Boolean(parsedInput?.code && parsedInput.code.length >= 4 && !codeError);
 
-  const handleCreateClub = () => {
-    router.push(Routes.CLUB_CREATE);
-  };
-
   const handleCodeChange = (value: string) => {
     if (value.includes('://') || value.includes('inviteCode=')) {
       setJoinCode(value.trim());
@@ -49,30 +45,24 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
 
   return (
     <SurfaceCard style={styles.joinCard}>
-      <Row style={styles.joinHeader}>
-        <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-          <Ionicons name="people" size={24} color={palette.tint} />
-        </View>
-        <Column flex>
-          <ThemedText type="title" style={{ ...Typography.title }}>
-            {isCoach ? 'Join or Create a Club' : 'Join a Club'}
-          </ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            {isCoach
-              ? 'Connect with your coaching team'
-              : "Join your coach's club for exclusive content"}
-          </ThemedText>
-        </Column>
-      </Row>
+      <ThemedText type="defaultSemiBold">Join a club</ThemedText>
 
       <Row style={styles.joinForm}>
         <TextInput
-          placeholder="Paste invite code or link"
+          accessibilityLabel="Invite code or link"
+          placeholder="Invite code or link"
           placeholderTextColor={palette.muted}
           value={joinCode}
           onChangeText={handleCodeChange}
           autoCapitalize="characters"
-          maxLength={24}
+          autoCorrect={false}
+          maxLength={512}
+          returnKeyType="go"
+          onSubmitEditing={() => {
+            if (canJoin && parsedInput) {
+              onJoin(parsedInput);
+            }
+          }}
           style={[
             styles.input,
             {
@@ -86,61 +76,35 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           style={[styles.primaryButton, { backgroundColor: canJoin ? palette.tint : palette.border }]}
           onPress={() => parsedInput && onJoin(parsedInput)}
           disabled={!canJoin}
+          accessibilityLabel="Join club"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canJoin }}
         >
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
             Join
           </ThemedText>
         </Clickable>
       </Row>
-      <ThemedText style={[Typography.caption, { color: codeError ? palette.error : palette.muted }]}>
-        {codeError ?? 'Ask your club for an invite code or join link'}
-      </ThemedText>
+      {codeError ? (
+        <ThemedText style={[Typography.caption, { color: palette.error }]}>{codeError}</ThemedText>
+      ) : null}
 
-      {isCoach && (
-        <>
-          <View style={styles.dividerWrapper}>
-            <Divider />
-            <ThemedText
-              style={[
-                styles.dividerText,
-                { backgroundColor: palette.surface, color: palette.muted },
-              ]}
-            >
-              or
-            </ThemedText>
-          </View>
-          <Clickable
-            style={[
-              styles.createButton,
-              { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint },
-            ]}
-            onPress={handleCreateClub}
-          >
-            <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
-              Create New Club
-            </ThemedText>
-          </Clickable>
-        </>
-      )}
+      {isCoach ? (
+        <Clickable
+          style={[styles.createButton, { borderColor: palette.border }]}
+          onPress={handleCreateClub}
+          accessibilityLabel="Create club"
+        >
+          <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create club</ThemedText>
+        </Clickable>
+      ) : null}
     </SurfaceCard>
   );
 }
 
 const styles = StyleSheet.create({
   joinCard: {
-    gap: Spacing.md,
-  },
-  joinHeader: {
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  clubAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: Spacing.sm,
   },
   joinForm: {
     gap: Spacing.sm,
@@ -149,43 +113,29 @@ const styles = StyleSheet.create({
   input: {
     ...Typography.body,
     flex: 1,
+    minHeight: 44,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
   },
   primaryButton: {
+    minHeight: 44,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     fontWeight: '600',
   },
-  secondaryButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
   createButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
+    minHeight: 44,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  dividerWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  dividerText: {
-    ...Typography.caption,
-    position: 'absolute',
-    top: -8,
-    left: '50%',
-    transform: [{ translateX: -10 }],
-    paddingHorizontal: Spacing.sm,
+    borderWidth: 1,
   },
 });

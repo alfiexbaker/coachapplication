@@ -26,9 +26,16 @@ export interface UserBlockStatus {
   blockedId: string | null;
 }
 
+export interface BlockedUserSummary {
+  id: string;
+  name: string | null;
+  blockedAt: string;
+}
+
 export interface UserBlockListResponse {
   blocks: UserBlockRecord[];
   blockedUserIds: string[];
+  blockedUsers: BlockedUserSummary[];
   total: number;
   dataVersion: string | null;
 }
@@ -71,6 +78,19 @@ function mapSeedBlock(row: SeedRow): UserBlockRecord {
     blockedUserId: asString(row.blockedUserId) ?? '',
     createdAt,
     updatedAt: asString(row.updatedAt) ?? createdAt,
+  };
+}
+
+function blockedUserSummary(tables: SeedTables, block: UserBlockRecord): BlockedUserSummary {
+  const user = asRows(tables.users).find((row) => asString(row.id) === block.blockedUserId);
+  const name =
+    user && asString(user.accountStatus) === 'active' && !asString(user.deletedAt)
+      ? asString(user.name)?.trim() || null
+      : null;
+  return {
+    id: block.blockedUserId,
+    name,
+    blockedAt: block.createdAt,
   };
 }
 
@@ -138,6 +158,7 @@ class StoreUserBlockRepository implements UserBlockRepository {
     return {
       blocks,
       blockedUserIds: blocks.map((block) => block.blockedUserId),
+      blockedUsers: blocks.map((block) => blockedUserSummary(store.tables, block)),
       total: blocks.length,
       dataVersion: store.version,
     };
@@ -230,6 +251,15 @@ class DbUserBlockRepository implements UserBlockRepository {
         blockerUserId: actorUserId,
         deletedAt: null,
       },
+      include: {
+        blocked: {
+          select: {
+            name: true,
+            accountStatus: true,
+            deletedAt: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -244,6 +274,14 @@ class DbUserBlockRepository implements UserBlockRepository {
     return normalizeForJson({
       blocks: mapped,
       blockedUserIds: mapped.map((block) => block.blockedUserId),
+      blockedUsers: blocks.map((block) => ({
+        id: block.blockedUserId,
+        name:
+          block.blocked.accountStatus === 'active' && !block.blocked.deletedAt
+            ? block.blocked.name.trim() || null
+            : null,
+        blockedAt: block.createdAt.toISOString(),
+      })),
       total: mapped.length,
       dataVersion: null,
     });

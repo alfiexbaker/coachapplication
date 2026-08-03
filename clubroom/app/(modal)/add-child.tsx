@@ -1,14 +1,13 @@
 /**
  * Add Child Flow
  *
- * Multi-step wizard: Child Details → Support Needs → Safety Essentials.
+ * Three-step registration: player details → support needs → safety.
  * All state/logic in useAddChild hook with pre-built step props.
  */
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
@@ -16,25 +15,61 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { AddChildBasicStep } from '@/components/family/add-child-basic-step';
 import { AddChildMedicalStep } from '@/components/family/add-child-medical-step';
 import { AddChildEmergencyStep } from '@/components/family/add-child-emergency-step';
-import { Row } from '@/components/primitives/row';
-import { Radii, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useAddChild, STEPS, STEP_TITLES } from '@/hooks/use-add-child';
+import { useAddChild, useCanCreateChild, STEPS, STEP_TITLES } from '@/hooks/use-add-child';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { RouteAccessGate } from '@/components/auth/route-access-gate';
+import { useAuth } from '@/hooks/use-auth';
+import { Routes } from '@/navigation/routes';
 
 export default function AddChildScreen() {
+  const { currentUser } = useAuth();
+  const { canCreateChild, checkingCreateChildAccess } = useCanCreateChild();
+
+  if (checkingCreateChildAccess) {
+    return null;
+  }
+
+  const redirectHref =
+    currentUser?.role === 'USER' &&
+    !currentUser.hasChildren &&
+    (currentUser.children?.length ?? 0) === 0
+      ? Routes.DEVELOPMENT_MY_PROGRESS
+      : Routes.ROOT;
+
+  return (
+    <RouteAccessGate allowed={canCreateChild} redirectHref={redirectHref}>
+      <AddChildForm />
+    </RouteAccessGate>
+  );
+}
+
+function AddChildForm() {
   const { colors: palette } = useTheme();
   const c = useAddChild();
   const modalRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollView>(null);
   useFocusTrap(modalRef, 'Add child modal');
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      if (Platform.OS === 'web') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [c.currentStep]);
 
   const renderStep = () => {
     switch (c.currentStep) {
       case 'basic':
         return <AddChildBasicStep {...c.basicProps} />;
       case 'special_needs':
-        return <AddChildMedicalStep variant="special_needs" {...c.medicalProps} />;
+        return <AddChildMedicalStep {...c.medicalProps} />;
       case 'safety':
         return <AddChildEmergencyStep {...c.safetyProps} />;
     }
@@ -50,48 +85,37 @@ export default function AddChildScreen() {
       edges={['top', 'bottom']}
     >
       <PageHeader
-        title="Add Child"
+        title={STEP_TITLES[c.currentStep]}
         showBack
         backIcon={c.isFirstStep ? 'close' : 'arrow-back'}
         onBackPress={c.goBack}
-        centerTitle
-        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+        right={
+          <ThemedText
+            style={[styles.stepCount, { color: palette.muted }]}
+            accessibilityLabel={`Step ${c.stepIndex + 1} of ${STEPS.length}`}
+          >
+            {c.stepIndex + 1} / {STEPS.length}
+          </ThemedText>
+        }
+        containerStyle={styles.header}
       />
 
-      {/* Step Indicator */}
-      <Row style={styles.stepIndicator}>
-        {STEPS.map((step, index) => (
-          <Row key={step} style={styles.stepDotContainer}>
-            <View
-              style={[
-                styles.stepDot,
-                { backgroundColor: index <= c.stepIndex ? palette.tint : palette.border },
-              ]}
-            >
-              {index < c.stepIndex && (
-                <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
-              )}
-            </View>
-            {index < STEPS.length - 1 && (
-              <View
-                style={[
-                  styles.stepLine,
-                  { backgroundColor: index < c.stepIndex ? palette.tint : palette.border },
-                ]}
-              />
-            )}
-          </Row>
-        ))}
-      </Row>
-
-      {/* Step Title */}
-      <View style={styles.stepHeader}>
-        <ThemedText type="title" style={styles.stepTitle}>
-          {STEP_TITLES[c.currentStep]}
-        </ThemedText>
-        <ThemedText style={[styles.stepCount, { color: palette.muted }]}>
-          Step {c.stepIndex + 1} of {STEPS.length}
-        </ThemedText>
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={`${STEP_TITLES[c.currentStep]}, step ${c.stepIndex + 1} of ${STEPS.length}`}
+        accessibilityValue={{ min: 1, max: STEPS.length, now: c.stepIndex + 1 }}
+        style={[styles.progressTrack, { backgroundColor: palette.border }]}
+      >
+        <View
+          style={[
+            styles.progressValue,
+            {
+              backgroundColor: palette.tint,
+              width: `${((c.stepIndex + 1) / STEPS.length) * 100}%`,
+            },
+          ]}
+        />
       </View>
 
       <KeyboardAvoidingView
@@ -99,6 +123,8 @@ export default function AddChildScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
+          key={c.currentStep}
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -114,14 +140,13 @@ export default function AddChildScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Footer */}
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         {c.isLastStep ? (
           <Button
             onPress={c.handleSave}
             disabled={c.saving}
             style={{ flex: 1 }}
-            label={c.saving ? 'Creating Profile...' : `Add ${c.firstName || 'Child'}`}
+            label={c.saving ? 'Adding child…' : 'Add child'}
           />
         ) : (
           <Button onPress={c.goNext} style={{ flex: 1 }} label="Continue" />
@@ -134,30 +159,30 @@ export default function AddChildScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
   },
-  stepIndicator: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+  progressTrack: {
+    height: 2,
+    marginHorizontal: Spacing.md,
+    overflow: 'hidden',
   },
-  stepDotContainer: { alignItems: 'center' },
-  stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+  progressValue: {
+    height: '100%',
   },
-  stepLine: { width: 40, height: 2, marginHorizontal: Spacing.xxs },
-  stepHeader: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm },
-  stepTitle: { ...Typography.title, fontSize: Typography.title.fontSize },
-  stepCount: { ...Typography.small },
-  content: { padding: Spacing.lg, paddingBottom: Spacing['2xl'] },
-  footer: { padding: Spacing.lg, borderTopWidth: 1 },
+  stepCount: {
+    ...Typography.smallSemiBold,
+    minWidth: 44,
+    textAlign: 'right',
+  },
+  content: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+  },
+  footer: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+  },
 });

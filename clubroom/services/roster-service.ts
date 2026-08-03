@@ -8,12 +8,12 @@
  * 30s TTL, O(1) getById), and storage operations.
  *
  * API Integration Notes:
- * - GET /api/coaches/:id/roster - Get roster
- * - GET /api/coaches/:id/roster/:athleteId - Get detail
- * - POST /api/coaches/:id/roster/:athleteId/notes - Add note
- * - PATCH /api/coaches/:id/roster/:athleteId - Update status/tags
- * - DELETE /api/coaches/:id/roster/:athleteId - Remove athlete
- * - GET /api/coaches/:id/roster/removed - Get removal history
+ * - GET /v1/coaches/:coachId/roster - Get roster
+ * - POST /v1/coaches/:coachId/roster - Link an existing athlete
+ * - GET/PATCH/DELETE /v1/coaches/:coachId/roster/:athleteId - Detail, update, remove
+ * - POST/PATCH/DELETE /v1/coaches/:coachId/roster/:athleteId/notes - Note lifecycle
+ * - GET /v1/coaches/:coachId/roster/removals - Get removal history
+ * - POST /v1/coaches/:coachId/roster/removals/:removalId/undo - Restore a removal
  */
 
 import { apiClient, apiFetch } from './api-client';
@@ -30,7 +30,7 @@ import {
   storageError,
   unsupportedError,
 } from '@/types/result';
-import { BaseService } from './base-service';
+import { BaseService, type PagedResult, type QueryOptions } from './base-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from './user-service';
 import { verificationService } from './verification-service';
@@ -96,7 +96,7 @@ const MOCK_ROSTER: RosterEntry[] = normalizeLegacyMockDates([
     id: 'roster_1',
     coachId: 'coach1',
     athleteId: 'user1',
-    parentId: 'parent1',
+    parentId: 'user4',
     status: 'ACTIVE',
     startDate: '2025-06-15',
     lastSessionDate: '2026-01-08',
@@ -124,7 +124,7 @@ const MOCK_ROSTER: RosterEntry[] = normalizeLegacyMockDates([
     id: 'roster_2',
     coachId: 'coach1',
     athleteId: 'user2',
-    parentId: 'parent1',
+    parentId: 'user4',
     status: 'ACTIVE',
     startDate: '2025-09-01',
     lastSessionDate: '2026-01-05',
@@ -147,7 +147,7 @@ const MOCK_ROSTER: RosterEntry[] = normalizeLegacyMockDates([
     id: 'roster_3',
     coachId: 'coach1',
     athleteId: 'user3',
-    parentId: 'parent2',
+    parentId: 'user5',
     status: 'ACTIVE',
     startDate: '2024-03-10',
     lastSessionDate: '2026-01-10',
@@ -353,14 +353,17 @@ async function deleteApiRosterEntry(
     archive?: boolean;
   },
 ): Promise<Result<AthleteRemovalRecord, ServiceError>> {
-  const response = await apiFetch<RosterApiRemovalResponse>(rosterEntryApiPath(coachId, athleteId), {
-    method: 'DELETE',
-    body: JSON.stringify({
-      reason,
-      customReason: options?.customReason,
-      archive: options?.archive ?? true,
-    }),
-  });
+  const response = await apiFetch<RosterApiRemovalResponse>(
+    rosterEntryApiPath(coachId, athleteId),
+    {
+      method: 'DELETE',
+      body: JSON.stringify({
+        reason,
+        customReason: options?.customReason,
+        archive: options?.archive ?? true,
+      }),
+    },
+  );
   if (!response.success) return err(response.error);
   return ok(response.data.removal);
 }
@@ -425,10 +428,7 @@ async function saveRemovalHistory(
   }
 }
 
-function filterRosterEntries(
-  roster: RosterEntry[],
-  filters?: RosterFilters,
-): RosterEntry[] {
+function filterRosterEntries(roster: RosterEntry[], filters?: RosterFilters): RosterEntry[] {
   let filtered = roster;
 
   if (filters?.status) {
@@ -449,7 +449,9 @@ function filterRosterEntries(
     filtered = filtered.filter((entry) => {
       const athleteName = entry.athleteName ?? '';
       const parentName = entry.parentName ?? '';
-      return athleteName.toLowerCase().includes(search) || parentName.toLowerCase().includes(search);
+      return (
+        athleteName.toLowerCase().includes(search) || parentName.toLowerCase().includes(search)
+      );
     });
   }
 
@@ -478,7 +480,30 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   // Query methods
   // --------------------------------------------------------------------------
 
-  async create(
+  private unsupportedGenericStorageMethod(method: string): Result<never, ServiceError> {
+    return err(rosterApiUnsupported(`Roster ${method}`));
+  }
+
+  override async getAll(
+    options?: QueryOptions<RosterEntry>,
+  ): Promise<Result<RosterEntry[], ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getAll');
+    return super.getAll(options);
+  }
+
+  override async getPaged(
+    options?: QueryOptions<RosterEntry>,
+  ): Promise<Result<PagedResult<RosterEntry>, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getPaged');
+    return super.getPaged(options);
+  }
+
+  override async getById(id: string): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('getById');
+    return super.getById(id);
+  }
+
+  override async create(
     input: Omit<RosterEntry, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Result<RosterEntry, ServiceError>> {
     if (!apiClient.isMockMode) {
@@ -487,7 +512,7 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     return super.create(input);
   }
 
-  async update(
+  override async update(
     id: string,
     updates: Partial<RosterEntry>,
   ): Promise<Result<RosterEntry, ServiceError>> {
@@ -497,18 +522,60 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     return super.update(id, updates);
   }
 
-  async delete(id: string): Promise<Result<void, ServiceError>> {
+  override async delete(id: string): Promise<Result<void, ServiceError>> {
     if (!apiClient.isMockMode) {
       return err(rosterApiUnsupported('Roster entry removal'));
     }
     return super.delete(id);
   }
 
-  async hardDelete(id: string): Promise<Result<void, ServiceError>> {
+  override async hardDelete(id: string): Promise<Result<void, ServiceError>> {
     if (!apiClient.isMockMode) {
       return err(rosterApiUnsupported('Roster entry removal'));
     }
     return super.hardDelete(id);
+  }
+
+  override async restore(id: string): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('restore');
+    return super.restore(id);
+  }
+
+  override async exists(id: string): Promise<boolean> {
+    if (!apiClient.isMockMode) {
+      void this.unsupportedGenericStorageMethod('exists');
+      return false;
+    }
+    return super.exists(id);
+  }
+
+  override async count(filter?: Partial<RosterEntry>): Promise<Result<number, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('count');
+    return super.count(filter);
+  }
+
+  override async findOne(
+    filter: Partial<RosterEntry>,
+  ): Promise<Result<RosterEntry | null, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('findOne');
+    return super.findOne(filter);
+  }
+
+  override async createMany(
+    inputs: Omit<RosterEntry, 'id' | 'createdAt' | 'updatedAt'>[],
+  ): Promise<Result<RosterEntry[], ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('createMany');
+    return super.createMany(inputs);
+  }
+
+  override async deleteMany(ids: string[]): Promise<Result<number, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('deleteMany');
+    return super.deleteMany(ids);
+  }
+
+  override async clear(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) return this.unsupportedGenericStorageMethod('clear');
+    return super.clear();
   }
 
   /**
@@ -611,7 +678,18 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       logger.error('Failed to get roster entry', result.error);
       return null;
     }
-    return result.data;
+    if (!result.data) return null;
+
+    const [athleteName, parentName] = await Promise.all([
+      resolveUserName(result.data.athleteId, 'Athlete'),
+      resolveUserName(result.data.parentId, 'Parent'),
+    ]);
+
+    return {
+      ...result.data,
+      athleteName: result.data.athleteName ?? athleteName,
+      parentName: result.data.parentName ?? parentName,
+    };
   }
 
   // --------------------------------------------------------------------------

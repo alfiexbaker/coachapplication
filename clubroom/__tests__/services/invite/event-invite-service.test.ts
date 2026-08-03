@@ -3,8 +3,12 @@ import assert from 'node:assert/strict';
 
 import { eventInviteService } from '@/services/invite/event-invite-service';
 import { eventCrudService } from '@/services/event/event-crud-service';
+import { eventRsvpService } from '@/services/event/event-rsvp-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { EventRSVP } from '@/constants/types';
+
+const originalFetch = globalThis.fetch;
 
 function restoreMockMode(original?: PropertyDescriptor): void {
   if (original) {
@@ -16,6 +20,7 @@ function restoreMockMode(original?: PropertyDescriptor): void {
 
 describe('EventInviteService', () => {
   beforeEach(async () => {
+    globalThis.fetch = originalFetch;
     await apiClient.remove(STORAGE_KEYS.SQUAD_INVITES);
     await apiClient.remove(STORAGE_KEYS.CLUB_EVENTS);
   });
@@ -48,6 +53,7 @@ describe('EventInviteService', () => {
           date: input.date,
           startTime: input.startTime,
           endTime: input.endTime,
+          timeZone: 'Europe/London',
           venue: input.venue,
           isVirtual: input.isVirtual ?? false,
           targetAudience: input.targetAudience,
@@ -119,6 +125,61 @@ describe('EventInviteService', () => {
   });
 
   describe('getEventInvites', () => {
+    it('loads event squad invite aggregates through API mode', async (t) => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGet = apiClient.get;
+      let apiCalls = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      apiClient.get = (async () => {
+        throw new Error('local squad invite reads should not run in API mode');
+      }) as typeof apiClient.get;
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        apiCalls += 1;
+        assert.equal(String(input).endsWith('/v1/events/event-api-squad/invites/squads'), true);
+        return new Response(
+          JSON.stringify({
+            invites: [
+              {
+                id: 'squad_event_event-api-squad_squad-api-event',
+                squadId: 'squad-api-event',
+                targetType: 'EVENT',
+                targetId: 'event-api-squad',
+                invitedBy: 'coach-api-event',
+                invitedAt: '2026-07-10T18:00:00.000Z',
+                memberCount: 3,
+                responses: {
+                  accepted: 1,
+                  declined: 0,
+                  pending: 2,
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
+      t.after(() => {
+        restoreMockMode(originalIsMockMode);
+        apiClient.get = originalGet;
+        globalThis.fetch = originalFetch;
+      });
+
+      const invites = await eventInviteService.getEventInvites('event-api-squad');
+
+      assert.equal(apiCalls, 1);
+      assert.equal(invites.length, 1);
+      assert.equal(invites[0].targetType, 'EVENT');
+      assert.equal(invites[0].responses.accepted, 1);
+    });
+
     it('should return empty array for event with no invites', async () => {
       const eventId = 'test-event-' + Math.random().toString(36).slice(2);
 
@@ -157,6 +218,61 @@ describe('EventInviteService', () => {
   });
 
   describe('getOrganizerEventInvites', () => {
+    it('loads organizer event invite aggregates through API mode', async (t) => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGet = apiClient.get;
+      let apiCalls = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      apiClient.get = (async () => {
+        throw new Error('local squad invite reads should not run in API mode');
+      }) as typeof apiClient.get;
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        apiCalls += 1;
+        assert.equal(String(input).endsWith('/v1/organizers/coach-api-event/event-invites'), true);
+        return new Response(
+          JSON.stringify({
+            invites: [
+              {
+                id: 'squad_event_event-api-squad_squad-api-event',
+                squadId: 'squad-api-event',
+                targetType: 'EVENT',
+                targetId: 'event-api-squad',
+                invitedBy: 'coach-api-event',
+                invitedAt: '2026-07-10T18:00:00.000Z',
+                memberCount: 4,
+                responses: {
+                  accepted: 2,
+                  declined: 1,
+                  pending: 1,
+                },
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
+      t.after(() => {
+        restoreMockMode(originalIsMockMode);
+        apiClient.get = originalGet;
+        globalThis.fetch = originalFetch;
+      });
+
+      const invites = await eventInviteService.getOrganizerEventInvites('coach-api-event');
+
+      assert.equal(apiCalls, 1);
+      assert.equal(invites.length, 1);
+      assert.equal(invites[0].invitedBy, 'coach-api-event');
+      assert.equal(invites[0].responses.declined, 1);
+    });
+
     it('should return empty array for organizer with no invites', async () => {
       const organizerId = 'test-organizer-' + Math.random().toString(36).slice(2);
 
@@ -195,6 +311,34 @@ describe('EventInviteService', () => {
   });
 
   describe('updateEventInviteResponse', () => {
+    it('fails closed in API mode instead of dropping aggregate response writes', async (t) => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGet = apiClient.get;
+      const originalSet = apiClient.set;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      apiClient.get = (async () => {
+        throw new Error('local squad invite reads should not run in API mode');
+      }) as typeof apiClient.get;
+      apiClient.set = (async () => {
+        throw new Error('local squad invite writes should not run in API mode');
+      }) as typeof apiClient.set;
+
+      t.after(() => {
+        restoreMockMode(originalIsMockMode);
+        apiClient.get = originalGet;
+        apiClient.set = originalSet;
+      });
+
+      await assert.rejects(
+        eventInviteService.updateEventInviteResponse('event-api-squad', 'squad-api-event', 5, 2),
+        /Aggregate event invite response updates are unsupported in API mode/,
+      );
+    });
+
     it('should update invite response counts', async () => {
       const eventId = 'test-event-' + Math.random().toString(36).slice(2);
       const squadId = 'test-squad-' + Math.random().toString(36).slice(2);
@@ -238,6 +382,69 @@ describe('EventInviteService', () => {
   });
 
   describe('getEventRsvpTotals', () => {
+    it('uses API RSVP authority for totals in API mode', async (t) => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGet = apiClient.get;
+      const originalGetEventRSVPs = eventRsvpService.getEventRSVPs;
+      let requestedEventId: string | null = null;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      apiClient.get = (async () => {
+        throw new Error('local squad invite reads should not run in API mode');
+      }) as typeof apiClient.get;
+      eventRsvpService.getEventRSVPs = (async (eventId: string): Promise<EventRSVP[]> => {
+        requestedEventId = eventId;
+        return [
+          {
+            id: 'rsvp-api-going',
+            eventId,
+            userId: 'parent-api-1',
+            userRole: 'PARENT',
+            status: 'GOING',
+            guestCount: 1,
+            respondedAt: '2026-07-10T18:00:00.000Z',
+          },
+          {
+            id: 'rsvp-api-declined',
+            eventId,
+            userId: 'parent-api-2',
+            userRole: 'PARENT',
+            status: 'NOT_GOING',
+            guestCount: 0,
+            respondedAt: '2026-07-10T18:05:00.000Z',
+          },
+          {
+            id: 'rsvp-api-maybe',
+            eventId,
+            userId: 'parent-api-3',
+            userRole: 'PARENT',
+            status: 'MAYBE',
+            guestCount: 0,
+            respondedAt: '2026-07-10T18:10:00.000Z',
+          },
+        ];
+      }) as typeof eventRsvpService.getEventRSVPs;
+
+      t.after(() => {
+        restoreMockMode(originalIsMockMode);
+        apiClient.get = originalGet;
+        eventRsvpService.getEventRSVPs = originalGetEventRSVPs;
+      });
+
+      const totals = await eventInviteService.getEventRsvpTotals('event-api-squad');
+
+      assert.equal(requestedEventId, 'event-api-squad');
+      assert.deepEqual(totals, {
+        accepted: 1,
+        declined: 1,
+        pending: 0,
+        total: 3,
+      });
+    });
+
     it('should return zero totals for event with no invites', async () => {
       const eventId = 'test-event-' + Math.random().toString(36).slice(2);
 

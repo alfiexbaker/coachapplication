@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useChildContext } from '@/hooks/use-child-context';
+import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import {
   progressService,
@@ -66,6 +67,7 @@ export function useChildProgress() {
     setActiveChildId,
     isParent,
   } = useChildContext();
+  const { currentUser } = useAuth();
 
   const [selectedTab, setSelectedTab] = useState<ProgressTab | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>();
@@ -79,8 +81,9 @@ export function useChildProgress() {
     colorCode: c.colorCode,
   }));
 
+  // ponytail: a route target is explicit; active-child state is only the no-route fallback.
   const effectiveChildId =
-    selectedChildId ?? contextActiveChildId ?? paramChildId ?? contextChildren[0]?.id;
+    selectedChildId ?? paramChildId ?? contextActiveChildId ?? contextChildren[0]?.id;
 
   const loadData = async () => {
     if (!effectiveChildId) {
@@ -88,6 +91,14 @@ export function useChildProgress() {
     }
 
     try {
+      const accessResult = await childService.canManageChildProfile(effectiveChildId, currentUser);
+      if (!accessResult.success) {
+        return accessResult;
+      }
+      if (!accessResult.data) {
+        return err(serviceError('UNAUTHORIZED', 'You do not have permission to view this player’s progress.'));
+      }
+
       const contextChild = contextChildren.find((child) => child.id === effectiveChildId);
       const profile = await childService.getChild(effectiveChildId);
       const resolvedProfile = contextChild?.profile ?? profile ?? null;
@@ -142,7 +153,11 @@ export function useChildProgress() {
     hasRequestedTruthfulFrame,
   } = useScreen<ChildProgressData>({
     load: loadData,
-    deps: [effectiveChildId],
+    deps: [
+      effectiveChildId,
+      currentUser?.id,
+      currentUser?.children?.map((child) => child.childId).join(','),
+    ],
     isEmpty: (value) => !value.child,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',

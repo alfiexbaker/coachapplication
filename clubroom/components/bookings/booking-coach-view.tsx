@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,16 +10,17 @@ import { MarkPaidButton } from '@/components/invoices/mark-paid-button';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
-import { Row } from '@/components/primitives';
-import { getBookingSummaryClientName } from '@/utils/booking-display';
 
 interface BookingCoachViewProps {
   booking: BookingSummary;
   onMessageClient: () => void;
   onReopenBooking?: () => void;
-  onRefund: () => void;
   onCancelBooking: () => void;
   canCancelBooking: boolean;
+  onConfirmBooking?: () => void;
+  onDeclineRequest?: () => void;
+  isConfirmingBooking?: boolean;
+  isResolvingRequest?: boolean;
   onCompleteSession?: () => void;
   canCompleteSession?: boolean;
   onMarkAsPaid?: () => void;
@@ -29,9 +30,12 @@ function BookingCoachViewInner({
   booking,
   onMessageClient,
   onReopenBooking,
-  onRefund,
   onCancelBooking,
   canCancelBooking,
+  onConfirmBooking,
+  onDeclineRequest,
+  isConfirmingBooking = false,
+  isResolvingRequest = false,
   onCompleteSession,
   canCompleteSession = false,
   onMarkAsPaid,
@@ -40,41 +44,13 @@ function BookingCoachViewInner({
   const handleOpenReconciler = () => {
     router.push(Routes.EARNINGS);
   };
+  const hasPrimaryLifecycleAction =
+    Boolean(onConfirmBooking) || Boolean(onDeclineRequest) || canCompleteSession;
 
   if (booking.status === 'Completed') {
-    const objectives = (booking as BookingSummary & { objectives?: string[] }).objectives || [];
-
     return (
       <View style={styles.actions}>
-        <Clickable
-          onPress={() => {
-            router.push(
-              Routes.sessionFeedback({
-                bookingId: booking.id,
-                athleteId: booking.clientId,
-                athleteName: getBookingSummaryClientName(booking),
-                athleteObjectives: JSON.stringify(objectives),
-              }),
-            );
-          }}
-          style={({ pressed }) =>
-            [
-              styles.primaryButton,
-              { backgroundColor: palette.tint },
-              pressed && { opacity: 0.8 },
-            ].filter(Boolean) as ViewStyle[]
-          }
-        >
-          <Ionicons name="create" size={20} color={palette.onPrimary} />
-          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-            Add Session Feedback
-          </ThemedText>
-        </Clickable>
-        <MarkPaidButton
-          bookingId={booking.id}
-          onSuccess={onMarkAsPaid}
-          variant="compact"
-        />
+        <MarkPaidButton bookingId={booking.id} onSuccess={onMarkAsPaid} variant="compact" />
         <Clickable
           onPress={handleOpenReconciler}
           style={({ pressed }) =>
@@ -84,10 +60,10 @@ function BookingCoachViewInner({
               pressed && { backgroundColor: palette.border, opacity: 0.7 },
             ].filter(Boolean) as ViewStyle[]
           }
-          accessibilityLabel="Open earnings reconciler"
+          accessibilityLabel="Open earnings"
         >
           <Ionicons name="cash-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Earnings Reconciler</ThemedText>
+          <ThemedText style={styles.secondaryButtonText}>Earnings</ThemedText>
         </Clickable>
       </View>
     );
@@ -95,6 +71,56 @@ function BookingCoachViewInner({
 
   return (
     <View style={styles.actions}>
+      {onConfirmBooking ? (
+        <Clickable
+          onPress={onConfirmBooking}
+          disabled={isConfirmingBooking || isResolvingRequest}
+          accessibilityLabel="Confirm booking request"
+          style={({ pressed }) =>
+            [
+              styles.primaryButton,
+              { backgroundColor: palette.tint },
+              pressed && { opacity: 0.8 },
+              isConfirmingBooking && { opacity: 0.6 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          {isConfirmingBooking ? (
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+          ) : (
+            <Ionicons name="checkmark-circle-outline" size={20} color={palette.onPrimary} />
+          )}
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
+            {isConfirmingBooking ? 'Confirming...' : 'Confirm booking'}
+          </ThemedText>
+        </Clickable>
+      ) : null}
+
+      {onDeclineRequest ? (
+        <Clickable
+          onPress={onDeclineRequest}
+          disabled={isConfirmingBooking || isResolvingRequest}
+          accessibilityLabel="Decline booking request"
+          style={({ pressed }) =>
+            [
+              styles.secondaryButton,
+              { borderColor: palette.error },
+              pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
+              (isConfirmingBooking || isResolvingRequest) && { opacity: 0.6 },
+            ].filter(Boolean) as ViewStyle[]
+          }
+        >
+          {isResolvingRequest ? (
+            <ActivityIndicator size="small" color={palette.error} />
+          ) : (
+            <Ionicons name="close-circle-outline" size={20} color={palette.error} />
+          )}
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+            {isResolvingRequest ? 'Declining...' : 'Decline request'}
+          </ThemedText>
+        </Clickable>
+      ) : null}
+
       {canCompleteSession && onCompleteSession ? (
         <Clickable
           onPress={onCompleteSession}
@@ -108,7 +134,7 @@ function BookingCoachViewInner({
         >
           <Ionicons name="checkmark-circle-outline" size={20} color={palette.onPrimary} />
           <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
-            Complete Session
+            Complete session
           </ThemedText>
         </Clickable>
       ) : null}
@@ -117,62 +143,35 @@ function BookingCoachViewInner({
         onPress={onMessageClient}
         style={({ pressed }) =>
           [
-            canCompleteSession ? styles.secondaryButton : styles.primaryButton,
-            canCompleteSession
+            hasPrimaryLifecycleAction ? styles.secondaryButton : styles.primaryButton,
+            hasPrimaryLifecycleAction
               ? { borderColor: palette.border }
               : { backgroundColor: palette.tint },
-            pressed && (canCompleteSession ? { backgroundColor: palette.border, opacity: 0.7 } : { opacity: 0.8 }),
+            pressed &&
+              (hasPrimaryLifecycleAction
+                ? { backgroundColor: palette.border, opacity: 0.7 }
+                : { opacity: 0.8 }),
           ].filter(Boolean) as ViewStyle[]
         }
       >
         <Ionicons
           name="chatbubble"
           size={20}
-          color={canCompleteSession ? palette.foreground : palette.onPrimary}
+          color={hasPrimaryLifecycleAction ? palette.foreground : palette.onPrimary}
         />
         <ThemedText
           style={[
             styles.primaryButtonText,
-            { color: canCompleteSession ? palette.foreground : palette.onPrimary },
+            { color: hasPrimaryLifecycleAction ? palette.foreground : palette.onPrimary },
           ]}
         >
-          Message Client
+          Message contact
         </ThemedText>
       </Clickable>
 
       {onReopenBooking ? (
-        <Row style={styles.buttonRow}>
-          <Clickable
-            onPress={onReopenBooking}
-            style={({ pressed }) =>
-              [
-                styles.halfButton,
-                { borderColor: palette.border },
-                pressed && { backgroundColor: palette.border, opacity: 0.7 },
-              ].filter(Boolean) as ViewStyle[]
-            }
-          >
-            <Ionicons name="refresh-circle-outline" size={18} color={palette.foreground} />
-            <ThemedText style={styles.secondaryButtonText}>Reopen Booking</ThemedText>
-          </Clickable>
-
-          <Clickable
-            onPress={onRefund}
-            style={({ pressed }) =>
-              [
-                styles.halfButton,
-                { borderColor: palette.border },
-                pressed && { backgroundColor: palette.border, opacity: 0.7 },
-              ].filter(Boolean) as ViewStyle[]
-            }
-          >
-            <Ionicons name="cash-outline" size={18} color={palette.foreground} />
-            <ThemedText style={styles.secondaryButtonText}>Billing Issue</ThemedText>
-          </Clickable>
-        </Row>
-      ) : (
         <Clickable
-          onPress={onRefund}
+          onPress={onReopenBooking}
           style={({ pressed }) =>
             [
               styles.secondaryButton,
@@ -181,10 +180,10 @@ function BookingCoachViewInner({
             ].filter(Boolean) as ViewStyle[]
           }
         >
-          <Ionicons name="cash-outline" size={20} color={palette.foreground} />
-          <ThemedText style={styles.secondaryButtonText}>Billing Issue</ThemedText>
+          <Ionicons name="refresh-circle-outline" size={20} color={palette.foreground} />
+          <ThemedText style={styles.secondaryButtonText}>Reopen booking</ThemedText>
         </Clickable>
-      )}
+      ) : null}
 
       {canCancelBooking ? (
         <Clickable
@@ -199,7 +198,7 @@ function BookingCoachViewInner({
         >
           <Ionicons name="close-circle-outline" size={20} color={palette.error} />
           <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
-            Cancel Booking
+            Cancel booking
           </ThemedText>
         </Clickable>
       ) : null}
@@ -213,9 +212,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: Spacing.sm,
     marginTop: Spacing.md,
-  },
-  buttonRow: {
-    gap: Spacing.sm,
   },
   primaryButton: {
     flexDirection: 'row',
@@ -233,16 +229,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  halfButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,

@@ -50,7 +50,11 @@ function readMigrations() {
       ),
       directRoleGrants: collectMatches(
         sql,
-        /\b(GRANT\b[\s\S]*?\bTO\s+(?:"?anon"?|"?authenticated"?)(?:\s|;))/gi,
+        /\b(GRANT\b[\s\S]*?\bTO\s+(?:"?anon"?|"?authenticated"?|PUBLIC)(?:\s|;))/gi,
+      ),
+      publicSecurityDefinerFunctions: collectMatches(
+        sql,
+        /\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+((?:(?:"public"|public)\.)?"?[\w]+"?)\s*\([^)]*\)[\s\S]*?\bSECURITY\s+DEFINER\b/gi,
       ),
     };
   });
@@ -75,11 +79,15 @@ function main() {
 
   const missingRls = [];
   const directRoleGrants = [];
+  const publicSecurityDefinerFunctions = [];
   let createdTableCount = 0;
 
   for (const migration of migrations) {
     for (const grant of migration.directRoleGrants) {
       directRoleGrants.push({ file: migration.file, grant: grant.trim().replace(/\s+/g, ' ') });
+    }
+    for (const fn of migration.publicSecurityDefinerFunctions) {
+      publicSecurityDefinerFunctions.push({ file: migration.file, functionName: fn });
     }
 
     for (const table of migration.createdTables) {
@@ -99,7 +107,8 @@ function main() {
   console.log(`createdTables: ${createdTableCount}`);
   console.log(`blanketRlsMigration: ${lastBlanketRlsIndex >= 0 ? migrations[lastBlanketRlsIndex].file : 'missing'}`);
   console.log(`missingRls: ${missingRls.length}`);
-  console.log(`directAnonAuthenticatedGrants: ${directRoleGrants.length}`);
+  console.log(`directAnonAuthenticatedPublicGrants: ${directRoleGrants.length}`);
+  console.log(`publicSecurityDefinerFunctions: ${publicSecurityDefinerFunctions.length}`);
 
   if (missingRls.length > 0) {
     for (const finding of missingRls) {
@@ -113,7 +122,18 @@ function main() {
     }
   }
 
-  if (missingRls.length > 0 || directRoleGrants.length > 0 || lastBlanketRlsIndex < 0) {
+  if (publicSecurityDefinerFunctions.length > 0) {
+    for (const finding of publicSecurityDefinerFunctions) {
+      console.log(`- ${finding.file}: security-definer function ${finding.functionName} is in public`);
+    }
+  }
+
+  if (
+    missingRls.length > 0 ||
+    directRoleGrants.length > 0 ||
+    publicSecurityDefinerFunctions.length > 0 ||
+    lastBlanketRlsIndex < 0
+  ) {
     process.exit(1);
   }
 }

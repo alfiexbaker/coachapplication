@@ -17,6 +17,7 @@ import { TeamsPanel } from '@/components/club/TeamsPanel';
 import { Routes } from '@/navigation/routes';
 import { Spacing } from '@/constants/theme';
 import type { ClubHubState } from '@/hooks/use-club-hub';
+import { clubService, type ClubMember } from '@/services/club-service';
 
 export interface ClubFeedListHeaderProps {
   hub: ClubHubState;
@@ -27,6 +28,10 @@ export const ClubFeedListHeader = function ClubFeedListHeader({
   hub,
   onToggleMembers,
 }: ClubFeedListHeaderProps) {
+  const canManageMember = (member: ClubMember) =>
+    clubService.canBeRemoved(member.role) &&
+    clubService.canManageRole(hub.membership!.role, member.role);
+
   return (
     <>
       <View style={styles.headerSection}>
@@ -74,7 +79,7 @@ export const ClubFeedListHeader = function ClubFeedListHeader({
       {hub.showMembersSection && hub.canRemoveMembers && (
         <MembersPanel
           members={hub.members}
-          canRemoveMembers={hub.canRemoveMembers}
+          canManageMember={canManageMember}
           onRemoveMember={hub.handleRemoveMember}
           clubId={hub.membership!.clubId}
         />

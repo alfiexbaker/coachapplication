@@ -40,6 +40,7 @@ export function initSentry(): void {
     release: analytics.sentryRelease,
     tracesSampleRate: analytics.sentryTracesSampleRate,
     attachStacktrace: true,
+    enableAppHangTracking: !__DEV__,
     initialScope: {
       tags: {
         app_env: env,

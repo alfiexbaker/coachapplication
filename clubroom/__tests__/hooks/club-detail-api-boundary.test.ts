@@ -33,9 +33,9 @@ test('club detail loads members and self-leave through API service in API mode',
     'club detail should use the club member service for live and mock member reads',
   );
   assert.equal(
-    loadMembersBlock.includes('if (!USE_MOCK)'),
+    loadMembersBlock.includes('if (!USE_MOCK) {\n        setMembers([])'),
     false,
-    'API mode must not render an empty member list when /v1 member reads exist',
+    'API mode must not render an empty member list when /v1 member reads fail',
   );
   assert.ok(mockGuardStart >= 0, 'mock leave should be guarded');
   assert.ok(localLeaveStart > mockGuardStart, 'local leave mutation must sit behind the mock guard');
@@ -96,5 +96,92 @@ test('club detail pins posts through API authority in API mode', () => {
     returnBlock.includes('canPinPosts: USE_MOCK'),
     false,
     'pin action must not be mock-only once the backend route exists',
+  );
+});
+
+test('club detail surfaces API authority failures instead of false not-found or empty states', () => {
+  const hookSource = readSource('hooks/use-club-detail.ts');
+  const screenSource = readSource('app/club/[id].tsx');
+
+  const apiClubStart = hookSource.indexOf('const result = await clubAuthorityService.listClubs();');
+  const mockClubStart = hookSource.indexOf('const clubData = knownClubs.find', apiClubStart);
+  const feedStart = hookSource.indexOf(
+    "const feedResult = await socialFeedService.getFeedAuthority(clubId, 'all');",
+  );
+  const feedEnd = hookSource.indexOf('const nextAllFeed = feedResult.data;', feedStart);
+  const membersCatchStart = hookSource.indexOf("logger.error('Failed to load members'", feedEnd);
+  const membersCatchEnd = hookSource.indexOf(
+    'const loadClubActivities = async () => {',
+    membersCatchStart,
+  );
+  const scheduleStart = hookSource.indexOf(
+    'const scheduleResult = await clubScheduleService.getClubSchedule(clubId);',
+  );
+  const scheduleEnd = hookSource.indexOf('setAuthorityClubActivities(scheduleResult.data);', scheduleStart);
+  const errorRenderStart = screenSource.indexOf('if (error) {');
+  const notFoundStart = screenSource.indexOf('if (!club) {');
+
+  assert.ok(apiClubStart >= 0, 'test should find club authority load');
+  assert.ok(mockClubStart > apiClubStart, 'test should find club authority boundary');
+  assert.ok(feedStart >= 0 && feedEnd > feedStart, 'test should find feed authority boundary');
+  assert.ok(
+    membersCatchStart >= 0 && membersCatchEnd > membersCatchStart,
+    'test should find member catch boundary',
+  );
+  assert.ok(
+    scheduleStart >= 0 && scheduleEnd > scheduleStart,
+    'test should find schedule authority boundary',
+  );
+  assert.ok(errorRenderStart >= 0, 'screen should render an authority error state');
+  assert.ok(notFoundStart > errorRenderStart, 'authority errors must render before not-found empty state');
+
+  const apiClubBlock = hookSource.slice(apiClubStart, mockClubStart);
+  const feedBlock = hookSource.slice(feedStart, feedEnd);
+  const membersCatchBlock = hookSource.slice(membersCatchStart, membersCatchEnd);
+  const scheduleBlock = hookSource.slice(scheduleStart, scheduleEnd);
+  const errorRenderBlock = screenSource.slice(errorRenderStart, notFoundStart);
+
+  assert.ok(
+    apiClubBlock.includes("setLoadError(result.error.message || 'Failed to load club details.');"),
+    'club authority failures should set a screen error',
+  );
+  assert.equal(
+    apiClubBlock.includes('setClub(undefined)'),
+    false,
+    'club authority failures must not masquerade as club not found',
+  );
+  assert.ok(
+    feedBlock.includes("setLoadError(feedResult.error.message || 'Failed to load club updates.');"),
+    'feed authority failures should set a screen error',
+  );
+  assert.equal(
+    feedBlock.includes('setFeed([])') || feedBlock.includes('setAllFeed([])'),
+    false,
+    'feed authority failures must not masquerade as an empty feed',
+  );
+  assert.ok(
+    membersCatchBlock.includes(
+      "setLoadError(loadErrorMessage(error, 'Failed to load club members.'));",
+    ),
+    'member authority failures should set a screen error',
+  );
+  assert.ok(
+    membersCatchBlock.includes('if (!USE_MOCK) {'),
+    'member empty fallback should be retained only behind mock mode',
+  );
+  assert.ok(
+    scheduleBlock.includes(
+      "setLoadError(scheduleResult.error.message || 'Failed to load club activity.');",
+    ),
+    'schedule authority failures should set a screen error',
+  );
+  assert.equal(
+    scheduleBlock.includes('setAuthorityClubActivities([])'),
+    false,
+    'schedule authority failures must not masquerade as no club activity',
+  );
+  assert.ok(
+    errorRenderBlock.includes('<ErrorState message={error} onRetry={retry} />'),
+    'club detail screen should show retryable API errors before empty state',
   );
 });

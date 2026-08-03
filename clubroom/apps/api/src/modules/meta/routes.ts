@@ -1,5 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { env } from '@clubroom/config';
+import { apiVersionResponseSchema } from '@clubroom/shared-contracts';
+import {
+  API_MINIMUM_DEPRECATION_DAYS,
+  API_SERVICE_VERSION,
+  API_STATUS,
+  API_VERSION,
+} from '../../lib/api-lifecycle.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
@@ -42,6 +49,9 @@ const swaggerDocsHtml = `<!doctype html>
   <body>
     <div class="clubroom-docs-banner">
       <strong>OpenAPI 3.1 rendered with Swagger UI.</strong>
+      Current contract major: <code>/v1</code> (preview). Breaking changes require a new
+      major path. Once stable, deprecations receive at least 180 days notice and use
+      the standard <code>Deprecation</code> and <code>Sunset</code> response headers.
       Clubroom lifecycle effects are exposed as <code>x-clubroom-effect</code>
       so HTTP DELETE routes can still document remove/archive/dismiss/revoke semantics.
       Google AIP conformance is not claimed.
@@ -82,13 +92,17 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
       .type('text/html; charset=utf-8')
       .send(swaggerDocsHtml);
   });
-  app.get('/meta/version', async () => ({
-    service: 'clubroom-api',
-    version: '0.1.0-scaffold',
-    apiVersion: 'v1',
-    apiDataBackend: getApiDataBackend(),
-    marketplaceSeedEnabled: env.API_MARKETPLACE_SEED_ENABLED,
-  }));
+  app.get('/meta/version', async () =>
+    apiVersionResponseSchema.parse({
+      service: 'clubroom-api',
+      version: API_SERVICE_VERSION,
+      apiVersion: API_VERSION,
+      apiStatus: API_STATUS,
+      minimumDeprecationDays: API_MINIMUM_DEPRECATION_DAYS,
+      apiDataBackend: getApiDataBackend(),
+      marketplaceSeedEnabled: env.API_MARKETPLACE_SEED_ENABLED,
+    }),
+  );
   app.get('/meta/seed-health', async (request) => {
     if (!request.auth?.userId) {
       throw forbidden('Authenticated user is required');

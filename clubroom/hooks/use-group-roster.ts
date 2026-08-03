@@ -6,6 +6,7 @@ import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { rsvpService } from '@/services/rsvp-service';
 import { injuryService } from '@/services/injury-service';
@@ -230,6 +231,7 @@ export interface UseGroupRosterResult {
   submitInjuryReport: () => Promise<void>;
 }
 export function useGroupRoster(sessionId: string | undefined) {
+  const { currentUser } = useAuth();
   const [filter, setFilter] = useState<RosterFilter>('all');
   const [showRollCall, setShowRollCall] = useState(false);
   const [rollCallAttendance, setRollCallAttendance] = useState<Record<string, AttendanceStatus>>(
@@ -271,11 +273,11 @@ export function useGroupRoster(sessionId: string | undefined) {
   };
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupRosterData>({
     load: loadData,
-    deps: [sessionId],
+    deps: [sessionId, currentUser?.id],
     isEmpty: (value) => value.session === null,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: sessionId ? `group-roster:${sessionId}` : 'group-roster:missing',
+    dataKey: `group-roster:${currentUser?.id ?? 'anonymous'}:${sessionId ?? 'missing'}`,
   });
   const session = data?.session ?? null;
   const roster = data?.roster ?? [];
@@ -314,6 +316,13 @@ export function useGroupRoster(sessionId: string | undefined) {
   };
   const handleMarkAttendance = async (registration: GroupRegistration, attended: boolean) => {
     if (!session) return;
+    if (session.schedule.length !== 1) {
+      uiFeedback.showToast(
+        'Recurring attendance needs an occurrence roster before it can be recorded.',
+        'warning',
+      );
+      return;
+    }
     const date = session.schedule[0]?.date;
     if (!date) return;
     try {
@@ -397,6 +406,13 @@ export function useGroupRoster(sessionId: string | undefined) {
   };
   const saveRollCall = async () => {
     if (!session) return;
+    if (session.schedule.length !== 1) {
+      uiFeedback.showToast(
+        'Recurring roll call needs an occurrence roster before it can be saved.',
+        'warning',
+      );
+      return;
+    }
     const date = session.schedule[0]?.date;
     if (!date) return;
     try {
@@ -406,7 +422,7 @@ export function useGroupRoster(sessionId: string | undefined) {
             return groupSessionService.markAttendance(registrationId, date, true);
           }
           if (status === 'absent') {
-            return groupSessionService.markAttendance(registrationId, date, false);
+            return groupSessionService.markAttendance(registrationId, date, 'NO_SHOW');
           }
           return null;
         }),

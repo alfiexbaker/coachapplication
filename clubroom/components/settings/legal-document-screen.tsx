@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
 
 export interface LegalDocumentSection {
   title: string;
@@ -21,6 +22,15 @@ export function LegalDocumentScreen({ title, lastUpdated, sections }: LegalDocum
   const { colors: palette } = useTheme();
   const sectionItems = getLegalSectionItems(sections, palette.text);
 
+  const handleBackPress = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(Routes.SETTINGS);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -29,7 +39,7 @@ export function LegalDocumentScreen({ title, lastUpdated, sections }: LegalDocum
         title={title}
         showBack
         backIcon="arrow-back"
-        onBackPress={() => router.back()}
+        onBackPress={handleBackPress}
         centerTitle
       />
 
