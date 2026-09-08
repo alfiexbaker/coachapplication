@@ -104,7 +104,7 @@ Sandbox work should continue while professional decisions are obtained. Live mon
 - Prove the existing line-item Order/Invoice/attempt/refund ledger and authoritative webhook state against real Postgres.
 - Prove the existing multi-Player/multi-session same-Supplier checkout end to end.
 - Finish individual registration cancellation plus customer-visible refund UX, consolidated/partial refunds, disputes, payout delay, Supplier statements and reconciliation.
-- Persist and verify Stripe fee-payer, negative-balance and account-restriction configuration.
+- Persist Stripe account changes from webhooks and prove account-restriction recovery. Checkout now re-verifies fee payer, loss liability, requirements ownership, Dashboard type and readiness directly with Stripe before every sandbox session.
 - Make permissions backend-authoritative and test reassignment/revocation.
 - Implement minimal safety projection and cache clearing.
 - Implement in-app account deletion request and retained-record explanation.

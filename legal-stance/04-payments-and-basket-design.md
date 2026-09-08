@@ -35,7 +35,7 @@ Subject to provider and legal confirmation:
 7. Webhooks authoritatively update an immutable line-level ledger using idempotent processing.
 8. The Supplier statement shows gross receipts, Clubroom fee, VAT treatment, payment/payout fees, refunds, adjustments, net proceeds and payout date.
 
-Configure **Stripe handles pricing**, with the connected Supplier as fee payer, subject to written confirmation. Persist and verify Stripe's authoritative fee-payer and negative-balance responsibility before enabling live money.
+Configure **Stripe handles pricing**, with the connected Supplier as fee payer, subject to written confirmation. Sandbox checkout now retrieves the connected account immediately before creating a session and fails closed unless it is a ready Standard account, the Supplier pays Stripe fees, Stripe carries its payment losses, Stripe collects requirements, and the Supplier has the full Stripe Dashboard. Persist account changes from webhooks and obtain written configuration confirmation before enabling live money.
 
 New or higher-risk Suppliers should have longer payout delays or proportionate reserves. Clubroom must never treat unsettled seller money as operating cash.
 
