@@ -93,7 +93,7 @@ Required test matrix before live money:
 
 After sandbox acceptance, use a capped real-money pilot with a small number of known Suppliers. Reconcile every payment, refund and payout manually against the ledger before scaling.
 
-Stripe does not add a standard refund fee but does not return the original payment, Connect or foreign-exchange fees. The current adapter returns Clubroom's application fee, leaving no Clubroom commission on a full refund while the Supplier bears the original processing cost. Signed dispute events now bind to the captured payment, create an audited payment exception, block normal money actions, and restore a won dispute. Human dispute response/evidence, lost-dispute accounting, payout events and reconciliation remain live-money blockers.
+Stripe does not add a standard refund fee but does not return the original payment, Connect or foreign-exchange fees. The current adapter returns Clubroom's application fee, leaving no Clubroom commission on a full refund while the Supplier bears the original processing cost. Signed dispute events now bind to the captured payment, create an audited payment exception, block normal money actions, and restore a won dispute. Legacy simulated payout-method and withdrawal endpoints fail closed in Stripe and production modes. Human dispute response/evidence, lost-dispute accounting, payout events and reconciliation remain live-money blockers.
 
 ## Tax and reporting dependencies
 
