@@ -7,7 +7,7 @@
 | Gate | Current truth | Next proof |
 | --- | --- | --- |
 | Position and account model | Fixed: football business software for coaches/clubs; Home is the family workspace; User is the adult login; Player is the participant (`Athlete` internally) | Keep all UI, contracts and support copy on this language |
-| Booking and payment core | Same-Supplier multi-Player/multi-session Orders, Stripe test Checkout, signed payment/account/dispute webhooks, direct full refunds and safe direct/session/series cancellation exist | Finish individual registration cancellation, customer refund UX, consolidated/partial refunds, dispute operations, payouts and reconciliation |
+| Booking and payment core | Same-Supplier multi-Player/multi-session Orders, Stripe test Checkout and signed payment/account/dispute webhooks exist; paid Order and individual group-place cancellation are not end-to-end | Add whole-Order refund/cancellation and visible refund state, then close individual registration, dispute, payout and reconciliation gaps |
 | Runtime confidence | API suite is green in seed/test mode; targeted DB-orchestration harnesses exist | Disposable real-Postgres concurrency proof plus signed-device Stripe test-account E2E |
 | Legal and tax | Working stance and adviser brief exist | Incorporate/verify director and PSC, assign IP, then obtain solicitor, FCA-perimeter, accountant/VAT/platform-reporting and insurance sign-off |
 | Children and safety | Adult-only accounts, Player relationships and backend permission controls exist | Approve DPIA/APD, lawful bases, retention, safeguarding operation, Ofcom assessments, NCA CSEA reporting workflow and moderation service levels |
@@ -103,7 +103,10 @@ Sandbox work should continue while professional decisions are obtained. Live mon
 - Prove the existing Stripe Connect sandbox path with test connected accounts on signed devices.
 - Prove the existing line-item Order/Invoice/attempt/refund ledger and authoritative webhook state against real Postgres.
 - Prove the existing multi-Player/multi-session same-Supplier checkout end to end.
-- Finish individual registration cancellation plus customer-visible refund UX, consolidated/partial refunds, dispute operations/evidence, payout delay, Supplier statements and reconciliation.
+- Add an idempotent full whole-Order cancellation/refund journey and expose `processing`, `refunded`, `failed` and `review` payment outcomes to Supplier and purchaser; keep partial/mixed-Supplier refunds deferred.
+- Finish individual registration cancellation: expire active Stripe Checkout before mutation, revalidate authority/state, preserve exact refund proof, notify both sides, and make waitlist promotion plus billable replacement atomic.
+- Remove or gate paid-cancellation controls that call refund paths unavailable in the active database/provider mode.
+- Finish dispute operations/evidence, payout delay, Supplier statements and reconciliation.
 - Prove Stripe account restriction and recovery on a test connected account. Checkout re-verifies fee payer, loss liability, requirements ownership, Dashboard type and readiness directly with Stripe before every sandbox session; signed `account.updated` webhooks now persist the current Stripe status and converge duplicates.
 - Make permissions backend-authoritative and test reassignment/revocation.
 - Implement minimal safety projection and cache clearing.
@@ -114,7 +117,9 @@ Sandbox work should continue while professional decisions are obtained. Live mon
 
 **Exit:** sandbox acceptance matrix passes; no unresolved critical permission/safety/payment defect.
 
-Current evidence (8 September 2026): account deletion reaches audited `CLOSED_WITH_RETENTION`, closes access, scrubs direct adult identity and attempts an idempotent completion email; successful delivery clears the isolated destination and failure remains retryable. Direct, full-session and booking-series cancellation now reconcile paid/refunded money and expire active Stripe Checkout sessions before final cancellation. This closes earlier implementation defects, but not the full launch gates. Player/UGC/object/backup/provider-revocation policy, production delivery, counsel-approved retention, individual registration cancellation, consolidated/partial refund UX, real-Postgres/Stripe connected-account proof, signed-device E2E, dependency trust and credential rotation remain open.
+Current evidence (8 September 2026): account deletion reaches audited `CLOSED_WITH_RETENTION`, closes access, scrubs direct adult identity and attempts an idempotent completion email; successful delivery clears the isolated destination and failure remains retryable. Home now supports a zero-Player start, requires managed Player dates of birth, opens each child as a Player account, and gives only a primary/admin guardian a confirmed Remove-from-Home action; this path has passed a live seed-API simulator run. Direct, full-session and booking-series cancellation now reconcile paid/refunded money and expire active Stripe Checkout sessions before final cancellation.
+
+The payment loop is still incomplete. Stripe checkout creates one Order invoice, but paid Orders have no Order-level cancellation/refund endpoint or customer-visible refund projection. Individual group-place cancellation does not expire active Checkout first, sends no durable cancellation/promotion notifications, and can commit waitlist promotion before replacement billing succeeds. Paid cancellation controls also assume refund outcomes that the live database path deliberately does not expose. Player/UGC/object/backup/provider-revocation policy, production delivery, counsel-approved retention, these payment gaps, real-Postgres/Stripe connected-account proof, signed-device E2E, dependency trust and credential rotation remain open.
 
 ### Gate 4 — closed real-money pilot
 

@@ -43,7 +43,7 @@ New or higher-risk Suppliers should have longer payout delays or proportionate r
 
 At Stripe's published standard UK-card price of 1.5% plus 20p, three separate £20 payments cost £1.50, while one £60 same-Supplier payment costs £1.10. Consolidation saves 40p because it removes two fixed charges.
 
-The current runtime correctly restricts an Order to one Supplier and computes one basket fee. Paid consolidated Order refunds are still unsupported, so do not expose consolidated paid baskets in the live pilot until line-level cancellation and refund allocation is authoritative.
+The current runtime correctly restricts an Order to one Supplier and computes one basket fee. Checkout charges one Order invoice, but paid Orders currently have no Order cancellation/refund route or customer-visible refund state. Do not expose paid baskets in the live pilot until at least a full, whole-Order return is idempotent and visible to both parties. Keep partial line cancellation/refund deferred until allocation is authoritative.
 
 The percentage headline is not the whole price. Provider comparison must include:
 
@@ -94,6 +94,8 @@ Required test matrix before live money:
 After sandbox acceptance, use a capped real-money pilot with a small number of known Suppliers. Reconcile every payment, refund and payout manually against the ledger before scaling.
 
 Stripe does not add a standard refund fee but does not return the original payment, Connect or foreign-exchange fees. The current adapter returns Clubroom's application fee, leaving no Clubroom commission on a full refund while the Supplier bears the original processing cost. Signed dispute events now bind to the captured payment, create an audited payment exception, block normal money actions, and restore a won dispute. Legacy simulated payout-method and withdrawal endpoints fail closed in Stripe and production modes. Human dispute response/evidence, lost-dispute accounting, payout events and reconciliation remain live-money blockers.
+
+Individual group-place cancellation is also incomplete: it must expire any active Stripe Checkout before changing the roster, revalidate after that provider call, emit durable cancellation and waitlist-promotion notifications, and create the promoted paid place plus invoice atomically. Paid-cancellation UI must not promise a return until the active database/provider path can persist and display `processing`, `succeeded`, `failed` and `review` outcomes.
 
 ## Tax and reporting dependencies
 
