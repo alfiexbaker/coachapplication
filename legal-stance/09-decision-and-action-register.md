@@ -7,7 +7,7 @@
 | Gate | Current truth | Next proof |
 | --- | --- | --- |
 | Position and account model | Fixed: football business software for coaches/clubs; Home is the family workspace; User is the adult login; Player is the participant (`Athlete` internally) | Keep all UI, contracts and support copy on this language |
-| Booking and payment core | Same-Supplier multi-Player/multi-session Orders, Stripe test Checkout, signed webhooks, direct full refunds and safe direct/session/series cancellation exist | Finish individual registration cancellation, customer refund UX, consolidated/partial refunds, disputes, payouts and reconciliation |
+| Booking and payment core | Same-Supplier multi-Player/multi-session Orders, Stripe test Checkout, signed payment/account/dispute webhooks, direct full refunds and safe direct/session/series cancellation exist | Finish individual registration cancellation, customer refund UX, consolidated/partial refunds, dispute operations, payouts and reconciliation |
 | Runtime confidence | API suite is green in seed/test mode; targeted DB-orchestration harnesses exist | Disposable real-Postgres concurrency proof plus signed-device Stripe test-account E2E |
 | Legal and tax | Working stance and adviser brief exist | Incorporate/verify director and PSC, assign IP, then obtain solicitor, FCA-perimeter, accountant/VAT/platform-reporting and insurance sign-off |
 | Children and safety | Adult-only accounts, Player relationships and backend permission controls exist | Approve DPIA/APD, lawful bases, retention, safeguarding operation, Ofcom assessments, NCA CSEA reporting workflow and moderation service levels |
@@ -103,7 +103,7 @@ Sandbox work should continue while professional decisions are obtained. Live mon
 - Prove the existing Stripe Connect sandbox path with test connected accounts on signed devices.
 - Prove the existing line-item Order/Invoice/attempt/refund ledger and authoritative webhook state against real Postgres.
 - Prove the existing multi-Player/multi-session same-Supplier checkout end to end.
-- Finish individual registration cancellation plus customer-visible refund UX, consolidated/partial refunds, disputes, payout delay, Supplier statements and reconciliation.
+- Finish individual registration cancellation plus customer-visible refund UX, consolidated/partial refunds, dispute operations/evidence, payout delay, Supplier statements and reconciliation.
 - Prove Stripe account restriction and recovery on a test connected account. Checkout re-verifies fee payer, loss liability, requirements ownership, Dashboard type and readiness directly with Stripe before every sandbox session; signed `account.updated` webhooks now persist the current Stripe status and converge duplicates.
 - Make permissions backend-authoritative and test reassignment/revocation.
 - Implement minimal safety projection and cache clearing.
