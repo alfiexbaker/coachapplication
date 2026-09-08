@@ -11,7 +11,7 @@
 | Runtime confidence | API suite is green in seed/test mode; targeted DB-orchestration harnesses exist | Disposable real-Postgres concurrency proof plus signed-device Stripe test-account E2E |
 | Legal and tax | Working stance and adviser brief exist | Incorporate/verify director and PSC, assign IP, then obtain solicitor, FCA-perimeter, accountant/VAT/platform-reporting and insurance sign-off |
 | Children and safety | Adult-only accounts, Player relationships and backend permission controls exist | Approve DPIA/APD, lawful bases, retention, safeguarding operation, Ofcom assessments, NCA CSEA reporting workflow and moderation service levels |
-| Apple | Stripe is allowed for in-person coaching; current build still exposes priced virtual/digital offers and incomplete deletion/privacy/UGC controls | Hide or correctly monetise digital routes, then close age rating/privacy labels, UGC evidence, review notes and demo accounts |
+| Apple | Stripe is allowed for in-person coaching; non-in-person creation/public exposure is now closed, but deletion/privacy/UGC controls remain incomplete | Close age rating/privacy labels, deletion, UGC evidence, review notes and demo accounts |
 | Pilot | Design only | Start only after the gates above close; 5–10 known England-based Suppliers, capped exposure and manual reconciliation |
 
 Ordered founder focus:

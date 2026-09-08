@@ -4,7 +4,7 @@ Policy snapshot checked: 8 September 2026. Apple can change policy and App Revie
 
 ## Current submission verdict
 
-**No-go.** Stripe is permitted for Clubroom's in-person football sessions under Guideline 3.1.3(e), but the current build is not submission-ready. Before review, hide or correctly monetise priced `VIRTUAL` and `DIGITAL_PRODUCT` offers on iOS; finish associated-data deletion/anonymisation; prove timely human UGC/media moderation; publish final retention/privacy terms; close the child-data assessment; use a production-ready backend; and complete truthful age-rating and privacy answers.
+**No-go.** Stripe is permitted for Clubroom's in-person football sessions under Guideline 3.1.3(e), but the current build is not submission-ready. Non-in-person offering creation and public exposure are now closed for launch. Before review, finish associated-data deletion/anonymisation; prove timely human UGC/media moderation; publish final retention/privacy terms; close the child-data assessment; use a production-ready backend; and complete truthful age-rating and privacy answers.
 
 ## What Clubroom may sell outside In-App Purchase
 
@@ -25,7 +25,7 @@ Clubroom's core is unusually clear: in-person coaching is a physical service con
 
 Do not bundle separately valuable digital content with a physical booking to avoid IAP. A short note/video genuinely incidental to the attended session remains an interpretation question; do not price or market it separately until Apple clarifies.
 
-Current runtime warning: `VIRTUAL` and `DIGITAL_PRODUCT` offerings can still be selected and priced even though Stripe checkout correctly fails closed for non-`IN_PERSON` snapshots. A visible priced offer without a compliant completion path is not submission-ready. Hide these offer types on iOS for launch, or add explicit party-size classification and StoreKit wherever Guidelines 3.1.1 or 3.1.3(d) require it.
+Current runtime boundary: new `VIRTUAL` and `DIGITAL_PRODUCT` templates/offerings are rejected, and legacy non-in-person offerings are excluded from every public catalogue. Keep this boundary for the launch build. Reopening either mode requires explicit party-size classification and StoreKit wherever Guidelines 3.1.1 or 3.1.3(d) require it.
 
 No StoreKit external-purchase entitlement or warning screen is needed for a normal physical-service checkout.
 
