@@ -2,7 +2,7 @@
 
 ## Launch decision
 
-Clubroom should not use Direct Debit. At launch it should accept cards and supported wallets through a regulated marketplace payment provider. Stripe Connect is the working implementation choice, but Clubroom should obtain written commercial quotes from Stripe and Mollie before committing.
+Clubroom should not use Direct Debit. Use Stripe Connect for the closed pilot, accepting cards and supported wallets. The existing direct-charge architecture fits the intended Supplier-as-seller model and Stripe has the strongest already-implemented test path. Do not switch for Mollie's 0.3-point standard-card headline saving unless a written Connect quote proves a materially better blended cost without transferring payment, chargeback or negative-balance risk to Clubroom.
 
 The provider must perform seller onboarding/KYC and move the money. Clubroom must not receive family money into its own bank account, maintain an internal wallet, promise escrow, or manually net unrelated sellers.
 
@@ -35,11 +35,15 @@ Subject to provider and legal confirmation:
 7. Webhooks authoritatively update an immutable line-level ledger using idempotent processing.
 8. The Supplier statement shows gross receipts, Clubroom fee, VAT treatment, payment/payout fees, refunds, adjustments, net proceeds and payout date.
 
+Configure **Stripe handles pricing**, with the connected Supplier as fee payer, subject to written confirmation. Persist and verify Stripe's authoritative fee-payer and negative-balance responsibility before enabling live money.
+
 New or higher-risk Suppliers should have longer payout delays or proportionate reserves. Clubroom must never treat unsettled seller money as operating cash.
 
 ## Why basket consolidation matters
 
-At Stripe's published standard UK-card price of 1.5% plus 20p, four separate £25 payments cost about £2.30, while one £100 same-Supplier payment costs about £1.70. Consolidation saves about 60p in that example.
+At Stripe's published standard UK-card price of 1.5% plus 20p, three separate £20 payments cost £1.50, while one £60 same-Supplier payment costs £1.10. Consolidation saves 40p because it removes two fixed charges.
+
+The current runtime correctly restricts an Order to one Supplier and computes one basket fee. Paid consolidated Order refunds are still unsupported, so do not expose consolidated paid baskets in the live pilot until line-level cancellation and refund allocation is authoritative.
 
 The percentage headline is not the whole price. Provider comparison must include:
 
@@ -55,7 +59,7 @@ The percentage headline is not the whole price. Provider comparison must include
 - reserve requirements;
 - who legally and economically bears negative balances.
 
-A 0.3 percentage-point difference is £300 at £100,000 GMV and £3,000 at £1 million GMV before fixed fees and marketplace charges. It matters, but the wrong liability or reconciliation model can cost more.
+A 0.3 percentage-point difference is £300 at £100,000 GMV and £3,000 at £1 million GMV before fixed fees and marketplace charges. It matters at scale, but is only 6p, 11p and 15p on £20, £35 and £50 baskets. The wrong liability or reconciliation model can cost more.
 
 ## Published-price working comparison
 
@@ -63,8 +67,8 @@ Prices change and negotiated marketplace pricing may differ. Confirm in writing 
 
 | Provider | Relevant public starting point | Launch assessment |
 |---|---|---|
-| Stripe | UK standard cards 1.5% + 20p; Connect has additional platform-account/payout pricing depending on who controls pricing | Strongest documented marketplace and test environment; working choice |
-| Mollie | UK domestic consumer card headline 1.2% + 20p; Connect pricing requires a quote | Potential headline saving; compare full marketplace liability and feature set |
+| Stripe | UK standard cards 1.5% + 20p; premium UK cards 2.8% + 20p; EEA cards 2.5% + 20p. Under **Stripe handles pricing**, Stripe publishes no additional platform account, payout-volume, tax-reporting or per-payout fee | Pilot choice; confirm controller configuration and negotiated terms in writing |
+| Mollie | UK domestic consumer cards 1.2% + 20p; UK commercial and European cards 2.9% + 20p; Connect requires a quote | Do not switch on headline price alone; its split-payment model states the marketplace owns the payment, pays Mollie fees and retains chargeback liability |
 | Adyen | Published processing fee plus payment-method/interchange pricing; platform products may add costs | Powerful but likely operationally heavy for the first closed pilot |
 
 ## Sandbox and integration sequence
@@ -88,6 +92,8 @@ Required test matrix before live money:
 - receipt, tax invoice and seller-statement reconciliation.
 
 After sandbox acceptance, use a capped real-money pilot with a small number of known Suppliers. Reconcile every payment, refund and payout manually against the ledger before scaling.
+
+Stripe does not add a standard refund fee but does not return the original payment, Connect or foreign-exchange fees. The current adapter returns Clubroom's application fee, leaving no Clubroom commission on a full refund while the Supplier bears the original processing cost. Current dispute pricing can erase the revenue from many bookings, and dispute, payout and account-restriction webhooks are not yet implemented. These are live-money blockers.
 
 ## Tax and reporting dependencies
 

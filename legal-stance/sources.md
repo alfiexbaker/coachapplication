@@ -1,12 +1,14 @@
 # Primary sources
 
-Retrieved/reviewed 23 August 2026 unless stated otherwise. This list prioritises official UK and Apple sources. Provider prices and platform policies can change; recheck before relying on them.
+Retrieved/reviewed 23 August 2026 and payment, Companies House, Ofcom and Apple launch-critical sources rechecked 8 September 2026. This list prioritises official UK and Apple sources. Provider prices and platform policies can change; recheck before relying on them.
 
 ## Company, directors and intellectual property
 
 - [Register a private limited company](https://www.gov.uk/limited-company-formation/register-your-company)
 - [Being a company director](https://www.gov.uk/guidance/being-a-company-director)
 - [Running a limited company](https://www.gov.uk/running-a-limited-company)
+- [Companies House identity verification](https://www.gov.uk/guidance/when-you-need-to-verify-your-identity-for-companies-house)
+- [Copyright ownership and assignment](https://www.gov.uk/guidance/ownership-of-copyright-works)
 - [Choose a company name](https://www.gov.uk/limited-company-formation/choose-company-name)
 - [Model articles for private companies limited by shares](https://www.gov.uk/government/publications/model-articles-for-private-companies-limited-by-shares)
 - [Companies House SIC codes](https://resources.companieshouse.gov.uk/sic/)
@@ -35,10 +37,14 @@ Retrieved/reviewed 23 August 2026 unless stated otherwise. This list prioritises
 - [Stripe testing](https://docs.stripe.com/testing)
 - [Stripe Connect testing](https://docs.stripe.com/connect/testing)
 - [Stripe Connect charge types](https://docs.stripe.com/connect/charges)
+- [Stripe direct-charge fee-payer behaviour](https://docs.stripe.com/connect/direct-charges-fee-payer-behavior)
+- [Stripe Connect disputes](https://docs.stripe.com/connect/disputes)
+- [Stripe refunds](https://docs.stripe.com/refunds)
 - [Stripe separate charges and transfers](https://docs.stripe.com/connect/separate-charges-and-transfers)
 - [Stripe marketplace refunds and disputes](https://docs.stripe.com/connect/marketplace/tasks/refunds-disputes)
 - [Stripe connected-account payouts](https://docs.stripe.com/connect/payouts-connected-accounts)
 - [Mollie UK pricing](https://www.mollie.com/gb/pricing?currency=GBP)
+- [Mollie route and split payments](https://docs.mollie.com/docs/connect-route-and-split-payments)
 - [Adyen UK pricing](https://www.adyen.com/en_GB/pricing)
 
 ## Tax and platform reporting
@@ -49,6 +55,8 @@ Retrieved/reviewed 23 August 2026 unless stated otherwise. This list prioritises
 - [Corporation Tax rates and allowances](https://www.gov.uk/government/publications/rates-and-allowances-corporation-tax/rates-and-allowances-corporation-tax)
 - [Selling services on a digital platform](https://www.gov.uk/guidance/selling-goods-or-services-on-a-digital-platform)
 - [Reporting rules for digital platforms](https://www.gov.uk/government/publications/reporting-rules-for-digital-platforms/reporting-rules-for-digital-platforms)
+- [Check whether to register as a digital platform operator](https://www.gov.uk/guidance/check-if-you-need-to-register-as-a-digital-platform-operator)
+- [Manage digital-platform reporting](https://www.gov.uk/guidance/manage-your-digital-platform-reporting)
 - [Platform Operators Regulations 2023](https://www.legislation.gov.uk/uksi/2023/817/pdfs/uksi_20230817_en.pdf)
 
 ## Safeguarding and online safety
@@ -60,6 +68,8 @@ Retrieved/reviewed 23 August 2026 unless stated otherwise. This list prioritises
 - [FA safeguarding in the digital world](https://www.thefa.com/football-rules-governance/safeguarding/section-6-safeguarding-in-the-digital-world)
 - [Ofcom children's access assessment duties](https://www.ofcom.org.uk/online-safety/illegal-and-harmful-content/childrens-access-assessment-duties-under-the-online-safety-act)
 - [Ofcom protection-of-children duties](https://www.ofcom.org.uk/online-safety/protecting-children/protection-of-children-duties-under-the-online-safety-act)
+- [Ofcom illegal-content duties](https://www.ofcom.org.uk/online-safety/illegal-and-harmful-content/illegal-content-duties-under-the-online-safety-act)
+- [Ofcom CSEA reporting duty](https://www.ofcom.org.uk/online-safety/illegal-and-harmful-content/duty-to-report-child-sexual-exploitation-and-abuse-csea-content-know-the-rules-and-how-to-comply)
 
 ## Data protection, children and analytics
 

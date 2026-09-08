@@ -4,6 +4,8 @@
 
 Form one private company limited by shares, registered in England and Wales. A working legal name is **Clubroom Technology Limited**, trading as **Clubroom**, subject to Companies House and UK Intellectual Property Office clearance.
 
+For a new incorporation, the director and person with significant control must complete Companies House identity verification and use the resulting personal code. Treat this as a formation requirement, not later administration.
+
 Do not begin with a sole trade, partnership, community interest company, holding-company group, or multiple operating subsidiaries unless a qualified adviser identifies a concrete need. A single operating company is the simplest structure for contracts, intellectual property, investment, insurance, payroll, payment-provider onboarding, and accounts.
 
 ## Founder setup
@@ -32,6 +34,10 @@ The exact nominal value, remuneration, and tax treatment must be set with an acc
 9. Assign all existing Clubroom code, designs, domains, documentation, databases, trade marks, social accounts, and other intellectual property from the founder to the company in writing.
 10. Make every contractor and employee sign confidentiality and present-assignment IP terms before contributing.
 11. Obtain insurance and professional sign-off before live users or money.
+
+## Supplier legal identity at launch
+
+Accept only a coach contracting as an identified sole trader or incorporated company, or a club with a clearly identified legal entity. A display-name club is not necessarily a legal person. Exclude unincorporated associations from the first pilot unless counsel supplies an officeholder or trustee contracting model.
 
 ## Suggested SIC codes for adviser confirmation
 

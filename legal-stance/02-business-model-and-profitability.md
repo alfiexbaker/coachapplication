@@ -57,11 +57,11 @@ Operating profit before tax = contribution - F
 Break-even baskets = F ÷ contribution per completed basket
 ```
 
-Track both GMV margin and revenue margin. A processor cost of 1.5% of GMV can consume 15% of revenue when Clubroom earns a 10% commission, before the fixed transaction fee.
+Track both GMV margin and revenue margin. Where processing is deducted from the Supplier, Clubroom must still measure its effect on Supplier value and retention; where Clubroom absorbs it, a small headline rate difference can consume a large share of Clubroom revenue.
 
 ## Basket economics
 
-Using Stripe’s published standard UK-card price of 1.5% + 20p solely as an illustration:
+Using the current published standard UK-card price of 1.5% + 20p:
 
 - three separate £20 payments cost about £1.50 in core processing fees;
 - one £60 basket costs about £1.10;
@@ -82,7 +82,7 @@ Defer a basket containing multiple legal sellers until:
 - customer support can explain one card charge containing several supplier contracts;
 - accounting can reconcile gross charge, commission, processing fees, seller balances, payouts, VAT, and tax reporting.
 
-## Pricing decision—not yet fixed
+## Pilot pricing decision
 
 Do not select a commission percentage from competitors’ headlines. Model at least:
 
@@ -97,21 +97,31 @@ Do not select a commission percentage from competitors’ headlines. Model at le
 
 For each, compare Stripe Connect and at least one serious marketplace alternative using written all-in quotes. Published core card rates exclude important platform economics.
 
-Working pilot hypotheses—not commitments:
+For the capped pilot:
 
-- independent coach: 6% Clubroom fee, with processing deducted separately from the Supplier;
-- club/academy: about £99 per month plus 2% of booking value, with processing deducted separately;
-- family: free;
-- Clubroom-sourced new demand: test 8–10% only later;
-- no parent booking fee and no Direct Debit.
+- Supplier pays a 6% Clubroom fee, VAT-inclusive where applicable;
+- Stripe processing is separately deducted from the Supplier;
+- family pays no booking fee;
+- no Supplier subscription and no Direct Debit.
 
-Whether those percentages are inclusive or exclusive of VAT must be fixed before contracts and checkout are drafted.
+If Clubroom becomes VAT-registered, a 6% VAT-inclusive fee leaves 5% of GMV as net revenue before support, refunds, fraud, hosting, insurance and fixed costs. Quoting 6% plus VAT would instead deduct 7.2%; do not switch to that silently.
 
-### Worked platform-cost sensitivity
+Test a later club/academy plan around £99 per month plus 2% only after the pilot proves administrative value and retention. Test an 8–10% fee for genuinely Clubroom-sourced new demand only after attribution is reliable.
 
-One CFO scenario assumes £10,000 monthly GMV, 200 baskets, 20 active Suppliers, 80 payouts, £9,000 of Supplier proceeds and a 10% VAT-inclusive Clubroom commission. Using current published Stripe examples, core card fees could be about £190, active-account charges £40, payout charges £30.50 and a possible additional funds-routing charge £22.50. Total provider cost would be about £283, or 2.83% of GMV, subject to confirmation that each Connect component applies to the selected configuration.
+### Current card-cost sensitivity
 
-The £1,000 VAT-inclusive commission would contain £166.67 output VAT, leaving £833.33 net revenue and about £550.33 after those illustrative provider costs—before support, refunds, fraud, hosting, insurance or salary. This shows why a 10% headline take rate is not a 10% margin and why the Supplier should bear transparent processing costs where lawful and contractually agreed.
+Published standard UK-card costs are 1.5% + 20p at Stripe and 1.2% + 20p at Mollie. The saving is 6p on £20, 11p on £35 and 15p on £50. Stripe's published 1% rate is for Bacs Direct Debit, which Clubroom has excluded; it is not the relevant card comparison. Premium UK and EEA cards cost more, so replace planning assumptions with actual pilot balance-transaction data.
+
+Clubroom's current direct-charge design should use Stripe's **Stripe handles pricing** configuration, with the connected Supplier paying processing costs. Confirm and persist the authoritative fee-payer and negative-balance responsibility before live money. A cheaper headline is not valuable if another configuration makes Clubroom absorb connected-account, payout, routing or dispute costs.
+
+At 6% VAT-inclusive, net transaction revenue after VAT registration is effectively 5% of GMV:
+
+```text
+Monthly contribution ≈ 5% × GMV − variable support/refund/fraud/hosting costs
+Transaction-only break-even GMV ≈ fixed monthly costs ÷ 5%
+```
+
+For illustration, £10,000 of monthly fixed cost requires more than £200,000 monthly GMV before variable costs. This is why 6% is a viable learning price for a capped pilot, not yet a proven long-term business model.
 
 ## Profitability gates
 

@@ -1,5 +1,26 @@
 # Decision and action register
 
+## CEO control view — 8 September 2026
+
+**Verdict: not launch-ready.** The product model is now coherent and the core Stripe sandbox rail exists, but live money and a child-accessible external pilot remain closed.
+
+| Gate | Current truth | Next proof |
+| --- | --- | --- |
+| Position and account model | Fixed: football business software for coaches/clubs; Home is the family workspace; User is the adult login; Player is the participant (`Athlete` internally) | Keep all UI, contracts and support copy on this language |
+| Booking and payment core | Same-Supplier multi-Player/multi-session Orders, Stripe test Checkout, signed webhooks, direct full refunds and safe direct/session/series cancellation exist | Finish individual registration cancellation, customer refund UX, consolidated/partial refunds, disputes, payouts and reconciliation |
+| Runtime confidence | API suite is green in seed/test mode; targeted DB-orchestration harnesses exist | Disposable real-Postgres concurrency proof plus signed-device Stripe test-account E2E |
+| Legal and tax | Working stance and adviser brief exist | Incorporate/verify director and PSC, assign IP, then obtain solicitor, FCA-perimeter, accountant/VAT/platform-reporting and insurance sign-off |
+| Children and safety | Adult-only accounts, Player relationships and backend permission controls exist | Approve DPIA/APD, lawful bases, retention, safeguarding operation, Ofcom assessments, NCA CSEA reporting workflow and moderation service levels |
+| Apple | Stripe is allowed for in-person coaching; current build still exposes priced virtual/digital offers and incomplete deletion/privacy/UGC controls | Hide or correctly monetise digital routes, then close age rating/privacy labels, UGC evidence, review notes and demo accounts |
+| Pilot | Design only | Start only after the gates above close; 5–10 known England-based Suppliers, capped exposure and manual reconciliation |
+
+Ordered founder focus:
+
+1. Finish the remaining sandbox money lifecycle; do not switch on live keys.
+2. Close legal, tax, privacy, safeguarding, insurance and Apple decisions in parallel.
+3. Prove the full coach→Home→Player→booking→payment→delivery→progress→refund loop on signed devices and real Postgres.
+4. Run the capped pilot, measure support load and contribution per basket, then decide whether to scale.
+
 ## Decisions adopted for planning
 
 These are the current working decisions. Items marked **external sign-off** are not final legal or tax conclusions.
@@ -12,21 +33,21 @@ These are the current working decisions. Items marked **external sign-off** are 
 | Family party            | Parent/guardian is purchaser; child is participant/data subject                      | Adopt; edge-case counsel review                       |
 | Clubroom role           | Principal for its platform/SaaS; disclosed Supplier-side agent for coaching bookings | Working position; **external sign-off**               |
 | Payments                | Cards/wallets through regulated marketplace PSP; no Direct Debit or Clubroom wallet  | Adopt                                                 |
-| Provider                | Stripe Connect working choice; written Stripe/Mollie comparison                      | Open commercial decision                              |
+| Provider                | Stripe Connect with direct charges and `Stripe handles pricing`                       | Adopt for pilot; written configuration confirmation   |
 | Basket                  | Multiple children/sessions allowed only for one legal Supplier per payment           | Adopt for launch                                      |
 | Mixed sellers           | Defer; later grouped separate orders/payments                                        | Defer                                                 |
 | Family app              | Free; no family digital premium tier at launch                                       | Adopt                                                 |
-| Independent coach price | 6% fee hypothesis, payment cost passed through                                       | Pilot hypothesis                                      |
-| Club/academy price      | £99/month + 2% hypothesis, payment cost passed through                               | Pilot hypothesis                                      |
+| Independent coach price | 6% VAT-inclusive where applicable; Stripe cost passed through                        | Capped-pilot decision; accountant/provider sign-off    |
+| Club/academy price      | No pilot subscription; test £99/month + 2% only after value/retention evidence        | Defer                                                 |
 | Remote coaching         | No paid one-to-many remote group coaching at launch                                  | Defer                                                 |
 | Child access            | 18+ authenticated accounts; under-18s are managed Players in Home                    | Adopt for launch; Children's Code/DPIA still required |
 | Social/UGC              | No public child social network or unmonitored adult-child DMs                        | Adopt                                                 |
 | Data                    | Controller for core platform purposes; operation-specific allocation elsewhere       | Working position; **external sign-off**               |
 | Geography               | England-only first pilot                                                             | Adopt                                                 |
 
-## What “development complete enough to integrate payments” means
+## What “development complete enough for a closed payment pilot” means
 
-Do not aim for every imagined Clubroom feature. Payment-provider integration should start in sandbox once these design decisions are fixed:
+Do not aim for every imagined Clubroom feature. Stripe sandbox integration has already started; completion now means proving the narrow launch loop rather than adding breadth:
 
 - one legal Supplier per session and payment;
 - family purchaser/child participant relationship;
@@ -39,7 +60,7 @@ Do not aim for every imagined Clubroom feature. Payment-provider integration sho
 - account deletion/retention separation;
 - no prohibited Apple digital purchase route.
 
-Integration can then expose implementation gaps. Live money remains gated by professional opinions and the controls below.
+Sandbox work should continue while professional decisions are obtained. Live money remains gated by those opinions and the controls below.
 
 ## Work sequence
 
@@ -60,6 +81,7 @@ Integration can then expose implementation gaps. Live money remains gated by pro
 - Obtain accountant opinion on agency/principal revenue, VAT, invoicing and platform reporting.
 - Complete privacy/safeguarding advice on family authority, DPIA, lawful bases, Article 9/10, retention and controller allocation.
 - Obtain insurance indications and confirm material exclusions.
+- Confirm only identified sole traders, companies and clubs with a legal contracting entity enter the pilot.
 
 **Exit:** no red issue requires changing the company, money or family model.
 
@@ -70,6 +92,7 @@ Integration can then expose implementation gaps. Live money remains gated by pro
 - Complete DPIA, APD, processing/transfer registers and privacy notices.
 - Define Supplier verification, expiry, suspension and appeal.
 - Define safeguarding, data breach, payment incident and complaint playbooks.
+- Complete Ofcom scope/illegal-content/children's-access assessments and the NCA CSEA reporting workflow before enabling UGC.
 - Lock analytics allowlist and prohibit raw child/family identifiers.
 - Define account deletion and retention enforcement.
 
@@ -77,10 +100,11 @@ Integration can then expose implementation gaps. Live money remains gated by pro
 
 ### Gate 3 — engineering completion for closed pilot
 
-- Implement Stripe Connect in sandbox with test connected accounts.
-- Implement line-item order/ledger and authoritative webhook state.
-- Implement multi-child/multi-session same-Supplier checkout.
-- Implement partial refund, payout delay, statement and reconciliation.
+- Prove the existing Stripe Connect sandbox path with test connected accounts on signed devices.
+- Prove the existing line-item Order/Invoice/attempt/refund ledger and authoritative webhook state against real Postgres.
+- Prove the existing multi-Player/multi-session same-Supplier checkout end to end.
+- Finish individual registration cancellation plus customer-visible refund UX, consolidated/partial refunds, disputes, payout delay, Supplier statements and reconciliation.
+- Persist and verify Stripe fee-payer, negative-balance and account-restriction configuration.
 - Make permissions backend-authoritative and test reassignment/revocation.
 - Implement minimal safety projection and cache clearing.
 - Implement in-app account deletion request and retained-record explanation.
@@ -90,7 +114,7 @@ Integration can then expose implementation gaps. Live money remains gated by pro
 
 **Exit:** sandbox acceptance matrix passes; no unresolved critical permission/safety/payment defect.
 
-Current evidence (7 September 2026): account deletion now reaches audited `CLOSED_WITH_RETENTION`, closes access, scrubs direct adult identity and attempts an idempotent completion email; successful delivery clears the isolated destination and failure remains retryable. This closes the former “request with no executor” defect, but not the full deletion gate. Player/UGC/object/backup/provider-revocation policy, production delivery, counsel-approved retention, Stripe runtime failure/refund proof, signed-device E2E, dependency trust and credential rotation remain open.
+Current evidence (8 September 2026): account deletion reaches audited `CLOSED_WITH_RETENTION`, closes access, scrubs direct adult identity and attempts an idempotent completion email; successful delivery clears the isolated destination and failure remains retryable. Direct, full-session and booking-series cancellation now reconcile paid/refunded money and expire active Stripe Checkout sessions before final cancellation. This closes earlier implementation defects, but not the full launch gates. Player/UGC/object/backup/provider-revocation policy, production delivery, counsel-approved retention, individual registration cancellation, consolidated/partial refund UX, real-Postgres/Stripe connected-account proof, signed-device E2E, dependency trust and credential rotation remain open.
 
 ### Gate 4 — closed real-money pilot
 
@@ -147,7 +171,7 @@ The audit should use real runtime evidence and E2E tooling, not mark the product
 - Average session price and expected sessions per basket.
 - Expected proportion of club versus independent-coach Suppliers.
 - Expected card mix and refund/cancellation rate.
-- Whether 6% and £99 + 2% prices are inclusive or exclusive of VAT.
+- Founder confirmation that the pilot fee is 6% VAT-inclusive and how any post-pilot price change will be notified.
 - Who funds goodwill refunds and disputes.
 - Minimum payout delay and new-Supplier reserve policy.
 - Whether teen login is commercially necessary.

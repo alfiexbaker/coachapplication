@@ -1,6 +1,10 @@
 # Apple and App Store stance
 
-Policy snapshot: 23 August 2026. Apple's App Review Guidelines reviewed here were last updated 8 June 2026. Apple can change policy and App Review applies it to the submitted build, so recheck before every submission.
+Policy snapshot checked: 8 September 2026. Apple can change policy and App Review applies it to the submitted build, so recheck before every submission.
+
+## Current submission verdict
+
+**No-go.** Stripe is permitted for Clubroom's in-person football sessions under Guideline 3.1.3(e), but the current build is not submission-ready. Before review, hide or correctly monetise priced `VIRTUAL` and `DIGITAL_PRODUCT` offers on iOS; finish associated-data deletion/anonymisation; prove timely human UGC/media moderation; publish final retention/privacy terms; close the child-data assessment; use a production-ready backend; and complete truthful age-rating and privacy answers.
 
 ## What Clubroom may sell outside In-App Purchase
 
@@ -20,6 +24,8 @@ Clubroom's core is unusually clear: in-person coaching is a physical service con
 | Coach/club digital SaaS used in the app | IAP likely unless narrow enterprise/companion exception is accepted | Obtain written App Review clarification |
 
 Do not bundle separately valuable digital content with a physical booking to avoid IAP. A short note/video genuinely incidental to the attended session remains an interpretation question; do not price or market it separately until Apple clarifies.
+
+Current runtime warning: `VIRTUAL` and `DIGITAL_PRODUCT` offerings can still be selected and priced even though Stripe checkout correctly fails closed for non-`IN_PERSON` snapshots. A visible priced offer without a compliant completion path is not submission-ready. Hide these offer types on iOS for launch, or add explicit party-size classification and StoreKit wherever Guidelines 3.1.1 or 3.1.3(d) require it.
 
 No StoreKit external-purchase entitlement or warning screen is needed for a normal physical-service checkout.
 
@@ -55,7 +61,7 @@ That does not remove child privacy or safeguarding duties.
 - Apple's July 2026 classification gives declared social-media capability a minimum 13+ rating.
 - From September 2026, the social-media question is required for new submissions and updates.
 - If Clubroom represents that social features are disabled under 13, it needs the Declared Age Range API at minimum to enforce the choice.
-- A 13+ App Store rating is not Clubroom's age gate; a parent can approve younger access.
+- Clubroom's terms currently require account holders to be 18+. Complete the questionnaire honestly and override to a matching higher rating where Apple requires the published rating to reflect Clubroom's own minimum-age terms. An App Store rating is not permission for an under-18 login; younger Players remain parent-managed profiles without their own accounts.
 
 The simplest launch is parent-managed child profiles, no public social feed and no independent under-13 account.
 
@@ -87,9 +93,9 @@ The flow must:
 - allow the adult to delete a parent-managed child profile;
 - revoke Sign in with Apple tokens if used.
 
-Current runtime status (7 September 2026): the in-app request, stated 30-day window, supervised due-request execution, access closure, direct profile scrubbing, completion-email claim/retry state, and successful-send destination clearing are implemented and tested in their local/API layers. This does not yet satisfy a full-deletion claim because Player records, shared UGC/media, provider tokens, object bytes, backups, counsel-approved retention periods, a public privacy notice and a production email-provider run remain open. Apple allows processing to take time when the user is told the timeframe and notified on completion; Clubroom must not describe the current bounded result as total erasure.
+Current runtime status (8 September 2026): the in-app request, stated 30-day window, supervised due-request execution, access closure, direct profile scrubbing, completion-email claim/retry state, and successful-send destination clearing are implemented and tested in their local/API layers. This does not yet satisfy a full-deletion claim because Player records, associated posts/comments/messages/media, provider tokens, object bytes, backups, counsel-approved retention periods, a final public privacy notice and a production email-provider run remain open. Guideline 5.1.1(v) expects associated user-generated content to be removed unless a specific legal retention duty applies. Clubroom must not describe the current bounded result as total erasure.
 
-Clubroom's own email/password, passkey or magic-link login does not require Sign in with Apple. If Google, Facebook or another primary social login is added, provide an equivalent privacy-preserving option; Sign in with Apple is the safest route.
+Clubroom's current first-party email/password login does not require Sign in with Apple under the company-owned login exception in Guideline 4.8. If Google, Facebook or another primary social login is added, provide an equivalent privacy-preserving option; Sign in with Apple is the safest route and its tokens must be revoked during account deletion.
 
 ## Privacy, permissions and SDKs
 
@@ -122,7 +128,7 @@ For the Expo/React Native release archive:
 
 Prepare:
 
-- stable demo accounts for parent, coach, club admin, guardian and athlete roles;
+- stable demo accounts for each adult launch role, including parent/guardian, coach and club administration, plus a Home containing fictional Player profiles;
 - wholly fictional children, medical data, messages and bookings;
 - seeded Supplier and physical session;
 - complete booking, payment, cancellation and refund states;
@@ -149,6 +155,8 @@ Prepare:
 10. Social login exists without an equivalent privacy-preserving option.
 11. Reviewers cannot reach roles or complete the booking journey.
 12. Demo/screenshot data contains a real child.
+13. The production build exposes priced virtual/digital offers that cannot complete through a compliant payment path.
+14. The in-app privacy notice still contains unresolved or placeholder retention language.
 
 ## How to get someone from Apple involved
 

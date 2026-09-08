@@ -4,6 +4,12 @@
 
 Clubroom is a football-only technology platform that helps independent coaches and clubs publish real-world football services and lets parents, guardians, and eligible athletes discover, book, coordinate, pay for, attend, and evidence those services.
 
+Use this concise public description:
+
+> Clubroom helps independent football coaches and small academies run bookings, payments and player development. Parents use Home to book coaching and see the progress their coach shares. The named coach or club supplies each session; Clubroom provides the platform and arranges card payment through Stripe.
+
+Do not describe Clubroom publicly as a "payment facilitator" until Stripe and FCA counsel approve that term. Do not use unqualified "safe", "trusted" or "DBS verified" claims.
+
 The recommended launch position is:
 
 - **Clubroom’s company:** the provider of the app, marketplace, booking orchestration, payment integration, identity and permission system, communications tools, and platform safety operations.
