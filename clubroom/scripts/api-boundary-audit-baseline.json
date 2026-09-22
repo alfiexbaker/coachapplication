@@ -1,6 +1,0 @@
-{
-  "version": 1,
-  "updatedAt": "2026-06-16T19:26:09.593Z",
-  "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
-  "allowedFindings": []
-}

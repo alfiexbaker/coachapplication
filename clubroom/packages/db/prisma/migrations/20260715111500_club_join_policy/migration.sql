@@ -1,6 +1,0 @@
-ALTER TABLE "Club"
-ADD COLUMN "joinPolicy" TEXT NOT NULL DEFAULT 'INVITE_ONLY';
-
-ALTER TABLE "Club"
-ADD CONSTRAINT "Club_joinPolicy_check"
-CHECK ("joinPolicy" IN ('INVITE_ONLY', 'REQUEST_TO_JOIN', 'OPEN'));

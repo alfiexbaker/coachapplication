@@ -1,4 +1,0 @@
-ALTER TABLE "Club"
-  ADD COLUMN "city" TEXT,
-  ADD COLUMN "country" TEXT,
-  ADD COLUMN "commercialMode" TEXT NOT NULL DEFAULT 'COACH_OWNED';
